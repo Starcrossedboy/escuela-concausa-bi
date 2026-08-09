@@ -305,7 +305,7 @@ Actualiza esta tabla **antes de cada standup**. El PM la revisa para el tablero 
 
 | ID | Historia | Estado | % | Bloqueado por | Fecha compromiso |
 |---|---|---|---|---|---|
-| `US-101` | Disenar el modelo de datos medallon comple | ⬜ Por iniciar | 0% | — | Dom 9 ago |
+| `US-101` | Disenar el modelo de datos medallon comple | ✅ Terminado | 100% | — | Dom 9 ago |
 | `US-102` | Construir el DAG maestro de orquestacion e | ⬜ Por iniciar | 0% | — | Dom 16 ago |
 | `US-103` | Modelar la capa GOLD como esquema estrella | ⬜ Por iniciar | 0% | — | Dom 23 ago |
 | `US-104` | Definir e implementar la tabla de features | ⬜ Por iniciar | 0% | — | Dom 23 ago |

@@ -34,7 +34,7 @@ Tienes historias **acotadas y bien definidas**, pensadas para que aprendas hacie
 | **Recibes de (inputs)** | Requisitos de todas las células · Contrato de API de la **Célula 4** |
 | **Entregas a (outputs)** | **TODAS las células** dependen del ambiente, CI y despliegue. Eres el habilitador. |
 | **Quién revisa tu código** | Luis Téllez Domínguez (Tech Lead, compuerta técnica) → Edgar Coronel (PM, compuerta de proceso) |
-| **Formato de entrega** | Rama `feat/alejandro-mendoza-...` → PR con plantilla completa → 2 aprobaciones → merge a `main` |
+| **Formato de entrega** | Rama `feat/alejandro-mendoza-...` → PR con plantilla completa → 1 aprobación (PM) → merge a `main` |
 
 > **Regla de desbloqueo:** si un input tuyo no llega a tiempo, **no te quedes esperando**. Trabaja contra
 > datos mock o fixtures, avísalo en el standup y registra el bloqueo. Un bloqueo silencioso de 3 días

@@ -49,10 +49,10 @@
 
 ---
 
-## Aprobación — doble compuerta
+## Aprobación — compuerta única (PM · DEC-003)
 
-**Compuerta 1 · Técnica** — Tech Lead del área
-- [ ] Resuelve lo que dice la historia · no rompe nada · convenciones OK · pruebas suficientes
-
-**Compuerta 2 · Proceso** — @edgarcoroneln (PM)
+**Aprobación obligatoria · Proceso + trazabilidad** — @edgarcoroneln (PM)
 - [ ] CI verde · plantilla completa · IDs · DevLog · Definition of Filed · matriz actualizada
+
+**Revisión técnica de apoyo (no bloqueante)** — Tech Lead del área
+- [ ] Solicité su revisión con *Reviewers* si el cambio toca su área (resuelve la historia · no rompe nada · convenciones OK · pruebas suficientes)

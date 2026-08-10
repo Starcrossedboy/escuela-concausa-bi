@@ -109,10 +109,10 @@ Esto modifica `~/.docker/config.json` para autenticarse automáticamente.
 cd /Users/luistellez/Documents/BI/escuela-concausa-bi
 
 # Build y push con tag específico
-./infra/build-and-push.sh v0.1.0-s1
+./08_CICD_DevOps/scripts/build-and-push.sh v0.1.0-s1
 
 # O con el tag latest (por defecto)
-./infra/build-and-push.sh
+./08_CICD_DevOps/scripts/build-and-push.sh
 ```
 
 **¿Qué hace el script?**
@@ -148,10 +148,10 @@ docker buildx build --platform linux/amd64 \
 
 ```bash
 # Deploy con tag específico
-./infra/deploy-cloud-run.sh v0.1.0-s1
+./08_CICD_DevOps/scripts/deploy-cloud-run.sh v0.1.0-s1
 
 # O con latest (por defecto)
-./infra/deploy-cloud-run.sh
+./08_CICD_DevOps/scripts/deploy-cloud-run.sh
 ```
 
 ### 4.2 Comando manual
@@ -272,10 +272,10 @@ Ve a: https://console.cloud.google.com/billing/budgets
 
 ```bash
 # 1. Build nueva imagen con nuevo tag
-./infra/build-and-push.sh v0.2.0
+./08_CICD_DevOps/scripts/build-and-push.sh v0.2.0
 
 # 2. Deploy nueva versión
-./infra/deploy-cloud-run.sh v0.2.0
+./08_CICD_DevOps/scripts/deploy-cloud-run.sh v0.2.0
 
 # 3. Cloud Run hace rolling update automáticamente
 # (0 downtime)
@@ -422,8 +422,8 @@ gcloud run services update faro-api \
 - [Cloud Run Best Practices](https://cloud.google.com/run/docs/best-practices)
 - [Artifact Registry Documentation](https://cloud.google.com/artifact-registry/docs)
 - [[03_Architecture/System_Design]] — Diseño completo del sistema
-- [[infra/build-and-push.sh]] — Script de build y push
-- [[infra/deploy-cloud-run.sh]] — Script de deploy
+- [build-and-push.sh](scripts/build-and-push.sh) — Script de build y push
+- [deploy-cloud-run.sh](scripts/deploy-cloud-run.sh) — Script de deploy
 
 ---
 

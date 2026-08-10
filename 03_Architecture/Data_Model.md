@@ -2,12 +2,12 @@
 id: DOC-DATAMODEL
 title: "Data Model — Arquitectura Medallón FARO"
 owner: "Diana Aracely Alvarez Varela"
-status: in_review
+status: approved
 version: "1.0"
 source_of_truth: true
 traces_up: ["REQ-001", "01_Product/PRD"]
 traces_down: ["US-101", "US-103", "US-104", "US-111", "US-112"]
-last_reviewed: "2026-08-03"
+last_reviewed: "2026-08-08"
 tags: [architecture, data, medallon, gold]
 ---
 
@@ -98,7 +98,7 @@ erDiagram
   dim_escuela   ||--o{ fact_escuela_ciclo : cct
   dim_municipio ||--o{ fact_escuela_ciclo : cve_mun
   dim_tiempo    ||--o{ fact_escuela_ciclo : id_ciclo
-  dim_driver    ||--o{ fact_escuela_ciclo : driver_dominante
+  dim_driver    ||--o{ recomendaciones : driver_dominante
   fact_escuela_ciclo ||--o{ predicciones : "cct,id_ciclo"
   fact_escuela_ciclo ||--o{ recomendaciones : "cct,id_ciclo"
   fact_escuela_ciclo ||--|| features_escuela : "cct,id_ciclo"
@@ -106,11 +106,14 @@ erDiagram
 
 ### 4.1 `gold.fact_escuela_ciclo` — hecho central
 - **Grano:** una fila por **CCT × ciclo escolar**.
-- **Llaves foráneas:** `cct` → `dim_escuela`, `id_ciclo` → `dim_tiempo`, `cve_mun` → `dim_municipio`,
-  `driver_dominante` → `dim_driver`.
-- **Métricas:** `matricula_total`, `variacion_matricula`, `indice_riesgo`,
-  `indice_completitud_drivers`, y los seis scores de driver `d1`…`d6` (cada uno con su bandera de
-  cobertura `d#_cobertura`).
+- **Llaves foráneas:** `cct` → `dim_escuela`, `id_ciclo` → `dim_tiempo`, `cve_mun` → `dim_municipio`.
+- **Métricas:** `matricula_total`, `variacion_matricula`, `indice_completitud_drivers`, y los seis
+  scores de driver `d1`…`d6` (cada uno con su bandera de cobertura `d#_cobertura`).
+- **Principio de diseño:** esta tabla contiene únicamente **hechos observados**, disponibles desde
+  Silver sin depender de ningún modelo. Las salidas de ML (`indice_riesgo` en `gold.predicciones`,
+  `driver_dominante` en `gold.recomendaciones`) **no viven aquí** — se consultan vía `JOIN` por
+  `cct, id_ciclo` al construir los cubos de Superset (§4.3). Esto evita duplicar la misma información
+  en tres tablas y desacopla la entrega de esta historia (S1/S3) del sprint de ML (S4).
 
 ### 4.2 Dimensiones
 - **`dim_escuela`** — `cct` (PK), `nombre`, `nivel`, `sostenimiento`, `latitud`, `longitud`,
@@ -177,9 +180,7 @@ class FactEscuelaCiclo(BaseModel):
     cve_mun: StrictStr = Field(min_length=5, max_length=5)
     matricula_total: StrictInt = Field(ge=0)
     variacion_matricula: StrictFloat
-    indice_riesgo: StrictFloat = Field(ge=0, le=1)
     indice_completitud_drivers: StrictFloat = Field(ge=0, le=1)
-    driver_dominante: StrictStr                # "D1".."D6"
 ```
 
 ### 5.2 Pydantic en la INGESTA vs Great Expectations por CAPA (complementarios)
@@ -246,11 +247,13 @@ class Settings(BaseSettings):
 | `cve_mun` | str(5) | Clave INEGI municipio | DS-02 | No |
 | `matricula_total` | int | Matrícula del ciclo | DS-01 | No |
 | `variacion_matricula` | float | Δ vs ciclo anterior | derivado | No |
-| `indice_riesgo` | float[0,1] | Riesgo predicho (ML-01) | `gold.predicciones` | No |
-| `driver_dominante` | str(D1–D6) | Driver que explica el riesgo (ML-02) | `gold.predicciones` | No |
 | `indice_completitud_drivers` | float[0,1] | Fracción de drivers observados | derivado | No |
 | `d1`…`d6` | float\|SIN_DATO | Score por driver | Silver | Sí (centinela `SIN_DATO`) |
 | `d1_cobertura`…`d6_cobertura` | enum | OK / SIN_DATO | derivado | No |
+
+> **Nota:** `indice_riesgo` vive en `gold.predicciones` (columna `valor`, `modelo = 'ML-01'`) y
+> `driver_dominante` vive en `gold.recomendaciones`. Se consultan por `JOIN` con `cct, id_ciclo`,
+> no se duplican aquí (ver §4.1).
 
 ### `gold.dim_escuela`
 | Columna | Tipo | Descripción | Origen | Nulos |

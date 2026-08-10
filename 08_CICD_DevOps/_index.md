@@ -12,6 +12,7 @@ tags: [moc, cicd, devops]
 
 | Documento | Contenido |
 |---|---|
+| [[08_CICD_DevOps/Cloud_Run_Deploy]] | ✅ Procedimiento de deploy a Cloud Run (US-501, Sprint 1) |
 | [[08_CICD_DevOps/CI_Quality_Gates]] | Gates automáticos que bloquean merge/deploy |
 | [[08_CICD_DevOps/Deployment_Guide]] | Cómo se despliega |
 | [[08_CICD_DevOps/Release_Checklist]] | Checklist pre-release |

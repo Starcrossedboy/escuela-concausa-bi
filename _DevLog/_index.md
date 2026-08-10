@@ -33,6 +33,7 @@ Toda sesión con IA **debe** generar una entrada de DevLog **antes del push** (p
 | [[_DevLog/2026-08-07-diana-alvarez-data-model-us101\|2026-08-07]] | Revisión crítica de Data_Model.md: separación de hechos observados y salidas ML en fact_escuela_ciclo | Diana Aracely Alvarez Varela | Claude / sonnet-5 | US-101 |
 | [[_DevLog/2026-08-08-hector-morales-fixture-particion-temporal\|2026-08-08]] | Ambiente C3, revisión del onboarding (6 defectos reportados) y andamiaje de US-311: fixture simulado, partición temporal con backtesting y las primeras 15 pruebas del repo | Héctor Rafael Morales Marbán | Claude Code / opus-5 | US-311, REQ-003, TEST-003, DOC-ONBOARD |
 | [[_DevLog/2026-08-09-edgar-compuerta-unica-aprobacion\|2026-08-09]] | Cambio de política de aprobación de PR: de doble compuerta (2) a compuerta única (1, el PM); CODEOWNERS, ruleset, Branching_Strategy, onboarding y 21 planes | Edgar Edmundo Coronel Navarrete | Claude Code / opus-4-8 | DEC-003, DOC-DECLOG, DOC-ONBOARD, US-004, REQ-007 |
+| [[_DevLog/2026-08-10-edgar-pm-dashboard-check-siempre-corre\|2026-08-10]] | Fix de CI: el check obligatorio "Generar y validar tablero PM" corre en todos los PR (se quita el filtro paths); desbloquea PR de código puro | Edgar Edmundo Coronel Navarrete | Claude Code / opus-4-8 | US-004, REQ-007, ENG-BRANCHING |
 
 ## Campos del frontmatter
 | Campo | Obligatorio |

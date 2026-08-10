@@ -82,3 +82,6 @@ Célula 5.
 ## 5. Flujo de trabajo (resumen)
 Rama `feat/...` → commits → PR con template → CI verde + **2 aprobaciones** → merge.
 Nunca push directo a la rama protegida. Toda sesión con IA → DevLog.
+
+## 6. Integrantes que completaron onboarding
+- Deni Garrido Fragoso (`dgdeni`)

@@ -697,15 +697,19 @@ def build_snapshot(root: Path) -> dict[str, Any]:
     pending = build_pending(stories, cur_sprint)
     prd_compliance = build_prd_compliance(rubric)
     source_ready = sum(source["proof"] == "ok" for source in sources)
+    done_ids = {story["id"] for story in stories if story["status"] == "done"}
+    req_done = lambda req, n=1: sum(s["status"] == "done" and s["req"] == req for s in stories) >= n
+    any_done = lambda *ids: any(i in done_ids for i in ids)
+    # Los gates se derivan del estado real de las US; se encienden solas al cerrar su evidencia.
     critical_gates = [
-        {"name": "URL pública y healthcheck", "ready": False, "weight": 15, "evidence": "US-501"},
+        {"name": "URL pública y healthcheck", "ready": "US-501" in done_ids, "weight": 15, "evidence": "US-501"},
         {"name": "≥5 fuentes y una continua", "ready": source_ready >= 5, "weight": 15, "evidence": "DS-01…08"},
-        {"name": "Bronze/Silver/Gold + calidad", "ready": False, "weight": 15, "evidence": "REQ-001"},
-        {"name": "Tres modelos registrados", "ready": False, "weight": 15, "evidence": "REQ-003"},
-        {"name": "API, OAuth2 y RBAC", "ready": False, "weight": 10, "evidence": "REQ-004"},
-        {"name": "Diez dashboards funcionales", "ready": False, "weight": 10, "evidence": "REQ-002"},
-        {"name": "Agente evaluado", "ready": False, "weight": 10, "evidence": "REQ-006"},
-        {"name": "Dry-run y contingencia", "ready": False, "weight": 10, "evidence": "US-006"},
+        {"name": "Bronze/Silver/Gold + calidad", "ready": any_done("US-103", "US-104"), "weight": 15, "evidence": "REQ-001"},
+        {"name": "Tres modelos registrados", "ready": req_done("REQ-003", 3) and any_done("US-312", "US-313"), "weight": 15, "evidence": "REQ-003"},
+        {"name": "API, OAuth2 y RBAC", "ready": "US-401" in done_ids and any_done("US-402", "US-403"), "weight": 10, "evidence": "REQ-004"},
+        {"name": "Diez dashboards funcionales", "ready": any_done("US-203", "US-204"), "weight": 10, "evidence": "REQ-002"},
+        {"name": "Agente evaluado", "ready": any_done("US-323", "US-304a", "US-304b"), "weight": 10, "evidence": "REQ-006"},
+        {"name": "Dry-run y contingencia", "ready": "US-006" in done_ids, "weight": 10, "evidence": "US-006"},
     ]
     readiness = sum(gate["weight"] for gate in critical_gates if gate["ready"])
     confidence = max(0, readiness - 5 * len([b for b in blockers if b["status"] != "resolved"]))

@@ -1,9 +1,9 @@
 {
   "meta": {
-    "generated_at": "2026-08-11T17:35:08+00:00",
+    "generated_at": "2026-08-11T17:47:42+00:00",
     "generated_date": "2026-08-11",
-    "commit": "6dd3f86",
-    "branch": "feat/edgar-dashboard-ejecutivo-360",
+    "commit": "7678802",
+    "branch": "main",
     "working_tree": "modified",
     "source_fingerprint": "48d816f84e45",
     "source": "Fuentes canónicas del vault",
@@ -4313,12 +4313,12 @@
     }
   ],
   "readiness": {
-    "score": 0,
-    "confidence": 0,
+    "score": 15,
+    "confidence": 15,
     "gates": [
       {
         "name": "URL pública y healthcheck",
-        "ready": false,
+        "ready": true,
         "weight": 15,
         "evidence": "US-501"
       },

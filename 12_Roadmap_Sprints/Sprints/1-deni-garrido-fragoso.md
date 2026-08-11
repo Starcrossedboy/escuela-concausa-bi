@@ -34,7 +34,7 @@ Tienes historias de **complejidad intermedia con autonomía**. Implementas pieza
 | **Recibes de (inputs)** | Fuentes públicas (externas) · Ambiente y Postgres de la **Célula 5** |
 | **Entregas a (outputs)** | **Célula 2** (cubos para Superset) · **Célula 3** (tabla de features) · **Célula 4** (endpoints de datos) |
 | **Quién revisa tu código** | Diana Aracely Alvarez Varela (Tech Lead, compuerta técnica) → Edgar Coronel (PM, compuerta de proceso) |
-| **Formato de entrega** | Rama `feat/deni-fragoso-...` → PR con plantilla completa → 2 aprobaciones → merge a `main` |
+| **Formato de entrega** | Rama `feat/deni-fragoso-...` → PR con plantilla completa → 1 aprobación (PM) → merge a `main` |
 
 > **Regla de desbloqueo:** si un input tuyo no llega a tiempo, **no te quedes esperando**. Trabaja contra
 > datos mock o fixtures, avísalo en el standup y registra el bloqueo. Un bloqueo silencioso de 3 días

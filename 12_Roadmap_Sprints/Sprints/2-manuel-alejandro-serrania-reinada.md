@@ -34,7 +34,7 @@ Tienes asignadas las historias de **mayor complejidad técnica y de diseño**. A
 | **Recibes de (inputs)** | Capa **Gold** y cubos de la **Célula 1** · Endpoints de la **Célula 4** · Predicciones de la **Célula 3** |
 | **Entregas a (outputs)** | Dashboard final para el pitch · Manual de usuario |
 | **Quién revisa tu código** | Edgar Edmundo Coronel Navarrete (PM) — compuerta técnica y de proceso |
-| **Formato de entrega** | Rama `feat/manuel-reinada-...` → PR con plantilla completa → 2 aprobaciones → merge a `main` |
+| **Formato de entrega** | Rama `feat/manuel-reinada-...` → PR con plantilla completa → 1 aprobación (PM) → merge a `main` |
 
 > **Regla de desbloqueo:** si un input tuyo no llega a tiempo, **no te quedes esperando**. Trabaja contra
 > datos mock o fixtures, avísalo en el standup y registra el bloqueo. Un bloqueo silencioso de 3 días
@@ -305,7 +305,7 @@ Actualiza esta tabla **antes de cada standup**. El PM la revisa para el tablero 
 
 | ID | Historia | Estado | % | Bloqueado por | Fecha compromiso |
 |---|---|---|---|---|---|
-| `US-201` | Disenar el portafolio de 10 dashboards y e | ⬜ Por iniciar | 0% | — | Dom 9 ago |
+| `US-201` | Disenar el portafolio de 10 dashboards y e | 🔵 En revisión | 100% | — | Dom 9 ago |
 | `US-202` | Configurar Superset: conexion, datasets y  | ⬜ Por iniciar | 0% | — | Dom 23 ago |
 | `US-203` | Construir DB-01 Ejecutivo y DB-02 Mapa de  | ⬜ Por iniciar | 0% | — | Dom 30 ago |
 | `US-204` | Construir DB-06 Predicciones y DB-09 Recom | ⬜ Por iniciar | 0% | — | Dom 30 ago |

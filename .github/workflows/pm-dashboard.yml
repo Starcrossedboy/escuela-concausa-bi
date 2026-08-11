@@ -2,20 +2,16 @@ name: PM Dashboard
 
 # Revisión obligatoria: Célula 5 (Cloud & DevOps).
 # Genera un artefacto descargable; no hace commit ni push directo a main.
+#
+# Este check es REQUERIDO por el ruleset de `main`. Por eso el disparador de
+# pull_request NO lleva filtro de `paths`: debe correr en TODOS los PR para que
+# el estado siempre se reporte; si estuviera filtrado por rutas, cualquier PR
+# que no tocara esas rutas dejaría el check en "pending" y bloquearía el merge.
+# El job regenera desde fuentes canónicas (intactas en cualquier rama), así que
+# pasa aunque el PR no toque el tablero.
 on:
   pull_request:
     branches: [main]
-    paths:
-      - '00_Start_Here/Developer_Onboarding.md'
-      - '02_Requirements/**'
-      - '05_Engineering/Definition_of_Done.md'
-      - '10_Risk_Governance/**'
-      - '12_Roadmap_Sprints/**'
-      - '13_Reports/**'
-      - '14_Data_Sources/**'
-      - '_Meta/scripts/*pm_dashboard.py'
-      - '_Meta/scripts/collect_github_activity.py'
-      - '.github/workflows/pm-dashboard.yml'
   push:
     branches: [main]
     paths:

@@ -1,24 +1,24 @@
 {
   "meta": {
-    "generated_at": "2026-08-11T17:26:33+00:00",
+    "generated_at": "2026-08-11T17:35:08+00:00",
     "generated_date": "2026-08-11",
-    "commit": "3c631aa",
+    "commit": "6dd3f86",
     "branch": "feat/edgar-dashboard-ejecutivo-360",
     "working_tree": "modified",
-    "source_fingerprint": "c592dc089fb6",
+    "source_fingerprint": "48d816f84e45",
     "source": "Fuentes canónicas del vault",
     "offline": true,
     "schema_version": "2.3"
   },
   "summary": {
     "total": 91,
-    "done": 8,
+    "done": 9,
     "planned": 76,
     "in_progress": 5,
-    "in_review": 2,
+    "in_review": 1,
     "blocked": 0,
-    "wip": 7,
-    "progress": 12.1,
+    "wip": 6,
+    "progress": 12.5,
     "days_to_demo": 29
   },
   "delivery": {
@@ -1005,11 +1005,11 @@
       "sprint": "S1",
       "req": "REQ-004",
       "cell": "Célula 4 · Backend, API & Seguridad",
-      "status": "in_review",
+      "status": "done",
       "started": "2026-08-03",
       "blocked_since": "—",
-      "evidence": "03_Architecture/API_Specification",
-      "updated": "2026-08-05",
+      "evidence": "03_Architecture/API_Specification · api/openapi.v1.json · _DevLog/2026-08-11-christian-ruiz-us401-contrato-api · PR #19 (18 pruebas de contrato)",
+      "updated": "2026-08-11",
       "objective": "Especificacion de TODOS los endpoints ANTES de construir, para que las Celulas 2 y 3 trabajen en paralelo con mocks. Va a 03_Architecture/API_Specification.md.",
       "deliverable": "Código en su carpeta + documento en el vault con frontmatter + fila en la matriz",
       "age_days": 8
@@ -1694,10 +1694,10 @@
       "pr_open": 0,
       "pr_merged": 0,
       "stories": 5,
-      "done": 0,
-      "wip": 2,
+      "done": 1,
+      "wip": 1,
       "blocked": 0,
-      "progress": 20.0
+      "progress": 27.0
     },
     {
       "name": "Deni Garrido Fragoso",
@@ -2278,10 +2278,10 @@
         "Karla Alejandra Monter Benitez"
       ],
       "stories": 14,
-      "done": 0,
-      "wip": 2,
+      "done": 1,
+      "wip": 1,
       "blocked": 0,
-      "progress": 7.1
+      "progress": 9.6
     },
     {
       "name": "Célula 5 · Cloud Infrastructure & DevOps",
@@ -2334,10 +2334,10 @@
       "name": "Backend/API/Auth",
       "points": 1.5,
       "stories": 14,
-      "done": 0,
-      "progress": 7.1,
-      "secured_points": 0.11,
-      "band": "red"
+      "done": 1,
+      "progress": 9.6,
+      "secured_points": 0.14,
+      "band": "amber"
     },
     {
       "req": "REQ-005",
@@ -2702,6 +2702,47 @@
         }
       },
       {
+        "name": "Christian Imanol Ruiz Hurtado",
+        "cell": "Célula 4",
+        "engagement": 27.0,
+        "commits": 0,
+        "prs_merged": 0,
+        "prs_open": 0,
+        "risk": "en_tiempo",
+        "by_sprint": {
+          "S1": {
+            "n": 1,
+            "done": 1,
+            "state": "done"
+          },
+          "S2": {
+            "n": 0,
+            "done": 0,
+            "state": "idle"
+          },
+          "S3": {
+            "n": 0,
+            "done": 0,
+            "state": "idle"
+          },
+          "S4": {
+            "n": 3,
+            "done": 0,
+            "state": "wip"
+          },
+          "S5": {
+            "n": 1,
+            "done": 0,
+            "state": "planned"
+          },
+          "S6": {
+            "n": 0,
+            "done": 0,
+            "state": "idle"
+          }
+        }
+      },
+      {
         "name": "Manuel Alejandro Serranía Reinada",
         "cell": "Célula 2",
         "engagement": 22.5,
@@ -2724,47 +2765,6 @@
             "n": 1,
             "done": 0,
             "state": "planned"
-          },
-          "S4": {
-            "n": 3,
-            "done": 0,
-            "state": "wip"
-          },
-          "S5": {
-            "n": 1,
-            "done": 0,
-            "state": "planned"
-          },
-          "S6": {
-            "n": 0,
-            "done": 0,
-            "state": "idle"
-          }
-        }
-      },
-      {
-        "name": "Christian Imanol Ruiz Hurtado",
-        "cell": "Célula 4",
-        "engagement": 20.0,
-        "commits": 0,
-        "prs_merged": 0,
-        "prs_open": 0,
-        "risk": "en_tiempo",
-        "by_sprint": {
-          "S1": {
-            "n": 1,
-            "done": 0,
-            "state": "wip"
-          },
-          "S2": {
-            "n": 0,
-            "done": 0,
-            "state": "idle"
-          },
-          "S3": {
-            "n": 0,
-            "done": 0,
-            "state": "idle"
           },
           "S4": {
             "n": 3,
@@ -3477,15 +3477,6 @@
       "sprint": "S1",
       "status": "planned",
       "su_turno": true
-    },
-    {
-      "id": "US-401",
-      "objective": "Especificacion de TODOS los endpoints ANTES de construir, para que las Celulas 2 y 3 trabajen en paralelo con mocks. Va a 03_Architecture/API_Specification.md.",
-      "owner": "Christian Imanol Ruiz Hurtado",
-      "cell": "Célula 4 · Backend, API & Seguridad",
-      "sprint": "S1",
-      "status": "in_review",
-      "su_turno": false
     },
     {
       "id": "US-521b",
@@ -4229,7 +4220,7 @@
       "design": "Cubierto",
       "exec_band": "amber",
       "exec_label": "Iniciado",
-      "progress": 7.1
+      "progress": 9.6
     },
     {
       "criterion": "5 · Deploy GCP + Docker + URL",
@@ -4447,11 +4438,11 @@
     },
     {
       "date": "2026-08-11",
-      "remaining": 83,
-      "weighted_remaining": 80.0,
-      "done": 8,
+      "remaining": 82,
+      "weighted_remaining": 79.6,
+      "done": 9,
       "scope": 91,
-      "wip": 7,
+      "wip": 6,
       "blocked": 0
     }
   ]

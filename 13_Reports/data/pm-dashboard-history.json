@@ -33,11 +33,11 @@
   },
   {
     "date": "2026-08-11",
-    "remaining": 83,
-    "weighted_remaining": 80.0,
-    "done": 8,
+    "remaining": 82,
+    "weighted_remaining": 79.6,
+    "done": 9,
     "scope": 91,
-    "wip": 7,
+    "wip": 6,
     "blocked": 0
   }
 ]

@@ -23,3 +23,4 @@ tags: [moc, meta]
 | `scripts/generate_pm_dashboard.py` | Genera el snapshot y HTML PM desde fuentes canónicas |
 | `scripts/validate_pm_dashboard.py` | `TEST-002`: valida IDs, cobertura, estados y vistas del tablero |
 | `scripts/collect_github_activity.py` | Recopila PR/CI agregado en Actions; no modifica estados de US |
+* [[US-521b-guia-ambiente-local]] - Guía de ambiente local reproducible

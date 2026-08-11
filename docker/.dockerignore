@@ -1,0 +1,48 @@
+# FARO - Docker ignore
+# Excluir archivos innecesarios del build context
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+.venv/
+venv/
+ENV/
+env/
+
+# Git
+.git/
+.github/
+.gitignore
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Datos y tests
+data/
+tests/
+notebooks/
+graphify-out/
+
+# Documentación (excepto README)
+*.md
+!README.md
+
+# Configuración local
+.env
+.env.*
+!.env.example
+
+# macOS
+.DS_Store
+
+# Temporal
+*.log
+*.tmp
+/tmp/

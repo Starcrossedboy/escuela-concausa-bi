@@ -290,21 +290,26 @@ def parse_risks(root: Path) -> list[dict[str, Any]]:
     rows = parse_markdown_rows(
         root / "10_Risk_Governance/Risk_Register.md", r"RISK-\d{3}", 9
     )
-    return [
-        {
-            "id": row[0],
-            "description": row[1],
-            "probability": int(row[2]),
-            "impact": int(row[3]),
-            "score": int(row[2]) * int(row[3]),
-            "response": row[4],
-            "mitigation": row[5],
-            "trigger": row[6],
-            "owner": row[7],
-            "status": row[8],
-        }
-        for row in rows
-    ]
+    risks: list[dict[str, Any]] = []
+    for row in rows:
+        story_ids = sorted(set(re.findall(r"US-\d{3}[a-z]?", row[9]))) if len(row) > 9 else []
+        risks.append(
+            {
+                "id": row[0],
+                "description": row[1],
+                "probability": int(row[2]),
+                "impact": int(row[3]),
+                "score": int(row[2]) * int(row[3]),
+                "response": row[4],
+                "mitigation": row[5],
+                "trigger": row[6],
+                "owner": row[7],
+                "status": row[8],
+                "stories": story_ids,
+                "mitigation_date": clean(row[10]) if len(row) > 10 else "—",
+            }
+        )
+    return risks
 
 
 def parse_blockers(root: Path) -> list[dict[str, str]]:
@@ -385,6 +390,12 @@ def parse_rubric(stories: list[dict[str, Any]]) -> list[dict[str, Any]]:
     for req, (name, value) in points.items():
         items = grouped[req]
         progress = sum(STATE_WEIGHT[item["status"]] for item in items) / len(items)
+        pct = round(progress * 100, 1)
+        done_count = sum(item["status"] == "done" for item in items)
+        band = "green" if pct >= 40 else "amber" if pct >= 8 else "red"
+        # REQ-005: la URL pública viva es el hito crítico; si ya hay entrega, va en verde.
+        if req == "REQ-005" and done_count:
+            band = "green"
         result.append(
             {
                 "req": req,
@@ -392,8 +403,9 @@ def parse_rubric(stories: list[dict[str, Any]]) -> list[dict[str, Any]]:
                 "points": value,
                 "stories": len(items),
                 "done": sum(item["status"] == "done" for item in items),
-                "progress": round(progress * 100, 1),
+                "progress": pct,
                 "secured_points": round(value * progress, 2),
+                "band": band,
             }
         )
     return result
@@ -411,6 +423,7 @@ def build_history(root: Path, summary: dict[str, Any]) -> list[dict[str, Any]]:
     point = {
         "date": today,
         "remaining": summary["total"] - summary["done"],
+        "weighted_remaining": round(summary["total"] * (1 - summary["progress"] / 100), 1),
         "done": summary["done"],
         "scope": summary["total"],
         "wip": summary["wip"],
@@ -419,6 +432,149 @@ def build_history(root: Path, summary: dict[str, Any]) -> list[dict[str, Any]]:
     history = [item for item in history if item.get("date") != today]
     history.append(point)
     return sorted(history, key=lambda item: item["date"])
+
+
+SPRINT_ORDER = {sid: idx for idx, sid in enumerate(SPRINT_DATES, start=1)}
+
+
+def current_sprint(today: date) -> str:
+    for sid, (start, end) in SPRINT_DATES.items():
+        if date.fromisoformat(start) <= today <= date.fromisoformat(end):
+            return sid
+    if today < date.fromisoformat(next(iter(SPRINT_DATES.values()))[0]):
+        return next(iter(SPRINT_DATES))
+    return list(SPRINT_DATES)[-1]
+
+
+def build_performance(
+    stories: list[dict[str, Any]],
+    people: list[dict[str, Any]],
+    git_activity: dict[str, Any],
+    cur_sprint: str,
+) -> dict[str, Any]:
+    """Performance y engagement por integrante × sprint (US + estatus + commits/PRs)."""
+    prs_by: dict[str, dict[str, int]] = defaultdict(lambda: {"open": 0, "merged": 0})
+    for pr in git_activity.get("prs", []):
+        author = str(pr.get("author", "")).casefold()
+        state = pr.get("state")
+        if state in ("open", "merged"):
+            prs_by[author][state] += 1
+    commits_by = {
+        str(c.get("author", "")).casefold(): int(c.get("count", 0))
+        for c in git_activity.get("commits", [])
+    }
+    by_owner: dict[str, list[dict[str, Any]]] = defaultdict(list)
+    for story in stories:
+        by_owner[story["owner"]].append(story)
+    sprint_ids = list(SPRINT_DATES)
+    cur_order = SPRINT_ORDER[cur_sprint]
+    rows: list[dict[str, Any]] = []
+    for person in people:
+        owner = person["name"]
+        gh = (person.get("github_user") or "").casefold()
+        items = by_owner.get(owner, [])
+        by_sprint: dict[str, dict[str, Any]] = {}
+        overdue = False
+        for sid in sprint_ids:
+            sit = [s for s in items if str(s.get("sprint")) == sid]
+            if not sit:
+                by_sprint[sid] = {"n": 0, "done": 0, "state": "idle"}
+                continue
+            done = sum(s["status"] == "done" for s in sit)
+            wip = sum(s["status"] in {"in_progress", "in_review"} for s in sit)
+            planned = sum(s["status"] == "planned" for s in sit)
+            if done == len(sit):
+                state = "done"
+            elif wip:
+                state = "wip"
+            elif planned and SPRINT_ORDER[sid] <= cur_order:
+                state = "risk"
+                overdue = True
+            elif done:
+                state = "partial"
+            else:
+                state = "planned"
+            by_sprint[sid] = {"n": len(sit), "done": done, "state": state}
+        risk = "retraso" if overdue else ("sin_turno" if person["progress"] == 0 else "en_tiempo")
+        rows.append(
+            {
+                "name": owner,
+                "cell": person.get("cell", ""),
+                "engagement": person["progress"],
+                "commits": commits_by.get(gh, 0) if gh else 0,
+                "prs_merged": prs_by.get(gh, {}).get("merged", 0) if gh else 0,
+                "prs_open": prs_by.get(gh, {}).get("open", 0) if gh else 0,
+                "risk": risk,
+                "by_sprint": by_sprint,
+            }
+        )
+    rows.sort(key=lambda r: -r["engagement"])
+    return {"sprints": sprint_ids, "current_sprint": cur_sprint, "people": rows}
+
+
+def build_pending(stories: list[dict[str, Any]], cur_sprint: str) -> list[dict[str, Any]]:
+    """US no terminadas, con responsable, célula, sprint y bandera de turno."""
+    cur_order = SPRINT_ORDER.get(cur_sprint, 1)
+    out: list[dict[str, Any]] = []
+    for story in stories:
+        if story["status"] == "done":
+            continue
+        sid = str(story.get("sprint"))
+        su_turno = story["status"] == "planned" and SPRINT_ORDER.get(sid, 99) <= cur_order
+        out.append(
+            {
+                "id": story["id"],
+                "objective": story.get("objective", story.get("title", "")),
+                "owner": story["owner"],
+                "cell": story.get("cell", ""),
+                "sprint": sid,
+                "status": story["status"],
+                "su_turno": su_turno,
+            }
+        )
+    out.sort(key=lambda r: (SPRINT_ORDER.get(r["sprint"], 99), not r["su_turno"], r["id"]))
+    return out
+
+
+PRD_CRITERIA = [
+    ("1 · Data Engineering multi-fuente", 2.5, "REQ-001", "PRD §7 · §10"),
+    ("2 · Frontend BI interactivo", 2.5, "REQ-002", "PRD §12 · §12.1"),
+    ("3 · Tres modelos ML vía API", 1.5, "REQ-003", "PRD §11"),
+    ("4 · Backend + Auth OAuth2/RBAC", 1.5, "REQ-004", "PRD §13-8"),
+    ("5 · Deploy GCP + Docker + URL", 1.0, "REQ-005", "PRD §10 · §13-9"),
+    ("6 · Agente conversacional", 0.5, "REQ-006", "PRD §12.1"),
+    ("7 · Equipo, Git & Docs", 0.5, "REQ-007", "Vault + README"),
+]
+
+
+def build_prd_compliance(rubric: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """Cruza los 7 criterios del profesor (PRD-GENERAL) con la cobertura del proyecto."""
+    by_req = {item["req"]: item for item in rubric}
+    out: list[dict[str, Any]] = []
+    for label, points, req, ref in PRD_CRITERIA:
+        prog = by_req.get(req, {}).get("progress", 0.0)
+        done = by_req.get(req, {}).get("done", 0)
+        if prog >= 40 or (req == "REQ-005" and done):
+            exec_band, exec_label = "green", "En ejecución"
+        elif prog > 0:
+            exec_band, exec_label = "amber", "Iniciado"
+        else:
+            exec_band, exec_label = "red", "Sin iniciar"
+        if req == "REQ-005" and done:
+            exec_label = "URL pública viva"
+        out.append(
+            {
+                "criterion": label,
+                "points": points,
+                "req": req,
+                "reference": ref,
+                "design": "Cubierto",
+                "exec_band": exec_band,
+                "exec_label": exec_label,
+                "progress": prog,
+            }
+        )
+    return out
 
 
 def build_snapshot(root: Path) -> dict[str, Any]:
@@ -536,6 +692,10 @@ def build_snapshot(root: Path) -> dict[str, Any]:
     sources = parse_sources(root)
     blockers = parse_blockers(root)
     risks = parse_risks(root)
+    cur_sprint = current_sprint(today)
+    performance = build_performance(stories, people, git_activity, cur_sprint)
+    pending = build_pending(stories, cur_sprint)
+    prd_compliance = build_prd_compliance(rubric)
     source_ready = sum(source["proof"] == "ok" for source in sources)
     critical_gates = [
         {"name": "URL pública y healthcheck", "ready": False, "weight": 15, "evidence": "US-501"},
@@ -568,7 +728,7 @@ def build_snapshot(root: Path) -> dict[str, Any]:
             "source_fingerprint": source_fingerprint(root),
             "source": "Fuentes canónicas del vault",
             "offline": True,
-            "schema_version": "2.2",
+            "schema_version": "2.3",
         },
         "summary": summary,
         "delivery": delivery,
@@ -579,6 +739,10 @@ def build_snapshot(root: Path) -> dict[str, Any]:
         "sources": sources,
         "risks": risks,
         "blockers": blockers,
+        "performance": performance,
+        "pending": pending,
+        "prd_compliance": prd_compliance,
+        "current_sprint": cur_sprint,
         "raci": parse_raci(root),
         "readiness": {"score": readiness, "confidence": confidence, "gates": critical_gates},
         "sprints": [

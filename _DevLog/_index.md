@@ -44,6 +44,7 @@ Toda sesión con IA **debe** generar una entrada de DevLog **antes del push** (p
 | [[_DevLog/2026-08-10-edgar-gitattributes-union\|2026-08-10]] | `.gitattributes merge=union` para `_DevLog/_index.md` y la matriz de trazabilidad: elimina los conflictos recurrentes de índices append-only | Edgar Edmundo Coronel Navarrete | Claude Code / opus-4-8 | US-004, ENG-BRANCHING, MOC-DEVLOG, DOC-TRACE-MATRIX |
 | [[_DevLog/2026-08-11-edgar-dashboard-ejecutivo-360\|2026-08-11]] | Dashboard ejecutivo 360° del PM: 4 pestañas nuevas (exec/roadmap semáforo/performance/PRD), burndown corregido (2 líneas), riesgos con US+fecha, colector de commits; schema 2.3 | Edgar Edmundo Coronel Navarrete | Claude Code / opus-4-8 | US-004, REQ-007, RPT-PM-SPEC, TEST-002, DOC-RISK-REGISTER |
 | [[_DevLog/2026-08-11-christian-ruiz-us401-contrato-api\|2026-08-11]] | US-401: publicación del contrato de la API — `openapi.v1.json` estable, stub FastAPI de referencia (`src/api/`), datos mock sintéticos y 18 pruebas de contrato en verde; desbloquea mocks de C2 y C3 | Christian Imanol Ruiz Hurtado | Claude Code / opus-4-8 | US-401, REQ-004, DOC-APISPEC |
+| [[_DevLog/2026-08-11-edgar-dashboard-fase-b-autorefresh\|2026-08-11]] | Fase B del tablero: readiness dinámico (URL viva → confianza 15%), iconos de estatus en el calendario y workflow de auto-refresco en cada push a main (DEC-004) | Edgar Edmundo Coronel Navarrete | Claude Code / opus-4-8 | US-004, REQ-007, DEC-004, RPT-PM-SPEC |
 
 ## Campos del frontmatter
 | Campo | Obligatorio |

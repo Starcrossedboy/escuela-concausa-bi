@@ -1,0 +1,21 @@
+# Célula 4 — Backend, API & Seguridad
+#
+# Stack específico de C4 (además de la base común en requirements.txt raíz).
+# Pisos de versión curados. Para congelar pines exactos desde tu venv 3.11:
+#   pip install -r requirements.txt -r requirements/celula-4.txt
+#   pip freeze > requirements/celula-4.txt
+#
+# US-401 (contrato/stub) solo usa fastapi + uvicorn + httpx + pytest (ya en la base).
+# python-jose y passlib se usan en US-402 (OAuth2/JWT) y US-403 (RBAC).
+
+fastapi>=0.111.0
+uvicorn[standard]>=0.30.0
+sqlalchemy>=2.0
+psycopg2-binary>=2.9
+python-jose[cryptography]>=3.3
+passlib[bcrypt]>=1.7
+pydantic>=2.7
+pydantic-settings>=2.3
+python-dotenv>=1.0
+httpx>=0.27
+pytest>=8.0

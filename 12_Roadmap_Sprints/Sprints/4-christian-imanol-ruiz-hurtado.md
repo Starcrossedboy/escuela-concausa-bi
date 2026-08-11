@@ -296,7 +296,7 @@ Actualiza esta tabla **antes de cada standup**. El PM la revisa para el tablero 
 
 | ID | Historia | Estado | % | Bloqueado por | Fecha compromiso |
 |---|---|---|---|---|---|
-| `US-401` | Definir y publicar el contrato de la API ( | ⬜ Por iniciar | 0% | — | Dom 9 ago |
+| `US-401` | Definir y publicar el contrato de la API ( | 🔵 En revisión (PR abierto) | 90% | — | Dom 9 ago |
 | `US-402` | Implementar OAuth2 + JWT con refresh/acces | ⬜ Por iniciar | 0% | — | Dom 30 ago |
 | `US-403` | Implementar RBAC con los 2 roles del PRD | ⬜ Por iniciar | 0% | — | Dom 30 ago |
 | `US-404` | Hardening de la API | ⬜ Por iniciar | 0% | — | Dom 6 sep |

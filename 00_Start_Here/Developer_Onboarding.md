@@ -82,3 +82,6 @@ Tech Leads revisan de forma técnica no bloqueante; se les solicita como revisor
 ## 5. Flujo de trabajo (resumen)
 Rama `feat/...` → commits → PR con template → CI verde + **1 aprobación del PM** → merge.
 Nunca push directo a la rama protegida. Toda sesión con IA → DevLog.
+
+## 6. Integrantes que completaron onboarding
+- Deni Garrido Fragoso (`dgdeni`)

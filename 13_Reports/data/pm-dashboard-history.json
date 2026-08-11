@@ -25,10 +25,10 @@
   },
   {
     "date": "2026-08-10",
-    "remaining": 85,
-    "done": 6,
+    "remaining": 83,
+    "done": 8,
     "scope": 91,
-    "wip": 6,
+    "wip": 7,
     "blocked": 0
   }
 ]

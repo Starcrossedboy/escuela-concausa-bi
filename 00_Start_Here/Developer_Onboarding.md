@@ -75,10 +75,10 @@ GitHub necesaria para invitaciones, asignaciones, revisiones y `CODEOWNERS`.
 - Verificar que las 21 personas acepten la invitación al repositorio antes de asignarles issues o
   solicitarles revisión.
 
-Los revisores por carpeta se mantienen en
-[`.github/CODEOWNERS`](../.github/CODEOWNERS) y cualquier cambio allí requiere revisión de la
-Célula 5.
+El revisor obligatorio de todo el repo es el PM (`* @edgarcoroneln`) en
+[`.github/CODEOWNERS`](../.github/CODEOWNERS) — **compuerta única desde 2026-08-09 (DEC-003)**. Los
+Tech Leads revisan de forma técnica no bloqueante; se les solicita como revisores de apoyo.
 
 ## 5. Flujo de trabajo (resumen)
-Rama `feat/...` → commits → PR con template → CI verde + **2 aprobaciones** → merge.
+Rama `feat/...` → commits → PR con template → CI verde + **1 aprobación del PM** → merge.
 Nunca push directo a la rama protegida. Toda sesión con IA → DevLog.

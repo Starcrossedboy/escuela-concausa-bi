@@ -41,6 +41,7 @@ Toda sesión con IA **debe** generar una entrada de DevLog **antes del push** (p
 | [[_DevLog/2026-08-10-edgar-cierre-estatus-sprint1\|2026-08-10]] | Cierre de estatus de Sprint 1: US mergeadas a `done` (US-001/002/003/101/201/311), andamiaje FARO Web a `in_progress`; tablero regenerado | Edgar Edmundo Coronel Navarrete | Claude Code / opus-4-8 | US-004, US-001, US-002, US-003, US-101, US-201, US-311, REQ-007, PLAN-EXEC-STATUS |
 | [[_DevLog/2026-08-09-edgar-jimenez-setup\|2026-08-09]] | Setup inicial del ambiente local reproducible (Airflow 8080 / MLflow 5000): guía en `_Meta`, `configuracion.env` y verificación | Edgar Ulises Jiménez López | Manual | US-521b, DOC-US521B-AMBIENTE |
 | [[_DevLog/2026-08-10-edgar-higiene-devlog-refresco-estatus\|2026-08-10]] | Higiene del índice DevLog (fila Deni/Héctor malformada) + refresco de estatus: US-301 y US-501 a `done`, US-521b `in_progress`; tablero regenerado | Edgar Edmundo Coronel Navarrete | Claude Code / opus-4-8 | US-004, US-301, US-501, US-521b, MOC-DEVLOG, PLAN-EXEC-STATUS |
+| [[_DevLog/2026-08-10-edgar-gitattributes-union\|2026-08-10]] | `.gitattributes merge=union` para `_DevLog/_index.md` y la matriz de trazabilidad: elimina los conflictos recurrentes de índices append-only | Edgar Edmundo Coronel Navarrete | Claude Code / opus-4-8 | US-004, ENG-BRANCHING, MOC-DEVLOG, DOC-TRACE-MATRIX |
 
 ## Campos del frontmatter
 | Campo | Obligatorio |

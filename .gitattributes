@@ -1,0 +1,8 @@
+# Estrategia de merge por UNIÓN para índices/tablas de solo-agregado.
+# Cada PR añade su propia fila a estos archivos, lo que provoca conflictos
+# recurrentes en `_DevLog/_index.md` y en la matriz de trazabilidad. Con
+# `merge=union` (driver integrado de Git) ambos lados se conservan sin
+# marcadores de conflicto — exactamente lo que queremos para un registro
+# append-only. Si dos PR editaran la MISMA fila existente, revisar a mano.
+_DevLog/_index.md                      merge=union
+02_Requirements/Traceability_Matrix.md merge=union

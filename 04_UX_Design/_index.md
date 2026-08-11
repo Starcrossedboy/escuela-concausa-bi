@@ -13,5 +13,5 @@ tags: [moc, ux]
 | Documento | Contenido |
 |---|---|
 | [[04_UX_Design/UX_Guidelines]] | Colores, tipografía, componentes, animaciones |
-| [[04_UX_Design/Screen_Specs]] | Especificación por pantalla (traza a US) |
+| [[04_UX_Design/Screen_Specs]] | Portafolio de los 10 dashboards: arquitectura de información, árbol de navegación y catálogo de KPIs con SQL (US-201) |
 | [[04_UX_Design/Accessibility]] | Requisitos de accesibilidad (a11y) |

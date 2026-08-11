@@ -99,29 +99,31 @@ Un commit sin ID no es rastreable y rompe la cadena de
 1. Usa `.github/PULL_REQUEST_TEMPLATE.md` — se carga solo. **Complétalo todo.**
 2. Referencia el **ID** de la historia y del requisito.
 3. **Mantén el PR pequeño.** Un PR de 40 archivos no se revisa: se aprueba a ciegas.
-4. **No apruebas tu propio PR.** Requiere revisión técnica del dueño del área y aprobación final del PM.
+4. **No apruebas tu propio PR.** Requiere la aprobación del PM (los PR del propio PM se mergean con bypass de administrador).
 5. **Todos los checks en verde** antes de mergear.
 6. Cambios en seguridad, esquema de datos o CI/CD requieren aprobación explícita del dueño del área
    (regla 7 de [[_Meta/Vault_Rules]]).
 
 
-## Aprobación de Pull Requests — doble compuerta
+## Aprobación de Pull Requests — compuerta única (PM)
 
-Todo PR pasa por **dos revisiones secuenciales**. Ninguna sustituye a la otra.
+> **Política vigente desde 2026-08-09 (DEC-003).** Antes eran dos compuertas
+> (Tech Lead + PM); la doble aprobación resultó un cuello de botella en Sprint 1, así que ahora
+> **el PM es el único aprobador obligatorio.** El ruleset exige **1 aprobación** con *Require review
+> from Code Owners*, y CODEOWNERS deja al PM como único dueño (`* @edgarcoroneln`).
 
-### Compuerta 1 · Revisión técnica — Dueño del área (CODEOWNERS)
+Todo PR requiere **una** aprobación: la del PM (proceso + trazabilidad). El **Tech Lead del área sigue
+revisando la corrección técnica**, pero de forma **no bloqueante** (se le solicita como revisor de
+apoyo; su aprobación no es obligatoria para el merge). Los **PR del propio PM** se mergean con
+**bypass de administrador**, porque nadie puede aprobar su propio PR.
 
-El Tech Lead del área evalúa **si el trabajo está bien hecho**:
+### Revisión técnica de apoyo — Tech Lead del área (recomendada, no bloqueante)
 
-- El código resuelve lo que dice la historia
-- No rompe otras piezas ni introduce deuda evidente
-- Sigue las convenciones técnicas del área
-- Las pruebas cubren lo que deben cubrir
+El Tech Lead evalúa **si el trabajo está bien hecho**: el código resuelve la historia, no rompe otras
+piezas ni introduce deuda evidente, sigue las convenciones del área y las pruebas cubren lo que deben.
+Se le solicita con *Reviewers* en el PR.
 
-### Compuerta 2 · Aprobación final — Edgar Edmundo Coronel Navarrete (PM / PO)
-
-El PM aprueba **si el PR cumple el proceso**. No revisa corrección técnica (para eso está la
-compuerta 1): verifica que el artefacto sea rastreable y esté completo.
+### Aprobación obligatoria — Edgar Edmundo Coronel Navarrete (PM / PO)
 
 **Checklist de aprobación del PM.** El PM aprueba si, y solo si, se cumple TODO:
 
@@ -133,27 +135,28 @@ compuerta 1): verifica que el artefacto sea rastreable y esté completo.
 | 4 | **DevLog registrado** si se usó IA | Enlace en el PR + archivo en `_DevLog/` |
 | 5 | **Definition of Filed** cumplida | Frontmatter, `_index.md`, matriz |
 | 6 | **Avance actualizado** en la matriz de trazabilidad | [[02_Requirements/Traceability_Matrix]] |
-| 7 | **Revisión técnica aprobada** por el dueño del área | Compuerta 1 en verde |
+| 7 | **Revisión técnica de apoyo** considerada (si el Tech Lead comentó) | Hilos del PR resueltos |
 | 8 | **Sin secretos ni datos pesados** | Gate de CI + revisión del diff |
 | 9 | **README actualizado** si cambia instalación o uso | Diff del PR |
 
 **Si algo falla, el PM solicita cambios (*Request changes*) señalando el punto exacto.** No se aprueba
 "con observaciones": o cumple, o vuelve al autor.
 
-> **Por qué dos compuertas:** separar *"está bien hecho"* de *"está bien documentado"* evita que el PM
-> se convierta en cuello de botella técnico, y garantiza que ningún artefacto entre a `main` sin
-> trazabilidad. Las dos fallas más comunes en equipos grandes se cubren por separado.
+> **Por qué compuerta única:** en Sprint 1 la doble aprobación obligatoria bloqueó PR listos que
+> esperaban una 2ª firma. Con una sola compuerta (PM) el merge no se detiene; la revisión técnica del
+> Tech Lead se conserva como apoyo no bloqueante. El PM es responsable de que ningún artefacto entre a
+> `main` sin trazabilidad. Ver DEC-003.
 
 ## Protección de `main` (configuración obligatoria)
 
 En GitHub → **Settings → Branches → Add branch protection rule**:
 
 - Pattern: `main`
-- ✅ Require a pull request before merging (**mínimo 2 aprobaciones**: dueño del área + PM)
-- ✅ Require review from Code Owners
+- ✅ Require a pull request before merging (**1 aprobación**: el PM, ver DEC-003)
+- ✅ Require review from Code Owners (con CODEOWNERS = `* @edgarcoroneln`, la aprobación debe ser del PM)
 - ✅ Require status checks to pass → seleccionar el job de CI
 - ✅ Require branches to be up to date before merging
-- ✅ Do not allow bypassing the above settings
+- ✅ Bypass: rol **Repository admin** (para que el PM mergee sus propios PR, que no puede autoaprobar)
 
 > **Nota de plan:** las ramas protegidas están disponibles gratis en repositorios **públicos**. En
 > repositorios privados requieren GitHub Pro, Team o Enterprise.

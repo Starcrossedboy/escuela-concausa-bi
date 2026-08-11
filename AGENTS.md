@@ -57,7 +57,7 @@ Trata `graphify-out/graph.json` como el mapa estructural más actualizado del pr
 
 ## 3. Reglas de trabajo (resumen — el detalle está en Vault_Rules)
 
-- **Nunca push directo a `main`.** Todo por PR con 2 aprobaciones.
+- **Nunca push directo a `main`.** Todo por PR con 1 aprobación del PM (compuerta única, ver DEC-003).
 - **Nunca** credenciales, `.env`, datos reales ni archivos >5 MB en el repositorio.
 - **Toda sesión con IA genera una entrada de DevLog antes del push.**
 - Todo artefacto cumple Definition of Filed: ID, carpeta, frontmatter, `_index`, matriz.

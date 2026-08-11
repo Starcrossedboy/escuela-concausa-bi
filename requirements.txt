@@ -1,6 +1,7 @@
 # Base COMÚN del proyecto FARO. Cada célula instala ADEMÁS su stack (ver §4.2.6 de tu plan de sprint):
 #   C1: apache-airflow dbt-core · C2: apache-superset · C4: fastapi python-jose passlib
 #   C3: scikit-learn xgboost mlflow shap chromadb sentence-transformers (macOS: brew install libomp)
+#   C5: docker-compose google-cloud-storage
 # No asumas que con `pip install -r requirements.txt` tu ambiente ya quedó completo.
 pandas>=2.2
 polars>=1.0
@@ -15,3 +16,7 @@ psycopg2-binary>=2.9
 ruff>=0.5
 pytest>=8.0
 httpx>=0.27
+
+# Célula 4 & 5 - API y Cloud
+fastapi>=0.111.0
+uvicorn[standard]>=0.30.0

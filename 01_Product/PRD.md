@@ -206,9 +206,9 @@ el ciclo siguiente, para evitar fuga de información temporal. Registro y versio
 | DB-09 | Recomendaciones prescriptivas | US-204 |
 | DB-10 | Monitor del pipeline | US-223 |
 
-> **Catálogo canónico (regla 1).** Estos nombres se homologaron con `02_Requirements/User_Stories.md`
-> y las fichas de sprint de la Célula 2 (reporte de Sprint 1), que era la versión vigente en ejecución.
-> **Pendiente de ratificación final de Manuel (TL C2)**; si ajusta algún nombre, se corrige en este mismo PR.
+> **Catálogo canónico (regla 1).** Ratificado por **Manuel Alejandro Serranía Reinada (TL C2)** el
+> 2026-08-07 como parte de **US-201**. El portafolio completo (arquitectura de información, árbol de
+> navegación y catálogo de KPIs) vive en [[04_UX_Design/Screen_Specs]].
 
 ### 12.1 Capa web integrada (FARO Web)
 

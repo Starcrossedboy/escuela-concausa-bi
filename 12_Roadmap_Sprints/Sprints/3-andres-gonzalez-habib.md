@@ -34,7 +34,7 @@ Tienes asignadas las historias de **mayor complejidad técnica y de diseño**. A
 | **Recibes de (inputs)** | `gold.features_escuela` de la **Célula 1** · MLflow desplegado por la **Célula 5** |
 | **Entregas a (outputs)** | **Célula 4** (modelos para inferencia) · **Célula 2** (tabla de predicciones) |
 | **Quién revisa tu código** | Edgar Edmundo Coronel Navarrete (PM) — compuerta técnica y de proceso |
-| **Formato de entrega** | Rama `feat/andres-habib-...` → PR con plantilla completa → 2 aprobaciones → merge a `main` |
+| **Formato de entrega** | Rama `feat/andres-habib-...` → PR con plantilla completa → 1 aprobación (PM) → merge a `main` |
 
 > **Regla de desbloqueo:** si un input tuyo no llega a tiempo, **no te quedes esperando**. Trabaja contra
 > datos mock o fixtures, avísalo en el standup y registra el bloqueo. Un bloqueo silencioso de 3 días

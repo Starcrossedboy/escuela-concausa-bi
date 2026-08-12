@@ -122,25 +122,25 @@
   <script>
   window.PM_DATA = {
   "meta": {
-    "generated_at": "2026-08-11T18:00:27+00:00",
+    "generated_at": "2026-08-12T02:14:26+00:00",
     "generated_date": "2026-08-11",
-    "commit": "66e0e17",
+    "commit": "3e6df9b",
     "branch": "feat/edgar-dashboard-faseb-fixes",
-    "working_tree": "clean",
-    "source_fingerprint": "48d816f84e45",
+    "working_tree": "modified",
+    "source_fingerprint": "443707e3bf52",
     "source": "Fuentes canónicas del vault",
     "offline": true,
     "schema_version": "2.3"
   },
   "summary": {
     "total": 91,
-    "done": 9,
+    "done": 8,
     "planned": 76,
-    "in_progress": 5,
+    "in_progress": 6,
     "in_review": 1,
     "blocked": 0,
-    "wip": 6,
-    "progress": 12.5,
+    "wip": 7,
+    "progress": 11.8,
     "days_to_demo": 29
   },
   "delivery": {
@@ -957,11 +957,11 @@
       "sprint": "S4",
       "req": "REQ-003",
       "cell": "Célula 3 · Machine Learning & Agente IA",
-      "status": "done",
+      "status": "in_progress",
       "started": "2026-08-08",
       "blocked_since": "—",
-      "evidence": "06_Quality_Testing/Automated/Particion_Temporal_ML01 · _DevLog/2026-08-08-hector-morales-fixture-particion-temporal · PR #8",
-      "updated": "2026-08-10",
+      "evidence": "06_Quality_Testing/Automated/Particion_Temporal_ML01 · PR #8 (partición) · PR #21 (índice de riesgo); falta el modelo entrenado + MAE/RMSE + MLflow",
+      "updated": "2026-08-11",
       "objective": "Predecir variacion de matricula por escuela para el siguiente ciclo. MAE/RMSE con backtesting temporal.",
       "deliverable": "Código en su carpeta + documento en el vault con frontmatter + fila en la matriz",
       "age_days": 3
@@ -2089,10 +2089,10 @@
       "pr_open": 0,
       "pr_merged": 0,
       "stories": 3,
-      "done": 1,
-      "wip": 0,
+      "done": 0,
+      "wip": 1,
       "blocked": 0,
-      "progress": 33.3
+      "progress": 11.7
     },
     {
       "name": "Juan Carlos Macías Mayen",
@@ -2386,10 +2386,10 @@
         "Héctor Rafael Morales Marbán"
       ],
       "stories": 14,
-      "done": 2,
-      "wip": 1,
+      "done": 1,
+      "wip": 2,
       "blocked": 0,
-      "progress": 16.8
+      "progress": 12.1
     },
     {
       "name": "Célula 4 · Backend, API & Seguridad",
@@ -2446,9 +2446,9 @@
       "name": "Modelos ML",
       "points": 1.5,
       "stories": 10,
-      "done": 2,
-      "progress": 20.0,
-      "secured_points": 0.3,
+      "done": 1,
+      "progress": 13.5,
+      "secured_points": 0.2,
       "band": "amber"
     },
     {
@@ -2742,47 +2742,6 @@
         }
       },
       {
-        "name": "Héctor Rafael Morales Marbán",
-        "cell": "Célula 3",
-        "engagement": 33.3,
-        "commits": 0,
-        "prs_merged": 0,
-        "prs_open": 0,
-        "risk": "en_tiempo",
-        "by_sprint": {
-          "S1": {
-            "n": 0,
-            "done": 0,
-            "state": "idle"
-          },
-          "S2": {
-            "n": 0,
-            "done": 0,
-            "state": "idle"
-          },
-          "S3": {
-            "n": 0,
-            "done": 0,
-            "state": "idle"
-          },
-          "S4": {
-            "n": 1,
-            "done": 1,
-            "state": "done"
-          },
-          "S5": {
-            "n": 2,
-            "done": 0,
-            "state": "planned"
-          },
-          "S6": {
-            "n": 0,
-            "done": 0,
-            "state": "idle"
-          }
-        }
-      },
-      {
         "name": "Andrés González Habib",
         "cell": "Célula 3",
         "engagement": 27.0,
@@ -2977,6 +2936,47 @@
           },
           "S5": {
             "n": 1,
+            "done": 0,
+            "state": "planned"
+          },
+          "S6": {
+            "n": 0,
+            "done": 0,
+            "state": "idle"
+          }
+        }
+      },
+      {
+        "name": "Héctor Rafael Morales Marbán",
+        "cell": "Célula 3",
+        "engagement": 11.7,
+        "commits": 0,
+        "prs_merged": 0,
+        "prs_open": 0,
+        "risk": "en_tiempo",
+        "by_sprint": {
+          "S1": {
+            "n": 0,
+            "done": 0,
+            "state": "idle"
+          },
+          "S2": {
+            "n": 0,
+            "done": 0,
+            "state": "idle"
+          },
+          "S3": {
+            "n": 0,
+            "done": 0,
+            "state": "idle"
+          },
+          "S4": {
+            "n": 1,
+            "done": 0,
+            "state": "wip"
+          },
+          "S5": {
+            "n": 2,
             "done": 0,
             "state": "planned"
           },
@@ -3943,6 +3943,15 @@
       "su_turno": false
     },
     {
+      "id": "US-311",
+      "objective": "Predecir variacion de matricula por escuela para el siguiente ciclo. MAE/RMSE con backtesting temporal.",
+      "owner": "Héctor Rafael Morales Marbán",
+      "cell": "Célula 3 · Machine Learning & Agente IA",
+      "sprint": "S4",
+      "status": "in_progress",
+      "su_turno": false
+    },
+    {
       "id": "US-321",
       "objective": "KMeans sobre el perfil de escuelas; validar con Silhouette y perfilar cada grupo con lenguaje de negocio.",
       "owner": "Estefany Lucero Hernández Loredo",
@@ -4332,7 +4341,7 @@
       "design": "Cubierto",
       "exec_band": "amber",
       "exec_label": "Iniciado",
-      "progress": 20.0
+      "progress": 13.5
     },
     {
       "criterion": "4 · Backend + Auth OAuth2/RBAC",
@@ -4560,11 +4569,11 @@
     },
     {
       "date": "2026-08-11",
-      "remaining": 82,
-      "weighted_remaining": 79.6,
-      "done": 9,
+      "remaining": 83,
+      "weighted_remaining": 80.3,
+      "done": 8,
       "scope": 91,
-      "wip": 6,
+      "wip": 7,
       "blocked": 0
     }
   ]

@@ -18,3 +18,4 @@ tags: [moc, cicd, devops]
 | [[08_CICD_DevOps/Release_Checklist]] | Checklist pre-release |
 | [[08_CICD_DevOps/Rollback_Runbook]] | Cómo revertir |
 | [[08_CICD_DevOps/Environments]] | Dev / staging / prod |
+| [[08_CICD_DevOps/Guia_Local_API_Postgres]] | ✅ Guía de ambiente local para API + Postgres (US-521a) |

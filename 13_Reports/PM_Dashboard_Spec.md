@@ -63,6 +63,7 @@ para auditoría y consumo futuro. Ninguno se edita manualmente.
 | **Cumplimiento PRD** | ¿Cubrimos lo que pide el profesor? | los 7 criterios de la rúbrica: diseño vs. ejecución |
 | Resumen | ¿Llegamos y qué requiere decisión? | confianza, avance, alertas, decisiones y frescura |
 | Sprint y flujo | ¿Terminamos o acumulamos trabajo? | burndown, burn-up, CFD, WIP, aging, velocidad |
+| Calendario | ¿Qué historias caen en cada sprint y quién las lleva? | historias por sprint coloreadas por célula, con **responsable visible** (avatar de iniciales + nombre corto, campo `owner_short`) y pie de responsables por sprint |
 | Células | ¿Cómo está integrado y cargado cada equipo? | composición, roles, estado, entregables y revisión |
 | Equipo | ¿Quién integra cada célula y qué tiene asignado? | color por célula, directorio GitHub, US asignadas y PR enviados |
 | Plan por célula/persona | ¿Qué debe hacer cada integrante y de quién depende? | selector, misión, actividades, avance, inputs, outputs y revisor |

@@ -33,7 +33,7 @@ tags: [roadmap, execution, status, dashboard]
 | US-001 | done | 2026-08-01 | — | [[_DevLog/2026-08-03-handoff-cierre-planeacion]] · PR #3/#5 | 2026-08-10 |
 | US-002 | done | 2026-08-01 | — | [[01_Product/PRD_General_Materia]] · [[02_Requirements/Requirements_Detailed]] | 2026-08-10 |
 | US-003 | done | 2026-08-02 | — | [[09_AI_Governance/Agent_Contexts/_index]] · PR #3/#5 | 2026-08-10 |
-| US-004 | in_review | 2026-08-03 | — | [[02_Requirements/Traceability_Matrix]] | 2026-08-10 |
+| US-004 | in_review | 2026-08-03 | — | [[02_Requirements/Traceability_Matrix]] · [[13_Reports/PM_Dashboard_Spec]] (calendario con responsable visible) | 2026-08-12 |
 | US-101 | done | 2026-08-02 | — | [[03_Architecture/Data_Model]] · [[_DevLog/2026-08-07-diana-alvarez-data-model-us101]] · PR #9 | 2026-08-10 |
 | US-201 | done | 2026-08-07 | — | [[04_UX_Design/Screen_Specs]] · [[_DevLog/2026-08-07-manuel-serrania-us-201]] · PR #10 | 2026-08-10 |
 | US-206 | in_progress | 2026-08-07 | — | [[_DevLog/2026-08-07-edgar-andamiaje-faro-web]] · [[03_Architecture/Frontend_Architecture]] (solo andamiaje) | 2026-08-10 |

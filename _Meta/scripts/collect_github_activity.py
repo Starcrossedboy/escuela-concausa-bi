@@ -66,9 +66,21 @@ def main() -> int:
             token,
         )
         runs, _ = api(f"{base}/actions/runs?per_page=20", token)
+        commits_raw = api_list(f"{base}/commits?per_page=100", token, max_pages=15)
     except (urllib.error.URLError, TimeoutError) as error:
         print(f"No se pudo consultar GitHub: {error}", file=sys.stderr)
         return 1
+    commit_counter: dict[str, dict[str, str | int]] = {}
+    for commit in commits_raw:
+        author = (commit.get("author") or {}).get("login")
+        if not author:
+            continue
+        when = (commit.get("commit") or {}).get("author", {}).get("date", "")
+        entry = commit_counter.setdefault(author, {"author": author, "count": 0, "last_at": ""})
+        entry["count"] = int(entry["count"]) + 1
+        if when > str(entry["last_at"]):
+            entry["last_at"] = when
+    commit_items = sorted(commit_counter.values(), key=lambda item: -int(item["count"]))
     pr_items = []
     for pull in pulls:
         text = f"{pull.get('title', '')} {pull.get('body', '')}"
@@ -90,6 +102,7 @@ def main() -> int:
         "generated_at": datetime.now(timezone.utc).replace(microsecond=0).isoformat(),
         "scope": "Todos los PR del repositorio, hasta 2,000 por ejecución",
         "prs": pr_items,
+        "commits": commit_items,
         "ci": [
             {
                 "name": run.get("name"),
@@ -104,7 +117,7 @@ def main() -> int:
     path = Path("13_Reports/data/github-activity.json")
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(output, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
-    print(f"✅ Actividad GitHub recopilada: {len(pr_items)} PR.")
+    print(f"✅ Actividad GitHub recopilada: {len(pr_items)} PR · {len(commit_items)} autores con commits.")
     return 0
 
 

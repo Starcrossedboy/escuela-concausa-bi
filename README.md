@@ -45,6 +45,38 @@ necesitan **auditar qué hizo la IA**, **cumplir un PRD** y **pasar quality gate
 
 Carpetas de soporte: `_Templates` (plantillas), `_DevLog` (bitácora única), `_Meta` (reglas del vault).
 
+## 🚀 Despliegue
+
+### URL de Producción
+
+**API Principal:** [https://faro-api-eanzfglvyq-uc.a.run.app](https://faro-api-eanzfglvyq-uc.a.run.app)
+
+**Endpoints disponibles:**
+- `GET /` — Hello World from FARO
+- `GET /health` — Health check
+- `GET /info` — Información del proyecto
+- `GET /docs` — Documentación interactiva (Swagger UI)
+
+**Infraestructura:**
+- Platform: Google Cloud Run
+- Región: us-central1 (Iowa, USA)
+- Proyecto: faro-escuela-sensor
+- Organización: luis-g-roses-org
+- Límite de instancias: 1 (ambiente de prueba)
+
+**Deploy manual:**
+```bash
+# Build y push
+./infra/build-and-push.sh v0.1.0-s1
+
+# Deploy a Cloud Run
+./infra/deploy-cloud-run.sh v0.1.0-s1
+```
+
+Ver procedimiento completo: [[08_CICD_DevOps/Cloud_Run_Deploy]]
+
+---
+
 ## Cómo adoptar este vault en tu proyecto
 
 Ver [[_Meta/Adoption_Guide]] — reemplaza los placeholders `{{...}}`, asigna dueños y crea tu primer PRD.

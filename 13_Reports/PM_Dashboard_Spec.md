@@ -3,7 +3,7 @@ id: RPT-PM-SPEC
 title: "Especificación del tablero de control PM — FARO"
 owner: "Edgar Edmundo Coronel Navarrete"
 status: in_review
-version: "2.2"
+version: "2.3"
 source_of_truth: true
 traces_up: ["US-004", "REQ-007", "12_Roadmap_Sprints/PLAN_MAESTRO", "00_Start_Here/Developer_Onboarding"]
 traces_down: ["13_Reports/TABLERO_CONTROL_PM.html", "TEST-002"]
@@ -57,15 +57,20 @@ para auditoría y consumo futuro. Ninguno se edita manualmente.
 
 | Vista | Pregunta que responde | Componentes |
 |---|---|---|
+| **Ejecutivo 360°** | ¿Cómo va todo el proyecto de un vistazo? | semáforo por módulo (rúbrica), avance ponderado, burndown corregido, cumplimiento PRD, mapa de calor de riesgos, riesgos críticos y pendientes en turno |
+| **Roadmap semáforo** | ¿Cómo avanza cada sprint? | progreso por sprint con semáforo (verde/ámbar/rojo) |
+| **Performance equipo** | ¿Quién va en tiempo y quién arrastra retraso? | heatmap integrante × sprint + engagement (avance ponderado, commits/PR) |
+| **Cumplimiento PRD** | ¿Cubrimos lo que pide el profesor? | los 7 criterios de la rúbrica: diseño vs. ejecución |
 | Resumen | ¿Llegamos y qué requiere decisión? | confianza, avance, alertas, decisiones y frescura |
 | Sprint y flujo | ¿Terminamos o acumulamos trabajo? | burndown, burn-up, CFD, WIP, aging, velocidad |
+| Calendario | ¿Qué historias caen en cada sprint y quién las lleva? | historias por sprint coloreadas por célula, con **responsable visible** (avatar de iniciales + nombre corto, campo `owner_short`) y pie de responsables por sprint |
 | Células | ¿Cómo está integrado y cargado cada equipo? | composición, roles, estado, entregables y revisión |
 | Equipo | ¿Quién integra cada célula y qué tiene asignado? | color por célula, directorio GitHub, US asignadas y PR enviados |
 | Plan por célula/persona | ¿Qué debe hacer cada integrante y de quién depende? | selector, misión, actividades, avance, inputs, outputs y revisor |
 | Dependencias | ¿Quién espera a quién? | cadena crítica, contratos, bloqueos y alternativa mock |
 | Rúbrica y demo | ¿Qué puntos tienen evidencia? | 10 puntos, gates y readiness |
 | Fuentes | ¿Son utilizables las ocho fuentes? | prueba, cobertura, frecuencia, dueño y frescura |
-| Riesgos | ¿Qué amenaza la entrega? | heat map 5×5, respuesta, trigger, dueño |
+| Riesgos | ¿Qué amenaza la entrega? | heat map 5×5, US relacionada, dueño, severidad, fecha objetivo de mitigación y estado |
 | Gobernanza | ¿El trabajo es auditable? | vault, CI, pruebas, DevLogs y ciclo de PR |
 | Explorador | ¿Qué ocurre con una US específica? | filtros por sprint, célula, persona, REQ y estado |
 

@@ -25,8 +25,8 @@ def main(root_value: str = ".") -> int:
         print("❌ Ejecuta primero generate_pm_dashboard.py")
         return 1
     data = json.loads(data_path.read_text(encoding="utf-8"))
-    if data.get("meta", {}).get("schema_version") != "2.2":
-        fail("Se esperaba schema 2.2 con contador de entrega", failures)
+    if data.get("meta", {}).get("schema_version") != "2.3":
+        fail("Se esperaba schema 2.3 con bloques ejecutivos", failures)
     if not re.fullmatch(r"[0-9a-f]{12}", data.get("meta", {}).get("source_fingerprint", "")):
         fail("Fingerprint de fuentes ausente o inválido", failures)
     delivery = data.get("delivery", {})
@@ -49,6 +49,8 @@ def main(root_value: str = ".") -> int:
             fail(f"{story['id']} bloqueada sin fecha", failures)
         if story.get("status") == "done" and story.get("evidence") in {"", "—"}:
             fail(f"{story['id']} done sin evidencia", failures)
+        if not story.get("owner_short"):
+            fail(f"{story.get('id')} sin owner_short (nombre corto del responsable)", failures)
     people = data.get("people", [])
     if len(people) != 21:
         fail(f"Se esperaban 21 personas y hay {len(people)}", failures)
@@ -78,11 +80,35 @@ def main(root_value: str = ".") -> int:
         if not activity.get("available") and pr_count is not None:
             fail(f"{person.get('name')} muestra PR sin snapshot de GitHub", failures)
     if sorted(assigned_ids) != sorted(ids):
-        fail("Las US del equipo no cubren exactamente las 87 historias", failures)
+        fail("Las US del equipo no cubren exactamente las 91 historias", failures)
     if len(data.get("sources", [])) != 8:
         fail(f"Se esperaban 8 fuentes y hay {len(data.get('sources', []))}", failures)
     if round(sum(item.get("points", 0) for item in data.get("rubric", [])), 2) != 10.0:
         fail("Los puntos de rúbrica no suman 10", failures)
+    for item in data.get("rubric", []):
+        if item.get("band") not in {"green", "amber", "red"}:
+            fail(f"Rúbrica {item.get('req')} sin banda de semáforo válida", failures)
+    # Bloques ejecutivos (schema 2.3)
+    performance = data.get("performance", {})
+    if len(performance.get("people", [])) != 21 or len(performance.get("sprints", [])) != 6:
+        fail("Bloque performance incompleto (21 personas × 6 sprints)", failures)
+    if performance.get("current_sprint") not in {f"S{i}" for i in range(1, 7)}:
+        fail("performance.current_sprint inválido", failures)
+    pending = data.get("pending", [])
+    expected_pending = sum(story.get("status") != "done" for story in stories)
+    if len(pending) != expected_pending:
+        fail(f"Pendientes ({len(pending)}) no coinciden con US no-done ({expected_pending})", failures)
+    prd = data.get("prd_compliance", [])
+    if len(prd) != 7:
+        fail(f"Se esperaban 7 criterios de PRD y hay {len(prd)}", failures)
+    for crit in prd:
+        if crit.get("exec_band") not in {"green", "amber", "red"}:
+            fail(f"Criterio PRD {crit.get('req')} sin banda de ejecución", failures)
+    for risk in data.get("risks", []):
+        if "stories" not in risk or "mitigation_date" not in risk:
+            fail(f"{risk.get('id')} sin US relacionada o fecha de mitigación", failures)
+    if not all("weighted_remaining" in point for point in data.get("history", [])[-1:]):
+        fail("El historial no trae weighted_remaining para el burndown", failures)
     html = html_path.read_text(encoding="utf-8")
     if "__PM_DASHBOARD_DATA__" in html:
         fail("El HTML conserva el marcador sin reemplazar", failures)
@@ -92,7 +118,7 @@ def main(root_value: str = ".") -> int:
     for countdown_marker in ["updateDeliveryCountdown", "D.delivery.timezone", "setInterval"]:
         if countdown_marker not in html:
             fail(f"El contador no es dinámico: falta {countdown_marker}", failures)
-    for tab in ["summary", "flow", "cells", "team", "plans", "dependencies", "rubric", "sources", "risks", "governance", "explorer"]:
+    for tab in ["exec", "roadmaplight", "performance", "prd", "summary", "flow", "cells", "team", "plans", "dependencies", "rubric", "sources", "risks", "governance", "explorer"]:
         if f'id="panel-{tab}"' not in html:
             fail(f"Falta panel {tab}", failures)
     if failures:

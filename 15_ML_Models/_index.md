@@ -30,3 +30,10 @@ reciban recomendaciones distintas.
 3. **Explicabilidad con SHAP** en ML-02. Sin explicabilidad no hay recomendación defendible.
 4. **Cobertura parcial explícita.** Las features con `SIN_DATO` no se imputan con cero.
 5. **Todo modelo se registra en MLflow** con parámetros, métricas y artefacto versionado.
+
+## Documentos
+
+| Artefacto | Descripción |
+|---|---|
+| [[15_ML_Models/ML_Strategy]] | Estrategia de modelado, partición temporal, backtesting, schema de features, umbrales (US-301) |
+| [[15_ML_Models/Indice_Riesgo_ML01]] | Conversión de la variación de matrícula predicha por ML-01 al `indice_riesgo` ∈ [0,1] que consumen la API, los cubos y los tableros (US-311) |

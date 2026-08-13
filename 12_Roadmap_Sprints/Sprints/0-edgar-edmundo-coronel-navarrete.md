@@ -34,7 +34,7 @@ Tienes historias de **complejidad intermedia con autonomía**. Implementas pieza
 | **Recibes de (inputs)** | PRD del profesor · Avance reportado por las 5 células |
 | **Entregas a (outputs)** | **TODAS** — vault, trazabilidad, matriz y pitch final |
 | **Quién revisa tu código** | Auto-revisión + validación del linter en CI |
-| **Formato de entrega** | Rama `feat/edgar-navarrete-...` → PR con plantilla completa → 2 aprobaciones → merge a `main` |
+| **Formato de entrega** | Rama `feat/edgar-navarrete-...` → PR con plantilla completa → 1 aprobación (PM) → merge a `main` |
 
 > **Regla de desbloqueo:** si un input tuyo no llega a tiempo, **no te quedes esperando**. Trabaja contra
 > datos mock o fixtures, avísalo en el standup y registra el bloqueo. Un bloqueo silencioso de 3 días

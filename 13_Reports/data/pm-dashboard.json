@@ -1,11 +1,11 @@
 {
   "meta": {
-    "generated_at": "2026-08-13T21:15:16+00:00",
+    "generated_at": "2026-08-13T21:17:14+00:00",
     "generated_date": "2026-08-13",
-    "commit": "1da42fc",
+    "commit": "e87cddf",
     "branch": "main",
     "working_tree": "clean",
-    "source_fingerprint": "5089a08720a2",
+    "source_fingerprint": "d52190ef4761",
     "source": "Fuentes canónicas del vault",
     "offline": true,
     "schema_version": "2.3"
@@ -2206,8 +2206,8 @@
         "US-206"
       ],
       "pr_count": 2,
-      "pr_open": 1,
-      "pr_merged": 1,
+      "pr_open": 0,
+      "pr_merged": 2,
       "stories": 6,
       "done": 1,
       "wip": 1,
@@ -2673,7 +2673,7 @@
         "name": "Edgar Edmundo Coronel Navarrete",
         "cell": "PO",
         "engagement": 60.8,
-        "commits": 62,
+        "commits": 64,
         "prs_merged": 10,
         "prs_open": 0,
         "risk": "en_tiempo",
@@ -2796,9 +2796,9 @@
         "name": "Manuel Alejandro Serranía Reinada",
         "cell": "Célula 2",
         "engagement": 22.5,
-        "commits": 1,
-        "prs_merged": 1,
-        "prs_open": 1,
+        "commits": 2,
+        "prs_merged": 2,
+        "prs_open": 0,
         "risk": "en_tiempo",
         "by_sprint": {
           "S1": {
@@ -4501,9 +4501,21 @@
   "git_activity": {
     "available": true,
     "repository": "edgarcoroneln/escuela-concausa-bi",
-    "generated_at": "2026-08-13T21:15:16+00:00",
+    "generated_at": "2026-08-13T21:17:14+00:00",
     "scope": "Todos los PR del repositorio, hasta 2,000 por ejecución",
     "prs": [
+      {
+        "number": 27,
+        "title": "fix(ux): cubos leen riesgo/driver vía JOIN a predicciones y recomendaciones (US-201)",
+        "state": "merged",
+        "author": "mserraniaa-png",
+        "created_at": "2026-08-13T19:58:34Z",
+        "merged_at": "2026-08-13T21:16:34Z",
+        "url": "https://github.com/edgarcoroneln/escuela-concausa-bi/pull/27",
+        "story_ids": [
+          "US-201"
+        ]
+      },
       {
         "number": 25,
         "title": "feat(devops): agrega docker-compose y guia local api postgres",
@@ -4552,18 +4564,6 @@
           "US-311",
           "US-312",
           "US-313"
-        ]
-      },
-      {
-        "number": 27,
-        "title": "fix(ux): cubos leen riesgo/driver vía JOIN a predicciones y recomendaciones (US-201)",
-        "state": "open",
-        "author": "mserraniaa-png",
-        "created_at": "2026-08-13T19:58:34Z",
-        "merged_at": null,
-        "url": "https://github.com/edgarcoroneln/escuela-concausa-bi/pull/27",
-        "story_ids": [
-          "US-201"
         ]
       },
       {
@@ -4848,13 +4848,18 @@
     "commits": [
       {
         "author": "edgarcoroneln",
-        "count": 62,
-        "last_at": "2026-08-13T21:14:38Z"
+        "count": 64,
+        "last_at": "2026-08-13T21:16:34Z"
       },
       {
         "author": "DianaVarela96",
         "count": 6,
         "last_at": "2026-08-09T22:36:05Z"
+      },
+      {
+        "author": "github-actions[bot]",
+        "count": 5,
+        "last_at": "2026-08-13T21:15:16Z"
       },
       {
         "author": "hector677-mm",
@@ -4867,11 +4872,6 @@
         "last_at": "2026-08-10T18:38:56Z"
       },
       {
-        "author": "github-actions[bot]",
-        "count": 4,
-        "last_at": "2026-08-13T21:03:56Z"
-      },
-      {
         "author": "avmxk01",
         "count": 3,
         "last_at": "2026-08-13T03:48:50Z"
@@ -4880,6 +4880,11 @@
         "author": "LuisTellez03",
         "count": 3,
         "last_at": "2026-08-11T00:08:37Z"
+      },
+      {
+        "author": "mserraniaa-png",
+        "count": 2,
+        "last_at": "2026-08-13T19:57:39Z"
       },
       {
         "author": "Dr4wde064",
@@ -4900,11 +4905,6 @@
         "author": "dgdeni",
         "count": 1,
         "last_at": "2026-08-10T05:50:27Z"
-      },
-      {
-        "author": "mserraniaa-png",
-        "count": 1,
-        "last_at": "2026-08-09T17:49:08Z"
       }
     ],
     "ci": [
@@ -4912,6 +4912,36 @@
         "name": "Refresh PM Dashboard",
         "status": "in_progress",
         "conclusion": null,
+        "url": "https://github.com/edgarcoroneln/escuela-concausa-bi/actions/runs/31744899243"
+      },
+      {
+        "name": "PM Dashboard",
+        "status": "completed",
+        "conclusion": "success",
+        "url": "https://github.com/edgarcoroneln/escuela-concausa-bi/actions/runs/31744899232"
+      },
+      {
+        "name": "CI",
+        "status": "in_progress",
+        "conclusion": null,
+        "url": "https://github.com/edgarcoroneln/escuela-concausa-bi/actions/runs/31744899203"
+      },
+      {
+        "name": "CI",
+        "status": "completed",
+        "conclusion": "success",
+        "url": "https://github.com/edgarcoroneln/escuela-concausa-bi/actions/runs/31744825587"
+      },
+      {
+        "name": "PM Dashboard",
+        "status": "completed",
+        "conclusion": "success",
+        "url": "https://github.com/edgarcoroneln/escuela-concausa-bi/actions/runs/31744825580"
+      },
+      {
+        "name": "Refresh PM Dashboard",
+        "status": "completed",
+        "conclusion": "success",
         "url": "https://github.com/edgarcoroneln/escuela-concausa-bi/actions/runs/31744749454"
       },
       {
@@ -4922,8 +4952,8 @@
       },
       {
         "name": "CI",
-        "status": "in_progress",
-        "conclusion": null,
+        "status": "completed",
+        "conclusion": "success",
         "url": "https://github.com/edgarcoroneln/escuela-concausa-bi/actions/runs/31744749388"
       },
       {
@@ -4997,36 +5027,6 @@
         "status": "completed",
         "conclusion": "success",
         "url": "https://github.com/edgarcoroneln/escuela-concausa-bi/actions/runs/31743420946"
-      },
-      {
-        "name": "CI",
-        "status": "completed",
-        "conclusion": "success",
-        "url": "https://github.com/edgarcoroneln/escuela-concausa-bi/actions/runs/31743420924"
-      },
-      {
-        "name": "CI",
-        "status": "completed",
-        "conclusion": "failure",
-        "url": "https://github.com/edgarcoroneln/escuela-concausa-bi/actions/runs/31743178034"
-      },
-      {
-        "name": "PM Dashboard",
-        "status": "completed",
-        "conclusion": "success",
-        "url": "https://github.com/edgarcoroneln/escuela-concausa-bi/actions/runs/31743178000"
-      },
-      {
-        "name": "PM Dashboard",
-        "status": "completed",
-        "conclusion": "success",
-        "url": "https://github.com/edgarcoroneln/escuela-concausa-bi/actions/runs/31738537672"
-      },
-      {
-        "name": "CI",
-        "status": "completed",
-        "conclusion": "success",
-        "url": "https://github.com/edgarcoroneln/escuela-concausa-bi/actions/runs/31738537638"
       }
     ],
     "note": "Actividad agregada; no determina Done ni se usa como ranking individual."

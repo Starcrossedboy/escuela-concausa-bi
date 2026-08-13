@@ -118,6 +118,23 @@ def parse_delivery(root: Path) -> dict[str, str]:
     }
 
 
+def short_name(owner: str) -> str:
+    """Nombre corto para chips: primer nombre + inicial del primer apellido.
+
+    Desambigua a homónimos de primer nombre (p. ej. los dos Edgar → "Edgar C."
+    vs "Edgar J."). Convención de nombres MX: `Nombre(s) Apellido1 Apellido2`,
+    así que el primer apellido es el penúltimo token cuando hay 3+ tokens.
+    """
+    parts = owner.split()
+    if not parts:
+        return owner
+    first = parts[0]
+    if len(parts) == 1:
+        return first
+    surname = parts[-2] if len(parts) >= 3 else parts[-1]
+    return f"{first} {surname[0]}."
+
+
 def parse_stories(root: Path) -> list[dict[str, Any]]:
     text = read(root / "02_Requirements/User_Stories.md")
     stories: list[dict[str, Any]] = []
@@ -134,6 +151,7 @@ def parse_stories(root: Path) -> list[dict[str, Any]]:
                     "id": cells[0],
                     "title": cells[1],
                     "owner": cells[2],
+                    "owner_short": short_name(cells[2]),
                     "level": cells[3],
                     "sprint": cells[4],
                     "req": re.match(r"REQ-\d{3}", cells[5]).group(0),

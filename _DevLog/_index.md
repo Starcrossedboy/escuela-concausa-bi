@@ -48,6 +48,7 @@ Toda sesión con IA **debe** generar una entrada de DevLog **antes del push** (p
 | [[_DevLog/2026-08-11-edgar-dashboard-fase-b-autorefresh\|2026-08-11]] | Fase B del tablero: readiness dinámico (URL viva → confianza 15%), iconos de estatus en el calendario y workflow de auto-refresco en cada push a main (DEC-004) | Edgar Edmundo Coronel Navarrete | Claude Code / opus-4-8 | US-004, REQ-007, DEC-004, RPT-PM-SPEC |
 | [[_DevLog/2026-08-11-edgar-correccion-us311-estatus\|2026-08-11]] | Corrección de trazabilidad (gap del PR #21): US-311 de `done` a `in_progress` — falta el modelo ML-01 entrenado + MAE/RMSE + MLflow | Edgar Edmundo Coronel Navarrete | Claude Code / opus-4-8 | US-004, US-311, REQ-003, PLAN-EXEC-STATUS |
 | [[_DevLog/2026-08-12-edgar-calendario-responsable\|2026-08-12]] | Calendario del tablero PM: responsable visible por US (avatar de iniciales + nombre corto), pie de responsables por sprint, `owner_short` en el generador y TEST-002 | Edgar Edmundo Coronel Navarrete | Claude Code / opus-4-8 | US-004, REQ-007, RPT-PM-SPEC, TEST-002, PLAN-EXEC-STATUS |
+| [[_DevLog/2026-08-13-manuel-serrania-screenspecs-cubos\|2026-08-13]] | Corrección de Screen_Specs: cubos leen riesgo/driver vía JOIN a `predicciones`/`recomendaciones` (KPI-03/04/07/10) + ratificación del umbral 0.6 = perder ~5% de matrícula | Manuel Alejandro Serranía Reinada | OpenCode / opencode/big-pickle | US-201, REQ-002, DOC-SCREENSPECS, DOC-INDICE-RIESGO |
 
 ## Campos del frontmatter
 | Campo | Obligatorio |

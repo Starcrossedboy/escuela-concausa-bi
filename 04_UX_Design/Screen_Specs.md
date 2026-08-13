@@ -5,7 +5,7 @@ owner: "Manuel Alejandro Serranía Reinada"
 status: in_review
 traces_up: ["DOC-US", "02_Requirements/Requirements_Detailed", "01_Product/PRD"]
 traces_down: ["US-201", "US-202", "US-203", "US-204", "US-205", "US-211a", "US-211b", "US-212", "US-213", "US-214a", "US-214b", "US-221", "US-222", "US-223"]
-last_reviewed: "2026-08-07"
+last_reviewed: "2026-08-13"
 tags: [ux, dashboards, kpis, celula-2]
 ---
 
@@ -107,6 +107,11 @@ flowchart TD
 
 > Definición formal sobre el **esquema canónico** de Gold (`gold.fact_escuela_ciclo` + dimensiones). Cada
 > KPI anota el cubo que lo materializa en runtime. Filtros comunes: `id_ciclo`, `cve_ent` y `nivel`.
+>
+> **Regla de lectura (Data_Model §4.1):** `fact_escuela_ciclo` solo contiene hechos observados. Las
+> salidas de ML (`indice_riesgo` en `gold.predicciones`; `driver_dominante` y recomendaciones en
+> `gold.recomendaciones`) se consultan **siempre por JOIN** de `cct, id_ciclo` — aplica a
+> `cubo_riesgo_territorial`, `cubo_driver`, `cubo_recomendaciones` y `cubo_pivot`.
 
 | ID | KPI | Grano | Nivel geo | Dashboards |
 |---|---|---|---|---|
@@ -156,23 +161,30 @@ GROUP BY dt.ciclo;
 
 ### KPI-03 · Índice de riesgo promedio
 
-Promedio de `indice_riesgo` (0–1) en el grano solicitado. **Cubo:** `gold.cubo_riesgo_territorial`.
+Promedio de `indice_riesgo` (0–1) en el grano solicitado. El `indice_riesgo` es salida de ML-01
+(`gold.predicciones`, `modelo = 'ML-01'`); se une por `cct, id_ciclo`. **Cubo:**
+`gold.cubo_riesgo_territorial`.
 
 ```sql
 SELECT f.cve_mun,
-       AVG(f.indice_riesgo) AS indice_riesgo_promedio
+       AVG(p.indice_riesgo) AS indice_riesgo_promedio
 FROM gold.fact_escuela_ciclo f
+JOIN gold.predicciones p ON f.cct = p.cct AND f.id_ciclo = p.id_ciclo
+WHERE p.modelo = 'ML-01'
 GROUP BY f.cve_mun;
 ```
 
 ### KPI-04 · Escuelas en riesgo
 
-Conteo de escuelas con `indice_riesgo >= 0.6` (umbral de riesgo definido por el negocio).
+Conteo de escuelas con `indice_riesgo >= 0.6` — **umbral ratificado por el negocio**: perder ~5% de
+matrícula equivale a un riesgo de 0.60 (ver [[15_ML_Models/Indice_Riesgo_ML01]]).
 
 ```sql
-SELECT COUNT(*) FILTER (WHERE f.indice_riesgo >= 0.6) AS escuelas_en_riesgo,
-       COUNT(*)                                        AS total_escuelas
-FROM gold.fact_escuela_ciclo f;
+SELECT COUNT(*) FILTER (WHERE p.indice_riesgo >= 0.6) AS escuelas_en_riesgo,
+       COUNT(*)                                       AS total_escuelas
+FROM gold.fact_escuela_ciclo f
+JOIN gold.predicciones p ON f.cct = p.cct AND f.id_ciclo = p.id_ciclo
+WHERE p.modelo = 'ML-01';
 ```
 
 ### KPI-05 · Índice de completitud de drivers
@@ -206,14 +218,16 @@ GROUP BY driver;
 
 ### KPI-07 · Driver dominante (distribución)
 
-Escuelas por driver que explica su riesgo (salida de ML-02).
+Escuelas por driver que explica su riesgo (salida de ML-02). El `driver_dominante` vive en
+`gold.recomendaciones` (Data_Model §4.1); se une por `cct, id_ciclo`.
 
 ```sql
 SELECT dd.id_driver,
        dd.nombre,
        COUNT(*) AS escuelas
 FROM gold.fact_escuela_ciclo f
-JOIN gold.dim_driver dd ON f.driver_dominante = dd.id_driver
+JOIN gold.recomendaciones r ON f.cct = r.cct AND f.id_ciclo = r.id_ciclo
+JOIN gold.dim_driver dd ON r.driver_dominante = dd.id_driver
 GROUP BY dd.id_driver, dd.nombre
 ORDER BY escuelas DESC;
 ```
@@ -240,17 +254,20 @@ GROUP BY e.sostenimiento;
 
 ### KPI-10 · Riesgo por municipio (coroplético)
 
-Base del mapa de DB-02. Llave de cruce: `cve_mun` de 5 dígitos (entidad 2 + municipio 3).
+Base del mapa de DB-02. Llave de cruce: `cve_mun` de 5 dígitos (entidad 2 + municipio 3). Umbral de
+riesgo ratificado: 0.6 = perder ~5% de matrícula (ver [[15_ML_Models/Indice_Riesgo_ML01]]).
 **Cubo:** `gold.cubo_riesgo_territorial`.
 
 ```sql
 SELECT f.cve_mun,
        dm.nombre_municipio,
        dm.nombre_entidad,
-       AVG(f.indice_riesgo) AS riesgo_promedio,
-       COUNT(*) FILTER (WHERE f.indice_riesgo >= 0.6) AS escuelas_en_riesgo
+       AVG(p.indice_riesgo) AS riesgo_promedio,
+       COUNT(*) FILTER (WHERE p.indice_riesgo >= 0.6) AS escuelas_en_riesgo
 FROM gold.fact_escuela_ciclo f
 JOIN gold.dim_municipio dm ON f.cve_mun = dm.cve_mun
+JOIN gold.predicciones p ON f.cct = p.cct AND f.id_ciclo = p.id_ciclo
+WHERE p.modelo = 'ML-01'
 GROUP BY f.cve_mun, dm.nombre_municipio, dm.nombre_entidad;
 ```
 

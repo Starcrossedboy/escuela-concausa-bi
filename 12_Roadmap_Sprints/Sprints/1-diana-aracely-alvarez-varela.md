@@ -306,7 +306,7 @@ Actualiza esta tabla **antes de cada standup**. El PM la revisa para el tablero 
 | ID | Historia | Estado | % | Bloqueado por | Fecha compromiso |
 |---|---|---|---|---|---|
 | `US-101` | Disenar el modelo de datos medallon comple | ✅ Terminado | 100% | — | Dom 9 ago |
-| `US-102` | Construir el DAG maestro de orquestacion e | 🟡 En curso | 75% | docker/ vacío — PR #14 Edgar Jiménez (US-521b) | Dom 16 ago |
+| `US-102` | Construir el DAG maestro de orquestacion e | 🟡 En curso | 85% | falta docker-compose.yml (PR #14 solo trajo api.Dockerfile) — reportado a Edgar Coronel 13 ago | Dom 16 ago |
 | `US-103` | Modelar la capa GOLD como esquema estrella | ⬜ Por iniciar | 0% | — | Dom 23 ago |
 | `US-104` | Definir e implementar la tabla de features | ⬜ Por iniciar | 0% | — | Dom 23 ago |
 | `US-105` | Implementar la estrategia de cobertura par | ⬜ Por iniciar | 0% | — | Dom 23 ago |

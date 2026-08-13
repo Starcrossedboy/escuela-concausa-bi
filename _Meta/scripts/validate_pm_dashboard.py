@@ -49,6 +49,8 @@ def main(root_value: str = ".") -> int:
             fail(f"{story['id']} bloqueada sin fecha", failures)
         if story.get("status") == "done" and story.get("evidence") in {"", "—"}:
             fail(f"{story['id']} done sin evidencia", failures)
+        if not story.get("owner_short"):
+            fail(f"{story.get('id')} sin owner_short (nombre corto del responsable)", failures)
     people = data.get("people", [])
     if len(people) != 21:
         fail(f"Se esperaban 21 personas y hay {len(people)}", failures)

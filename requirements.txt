@@ -20,3 +20,8 @@ httpx>=0.27
 # Célula 4 & 5 - API y Cloud
 fastapi>=0.111.0
 uvicorn[standard]>=0.30.0
+
+# Célula 3 - ML. Sólo lo que el CI necesita para correr las pruebas de src/modelos/:
+# el resto del stack (xgboost, mlflow, shap, chromadb, sentence-transformers) vive en
+# requirements/celula-3.txt, que el CI no instala. `mlflow` es import diferido a propósito.
+scikit-learn>=1.5

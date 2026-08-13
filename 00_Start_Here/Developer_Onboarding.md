@@ -85,3 +85,4 @@ Nunca push directo a la rama protegida. Toda sesión con IA → DevLog.
 
 ## 6. Integrantes que completaron onboarding
 - Deni Garrido Fragoso (`dgdeni`)
+- Alejandro Velázquez Mendoza (`avmxk01`)

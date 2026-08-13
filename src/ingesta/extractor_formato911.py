@@ -7,7 +7,7 @@ import requests
 logger = logging.getLogger(__name__)
 
 SOURCE_NAME = "DS-01_FORMATO911"
-SOURCE_URL = "PENDIENTE-CONFIRMAR"  # ver DS-01_Formato911.md — dueño: Diana Aracely Alvarez Varela
+SOURCE_URL = "https://repodatos.atdt.gob.mx/api_update/secretaria_educacion/registro_alumnado_personal_docente_educacion_basica_media_superior_formato_911/educacion_basica_2024_2025.csv"
 BRONZE_PATH = "data/bronze/formato911"
 
 

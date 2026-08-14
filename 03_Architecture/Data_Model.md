@@ -146,8 +146,9 @@ cobertura**. Mapa cubo → dashboard:
   + el target de entrenamiento. Contrato **cerrado y versionado** (ver §5.3).
 
 ### 4.5 Salida de modelos
-- **`gold.predicciones`** — `cct`, `id_ciclo`, `modelo` (`ML-01`/`ML-02`/`ML-03`), `valor`,
-  `probabilidad`, `mlflow_run_id`, `generado_at`.
+- **`gold.predicciones`** — `cct`, `id_ciclo`, `modelo` (`ML-01`/`ML-02`/`ML-03`), `valor`
+  (variación cruda, para métricas MAE/RMSE de ML-01), **`indice_riesgo`** (float[0,1], columna
+  derivada calculada en `src/modelos/riesgo.py`), `probabilidad`, `mlflow_run_id`, `generado_at`.
 - **`gold.recomendaciones`** — `cct`, `id_ciclo`, `driver_dominante`, `recomendacion`, `prioridad`.
 
 ---

@@ -9,7 +9,7 @@ tags: [data-source, bronze, driver-d2, ingesta-continua]
 
 # DS-04 · SESNSP Incidencia Delictiva Municipal
 
-> → [[14_Data_Sources/_index]] · Prueba de descarga real **PENDIENTE** (Semana 1)
+> → [[14_Data_Sources/_index]] · Prueba de descarga real **🔴 BLOQUEADA** (Semana 1) — ver sección 9
 > **Ingesta continua #1** (mensual).
 
 ## 1. Identificación
@@ -20,10 +20,19 @@ tags: [data-source, bronze, driver-d2, ingesta-continua]
   la escuela.
 
 ## 2. Acceso
-- **URL de descarga:** PENDIENTE-CONFIRMAR (portal esperado: gob.mx/sesnsp, datos abiertos de
-  incidencia delictiva).
-- **Formato:** CSV.
-- **Tamaño aproximado:** PENDIENTE-CONFIRMAR.
+- **Portal oficial (landing):**
+  `https://www.gob.mx/sesnsp/acciones-y-programas/datos-abiertos-de-incidencia-delictiva`
+- **URL de descarga confirmada (metodología 2015-2025, corte jun 2026):** archivo
+  `Municipal-Delitos-2015-2025_jun2026.zip`, publicado como enlace de OneDrive/SharePoint:
+  `https://sspcgob-my.sharepoint.com/:u:/g/personal/cni_sspc_gob_mx/IQAnMGiScnoTTr4J2J9mUZthAat6lEdo7-1MCUpQU4n4EwQ?e=1NpS13`
+  (verificado el 14-ago-2026: la URL resuelve y redirige al nombre de archivo real, confirmando
+  que el enlace es vigente).
+- **⚠️ Hallazgo crítico:** este enlace **no es descarga pública anónima**. Al seguir la redirección
+  (con o sin `&download=1`) siempre termina en `login.microsoftonline.com` pidiendo autenticación
+  de una cuenta Microsoft/institucional. Esto es atípico para un portal de "datos abiertos" y
+  **bloquea la prueba de descarga automatizada** con `curl`/`requests` sin credenciales.
+- **Formato:** ZIP (contenido interno no verificado — bloqueado por el login).
+- **Tamaño aproximado:** PENDIENTE-CONFIRMAR (bloqueado por el login).
 
 ## 3. Frecuencia real de actualización
 - **Mensual** (publicación aproximada el día 20 de cada mes). → satisface el requisito de ingesta
@@ -52,15 +61,24 @@ tags: [data-source, bronze, driver-d2, ingesta-continua]
 ## 8. Licencia de uso
 - Términos de Libre Uso MX — **confirmar** en la ficha oficial.
 
-## 9. Prueba de descarga real — **PENDIENTE** (Semana 1)
-- [ ] Archivo descargado físicamente
+## 9. Prueba de descarga real — **🔴 BLOQUEADA** (Semana 1)
+- [x] URL real localizada y verificada (resuelve, nombre de archivo confirmado)
+- [ ] Archivo descargado físicamente — **bloqueado: exige login Microsoft/SharePoint**
 - [ ] Abierto y con datos utilizables
-- [ ] Registros contados: `______`
-- [ ] Esquema verificado (columnas y tipos)
-- [ ] Llave confirmada: `cve_mun` de 5 dígitos
-- **Responsable:** Luis Enrique García Vázquez · **Fecha:** ______
+- [ ] Registros contados: `______` (no se pudo obtener)
+- [ ] Esquema verificado (columnas y tipos) (no se pudo obtener)
+- [ ] Llave confirmada: `cve_mun` de 5 dígitos (no se pudo obtener)
+- **Responsable:** Luis Enrique García Vázquez · **Fecha del intento:** 2026-08-14
+- **Qué falta y por qué:** el enlace de descarga que publica SESNSP es un share de SharePoint que
+  redirige a `login.microsoftonline.com` en cada intento (probado con y sin parámetro
+  `download=1`, con user-agent de navegador). No es viable un extractor idempotente (`US-122b`)
+  contra esta URL sin: (a) confirmar si existe un mirror público sin autenticación, o (b)
+  credenciales/flujo de sesión autorizado por el Tech Lead. **Escalado a Diana Alvarez (Tech
+  Lead) para definir cómo proceder antes de iniciar `US-122b`.**
 
 ## 10. Riesgos conocidos
+- **Nuevo (2026-08-14):** el enlace oficial de descarga exige autenticación Microsoft — no es un
+  extractor "URL pública + GET" simple; ver sección 9.
 - Cambios de metodología/clasificación de delitos entre años.
 - Subregistro (cifra negra): no todos los delitos se denuncian.
 - Municipios con cero reportado que en realidad es falta de dato → aplicar criterio `SIN_DATO`.

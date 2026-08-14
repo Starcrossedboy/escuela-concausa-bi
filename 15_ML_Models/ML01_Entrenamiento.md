@@ -1,0 +1,134 @@
+---
+id: DOC-ML01-ENTRENAMIENTO
+title: "ML-01 — Entrenamiento, backtesting y resultados"
+owner: "Héctor Rafael Morales Marbán"
+status: in_review
+traces_up: ["02_Requirements/User_Stories", "03_Architecture/ADRs/ADR-003-ml-estrategia-modelado", "15_ML_Models/ML_Strategy"]
+traces_down: ["US-311", "US-312", "US-313"]
+tags: [ml, celula-3, ml-01, entrenamiento]
+---
+
+# ML-01 — Entrenamiento, backtesting y resultados
+
+> Entregable central de [[02_Requirements/User_Stories|US-311]]: modelo entrenado, MAE/RMSE con
+> backtesting temporal y registro en MLflow (AC-003.2, AC-003.3, AC-003.4).
+> → [[15_ML_Models/_index]] · [[15_ML_Models/ML_Strategy]] · [[15_ML_Models/Indice_Riesgo_ML01]]
+
+> [!warning] Los resultados de abajo son sobre **datos sintéticos**
+> El entrenamiento corre hoy contra `tests/fixtures/features_escuela_mock.csv`. Las métricas
+> validan que **el pipeline funciona**; no son resultados de negocio. Cuando la Célula 1 publique
+> `gold.features_escuela` (US-104, vence el **23 de agosto**) se re-ejecuta con `--features` y este
+> documento se actualiza con las cifras reales.
+
+## 1. El modelo
+
+| | |
+|---|---|
+| Estimador | `HistGradientBoostingRegressor` (scikit-learn 1.9.0) |
+| Objetivo | `target_variacion_matricula` — variación de matrícula al siguiente ciclo |
+| Entradas | los 6 drivers normalizados de `gold.features_escuela` |
+| Métrica | MAE / RMSE (AC-003.2) |
+| Registry MLflow | `ML01_RegresionMatricula` |
+| Código | `src/modelos/entrenar_ml01.py` |
+
+### Por qué `HistGradientBoostingRegressor`
+
+**Maneja `NaN` de forma nativa.** Un driver `SIN_DATO` llega al modelo como ausencia real y **nunca
+se imputa a cero**, conforme a la regla 4 de [[15_ML_Models/_index]]. El estimador aprende a qué
+lado del árbol mandar las ausencias: no tener dato de calidad del aire es información sobre la
+escuela, no un cero.
+
+Esto difiere de la imputación por mediana municipal que propone
+[[03_Architecture/ADRs/ADR-003-ml-estrategia-modelado|ADR-003]] §"cobertura parcial". Ambas rutas
+son defendibles; ésta preserva la señal de ausencia sin agregar features indicadoras. **Punto a
+ratificar con Andrés** antes de cerrar US-311.
+
+## 2. Protocolo de evaluación
+
+Backtesting **walk-forward** con ventana de entrenamiento creciente, conforme a ADR-003. Antes de
+cada `fit()` se invoca `verificar_sin_fuga()`: la regla "partición temporal, nunca aleatoria"
+(AC-003.3) no se asume, se comprueba en ejecución.
+
+Cada ventana se compara contra `DummyRegressor(strategy="mean")`. **Una métrica sin baseline no
+dice nada**: un MAE de 0.015 puede ser excelente o ridículo según la escala del objetivo.
+
+> ADR-003 fija 4 ventanas. El fixture sólo tiene 5 ciclos, así que hoy corren 3. Con los ciclos
+> reales del Formato 911 se sube a 4 sin tocar código (`--ventanas 4`).
+
+## 3. Resultados (datos sintéticos, 400 filas · 80 escuelas · 5 ciclos)
+
+| Ventana | MAE | RMSE | MAE baseline | Mejora |
+|---|---|---|---|---|
+| entrena 2019-2021 → prueba 2021-2022 | 0.0128 | 0.0168 | 0.0294 | **56.5 %** |
+| entrena 2019-2022 → prueba 2022-2023 | 0.0138 | 0.0175 | 0.0283 | **51.3 %** |
+| entrena 2019-2023 → prueba 2023-2024 | 0.0157 | 0.0187 | 0.0295 | **46.8 %** |
+
+**MAE 0.0141 ± 0.0012 · RMSE 0.0177 ± 0.0008** (promedio ± desviación de las ventanas, ADR-003).
+
+El modelo reduce el error a la mitad frente al baseline en las tres ventanas. La degradación
+progresiva (56 % → 47 %) es esperable: las ventanas tardías predicen ciclos más lejanos del inicio
+de la serie.
+
+### Error por entidad (ventana de producción)
+
+Insumo directo de US-312. Como `features_escuela` no trae `cve_ent`, la entidad se deriva de los
+dos primeros caracteres del CCT.
+
+| Entidad | Escuelas | MAE |
+|---|---|---|
+| 14 · Jalisco | 20 | 0.0200 |
+| 19 · Nuevo León | 20 | 0.0159 |
+| 09 · CDMX | 20 | 0.0155 |
+| 15 · Edomex | 20 | 0.0113 |
+
+## 4. Registro en MLflow
+
+Una corrida **padre** con las métricas agregadas y una corrida **hija por ventana**, con sus ciclos
+de entrenamiento y prueba como parámetros. El `run_id` del padre es el que va a
+`gold.predicciones.mlflow_run_id` (US-313).
+
+```bash
+python -m src.modelos.entrenar_ml01 --tracking-uri sqlite:///mlflow.db --registrar-modelo
+```
+
+> **MLflow 3.x deprecó el file store.** `file:./mlruns` ya no funciona y lanza excepción; el URI
+> debe apuntar a una base de datos (`sqlite:///mlflow.db` en local, Postgres en producción).
+> Además, `mlflow.db` **no está en `.gitignore`**, que sí cubre `airflow.db` y `superset.db`.
+> Reportado a la Célula 5.
+
+Verificado a mano: 4 corridas (1 padre + 3 ventanas), métricas y parámetros presentes, y el modelo
+publicado en el registry como `ML01_RegresionMatricula`.
+
+## 5. Del modelo al tablero
+
+ML-01 predice una **variación con signo**. La conversión al `indice_riesgo` ∈ [0,1] que consumen la
+API, los cubos y FARO Web está en [[15_ML_Models/Indice_Riesgo_ML01]] y es **capa de presentación**:
+no cambia el modelo, no cambia la métrica reportada y no se entrena contra ella.
+
+| Variación | `indice_riesgo` |
+|---|---|
+| −0.10 | 0.840 |
+| −0.05 | 0.600 |
+| 0.00 | 0.300 |
+| +0.05 | 0.109 |
+
+## 6. Pruebas
+
+`tests/test_entrenar_ml01.py` — 15 casos (`TEST-005`). Sólo ejercitan la parte pura: el CI no
+levanta MLflow ni escribe artefactos. Las que importan:
+
+- `test_ninguna_ventana_tiene_fuga_temporal` — AC-003.3 en cada ventana.
+- `test_le_gana_al_baseline_en_todas_las_ventanas` — si no supera predecir la media, no hay modelo.
+- `test_no_imputa_los_sin_dato` — compara el conteo de nulos que recibe el estimador contra el
+  origen; un `fillna(0)` en el pipeline hace fallar la prueba.
+- `test_falla_si_la_tabla_no_cumple_el_contrato` — si la Célula 1 publica una tabla sin las columnas
+  acordadas, se detecta al cargar y no en medio del entrenamiento.
+
+## 7. Lo que falta para cerrar US-311
+
+1. **Re-ejecutar contra `gold.features_escuela` real** (US-104, Diana, vence 23 ago) y actualizar §3.
+2. **Ratificar con Andrés** el manejo de cobertura parcial: `NaN` nativo (esta implementación) frente
+   a imputación por mediana + indicador (ADR-003).
+3. **Subir a 4 ventanas** cuando haya ciclos suficientes.
+4. Fijar umbrales de aceptación en la unidad correcta: el `ML_Strategy` §5 los declara en alumnos
+   absolutos (`MAE < 15`) y el contrato define el objetivo como variación (float).

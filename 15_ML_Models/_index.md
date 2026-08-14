@@ -37,3 +37,4 @@ reciban recomendaciones distintas.
 |---|---|
 | [[15_ML_Models/ML_Strategy]] | Estrategia de modelado, partición temporal, backtesting, schema de features, umbrales (US-301) |
 | [[15_ML_Models/Indice_Riesgo_ML01]] | Conversión de la variación de matrícula predicha por ML-01 al `indice_riesgo` ∈ [0,1] que consumen la API, los cubos y los tableros (US-311) |
+| [[15_ML_Models/ML01_Entrenamiento]] | Entrenamiento de ML-01, backtesting walk-forward, resultados y registro en MLflow (US-311) |

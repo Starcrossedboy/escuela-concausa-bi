@@ -36,28 +36,24 @@ distintas según el driver dominante identificado.
 Todos los modelos consumen **`gold.features_escuela`** (US-104, Diana Alvarez, C1).
 
 Mientras `gold.features_escuela` no esté disponible, se trabaja con el fixture mock:
-`tests/fixtures/features_escuela_mock.parquet` (≤500 filas, datos sintéticos).
+`tests/fixtures/features_escuela_mock.csv` (≤500 filas, datos sintéticos).
 
 ### Schema esperado de `gold.features_escuela`
 
 | Columna | Tipo | Descripción |
 |---|---|---|
 | `cct` | `str` | Clave de Centro de Trabajo (llave primaria) |
-| `ciclo` | `str` | Ciclo escolar, e.g. `"2022-23"` |
-| `entidad_id` | `str` | Clave INEGI de entidad (`"09"`, `"15"`, `"19"`, `"14"`) |
-| `nivel` | `str` | Nivel educativo (PREESCOLAR, PRIMARIA, SECUNDARIA, etc.) |
-| `matricula` | `int` | Matrícula total del ciclo |
-| `delta_matricula` | `float` | Variación respecto al ciclo anterior (target ML-01) |
-| `d1_rezago_social` | `float` | Índice CONEVAL de rezago social del municipio |
-| `d2_incidencia_delictiva` | `float` | Tasa de delitos por 100k hab. (SESNSP) |
-| `d3_infraestructura_score` | `float` | Score compuesto de infraestructura (CEMABE) |
-| `d4_conectividad_score` | `float` | Score de conectividad digital (CEMABE) |
-| `d5_estres_hidrico` | `float` | Índice de estrés hídrico (CONAGUA SINA) |
-| `d5_dato_disponible` | `int` | 1 si hay dato real, 0 si es imputación |
-| `d6_calidad_aire` | `float` | Índice de calidad del aire (SINAICA) |
-| `d6_dato_disponible` | `int` | 1 si hay dato real, 0 si es imputación |
+| `id_ciclo` | `str` | Ciclo escolar, e.g. `"2023-2024"` |
+| `d1_pobreza` | `float \| None` | Score normalizado de pobreza / rezago social |
+| `d2_inseguridad` | `float \| None` | Score normalizado de inseguridad del entorno |
+| `d3_infraestructura` | `float \| None` | Score normalizado de infraestructura escolar |
+| `d4_conectividad` | `float \| None` | Score normalizado de conectividad digital |
+| `d5_agua` | `float \| None` | Score normalizado de estrés hídrico / agua |
+| `d6_aire` | `float \| None` | Score normalizado de calidad del aire |
+| `d1_cobertura` … `d6_cobertura` | `OK \| SIN_DATO` | Bandera explícita de cobertura por driver |
 | `indice_completitud_drivers` | `float` | Fracción de drivers con dato real [0.0–1.0] |
-| `driver_dominante` | `str` | Target ML-02: driver que más explica el riesgo |
+| `target_variacion_matricula` | `float` | Target ML-01: variación de matrícula |
+| `driver_dominante` | `str` | Target ML-02, pendiente de publicarse en Gold; hasta entonces se usa `driver_dominante_proxy` |
 
 ---
 
@@ -81,11 +77,12 @@ La métrica reportada es **promedio ± desviación estándar** de los 4 folds.
 ### Implementación
 
 ```python
-from src.modelos.utils.temporal_split import walk_forward_splits
+from src.modelos.particion_temporal import generar_backtesting, verificar_sin_fuga
 
-for train_idx, test_idx in walk_forward_splits(df, ciclo_col="ciclo", n_folds=4):
-    X_train, X_test = df.iloc[train_idx], df.iloc[test_idx]
-    # ...
+for particion in generar_backtesting(df, n_ventanas=4):
+  entrena, prueba = particion.aplicar(df)
+  verificar_sin_fuga(entrena, prueba)
+  # ...
 ```
 
 ---
@@ -95,12 +92,13 @@ for train_idx, test_idx in walk_forward_splits(df, ciclo_col="ciclo", n_folds=4)
 D5 (agua) cubre zonas regionales; D6 (aire) cubre ~80 zonas urbanas.
 En escuelas fuera de cobertura, se aplica:
 
-1. Imputación con **mediana histórica del municipio** (si existe al menos 1 ciclo con dato real).
-2. Imputación con **mediana estatal** si el municipio tampoco tiene datos.
-3. El indicador `d5_dato_disponible` / `d6_dato_disponible` se pone en `0` siempre que se imputa.
+1. El valor del driver queda como `None` / `NaN` cuando su cobertura es `SIN_DATO`.
+2. La bandera `d*_cobertura` conserva la ausencia explícita para entrenamiento y auditoría.
+3. Los modelos deben usar estimadores que toleren `NaN` o una imputación documentada que nunca use
+  `0` como sustituto silencioso.
 
-**Nunca se introduce `0` como valor del índice** (cero es dato físicamente válido para algunos
-indicadores).
+**Nunca se introduce `0` como relleno de ausencia** (cero puede ser un dato físicamente válido para
+algunos indicadores).
 
 ---
 
@@ -133,14 +131,14 @@ Salida esperada del endpoint de ML-02:
 ```json
 {
   "cct": "09DPR1234X",
-  "driver_dominante": "d2_incidencia_delictiva",
+  "driver_dominante": "D2",
   "shap_values": {
-    "d1_rezago_social": -0.12,
-    "d2_incidencia_delictiva": 0.54,
-    "d3_infraestructura_score": 0.08,
-    "d4_conectividad_score": -0.03,
-    "d5_estres_hidrico": 0.11,
-    "d6_calidad_aire": 0.02
+    "d1_pobreza": -0.12,
+    "d2_inseguridad": 0.54,
+    "d3_infraestructura": 0.08,
+    "d4_conectividad": -0.03,
+    "d5_agua": 0.11,
+    "d6_aire": 0.02
   },
   "recomendacion": "Intervención prioritaria en seguridad del entorno escolar."
 }
@@ -170,6 +168,7 @@ El nombre canónico de los modelos en el registry es:
 
 | ID | Qué verifica | Archivo |
 |---|---|---|
-| TEST-ML-001 | No hay fuga temporal: ningún `ciclo` del test aparece en train | `tests/test_temporal_split.py` |
-| TEST-ML-002 | No hay nulos ni ceros en features de drivers con `dato_disponible=0` | `tests/test_fixtures.py` |
-| TEST-ML-003 | El schema del fixture mock coincide con el schema esperado de `gold.features_escuela` | `tests/test_fixtures.py` |
+| TEST-ML-001 | No hay fuga temporal: ningún `id_ciclo` del test aparece en train | `tests/test_particion_temporal.py` |
+| TEST-ML-002 | Los `SIN_DATO` son coherentes con `NaN`; nunca cero silencioso | `tests/test_particion_temporal.py` |
+| TEST-ML-003 | El schema del fixture mock coincide con el contrato `gold.features_escuela` | `tests/test_particion_temporal.py` |
+| TEST-ML-004 | ML-02 deriva target proxy y evalúa F1/accuracy por ventana temporal | `tests/test_entrenar_ml02.py` |

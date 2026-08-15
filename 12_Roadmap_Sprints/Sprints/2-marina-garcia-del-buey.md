@@ -297,10 +297,15 @@ Actualiza esta tabla **antes de cada standup**. El PM la revisa para el tablero 
 
 | ID | Historia | Estado | % | Bloqueado por | Fecha compromiso |
 |---|---|---|---|---|---|
-| `US-211a` | Cubos y metricas de DB-03 y DB-04 | ⬜ Por iniciar | 0% | — | Dom 23 ago |
-| `US-212` | Construir DB-03 Ficha de escuela y DB-04 C | ⬜ Por iniciar | 0% | — | Dom 30 ago |
+| `US-211a` | Cubos y metricas de DB-03 y DB-04 | 🔵 En revisión (PR abierto) | 90% | — | Dom 23 ago |
+| `US-212` | Construir DB-03 Ficha de escuela y DB-04 C | ⬜ Por iniciar | 0% | Gold de C1 (US-112/US-113) + Superset local | Dom 30 ago |
 | `US-214a` | Filtros y drill-down en DB-03 y DB-04 | ⬜ Por iniciar | 0% | — | Dom 6 sep |
 | `US-215a` | Usabilidad/accesibilidad DB-03 y DB-04 | ⬜ Por iniciar | 0% | — | Dom 6 sep |
+| `US-207` | FARO Web: panel de ML interactivo | ⬜ Por iniciar | 0% | API de inferencia (US-412/US-415) | Dom 6 sep |
+
+> **US-211a al 90%:** el contrato semántico, el SQL de referencia, la capa semántica y las pruebas están
+> entregados ([[04_UX_Design/Cube_Specs_DB03_DB04]]). El 10% restante son dos respuestas ajenas: el
+> cambio de grano de `cubo_comparador_municipio` (Diana, C1) y el alta de KPI-15…KPI-18 (Manuel, C2).
 
 **Estados válidos:** ⬜ Por iniciar · 🟡 En curso · 🔵 En revisión (PR abierto) · ✅ Terminado · 🔴 Bloqueado
 

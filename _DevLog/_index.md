@@ -51,6 +51,7 @@ Toda sesión con IA **debe** generar una entrada de DevLog **antes del push** (p
 | [[_DevLog/2026-08-12-alejandro-velazquez-mendoza\|2026-08-12]] | US-521a: Setup local FastAPI + Postgres (docker-compose y guía) | Alejandro Velázquez Mendoza | Antigravity | US-521a, DOC-DEV-API-LOCAL, REQ-007 |
 | [[_DevLog/2026-08-12-edgar-calendario-responsable\|2026-08-12]] | Calendario del tablero PM: responsable visible por US (avatar de iniciales + nombre corto), pie de responsables por sprint, `owner_short` en el generador y TEST-002 | Edgar Edmundo Coronel Navarrete | Claude Code / opus-4-8 | US-004, REQ-007, RPT-PM-SPEC, TEST-002, PLAN-EXEC-STATUS |
 | [[_DevLog/2026-08-13-manuel-serrania-screenspecs-cubos\|2026-08-13]] | Corrección de Screen_Specs: cubos leen riesgo/driver vía JOIN a `predicciones`/`recomendaciones` (KPI-03/04/07/10) + ratificación del umbral 0.6 = perder ~5% de matrícula | Manuel Alejandro Serranía Reinada | OpenCode / opencode/big-pickle | US-201, REQ-002, DOC-SCREENSPECS, DOC-INDICE-RIESGO |
+| [[_DevLog/2026-08-14-luis-garcia-us121b-prueba-descarga\|2026-08-14]] | US-121b: prueba de descarga real de DS-04 (SESNSP, bloqueado por login Microsoft/SharePoint, escalado a Tech Lead) y DS-05 (SINAICA, endpoints reales probados en vivo, 287 registros horarios y esquema corregido) | Luis Enrique García Vázquez | Claude Code / sonnet-5 | US-121b, REQ-001, DS-04, DS-05 |
 
 ## Campos del frontmatter
 | Campo | Obligatorio |

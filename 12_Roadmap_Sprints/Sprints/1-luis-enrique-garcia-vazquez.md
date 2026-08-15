@@ -293,7 +293,7 @@ Actualiza esta tabla **antes de cada standup**. El PM la revisa para el tablero 
 
 | ID | Historia | Estado | % | Bloqueado por | Fecha compromiso |
 |---|---|---|---|---|---|
-| `US-121b` | Prueba de descarga real DS-04 y DS-05 | ⬜ Por iniciar | 0% | — | Dom 9 ago |
+| `US-121b` | Prueba de descarga real DS-04 y DS-05 | 🟡 En curso | 70% | DS-04 bloqueado por login Microsoft/SharePoint (escalado a Diana) | Dom 9 ago (vencida) |
 | `US-122b` | Extractores de DS-04 y DS-05 | ⬜ Por iniciar | 0% | — | Dom 16 ago |
 | `US-123b` | Great Expectations de DS-04 y DS-05 | ⬜ Por iniciar | 0% | — | Dom 23 ago |
 | `US-124b` | Fixtures de DS-04 y DS-05 | ⬜ Por iniciar | 0% | — | Dom 30 ago |

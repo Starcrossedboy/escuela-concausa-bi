@@ -43,3 +43,4 @@ reciban recomendaciones distintas.
 | [[15_ML_Models/Preguntas_Coordinacion_C3]] | Preguntas puntuales para desbloquear ML-02, MLflow/API y agente con C1, C4, C5 y compañeros de C3 |
 | [[15_ML_Models/Guia_Ejecucion_C3]] | Guía corta para instalar dependencias mínimas y correr pruebas/ML-02 localmente |
 | [[15_ML_Models/PR_Draft_Trabajo_Independiente_C3]] | Borrador de PR listo para pegar en GitHub con pruebas, alcance y bloqueantes |
+| [[15_ML_Models/Publicacion_Gold]] | Job batch que publica `gold.predicciones` y `gold.recomendaciones` con upsert idempotente (US-313) |

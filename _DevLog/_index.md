@@ -58,6 +58,9 @@ Toda sesión con IA **debe** generar una entrada de DevLog **antes del push** (p
 | [[_DevLog/2026-08-15-luis-tellez-us503-ci-pipeline\|2026-08-15]] | US-503: Pipeline CI completo con GitLeaks (G5) y pip-audit (G6) — escaneo de secretos en historial Git + detección de vulnerabilidades CVE en dependencias + documentación CI_Quality_Gates actualizada con ejemplos Python (6/8 gates implementados) | Luis Téllez Domínguez | Claude Code / sonnet-4.5 | US-503, REQ-007, US-502 |
 | [[_DevLog/2026-08-15-manuel-serrania-kpis-db03-ratificacion-join\|2026-08-15]] | Ratificación del LEFT JOIN a salidas de ML en el grano de escuela (DB-03), alta de KPI-15…KPI-18 en el catálogo canónico (AC-002.4) y convención de capa semántica `superset/semantic/` como estándar US-202 | Manuel Alejandro Serranía Reinada | OpenCode / opencode/big-pickle | US-201, US-211a, REQ-002, DOC-SCREENSPECS, DOC-CUBESPEC-DB0304 |
 
+| [[_DevLog/2026-08-15-deni-garrido-us111-bronze-silver|2026-08-15]] | US-111: avance Bronze→Silver; configuración dbt, macros, sources y modelos iniciales | Deni Garrido Fragoso | ChatGPT / GPT-5.6 Sol | US-111, REQ-001, DS-01, DS-02, DS-03 |
+| [[_DevLog/2026-08-16-deni-garrido-us111-bronze-silver-cierre|2026-08-16]] | US-111: cierre técnico dbt; 8 modelos Silver, 51 tests y compilación global | Deni Garrido Fragoso | ChatGPT / GPT-5.6 Sol | US-111, REQ-001, DS-01–DS-08 |
+
 ## Campos del frontmatter
 | Campo | Obligatorio |
 |---|---|

@@ -63,3 +63,50 @@ def registrar_sklearn(modelo: Any, config: RegistroModelo) -> str:
         if config.registrar_modelo:
             mlflow.register_model(info.model_uri, config.nombre_modelo)
         return run.info.run_id
+
+
+def version_del_servidor(tracking_uri: str, timeout: float = 10.0) -> str | None:
+    """Consulta la versión del servidor MLflow. `None` si no es un servidor HTTP o no responde.
+
+    El servidor expone `GET /version` en texto plano (p. ej. `"2.8.0"`).
+    """
+    if not tracking_uri.startswith(("http://", "https://")):
+        return None  # backends locales (sqlite:///, file:) no tienen servidor que consultar
+    import requests
+
+    try:
+        respuesta = requests.get(f"{tracking_uri.rstrip('/')}/version", timeout=timeout)
+        respuesta.raise_for_status()
+        return respuesta.text.strip()
+    except Exception:  # noqa: BLE001 - la incompatibilidad no debe tapar el error real de entrenar
+        return None
+
+
+def verificar_compatibilidad(tracking_uri: str) -> None:
+    """Falla temprano y con un mensaje accionable si cliente y servidor no son compatibles.
+
+    Un cliente MLflow 3.x contra un servidor 2.x **registra métricas pero pierde los modelos**:
+    `log_model()` llama `/api/2.0/mlflow/logged-models`, que no existe en 2.x, y responde 404. El
+    síntoma es confuso —la corrida aparece en la UI, sin artefactos ni versión en el registry— y
+    bloquea AC-003.4 sin que sea evidente por qué.
+
+    Esta verificación convierte ese 404 tardío en un error inmediato que dice qué hacer.
+
+    Raises:
+        RuntimeError: si las versiones mayores de cliente y servidor difieren.
+    """
+    servidor = version_del_servidor(tracking_uri)
+    if servidor is None:
+        return
+
+    import mlflow
+
+    cliente = mlflow.__version__
+    if servidor.split(".")[0] != cliente.split(".")[0]:
+        raise RuntimeError(
+            f"MLflow incompatible: servidor {servidor} vs cliente {cliente} en {tracking_uri}.\n"
+            "Con versiones mayores distintas las métricas sí se registran, pero los MODELOS no: "
+            "`log_model()` falla con 404 y el registry queda vacío (AC-003.4 sin cumplir).\n"
+            "Alinea las versiones: el servidor lo define `docker/mlflow.Dockerfile` (Célula 5) y "
+            "el cliente `requirements/celula-3.txt`."
+        )

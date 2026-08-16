@@ -1,0 +1,243 @@
+# =============================================================================
+# Capa semantica de DB-03 y DB-04 - metricas, jerarquias y filtros
+# -----------------------------------------------------------------------------
+# Historia : US-211a (Marina Garcia del Buey, Celula 2 - Analytics & BI)
+# Contrato : 04_UX_Design/Cube_Specs_DB03_DB04.md (DOC-CUBESPEC-DB0304)
+# Uso      : declaracion de las metricas que se dan de alta en Superset al
+#            construir DB-03 y DB-04 (US-212). Formato propio del proyecto,
+#            no un export nativo de Superset: la convencion definitiva la fija
+#            Manuel en US-202 y este archivo se alinea con ella.
+#
+# Regla transversal: toda razon se expresa como SUM(numerador)/SUM(denominador)
+# para que se pueda reagregar con cualquier combinacion de filtros globales.
+# Ninguna metrica usa COALESCE(<driver>, 0): SIN_DATO nunca se dibuja como cero.
+# =============================================================================
+
+version: "1.0"
+owner: "Marina García del Buey"
+story: US-211a
+traces_up: DOC-CUBESPEC-DB0304
+
+# -----------------------------------------------------------------------------
+# Filtros globales (AC-002.2) - aplican a los dos tableros
+# -----------------------------------------------------------------------------
+filtros_globales:
+  - nombre: ciclo
+    columna: id_ciclo
+    etiqueta: "Ciclo escolar"
+    default: ultimo_ciclo
+  - nombre: entidad
+    columna: cve_ent
+    etiqueta: "Entidad"
+    nota: "Acotado a SCOPE_ENTIDADES (09, 15, 19, 14)"
+  - nombre: nivel
+    columna: nivel
+    etiqueta: "Nivel educativo"
+
+# -----------------------------------------------------------------------------
+# DB-03 - Ficha de escuela
+# -----------------------------------------------------------------------------
+datasets:
+  - nombre: cubo_escuela_360
+    dashboard: DB-03
+    sql: db03_cubo_escuela_360.sql
+    grano: [cct, id_ciclo]
+    llave_primaria: [cct, id_ciclo]
+    banderas_cobertura:
+      - d1_cobertura
+      - d2_cobertura
+      - d3_cobertura
+      - d4_cobertura
+      - d5_cobertura
+      - d6_cobertura
+      - cobertura_prediccion
+      - cobertura_recomendacion
+
+    jerarquias:
+      - nombre: territorio
+        niveles: [cve_ent, cve_mun, cct]
+      - nombre: tiempo
+        niveles: [anio_inicio, id_ciclo]
+
+    metricas:
+      - nombre: matricula_total
+        etiqueta: "Matrícula total"
+        expresion: "SUM(matricula_total)"
+        formato: entero
+        kpi: KPI-01
+      - nombre: variacion_ponderada_pct
+        etiqueta: "Variación de matrícula"
+        expresion: "SUM(variacion_matricula * matricula_total) / NULLIF(SUM(matricula_total), 0)"
+        formato: porcentaje_1
+        kpi: KPI-02
+      - nombre: completitud_promedio
+        etiqueta: "Completitud de drivers"
+        expresion: "AVG(indice_completitud_drivers)"
+        formato: porcentaje_0
+        kpi: KPI-05
+      - nombre: indice_riesgo
+        etiqueta: "Índice de riesgo"
+        expresion: "AVG(indice_riesgo)"
+        formato: decimal_2
+        kpi: KPI-03
+        cobertura: cobertura_prediccion
+        nota: "Si cobertura_prediccion = SIN_DATO se muestra 'sin dato disponible', nunca 0"
+      - nombre: escuelas_en_riesgo
+        etiqueta: "Escuelas en riesgo"
+        expresion: "COUNT(*) FILTER (WHERE en_riesgo)"
+        formato: entero
+        kpi: KPI-04
+        umbral: 0.6
+      - nombre: drivers_sin_dato
+        etiqueta: "Drivers sin dato"
+        expresion: "6 - ROUND(AVG(indice_completitud_drivers) * 6)"
+        formato: entero
+
+    # Propuesta de alta en el catalogo canonico de Manuel (Cube_Specs §5.1).
+    # Aun NO son KPIs oficiales: pendiente de que Manuel los publique en
+    # 04_UX_Design/Screen_Specs.md.
+    kpis_propuestos:
+      - id: KPI-15
+        nombre: "Perfil de matrícula de la escuela"
+        sustenta: [AC-002.4, AC-002.5]
+      - id: KPI-16
+        nombre: "Perfil de drivers de la escuela"
+        sustenta: [AC-002.4, AC-002.6]
+      - id: KPI-17
+        nombre: "Predicción de la escuela"
+        sustenta: [AC-002.4]
+      - id: KPI-18
+        nombre: "Recomendación prescriptiva de la escuela"
+        sustenta: [AC-002.4]
+
+  # ---------------------------------------------------------------------------
+  # DB-04 - Comparador de municipios
+  # ---------------------------------------------------------------------------
+  - nombre: cubo_comparador_municipio
+    dashboard: DB-04
+    sql: db04_cubo_comparador_municipio.sql
+    grano: [cve_mun, nivel, id_ciclo]
+    llave_primaria: [cve_mun, nivel, id_ciclo]
+    grano_canonico_actual: [cve_mun, id_ciclo]
+    cambio_de_grano_solicitado_a: "Diana Aracely Alvarez Varela (C1) - Cube_Specs §8.1"
+    banderas_cobertura:
+      - escuelas_con_d1
+      - escuelas_con_d2
+      - escuelas_con_d3
+      - escuelas_con_d4
+      - escuelas_con_d5
+      - escuelas_con_d6
+      - cobertura_riesgo
+
+    jerarquias:
+      - nombre: territorio
+        niveles: [cve_ent, cve_mun]
+      - nombre: oferta
+        niveles: [cve_mun, nivel]
+      - nombre: tiempo
+        niveles: [anio_inicio, id_ciclo]
+
+    metricas:
+      - nombre: escuelas
+        etiqueta: "Escuelas"
+        expresion: "SUM(escuelas)"
+        formato: entero
+      - nombre: matricula_total
+        etiqueta: "Matrícula total"
+        expresion: "SUM(matricula_total)"
+        formato: entero
+        kpi: KPI-01
+      - nombre: variacion_ponderada_pct
+        etiqueta: "Variación de matrícula"
+        expresion: "SUM(variacion_x_matricula) / NULLIF(SUM(matricula_total), 0)"
+        formato: porcentaje_1
+        kpi: KPI-02
+      - nombre: matricula_por_escuela
+        etiqueta: "Matrícula por escuela"
+        expresion: "SUM(matricula_total) / NULLIF(SUM(escuelas), 0)"
+        formato: decimal_1
+      - nombre: indice_riesgo_promedio
+        etiqueta: "Índice de riesgo promedio"
+        expresion: "SUM(suma_indice_riesgo) / NULLIF(SUM(escuelas_con_prediccion), 0)"
+        formato: decimal_2
+        kpi: KPI-03
+        cobertura: cobertura_riesgo
+      - nombre: escuelas_en_riesgo
+        etiqueta: "Escuelas en riesgo"
+        expresion: "SUM(escuelas_en_riesgo)"
+        formato: entero
+        kpi: KPI-04
+        umbral: 0.6
+      - nombre: pct_escuelas_en_riesgo
+        etiqueta: "% escuelas en riesgo"
+        expresion: "SUM(escuelas_en_riesgo) * 100.0 / NULLIF(SUM(escuelas_con_prediccion), 0)"
+        formato: porcentaje_1
+        denominador_visible: escuelas_con_prediccion
+        nota: >
+          Divide entre escuelas con predicción, no entre el total. Decir "10% en riesgo"
+          cuando solo el 30% fue puntuada inventaría una cobertura que no existe.
+      - nombre: completitud_promedio
+        etiqueta: "Completitud de drivers"
+        expresion: "SUM(suma_completitud) / NULLIF(SUM(escuelas), 0)"
+        formato: porcentaje_0
+        kpi: KPI-05
+      - nombre: d1_promedio
+        etiqueta: "D1 · Pobreza y rezago social"
+        expresion: "SUM(suma_d1) / NULLIF(SUM(escuelas_con_d1), 0)"
+        formato: decimal_2
+        cobertura: escuelas_con_d1
+      - nombre: d2_promedio
+        etiqueta: "D2 · Inseguridad del entorno"
+        expresion: "SUM(suma_d2) / NULLIF(SUM(escuelas_con_d2), 0)"
+        formato: decimal_2
+        cobertura: escuelas_con_d2
+      - nombre: d3_promedio
+        etiqueta: "D3 · Infraestructura escolar"
+        expresion: "SUM(suma_d3) / NULLIF(SUM(escuelas_con_d3), 0)"
+        formato: decimal_2
+        cobertura: escuelas_con_d3
+      - nombre: d4_promedio
+        etiqueta: "D4 · Conectividad digital"
+        expresion: "SUM(suma_d4) / NULLIF(SUM(escuelas_con_d4), 0)"
+        formato: decimal_2
+        cobertura: escuelas_con_d4
+      - nombre: d5_promedio
+        etiqueta: "D5 · Estrés hídrico"
+        expresion: "SUM(suma_d5) / NULLIF(SUM(escuelas_con_d5), 0)"
+        formato: decimal_2
+        cobertura: escuelas_con_d5
+      - nombre: d6_promedio
+        etiqueta: "D6 · Calidad del aire"
+        expresion: "SUM(suma_d6) / NULLIF(SUM(escuelas_con_d6), 0)"
+        formato: decimal_2
+        cobertura: escuelas_con_d6
+      - nombre: contexto_socioeconomico
+        etiqueta: "Contexto socioeconómico"
+        columnas: [poblacion, pobreza_pct, grado_rezago, indice_rezago_social]
+        kpi: KPI-14
+
+# -----------------------------------------------------------------------------
+# Navegacion cruzada (se implementa en US-214a)
+# -----------------------------------------------------------------------------
+drill_down:
+  - desde: DB-01
+    hacia: DB-03
+    llave: cct
+  - desde: DB-02
+    hacia: DB-03
+    llave: cct
+  - desde: DB-02
+    hacia: DB-04
+    llave: cve_mun
+  - desde: DB-03
+    hacia: DB-04
+    llave: cve_mun
+  - desde: DB-03
+    hacia: DB-06
+    llave: [cct, id_ciclo]
+  - desde: DB-03
+    hacia: DB-09
+    llave: [cct, id_ciclo]
+  - desde: DB-04
+    hacia: DB-03
+    llave: cct

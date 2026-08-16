@@ -12,8 +12,9 @@ tags: [moc, security]
 
 | Documento | Contenido |
 |---|---|
-| [[07_Security/Threat_Model]] | Modelado de amenazas (STRIDE) |
+| [[07_Security/Threat_Model]] | Modelado de amenazas, 13 vulnerabilidades documentadas, Score CIS 7.0/10 |
 | [[07_Security/Security_Model]] | Auth, autorización, manejo de datos |
+| [[07_Security/Credentials_Policy]] | Política de credenciales (CIS 5.2, 5.3, 6.5) — rotación 90 días |
 | [[07_Security/Secrets_Policy]] | Política de secretos y rotación |
 | [[07_Security/Security_Review_Checklist]] | Checklist pre-deploy |
 | [[07_Security/Security_Audit_Log]] | Hallazgos `SEC-###` |

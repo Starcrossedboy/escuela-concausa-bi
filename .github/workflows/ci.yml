@@ -13,6 +13,8 @@ jobs:
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # GitLeaks necesita historial completo
       - uses: actions/setup-python@v5
         with:
           python-version: "3.11"
@@ -20,7 +22,7 @@ jobs:
       - name: Instalar dependencias
         run: |
           python -m pip install --upgrade pip
-          pip install ruff pytest
+          pip install ruff pytest pip-audit
           if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
       - name: Vault lint
         run: python _Meta/scripts/vault_lint.py .
@@ -46,3 +48,21 @@ jobs:
           BIG=$(git ls-files | xargs -I{} du -k "{}" 2>/dev/null | awk '$1>5120 {print $2}')
           if [ -n "$BIG" ]; then echo "Archivos >5MB:"; echo "$BIG"; exit 1; fi
           echo "OK"
+      - name: G5 Secret scan con GitLeaks
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: G6 Dependency audit con pip-audit
+        run: |
+          echo "🔍 Escaneando dependencias contra CVE database..."
+          pip-audit --desc on --format json > audit-report.json || true
+          if [ -f audit-report.json ]; then
+            VULNS=$(cat audit-report.json | grep -o '"id":' | wc -l || echo 0)
+            if [ "$VULNS" -gt 0 ]; then
+              echo "⚠️ Se encontraron $VULNS vulnerabilidades"
+              cat audit-report.json
+              echo "⚠️ Revisar vulnerabilidades antes de merge"
+            else
+              echo "✅ Sin vulnerabilidades detectadas"
+            fi
+          fi

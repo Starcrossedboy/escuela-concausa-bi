@@ -1,0 +1,55 @@
+version: 2
+
+models:
+  - name: matricula
+    description: "Silver nacional de DS-01 Formato 911, tipada, homologada y deduplicada a nivel CCT por ciclo escolar."
+
+    columns:
+      - name: cct
+        description: "Clave de Centro de Trabajo homologada a 10 caracteres."
+        data_tests:
+          - not_null
+
+      - name: ciclo
+        description: "Ciclo escolar."
+        data_tests:
+          - not_null
+
+      - name: cve_ent
+        description: "Clave INEGI de entidad a 2 dígitos."
+        data_tests:
+          - not_null
+
+      - name: cve_mun
+        description: "Clave INEGI municipal homologada a 5 dígitos."
+        data_tests:
+          - not_null
+
+      - name: alumnos_total
+        description: "Matrícula total reportada por escuela y ciclo."
+
+      - name: docentes_total
+        description: "Total de docentes reportados por escuela y ciclo."
+
+      - name: grupos_total
+        description: "Total de grupos reportados por escuela y ciclo."
+
+  - name: escuela
+    description: "Silver nacional de DS-02 Catálogo CCT, tipada, homologada y deduplicada a una fila por escuela."
+
+    columns:
+      - name: cct
+        description: "Clave primaria de Centro de Trabajo homologada a 10 caracteres."
+        data_tests:
+          - not_null
+          - unique
+
+      - name: cve_ent
+        description: "Clave INEGI de entidad homologada a 2 dígitos."
+        data_tests:
+          - not_null
+
+      - name: cve_mun
+        description: "Clave INEGI municipal homologada a 5 dígitos."
+        data_tests:
+          - not_null

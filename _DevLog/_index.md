@@ -55,6 +55,9 @@ Toda sesión con IA **debe** generar una entrada de DevLog **antes del push** (p
 | [[_DevLog/2026-08-14-luis-garcia-us121b-prueba-descarga\|2026-08-14]] | US-121b: prueba de descarga real de DS-04 (SESNSP, bloqueado por login Microsoft/SharePoint, escalado a Tech Lead) y DS-05 (SINAICA, endpoints reales probados en vivo, 287 registros horarios y esquema corregido) | Luis Enrique García Vázquez | Claude Code / sonnet-5 | US-121b, REQ-001, DS-04, DS-05 |
 | [[_DevLog/2026-08-15-andres-gonzalez-trabajo-independiente-ml-agente\|2026-08-15]] | Avance independiente C3: guardarraíles del agente, scaffold ML-02 con target proxy temporal, helper MLflow y sincronización de ML_Strategy al contrato vigente | Andrés González Habib | GitHub Copilot | US-302, US-303, US-304a, REQ-003, REQ-006 |
 
+| [[_DevLog/2026-08-15-deni-garrido-us111-bronze-silver|2026-08-15]] | US-111: avance Bronze→Silver; configuración dbt, macros, sources y modelos iniciales | Deni Garrido Fragoso | ChatGPT / GPT-5.6 Sol | US-111, REQ-001, DS-01, DS-02, DS-03 |
+| [[_DevLog/2026-08-16-deni-garrido-us111-bronze-silver-cierre|2026-08-16]] | US-111: cierre técnico dbt; 8 modelos Silver, 51 tests y compilación global | Deni Garrido Fragoso | ChatGPT / GPT-5.6 Sol | US-111, REQ-001, DS-01–DS-08 |
+
 ## Campos del frontmatter
 | Campo | Obligatorio |
 |---|---|

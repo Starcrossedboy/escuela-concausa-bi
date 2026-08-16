@@ -23,7 +23,7 @@ with DAG(
     dag_id="dag_anual",
     description="Fuentes con periodicidad anual (DS-01 Formato911, DS-08 CONAPO)",
     default_args=default_args,
-    schedule="@annually",
+    schedule="0 0 1 1 *",
     start_date=datetime(2026, 8, 1),
     catchup=False,
     tags=["anual", "DS-01", "DS-08", "celula-1"],

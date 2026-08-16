@@ -1,0 +1,28 @@
+version: 2
+
+models:
+  - name: dim_tiempo
+    description: >
+      Dimensión de tiempo — un registro por ciclo escolar (gold.dim_tiempo,
+      Data_Model.md §6).
+    columns:
+      - name: id_ciclo
+        description: PK — identificador del ciclo escolar
+        tests:
+          - unique
+          - not_null
+
+      - name: ciclo
+        description: "Ciclo escolar en formato AAAA-AAAA"
+        tests:
+          - not_null
+
+      - name: anio_inicio
+        description: Año de inicio del ciclo escolar
+        tests:
+          - not_null
+
+      - name: anio_fin
+        description: Año de fin del ciclo escolar
+        tests:
+          - not_null

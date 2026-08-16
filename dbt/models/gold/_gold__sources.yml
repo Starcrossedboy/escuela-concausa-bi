@@ -1,0 +1,13 @@
+version: 2
+
+sources:
+  - name: silver
+    schema: silver
+    tables:
+      - name: matricula
+        description: Matrícula por escuela y ciclo escolar, conformada en Silver (DS-01)
+        columns:
+          - name: cct
+            description: Llave de escuela (10 caracteres)
+          - name: id_ciclo
+            description: "Ciclo escolar, formato AAAA-AAAA (ej. 2023-2024)"

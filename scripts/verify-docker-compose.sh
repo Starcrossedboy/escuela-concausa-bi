@@ -101,6 +101,9 @@ check_container "faro-postgres"
 check_container "faro-api"
 check_container "faro-airflow-webserver"
 check_container "faro-airflow-scheduler"
+check_container "faro-mlflow"
+check_container "faro-superset"
+check_container "faro-chromadb"
 
 # Verificar que airflow-init terminó correctamente
 if docker ps -a --format '{{.Names}}\t{{.Status}}' | grep "faro-airflow-init" | grep -q "Exited (0)"; then
@@ -121,6 +124,9 @@ echo ""
 check_http "Postgres (TCP)" "localhost" 5432 || check_port "Postgres" 5432
 check_http "API FastAPI" "http://localhost:8000/health" 5
 check_http "Airflow Webserver" "http://localhost:8080/health" 10
+check_http "MLflow" "http://localhost:5001/health" 10
+check_http "Superset" "http://localhost:8088/health" 15
+check_http "ChromaDB" "http://localhost:8001/api/v2/heartbeat" 5
 
 echo ""
 
@@ -168,12 +174,18 @@ if [ "$ALL_OK" = true ]; then
     echo -e "${GREEN}🎉 TODOS LOS SERVICIOS ESTÁN FUNCIONANDO CORRECTAMENTE${NC}"
     echo ""
     echo "📍 Accede a los servicios:"
-    echo "   • Airflow UI:  http://localhost:8080"
-    echo "     Usuario:     faro_airflow_admin"
-    echo "     Password:    (ver archivo .env)"
+    echo "   • Airflow UI:   http://localhost:8080"
+    echo "     Usuario:      faro_airflow_admin"
+    echo "     Password:     (ver .env: _AIRFLOW_WWW_USER_PASSWORD)"
     echo ""
-    echo "   • API FastAPI: http://localhost:8000/docs"
-    echo "   • Postgres:    localhost:5432"
+    echo "   • Superset UI:  http://localhost:8088"
+    echo "     Usuario:      faro_superset_admin"
+    echo "     Password:     (ver .env: SUPERSET_ADMIN_PASSWORD)"
+    echo ""
+    echo "   • MLflow UI:    http://localhost:5001"
+    echo "   • API FastAPI:  http://localhost:8000/docs"
+    echo "   • ChromaDB API: http://localhost:8001/api/v1/heartbeat"
+    echo "   • Postgres:     localhost:5432"
     echo ""
     exit 0
 else

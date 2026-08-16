@@ -2,11 +2,18 @@
 # FARO — Docker Compose Completo
 # ═══════════════════════════════════════════════════════════════════════
 # Servicios:
-#   - db              → PostgreSQL 15 (4 bases de datos)
-#   - api             → FastAPI (backend)
-#   - airflow-init    → Inicialización de Airflow (corre 1 vez)
+#   - db                → PostgreSQL 15 (4 bases de datos: escuela_concausa_db, airflow, mlflow, superset)
+#   - api               → FastAPI (backend)
+#   - airflow-init      → Inicialización de Airflow (corre 1 vez)
 #   - airflow-webserver → UI de Airflow (puerto 8080)
 #   - airflow-scheduler → Orquestador de DAGs
+#   - mlflow            → Tracking de modelos ML (puerto 5000)
+#   - superset          → Dashboards BI (puerto 8088)
+#   - chromadb          → Vector database para agente RAG (puerto 8001)
+#
+# Puertos expuestos:
+#   5432 → Postgres    |  8000 → FastAPI   |  8080 → Airflow
+#   5001 → MLflow      |  8088 → Superset  |  8001 → ChromaDB
 #
 # Creado: 2026-08-15 por Luis Téllez Domínguez (Célula 5)
 # Historia: US-502
@@ -30,6 +37,12 @@ volumes:
     name: faro-airflow-logs
   airflow-plugins:
     name: faro-airflow-plugins
+  mlflow-artifacts:
+    name: faro-mlflow-artifacts
+  superset-data:
+    name: faro-superset-data
+  chroma-data:
+    name: faro-chroma-data
 
 # ───────────────────────────────────────────────────────────────────────
 # SERVICIOS
@@ -48,7 +61,7 @@ services:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
       POSTGRES_DB: ${POSTGRES_DB}
     ports:
-      - "5432:5432"
+      - "127.0.0.1:5432:5432"  # Solo localhost (seguridad)
     volumes:
       - postgres-data:/var/lib/postgresql/data
       - ./docker/init-db.sql:/docker-entrypoint-initdb.d/init-db.sql:ro
@@ -79,7 +92,7 @@ services:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
       LOG_LEVEL: ${LOG_LEVEL}
     ports:
-      - "${API_PORT}:${API_PORT}"
+      - "127.0.0.1:${API_PORT}:${API_PORT}"  # Solo localhost (seguridad)
     volumes:
       - ./src:/app/src:ro
       - ./data:/app/data:ro
@@ -141,7 +154,7 @@ services:
       AIRFLOW__WEBSERVER__SECRET_KEY: ${AIRFLOW__WEBSERVER__SECRET_KEY}
       AIRFLOW__CORE__LOAD_EXAMPLES: ${AIRFLOW__CORE__LOAD_EXAMPLES}
     ports:
-      - "8080:8080"
+      - "127.0.0.1:8080:8080"  # Solo localhost (seguridad)
     volumes:
       - ./dags:/opt/airflow/dags:ro
       - ./src:/opt/airflow/src:ro
@@ -189,3 +202,87 @@ services:
       timeout: 10s
       retries: 5
     command: scheduler
+
+  # ═════════════════════════════════════════════════════════════════════
+  # MLFLOW (Tracking de modelos ML - puerto 5001)
+  # ═════════════════════════════════════════════════════════════════════
+  mlflow:
+    build:
+      context: .
+      dockerfile: docker/mlflow.Dockerfile
+    image: faro-mlflow:2.8.0
+    container_name: faro-mlflow
+    restart: unless-stopped
+    environment:
+      MLFLOW_BACKEND_STORE_URI: ${MLFLOW_BACKEND_STORE_URI}
+      MLFLOW_ARTIFACT_ROOT: ${MLFLOW_ARTIFACT_ROOT}
+    ports:
+      - "127.0.0.1:5001:5000"  # Solo localhost (seguridad)
+    volumes:
+      - mlflow-artifacts:/mlflow/artifacts
+    networks:
+      - faro-network
+    depends_on:
+      db:
+        condition: service_healthy
+    command: >
+      mlflow server
+      --backend-store-uri ${MLFLOW_BACKEND_STORE_URI}
+      --default-artifact-root ${MLFLOW_ARTIFACT_ROOT}
+      --host 0.0.0.0
+      --port 5000
+
+  # ═════════════════════════════════════════════════════════════════════
+  # SUPERSET (Dashboards BI - puerto 8088)
+  # ═════════════════════════════════════════════════════════════════════
+  superset:
+    image: apache/superset:latest
+    container_name: faro-superset
+    restart: unless-stopped
+    environment:
+      SUPERSET_SECRET_KEY: ${SUPERSET_SECRET_KEY}
+      SUPERSET_ADMIN_USERNAME: ${SUPERSET_ADMIN_USERNAME}
+      SUPERSET_ADMIN_PASSWORD: ${SUPERSET_ADMIN_PASSWORD}
+      SUPERSET_ADMIN_EMAIL: ${SUPERSET_ADMIN_EMAIL}
+      DATABASE_DB: superset
+      DATABASE_HOST: db
+      DATABASE_PASSWORD: ${POSTGRES_PASSWORD}
+      DATABASE_USER: ${POSTGRES_USER}
+      DATABASE_PORT: 5432
+      DATABASE_DIALECT: postgresql
+    ports:
+      - "127.0.0.1:8088:8088"  # Solo localhost (seguridad)
+    volumes:
+      - superset-data:/app/superset_home
+      - ./docker/superset-init.sh:/app/superset-init.sh:ro
+    networks:
+      - faro-network
+    depends_on:
+      db:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8088/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+    command: ["/bin/bash", "/app/superset-init.sh"]
+
+  # ═════════════════════════════════════════════════════════════════════
+  # CHROMADB (Vector Database para agente RAG - puerto 8001)
+  # ═════════════════════════════════════════════════════════════════════
+  chromadb:
+    image: chromadb/chroma:latest
+    container_name: faro-chromadb
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:8001:8000"  # Solo localhost (seguridad)
+    volumes:
+      - chroma-data:/chroma/data
+      - ./docker/chromadb-entrypoint.sh:/docker-entrypoint.d/00-security-warning.sh:ro
+    networks:
+      - faro-network
+    environment:
+      IS_PERSISTENT: 1
+      ANONYMIZED_TELEMETRY: 0
+      ENVIRONMENT: ${ENVIRONMENT:-local}

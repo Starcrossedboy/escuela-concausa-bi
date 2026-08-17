@@ -1,11 +1,11 @@
 {
   "meta": {
-    "generated_at": "2026-08-16T21:07:16+00:00",
-    "generated_date": "2026-08-16",
-    "commit": "4782e78",
+    "generated_at": "2026-08-17T20:38:02+00:00",
+    "generated_date": "2026-08-17",
+    "commit": "aa87196",
     "branch": "main",
     "working_tree": "clean",
-    "source_fingerprint": "4a2d22668c04",
+    "source_fingerprint": "3512237c9e88",
     "source": "Fuentes canónicas del vault",
     "offline": true,
     "schema_version": "2.3"
@@ -19,7 +19,7 @@
     "blocked": 0,
     "wip": 7,
     "progress": 11.8,
-    "days_to_demo": 24
+    "days_to_demo": 23
   },
   "delivery": {
     "date": "2026-09-09",
@@ -44,7 +44,7 @@
       "updated": "2026-08-10",
       "objective": "Repo escuela-concausa-bi desde cero. Reemplazar los 93 placeholders, crear Secrets_Policy.md (4 links rotos) y dejar vault_lint.py en verde.",
       "deliverable": "Código en su carpeta + documento en el vault con frontmatter + fila en la matriz",
-      "age_days": 15
+      "age_days": 16
     },
     {
       "id": "US-002",
@@ -62,7 +62,7 @@
       "updated": "2026-08-10",
       "objective": "Traducir los 7 modulos de la rubrica a REQ-### con criterios AC-### verificables.",
       "deliverable": "Código en su carpeta + documento en el vault con frontmatter + fila en la matriz",
-      "age_days": 15
+      "age_days": 16
     },
     {
       "id": "US-003",
@@ -80,7 +80,7 @@
       "updated": "2026-08-10",
       "objective": "Nombre canonico por persona + un 09_AI_Governance/Agent_Contexts/{nombre}.md para gobernar el uso de IA.",
       "deliverable": "Código en su carpeta + documento en el vault con frontmatter + fila en la matriz",
-      "age_days": 14
+      "age_days": 15
     },
     {
       "id": "US-004",
@@ -98,7 +98,7 @@
       "updated": "2026-08-12",
       "objective": "Una fila por REQ, actualizada en cada standup. Es el tablero de control del proyecto.",
       "deliverable": "Código en su carpeta + documento en el vault con frontmatter + fila en la matriz",
-      "age_days": 13
+      "age_days": 14
     },
     {
       "id": "US-005",
@@ -152,7 +152,7 @@
       "updated": "2026-08-10",
       "objective": "Contrato de las 3 capas: Bronze (raw + metadatos), Silver (tipado, CCT homologado) y Gold (esquema estrella). Incluye el parametro SCOPE_ENTIDADES y la politica de cobertura parcial. Documentar en 03_Architecture/Data_Model.md.",
       "deliverable": "Código en su carpeta + documento en el vault con frontmatter + fila en la matriz",
-      "age_days": 14
+      "age_days": 15
     },
     {
       "id": "US-102",
@@ -476,7 +476,7 @@
       "updated": "2026-08-10",
       "objective": "Arquitectura de informacion de los 10 tableros, arbol de navegacion y definicion formal de cada KPI con su formula SQL. Documentar en 04_UX_Design/Screen_Specs.md.",
       "deliverable": "Código en su carpeta + documento en el vault con frontmatter + fila en la matriz",
-      "age_days": 9
+      "age_days": 10
     },
     {
       "id": "US-202",
@@ -782,7 +782,7 @@
       "updated": "2026-08-10",
       "objective": "Shell de la app Streamlit (src/frontend/) con navegación y los 10 dashboards de Superset embebidos por guest token con row-level security por rol.",
       "deliverable": "Código en src/frontend/ + documento en el vault con frontmatter + fila en la matriz",
-      "age_days": 9
+      "age_days": 10
     },
     {
       "id": "US-207",
@@ -800,7 +800,7 @@
       "updated": "2026-08-10",
       "objective": "Formulario de parámetros que llama a la API de inferencia (US-412/US-415) y muestra la salida de los 3 modelos (ML-01/02/03) en FARO Web.",
       "deliverable": "Código en src/frontend/ + documento en el vault con frontmatter + fila en la matriz",
-      "age_days": 9
+      "age_days": 10
     },
     {
       "id": "US-301",
@@ -818,7 +818,7 @@
       "updated": "2026-08-10",
       "objective": "Los 3 modelos, particion temporal (nunca aleatoria), protocolo de backtesting y manejo de cobertura parcial en features. Documentar como ADR.",
       "deliverable": "Código en su carpeta + documento en el vault con frontmatter + fila en la matriz",
-      "age_days": 7
+      "age_days": 8
     },
     {
       "id": "US-302",
@@ -890,7 +890,7 @@
       "updated": "2026-08-11",
       "objective": "Predecir variacion de matricula por escuela para el siguiente ciclo. MAE/RMSE con backtesting temporal.",
       "deliverable": "Código en su carpeta + documento en el vault con frontmatter + fila en la matriz",
-      "age_days": 8
+      "age_days": 9
     },
     {
       "id": "US-312",
@@ -1052,7 +1052,7 @@
       "updated": "2026-08-10",
       "objective": "Widget de chat conectado a la API del agente RAG (US-304/US-323), integrado en FARO Web.",
       "deliverable": "Código en src/frontend/ + documento en el vault con frontmatter + fila en la matriz",
-      "age_days": 9
+      "age_days": 10
     },
     {
       "id": "US-401",
@@ -1070,7 +1070,7 @@
       "updated": "2026-08-11",
       "objective": "Especificacion de TODOS los endpoints ANTES de construir, para que las Celulas 2 y 3 trabajen en paralelo con mocks. Va a 03_Architecture/API_Specification.md.",
       "deliverable": "Código en su carpeta + documento en el vault con frontmatter + fila en la matriz",
-      "age_days": 13
+      "age_days": 14
     },
     {
       "id": "US-402",
@@ -1304,7 +1304,7 @@
       "updated": "2026-08-10",
       "objective": "Login/logout con Google (OAuth2/JWT de US-402/US-403) en el frontend y vistas protegidas por rol ciudadano/analista.",
       "deliverable": "Código en src/frontend/ + documento en el vault con frontmatter + fila en la matriz",
-      "age_days": 9
+      "age_days": 10
     },
     {
       "id": "US-501",
@@ -1322,7 +1322,7 @@
       "updated": "2026-08-10",
       "objective": "CRITICO: elimina el riesgo del techo de 6.0 desde la semana 1. Cloud Run con URL accesible. Se hace en pareja con Manuel Serrania (Tech Lead de BI) como apoyo de arranque.",
       "deliverable": "Código en su carpeta + documento en el vault con frontmatter + fila en la matriz",
-      "age_days": 7
+      "age_days": 8
     },
     {
       "id": "US-502",
@@ -1502,7 +1502,7 @@
       "updated": "2026-08-10",
       "objective": "Documentar el setup local de Airflow y los jobs de ML (MLflow): variables, puertos y verificacion.",
       "deliverable": "Código en su carpeta + documento en el vault con frontmatter + fila en la matriz",
-      "age_days": 7
+      "age_days": 8
     },
     {
       "id": "US-522b",
@@ -2205,9 +2205,9 @@
         "US-205",
         "US-206"
       ],
-      "pr_count": 3,
+      "pr_count": 4,
       "pr_open": 0,
-      "pr_merged": 3,
+      "pr_merged": 4,
       "stories": 6,
       "done": 1,
       "wip": 1,
@@ -2667,13 +2667,13 @@
       "S5",
       "S6"
     ],
-    "current_sprint": "S2",
+    "current_sprint": "S3",
     "people": [
       {
         "name": "Edgar Edmundo Coronel Navarrete",
         "cell": "PO",
         "engagement": 60.8,
-        "commits": 79,
+        "commits": 80,
         "prs_merged": 10,
         "prs_open": 0,
         "risk": "en_tiempo",
@@ -2796,10 +2796,10 @@
         "name": "Manuel Alejandro Serranía Reinada",
         "cell": "Célula 2",
         "engagement": 22.5,
-        "commits": 3,
-        "prs_merged": 3,
+        "commits": 4,
+        "prs_merged": 4,
         "prs_open": 0,
-        "risk": "en_tiempo",
+        "risk": "retraso",
         "by_sprint": {
           "S1": {
             "n": 1,
@@ -2814,7 +2814,7 @@
           "S3": {
             "n": 1,
             "done": 0,
-            "state": "planned"
+            "state": "risk"
           },
           "S4": {
             "n": 3,
@@ -2896,7 +2896,7 @@
           "S3": {
             "n": 3,
             "done": 0,
-            "state": "planned"
+            "state": "risk"
           },
           "S4": {
             "n": 0,
@@ -2963,7 +2963,7 @@
         "commits": 2,
         "prs_merged": 1,
         "prs_open": 0,
-        "risk": "en_tiempo",
+        "risk": "retraso",
         "by_sprint": {
           "S1": {
             "n": 1,
@@ -2978,7 +2978,7 @@
           "S3": {
             "n": 2,
             "done": 0,
-            "state": "planned"
+            "state": "risk"
           },
           "S4": {
             "n": 0,
@@ -3004,7 +3004,7 @@
         "commits": 3,
         "prs_merged": 1,
         "prs_open": 0,
-        "risk": "en_tiempo",
+        "risk": "retraso",
         "by_sprint": {
           "S1": {
             "n": 0,
@@ -3019,7 +3019,7 @@
           "S3": {
             "n": 1,
             "done": 0,
-            "state": "planned"
+            "state": "risk"
           },
           "S4": {
             "n": 1,
@@ -3060,7 +3060,7 @@
           "S3": {
             "n": 2,
             "done": 0,
-            "state": "planned"
+            "state": "risk"
           },
           "S4": {
             "n": 0,
@@ -3142,7 +3142,7 @@
           "S3": {
             "n": 2,
             "done": 0,
-            "state": "planned"
+            "state": "risk"
           },
           "S4": {
             "n": 0,
@@ -3183,7 +3183,7 @@
           "S3": {
             "n": 2,
             "done": 0,
-            "state": "planned"
+            "state": "risk"
           },
           "S4": {
             "n": 0,
@@ -3209,7 +3209,7 @@
         "commits": 0,
         "prs_merged": 0,
         "prs_open": 0,
-        "risk": "sin_turno",
+        "risk": "retraso",
         "by_sprint": {
           "S1": {
             "n": 0,
@@ -3224,7 +3224,7 @@
           "S3": {
             "n": 1,
             "done": 0,
-            "state": "planned"
+            "state": "risk"
           },
           "S4": {
             "n": 1,
@@ -3265,7 +3265,7 @@
           "S3": {
             "n": 1,
             "done": 0,
-            "state": "planned"
+            "state": "risk"
           },
           "S4": {
             "n": 1,
@@ -3373,7 +3373,7 @@
         "commits": 0,
         "prs_merged": 0,
         "prs_open": 0,
-        "risk": "sin_turno",
+        "risk": "retraso",
         "by_sprint": {
           "S1": {
             "n": 0,
@@ -3388,7 +3388,7 @@
           "S3": {
             "n": 1,
             "done": 0,
-            "state": "planned"
+            "state": "risk"
           },
           "S4": {
             "n": 0,
@@ -3429,7 +3429,7 @@
           "S3": {
             "n": 1,
             "done": 0,
-            "state": "planned"
+            "state": "risk"
           },
           "S4": {
             "n": 1,
@@ -3455,7 +3455,7 @@
         "commits": 0,
         "prs_merged": 0,
         "prs_open": 0,
-        "risk": "sin_turno",
+        "risk": "retraso",
         "by_sprint": {
           "S1": {
             "n": 0,
@@ -3470,7 +3470,7 @@
           "S3": {
             "n": 1,
             "done": 0,
-            "state": "planned"
+            "state": "risk"
           },
           "S4": {
             "n": 1,
@@ -3496,7 +3496,7 @@
         "commits": 0,
         "prs_merged": 0,
         "prs_open": 0,
-        "risk": "sin_turno",
+        "risk": "retraso",
         "by_sprint": {
           "S1": {
             "n": 0,
@@ -3511,7 +3511,7 @@
           "S3": {
             "n": 1,
             "done": 0,
-            "state": "planned"
+            "state": "risk"
           },
           "S4": {
             "n": 1,
@@ -3648,7 +3648,7 @@
       "cell": "Célula 1 · Data Engineering & Quality",
       "sprint": "S3",
       "status": "planned",
-      "su_turno": false
+      "su_turno": true
     },
     {
       "id": "US-104",
@@ -3657,7 +3657,7 @@
       "cell": "Célula 1 · Data Engineering & Quality",
       "sprint": "S3",
       "status": "planned",
-      "su_turno": false
+      "su_turno": true
     },
     {
       "id": "US-105",
@@ -3666,7 +3666,7 @@
       "cell": "Célula 1 · Data Engineering & Quality",
       "sprint": "S3",
       "status": "planned",
-      "su_turno": false
+      "su_turno": true
     },
     {
       "id": "US-112",
@@ -3675,7 +3675,7 @@
       "cell": "Célula 1 · Data Engineering & Quality",
       "sprint": "S3",
       "status": "planned",
-      "su_turno": false
+      "su_turno": true
     },
     {
       "id": "US-113",
@@ -3684,7 +3684,7 @@
       "cell": "Célula 1 · Data Engineering & Quality",
       "sprint": "S3",
       "status": "planned",
-      "su_turno": false
+      "su_turno": true
     },
     {
       "id": "US-123a",
@@ -3693,7 +3693,7 @@
       "cell": "Célula 1 · Data Engineering & Quality",
       "sprint": "S3",
       "status": "planned",
-      "su_turno": false
+      "su_turno": true
     },
     {
       "id": "US-123b",
@@ -3702,7 +3702,7 @@
       "cell": "Célula 1 · Data Engineering & Quality",
       "sprint": "S3",
       "status": "planned",
-      "su_turno": false
+      "su_turno": true
     },
     {
       "id": "US-202",
@@ -3711,7 +3711,7 @@
       "cell": "Célula 2 · Analytics & Business Intelligence",
       "sprint": "S3",
       "status": "planned",
-      "su_turno": false
+      "su_turno": true
     },
     {
       "id": "US-211a",
@@ -3720,7 +3720,7 @@
       "cell": "Célula 2 · Analytics & Business Intelligence",
       "sprint": "S3",
       "status": "planned",
-      "su_turno": false
+      "su_turno": true
     },
     {
       "id": "US-211b",
@@ -3729,7 +3729,7 @@
       "cell": "Célula 2 · Analytics & Business Intelligence",
       "sprint": "S3",
       "status": "planned",
-      "su_turno": false
+      "su_turno": true
     },
     {
       "id": "US-221",
@@ -3738,7 +3738,7 @@
       "cell": "Célula 2 · Analytics & Business Intelligence",
       "sprint": "S3",
       "status": "planned",
-      "su_turno": false
+      "su_turno": true
     },
     {
       "id": "US-411",
@@ -3747,7 +3747,7 @@
       "cell": "Célula 4 · Backend, API & Seguridad",
       "sprint": "S3",
       "status": "planned",
-      "su_turno": false
+      "su_turno": true
     },
     {
       "id": "US-421",
@@ -3756,7 +3756,7 @@
       "cell": "Célula 4 · Backend, API & Seguridad",
       "sprint": "S3",
       "status": "planned",
-      "su_turno": false
+      "su_turno": true
     },
     {
       "id": "US-522a",
@@ -3765,7 +3765,7 @@
       "cell": "Célula 5 · Cloud Infrastructure & DevOps",
       "sprint": "S3",
       "status": "planned",
-      "su_turno": false
+      "su_turno": true
     },
     {
       "id": "US-522b",
@@ -3774,7 +3774,7 @@
       "cell": "Célula 5 · Cloud Infrastructure & DevOps",
       "sprint": "S3",
       "status": "planned",
-      "su_turno": false
+      "su_turno": true
     },
     {
       "id": "US-522c",
@@ -3783,7 +3783,7 @@
       "cell": "Célula 5 · Cloud Infrastructure & DevOps",
       "sprint": "S3",
       "status": "planned",
-      "su_turno": false
+      "su_turno": true
     },
     {
       "id": "US-523a",
@@ -3792,7 +3792,7 @@
       "cell": "Célula 5 · Cloud Infrastructure & DevOps",
       "sprint": "S3",
       "status": "planned",
-      "su_turno": false
+      "su_turno": true
     },
     {
       "id": "US-523b",
@@ -3801,7 +3801,7 @@
       "cell": "Célula 5 · Cloud Infrastructure & DevOps",
       "sprint": "S3",
       "status": "planned",
-      "su_turno": false
+      "su_turno": true
     },
     {
       "id": "US-523c",
@@ -3810,7 +3810,7 @@
       "cell": "Célula 5 · Cloud Infrastructure & DevOps",
       "sprint": "S3",
       "status": "planned",
-      "su_turno": false
+      "su_turno": true
     },
     {
       "id": "US-005",
@@ -4353,7 +4353,7 @@
       "progress": 30.8
     }
   ],
-  "current_sprint": "S2",
+  "current_sprint": "S3",
   "raci": [
     {
       "deliverable": "Gobierno, requisitos y trazabilidad",
@@ -4501,9 +4501,23 @@
   "git_activity": {
     "available": true,
     "repository": "edgarcoroneln/escuela-concausa-bi",
-    "generated_at": "2026-08-16T21:07:15+00:00",
+    "generated_at": "2026-08-17T20:38:02+00:00",
     "scope": "Todos los PR del repositorio, hasta 2,000 por ejecución",
     "prs": [
+      {
+        "number": 39,
+        "title": "US-202: Configurar Superset — conexión, datasets y capa semántica",
+        "state": "merged",
+        "author": "mserraniaa-png",
+        "created_at": "2026-08-17T19:54:36Z",
+        "merged_at": "2026-08-17T20:37:20Z",
+        "url": "https://github.com/edgarcoroneln/escuela-concausa-bi/pull/39",
+        "story_ids": [
+          "US-112",
+          "US-202",
+          "US-211a"
+        ]
+      },
       {
         "number": 38,
         "title": "fix(dags): corregir errores de importación en dag_anual y dag_censal_estatico",
@@ -4979,8 +4993,8 @@
     "commits": [
       {
         "author": "edgarcoroneln",
-        "count": 79,
-        "last_at": "2026-08-16T21:06:35Z"
+        "count": 80,
+        "last_at": "2026-08-17T20:37:19Z"
       },
       {
         "author": "DianaVarela96",
@@ -4989,8 +5003,8 @@
       },
       {
         "author": "github-actions[bot]",
-        "count": 16,
-        "last_at": "2026-08-16T19:30:56Z"
+        "count": 17,
+        "last_at": "2026-08-16T21:07:16Z"
       },
       {
         "author": "hector677-mm",
@@ -5009,8 +5023,8 @@
       },
       {
         "author": "mserraniaa-png",
-        "count": 3,
-        "last_at": "2026-08-16T05:31:25Z"
+        "count": 4,
+        "last_at": "2026-08-17T19:54:04Z"
       },
       {
         "author": "marina-gdb",
@@ -5053,12 +5067,48 @@
         "name": "Refresh PM Dashboard",
         "status": "in_progress",
         "conclusion": null,
-        "url": "https://github.com/edgarcoroneln/escuela-concausa-bi/actions/runs/31972514045"
+        "url": "https://github.com/edgarcoroneln/escuela-concausa-bi/actions/runs/32066778730"
+      },
+      {
+        "name": "PM Dashboard",
+        "status": "completed",
+        "conclusion": "success",
+        "url": "https://github.com/edgarcoroneln/escuela-concausa-bi/actions/runs/32066778654"
       },
       {
         "name": "CI",
         "status": "in_progress",
         "conclusion": null,
+        "url": "https://github.com/edgarcoroneln/escuela-concausa-bi/actions/runs/32066778642"
+      },
+      {
+        "name": "CI",
+        "status": "completed",
+        "conclusion": "success",
+        "url": "https://github.com/edgarcoroneln/escuela-concausa-bi/actions/runs/32062930768"
+      },
+      {
+        "name": "PM Dashboard",
+        "status": "completed",
+        "conclusion": "success",
+        "url": "https://github.com/edgarcoroneln/escuela-concausa-bi/actions/runs/32062930766"
+      },
+      {
+        "name": "PM Dashboard",
+        "status": "completed",
+        "conclusion": "success",
+        "url": "https://github.com/edgarcoroneln/escuela-concausa-bi/actions/runs/32037103123"
+      },
+      {
+        "name": "Refresh PM Dashboard",
+        "status": "completed",
+        "conclusion": "success",
+        "url": "https://github.com/edgarcoroneln/escuela-concausa-bi/actions/runs/31972514045"
+      },
+      {
+        "name": "CI",
+        "status": "completed",
+        "conclusion": "success",
         "url": "https://github.com/edgarcoroneln/escuela-concausa-bi/actions/runs/31972514025"
       },
       {
@@ -5132,42 +5182,6 @@
         "status": "completed",
         "conclusion": "success",
         "url": "https://github.com/edgarcoroneln/escuela-concausa-bi/actions/runs/31953620440"
-      },
-      {
-        "name": "CI",
-        "status": "completed",
-        "conclusion": "success",
-        "url": "https://github.com/edgarcoroneln/escuela-concausa-bi/actions/runs/31929448755"
-      },
-      {
-        "name": "PM Dashboard",
-        "status": "completed",
-        "conclusion": "success",
-        "url": "https://github.com/edgarcoroneln/escuela-concausa-bi/actions/runs/31929448754"
-      },
-      {
-        "name": "Refresh PM Dashboard",
-        "status": "completed",
-        "conclusion": "success",
-        "url": "https://github.com/edgarcoroneln/escuela-concausa-bi/actions/runs/31923255031"
-      },
-      {
-        "name": "CI",
-        "status": "completed",
-        "conclusion": "success",
-        "url": "https://github.com/edgarcoroneln/escuela-concausa-bi/actions/runs/31923254657"
-      },
-      {
-        "name": "PM Dashboard",
-        "status": "completed",
-        "conclusion": "success",
-        "url": "https://github.com/edgarcoroneln/escuela-concausa-bi/actions/runs/31923254539"
-      },
-      {
-        "name": "CI",
-        "status": "completed",
-        "conclusion": "success",
-        "url": "https://github.com/edgarcoroneln/escuela-concausa-bi/actions/runs/31923096853"
       }
     ],
     "note": "Actividad agregada; no determina Done ni se usa como ranking individual."
@@ -5252,6 +5266,15 @@
     },
     {
       "date": "2026-08-16",
+      "remaining": 83,
+      "weighted_remaining": 80.3,
+      "done": 8,
+      "scope": 91,
+      "wip": 7,
+      "blocked": 0
+    },
+    {
+      "date": "2026-08-17",
       "remaining": 83,
       "weighted_remaining": 80.3,
       "done": 8,

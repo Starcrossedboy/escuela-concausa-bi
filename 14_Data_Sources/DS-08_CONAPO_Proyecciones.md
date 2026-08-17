@@ -48,13 +48,15 @@ tags: [data-source, bronze, denominador]
 ## 8. Licencia de uso
 - Términos de Libre Uso MX (CONAPO) — **confirmar** en la ficha oficial.
 
-## 9. Prueba de descarga real — **PENDIENTE** (Semana 1)
-- [ ] Archivo descargado físicamente
-- [ ] Abierto y con datos utilizables
-- [ ] Registros contados: `______`
-- [ ] Esquema verificado (columnas y tipos)
-- [ ] Llave confirmada: `cve_mun` de 5 dígitos + grupo de edad
-- **Responsable:** Emilio Galnares Ruiz · **Fecha:** ______
+## 9. Prueba de descarga real — PENDIENTE (Semana 1)
+- [x] Archivo descargado físicamente
+- [x] Abierto y con datos utilizables
+- [x] Registros contados: `252450`
+- [x] Esquema verificado (campos y tipos)
+- [x] Llave confirmada: columna `CLAVE` (tipo int64 en el archivo original), requiere
+      conversión a texto con relleno de ceros a la izquierda (`.astype(str).str.zfill(5)`)
+      para obtener la clave INEGI de 5 dígitos estándar. Columna resultante: `cve_mun`.
+- **Responsable:** Emilio Galnares Ruiz · **Fecha:** 16/08/2026
 
 ## 10. Riesgos conocidos
 - Son **proyecciones**, no censos: hay incertidumbre inherente.

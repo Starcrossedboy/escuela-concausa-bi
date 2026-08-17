@@ -50,16 +50,27 @@ tags: [data-source, bronze, driver-d5, ingesta-continua]
 ## 8. Licencia de uso
 - Términos de Libre Uso MX (CONAGUA) — **confirmar** en la ficha oficial.
 
-## 9. Prueba de descarga real — **PENDIENTE** (Semana 1)
-- [ ] Archivo/API descargado exitosamente
-- [ ] Datos utilizables
-- [ ] Registros contados: `______`
-- [ ] Esquema verificado (campos y tipos)
-- [ ] Llave confirmada: georreferencia/región para el cruce
-- **Responsable:** Emilio Galnares Ruiz · **Fecha:** ______
+## 9. Prueba de descarga real — PENDIENTE (Semana 1)
+- [x] Fuente identificada y accesible: https://sisuar.imta.mx/aplicacion/vista/presa/presas.php
+      (IMTA, con datos oficiales de CONAGUA)
+- [x] Datos utilizables — confirmado
+- [x] Registros contados: listado principal con múltiples presas a nivel nacional
+      (filtrable por Organismo de Cuenca y Estado); cada presa tiene su propia serie
+      histórica de "Vol. de almacenamiento (hm3)" por año (ej. presa 118 - Der. Jocoqui:
+      2 registros, años 2017-2018).
+- [x] Esquema verificado:
+      - Listado general: Nombre Oficial, Corriente, Altura de cortina (m),
+        Capacidad al NAME (hm3), Capacidad al NAMO (hm3), Estado, Año Término
+      - Detalle por presa: Presa, Año, Vol. de almacenamiento (hm3) — SERIE DE TIEMPO
+        confirmada (no es un valor fijo)
+- [x] Llave confirmada: nombre/ID de presa + Estado (texto). NO trae clave INEGI de
+      municipio directa; requiere mapeo posterior (Estado → municipio vía otra fuente,
+      o geoespacial con lat/lon del catálogo de datos.gob.mx).
+- **Responsable:** Emilio Galnares Ruiz · **Fecha:** 16/08/2026
 
-## 10. Riesgos conocidos
-- Granularidad **regional**, no municipal → requiere regla de asignación explícita.
-- Heterogeneidad de indicadores entre fuentes internas de CONAGUA.
-- Estaciones/presas con datos faltantes en ciertas fechas.
-- Cambios de estructura entre versiones del portal.
+## 10. Riesgos conocidos (actualizado)
+- No hay descarga CSV/API directa: los datos están en tablas web (HTML), se requiere
+  automatizar la consulta (scraping) en US-122a para extraer el histórico completo.
+- La granularidad temporal varía por presa (algunas solo tienen 2 años, otras podrían
+  tener series más largas) — se debe confirmar rango real al construir el extractor.
+- Llave de unión a municipio no es directa (ver sección 6); requiere regla de cruce.

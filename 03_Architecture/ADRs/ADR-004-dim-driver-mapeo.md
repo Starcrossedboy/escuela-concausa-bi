@@ -32,4 +32,4 @@ Se asigna:
 - Negativas / trade-offs: si Célula 3 ya tenía un supuesto distinto, esta ADR debe revisarse con ellos antes del code freeze.
 
 ## Trazabilidad
-- Requisito: REQ-001 · Impacta: [[03_Architecture/Data_Model.md]] §4.2, `dbt/seeds/dim_driver.csv`
+- Requisito: REQ-001 · Impacta: [[03_Architecture/Data_Model]] §4.2, `dbt/seeds/dim_driver.csv`

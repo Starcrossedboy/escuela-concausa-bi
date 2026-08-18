@@ -66,6 +66,7 @@ Toda sesión con IA **debe** generar una entrada de DevLog **antes del push** (p
 | [[_DevLog/2026-08-15-deni-garrido-us111-bronze-silver|2026-08-15]] | US-111: avance Bronze→Silver; configuración dbt, macros, sources y modelos iniciales | Deni Garrido Fragoso | ChatGPT / GPT-5.6 Sol | US-111, REQ-001, DS-01, DS-02, DS-03 |
 | [[_DevLog/2026-08-16-deni-garrido-us111-bronze-silver-cierre|2026-08-16]] | US-111: cierre técnico dbt; 8 modelos Silver, 51 tests y compilación global | Deni Garrido Fragoso | ChatGPT / GPT-5.6 Sol | US-111, REQ-001, DS-01–DS-08 |
 | [[_DevLog/2026-08-17-edgar-reconciliacion-estatus-s2s3\|2026-08-17]] | Reconciliación del estatus del proyecto contra PR #23–#39: 8 nuevos `done` (US-102/111/121b/202/311/502/503/521a), US-311 cerrada, hueco de Emilio (DS-06/08); tablero regenerado | Edgar Edmundo Coronel Navarrete | Claude Code / opus-4-8 | US-004, REQ-007, PLAN-EXEC-STATUS, RPT-PM-SPEC, TEST-002 |
+| [[_DevLog/2026-08-17-christian-ruiz-us402-oauth-jwt\|2026-08-17]] | US-402: núcleo OAuth2/JWT — config tipada, emisión/validación de access+refresh (HS256 endurecido), `get_current_user`, flujo Google desacoplado, política de rol de mínimo privilegio, ADR-004 y 15 pruebas (suite 157 passed) | Christian Imanol Ruiz Hurtado | Claude Code / opus-4-8 | US-402, REQ-004, ADR-004, DOC-SECMODEL |
 
 ## Campos del frontmatter
 | Campo | Obligatorio |

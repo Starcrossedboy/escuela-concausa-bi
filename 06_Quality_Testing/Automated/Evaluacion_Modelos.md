@@ -81,13 +81,14 @@ zonas con cobertura parcial —y eso debe declararse junto a la predicción, no 
 
 ## 5. Umbrales de aceptación
 
-`15_ML_Models/ML_Strategy` §5 fija: ML-02 F1 macro ≥ 0.6, ML-03 Silhouette
-≥ 0.3.
+`15_ML_Models/ML_Strategy` §5 fija: ML-01 MAE < 0.03 (3 puntos porcentuales) y
+RMSE < 0.05 (5 puntos porcentuales); ML-02 F1 macro ≥
+0.6; ML-03 Silhouette ≥ 0.3.
 
-Para ML-01 declara `MAE < 15 alumnos`, pero el contrato define el objetivo como
-`target_variacion_matricula`, que es una **variación**, no un conteo. **Los umbrales de ML-01 no
-son comparables con lo que reporta el pipeline** hasta fijar la unidad. Pendiente con Andrés
-González Habib.
+ML-01 usa la misma unidad proporcional de `target_variacion_matricula`: `0.0141` equivale a un
+error medio de 1.41 puntos porcentuales. No se convierte a alumnos porque el contrato de features
+no incluye la matrícula base necesaria para hacerlo de forma reproducible. Los umbrales son
+provisionales hasta ejecutar la evaluación contra los datos reales de US-104.
 
 ## 6. Cobertura de la evaluación
 

@@ -1,0 +1,34 @@
+version: 2
+
+seeds:
+  - name: dim_driver
+    description: >
+      Dimensión de catálogo de drivers de riesgo — 6 filas fijas (D1...D6),
+      una por cada factor de negocio del proyecto (gold.dim_driver, Data_Model.md §4.2).
+      Mapeo D3=infraestructura/D4=conectividad documentado en ADR-004.
+    columns:
+      - name: id_driver
+        description: PK — identificador del driver (D1...D6)
+        tests:
+          - unique
+          - not_null
+
+      - name: nombre
+        description: Nombre del driver
+        tests:
+          - not_null
+
+      - name: fuente
+        description: DS que alimenta este driver
+        tests:
+          - not_null
+
+      - name: cobertura
+        description: Cobertura geográfica/temporal de la fuente
+        tests:
+          - not_null
+
+      - name: nivel_geografico
+        description: Nivel de agregación geográfica (escuela/municipio)
+        tests:
+          - not_null

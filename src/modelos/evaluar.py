@@ -46,10 +46,13 @@ from src.modelos.entrenar_ml02 import entrenar_y_evaluar as entrenar_ml02
 
 REPORTE_POR_DEFECTO = Path("06_Quality_Testing/Automated/Evaluacion_Modelos.md")
 
-#: Umbrales de aceptación de `15_ML_Models/ML_Strategy` §5. Provisionales: se fijaron sobre datos
-#: sintéticos y ML_Strategy los declara en alumnos absolutos mientras el contrato define el
-#: objetivo como variación. Se reportan como referencia, no como compuerta.
-UMBRALES: dict[str, float] = {"ML-02_f1_macro": 0.60, "ML-03_silhouette": 0.30}
+#: Umbrales provisionales de aceptación de `15_ML_Models/ML_Strategy` §5.
+UMBRALES: dict[str, float] = {
+    "ML-01_mae": 0.03,
+    "ML-01_rmse": 0.05,
+    "ML-02_f1_macro": 0.60,
+    "ML-03_silhouette": 0.30,
+}
 
 
 @dataclass(frozen=True)
@@ -285,13 +288,14 @@ zonas con cobertura parcial —y eso debe declararse junto a la predicción, no 
 
 ## 5. Umbrales de aceptación
 
-`15_ML_Models/ML_Strategy` §5 fija: ML-02 F1 macro ≥ {UMBRALES["ML-02_f1_macro"]}, ML-03 Silhouette
-≥ {UMBRALES["ML-03_silhouette"]}.
+`15_ML_Models/ML_Strategy` §5 fija: ML-01 MAE < {UMBRALES["ML-01_mae"]} (3 puntos porcentuales) y
+RMSE < {UMBRALES["ML-01_rmse"]} (5 puntos porcentuales); ML-02 F1 macro ≥
+{UMBRALES["ML-02_f1_macro"]}; ML-03 Silhouette ≥ {UMBRALES["ML-03_silhouette"]}.
 
-Para ML-01 declara `MAE < 15 alumnos`, pero el contrato define el objetivo como
-`target_variacion_matricula`, que es una **variación**, no un conteo. **Los umbrales de ML-01 no
-son comparables con lo que reporta el pipeline** hasta fijar la unidad. Pendiente con Andrés
-González Habib.
+ML-01 usa la misma unidad proporcional de `target_variacion_matricula`: `0.0141` equivale a un
+error medio de 1.41 puntos porcentuales. No se convierte a alumnos porque el contrato de features
+no incluye la matrícula base necesaria para hacerlo de forma reproducible. Los umbrales son
+provisionales hasta ejecutar la evaluación contra los datos reales de US-104.
 
 ## 6. Cobertura de la evaluación
 

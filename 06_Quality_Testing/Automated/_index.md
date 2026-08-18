@@ -26,6 +26,7 @@ tags: [moc, qa, automation]
 | [[06_Quality_Testing/Automated/Particion_Temporal_ML01\|TEST-003]] | US-311 · REQ-003 · AC-003.3 | unit | implemented |
 | [[15_ML_Models/Indice_Riesgo_ML01\|TEST-004]] | US-311 · REQ-003 · US-401 (contrato API) | unit | implemented |
 | [[15_ML_Models/ML01_Entrenamiento\|TEST-005]] | US-311 · REQ-003 · AC-003.2/003.3 | unit | implemented |
+| [[15_ML_Models/Publicacion_Gold\|TEST-006]] | US-313 · REQ-003 · DEC-005 | integración | implemented |
 
 `TEST-002` ejecuta `python3 _Meta/scripts/validate_pm_dashboard.py .` y verifica 87 US únicas,
 21 personas, usuarios GitHub no duplicados, cobertura exacta de US por integrante, conteos de PR

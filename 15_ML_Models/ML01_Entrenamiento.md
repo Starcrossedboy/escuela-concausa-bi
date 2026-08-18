@@ -91,6 +91,21 @@ de entrenamiento y prueba como parámetros. El `run_id` del padre es el que va a
 python -m src.modelos.entrenar_ml01 --tracking-uri sqlite:///mlflow.db --registrar-modelo
 ```
 
+> [!bug] Bloqueo verificado el 2026-08-16: el servidor de MLflow es incompatible
+> El servicio `mlflow` del `docker-compose.yml` corre **MLflow 2.8.0**
+> (`docker/mlflow.Dockerfile`), mientras la Célula 3 usa **cliente 3.15.1**
+> (`requirements/celula-3.txt`). Con versiones mayores distintas **las métricas sí se registran,
+> pero los modelos no**: `log_model()` llama `/api/2.0/mlflow/logged-models`, endpoint que no
+> existe en 2.x, y responde 404. La corrida aparece en la UI sin artefactos y el registry queda
+> vacío — **AC-003.4 sin cumplir**, y el síntoma no delata la causa.
+>
+> Reproducido contra el servicio real: 4 corridas creadas, métricas correctas,
+> `list_artifacts()` → `[]` y `search_registered_models()` → `[]`.
+>
+> Mitigación: `mlflow_utils.verificar_compatibilidad()` convierte ese 404 tardío en un error
+> inmediato que nombra los dos archivos a alinear. **La corrección de fondo es de la Célula 5**:
+> alinear el servidor al cliente (o al revés) en `docker/mlflow.Dockerfile`.
+
 > **MLflow 3.x deprecó el file store.** `file:./mlruns` ya no funciona y lanza excepción; el URI
 > debe apuntar a una base de datos (`sqlite:///mlflow.db` en local, Postgres en producción).
 > Además, `mlflow.db` **no está en `.gitignore`**, que sí cubre `airflow.db` y `superset.db`.

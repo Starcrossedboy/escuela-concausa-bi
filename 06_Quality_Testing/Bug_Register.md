@@ -16,8 +16,8 @@ tags: [qa, bugs]
 |---|---|---|---|---|---|---|
 | BUG-001 | dag_anual.py: falta start_date | high | fixed | US-102 | fix/diana-varela-us102-dag-import-errors | manual (ver detalle) |
 | BUG-002 | dag_censal_estatico.py: preset de cron no soportado | high | fixed | US-102 | fix/diana-varela-us102-dag-import-errors | manual (ver detalle) |
-| BUG-003 | `sklearn` no instalado: `test_entrenar_ml01.py` y `test_entrenar_ml02.py` fallan con `ModuleNotFoundError` en colección de pytest | low | open | US-311 / REQ-003 | pendiente (C3) | — |
-| BUG-004 | Imagen `apache/superset:latest` no incluye `psycopg2`: conexión a PostgreSQL falla con 422 al crear datasets virtuales | medium | open | US-202 | pendiente (C3, Edward Ruiz — US-522c) | — |
+| BUG-003 | `sklearn` no instalado: `test_entrenar_ml01.py` y `test_entrenar_ml02.py` fallan con `ModuleNotFoundError` en colección de pytest | low | **not_a_bug** | US-311 / REQ-003 | ya resuelto en `main` desde 2026-08-13 (PR #28) — ver detalle | ambiente local desactualizado |
+| BUG-004 | Imagen `apache/superset:latest` no incluye `psycopg2`: conexión a PostgreSQL falla con 422 al crear datasets virtuales | medium | open | US-202 | pendiente (**C5**, Edward Ruiz — US-522c) | — |
 
 ## Convención
 
@@ -91,9 +91,54 @@ El `schedule` usaba un preset no reconocido por el parser de cron de Airflow.
 
 ---
 
+## BUG-003 — `sklearn` no instalado al correr pytest
+
+| | |
+|---|---|
+| **Estado** | `not_a_bug` — el repositorio no tiene el defecto |
+| **Reportado** | 2026-08-17 (commit `78ede8c`, US-202) |
+| **Historia** | US-311 / REQ-003 |
+| **Cerrado por** | Héctor Rafael Morales Marbán, 2026-08-17 |
+
+### Diagnóstico
+
+**No es un defecto del repositorio: es un ambiente local desactualizado.**
+
+`scikit-learn>=1.5` ya está en `requirements.txt` desde el **13 de agosto**, cuatro días antes de
+que se registrara este bug. Se agregó en el commit `5f0f04a` (PR #28) precisamente porque el CI
+instala **sólo** `requirements.txt` y nunca los `requirements/celula-*.txt`, así que las pruebas de
+`src/modelos/` fallaban en el runner.
+
+### Evidencia
+
+- `requirements.txt` contiene `scikit-learn>=1.5` (sección "Célula 3 - ML").
+- El job **"Calidad de codigo y vault"** del CI hace `pip install -r requirements.txt` y luego
+  `pytest tests/ -q`. Está **verde en `main`** en las corridas recientes: si faltara `sklearn`, la
+  colección de pytest fallaría ahí primero.
+- Cubre los **dos** archivos reportados: `entrenar_ml02.py` sólo necesita `sklearn` en imports de
+  nivel superior (`shap` y `mlflow` son imports diferidos).
+
+### Remediación para quien lo encuentre
+
+No hay que tocar código, ni de la Célula 3 ni de nadie:
+
+```bash
+source .venv/bin/activate
+pip install -r requirements.txt
+pytest tests/ -q
+```
+
+Le pasa a cualquier ambiente virtual creado antes del 13 de agosto que no haya reinstalado
+dependencias.
+
+### Nota de alcance
+
+Se preguntó si el fix correspondía a la Célula 3 por tocar `src/modelos/`. **No había fix de código
+pendiente**, y la decisión de no tocar `src/modelos/` fuera del alcance propio fue la correcta.
+
 ## BUG-004 — Imagen `apache/superset:latest` no incluye `psycopg2`
 
-- **Owner:** Célula 3 (DevOps/Cloud) — Edward Ruiz (US-522c)
+- **Owner:** **Célula 5** (DevOps/Cloud) — Edward Ruiz (US-522c)
 - **Severidad:** medium
 - **Estado:** open
 - **traces_up:** US-202
@@ -131,7 +176,7 @@ docker exec -u root faro-superset pip install --target /app/.venv/lib/python3.10
 - Agregar la instalación a `docker/superset-init.sh` ejecutando como root antes de iniciar Superset.
 
 ### Fix (PR)
-- pendiente (C3, Edward Ruiz — US-522c)
+- pendiente (**C5**, Edward Ruiz — US-522c)
 
 ### Test de regresión
 - pendiente

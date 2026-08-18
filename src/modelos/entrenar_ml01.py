@@ -250,6 +250,12 @@ def registrar_en_mlflow(
     """
     import mlflow  # import diferido: entrenar no debe requerir MLflow instalado
 
+    from src.modelos.mlflow_utils import verificar_compatibilidad
+
+    # Falla temprano si el servidor es de otra versión mayor: si no, las métricas se registran
+    # pero el modelo se pierde con un 404 poco evidente.
+    verificar_compatibilidad(tracking_uri)
+
     mlflow.set_tracking_uri(tracking_uri)
     mlflow.set_experiment(experimento)
 

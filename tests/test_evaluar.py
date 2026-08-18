@@ -140,3 +140,10 @@ def test_el_reporte_declara_el_target_de_ml02(features, res01, res02) -> None:
     """Si ML-02 usa el proxy, la cifra no significa lo mismo y hay que decirlo."""
     reporte = construir_reporte(features, res01, res02)
     assert res02.columna_target_usada in reporte
+
+
+def test_el_reporte_alinea_umbrales_ml01_con_target_proporcional(features, res01, res02) -> None:
+    reporte = construir_reporte(features, res01, res02)
+    assert "ML-01 MAE < 0.03 (3 puntos porcentuales)" in reporte
+    assert "RMSE < 0.05 (5 puntos porcentuales)" in reporte
+    assert "MAE < 15 alumnos" not in reporte

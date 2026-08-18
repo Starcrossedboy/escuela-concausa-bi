@@ -63,7 +63,9 @@ dice nada**: un MAE de 0.015 puede ser excelente o ridículo según la escala de
 | entrena 2019-2022 → prueba 2022-2023 | 0.0138 | 0.0175 | 0.0283 | **51.3 %** |
 | entrena 2019-2023 → prueba 2023-2024 | 0.0157 | 0.0187 | 0.0295 | **46.8 %** |
 
-**MAE 0.0141 ± 0.0012 · RMSE 0.0177 ± 0.0008** (promedio ± desviación de las ventanas, ADR-003).
+**MAE 0.0141 ± 0.0012 · RMSE 0.0177 ± 0.0008** (1.41 y 1.77 puntos porcentuales,
+respectivamente; promedio ± desviación de las ventanas, ADR-003). Ambos cumplen los umbrales
+provisionales de 3 y 5 puntos porcentuales.
 
 El modelo reduce el error a la mitad frente al baseline en las tres ventanas. La degradación
 progresiva (56 % → 47 %) es esperable: las ventanas tardías predicen ciclos más lejanos del inicio
@@ -145,5 +147,3 @@ levanta MLflow ni escribe artefactos. Las que importan:
 2. **Ratificar con Andrés** el manejo de cobertura parcial: `NaN` nativo (esta implementación) frente
    a imputación por mediana + indicador (ADR-003).
 3. **Subir a 4 ventanas** cuando haya ciclos suficientes.
-4. Fijar umbrales de aceptación en la unidad correcta: el `ML_Strategy` §5 los declara en alumnos
-   absolutos (`MAE < 15`) y el contrato define el objetivo como variación (float).

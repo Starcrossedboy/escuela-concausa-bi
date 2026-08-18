@@ -47,14 +47,14 @@ def test_rechaza_versiones_mayores_distintas(monkeypatch) -> None:
     """El caso real: servidor 2.8.0 (docker/mlflow.Dockerfile) vs cliente 3.x."""
     monkeypatch.setattr(mlflow_utils, "version_del_servidor", lambda uri, **_: "2.8.0")
     with pytest.raises(RuntimeError, match="MLflow incompatible"):
-        mlflow_utils.verificar_compatibilidad("http://localhost:5001")
+        mlflow_utils.verificar_compatibilidad("http://localhost:5001", version_cliente="3.15.1")
 
 
 def test_el_mensaje_dice_donde_arreglarlo(monkeypatch) -> None:
     """Un error accionable ahorra horas: debe nombrar los dos archivos a alinear."""
     monkeypatch.setattr(mlflow_utils, "version_del_servidor", lambda uri, **_: "2.8.0")
     with pytest.raises(RuntimeError) as error:
-        mlflow_utils.verificar_compatibilidad("http://localhost:5001")
+        mlflow_utils.verificar_compatibilidad("http://localhost:5001", version_cliente="3.15.1")
     mensaje = str(error.value)
     assert "docker/mlflow.Dockerfile" in mensaje
     assert "requirements/celula-3.txt" in mensaje
@@ -62,8 +62,15 @@ def test_el_mensaje_dice_donde_arreglarlo(monkeypatch) -> None:
 
 
 def test_acepta_misma_version_mayor(monkeypatch) -> None:
-    import mlflow
+    monkeypatch.setattr(mlflow_utils, "version_del_servidor", lambda uri, **_: "3.0.0")
+    mlflow_utils.verificar_compatibilidad("http://localhost:5001", version_cliente="3.15.1")
 
-    mayor = mlflow.__version__.split(".")[0]
-    monkeypatch.setattr(mlflow_utils, "version_del_servidor", lambda uri, **_: f"{mayor}.0.0")
+
+def test_sin_cliente_instalado_no_bloquea(monkeypatch) -> None:
+    """Sin MLflow instalado no hay nada que registrar ni que comparar: no debe estorbar.
+
+    Es el caso del CI, que instala sólo `requirements.txt`.
+    """
+    monkeypatch.setattr(mlflow_utils, "version_del_servidor", lambda uri, **_: "2.8.0")
+    monkeypatch.setattr(mlflow_utils, "version_del_cliente", lambda: None)
     mlflow_utils.verificar_compatibilidad("http://localhost:5001")  # no debe lanzar

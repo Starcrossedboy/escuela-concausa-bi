@@ -22,7 +22,7 @@ tags: [ml, strategy, celula-3, modelado]
 
 | ID | Nombre | Tipo | Variable objetivo | Métrica | Sprint |
 |---|---|---|---|---|---|
-| ML-01 | Regresión de matrícula | Supervisado · regresión | `delta_matricula` (variación absoluta de alumnos al siguiente ciclo) | MAE / RMSE | S4 |
+| ML-01 | Regresión de matrícula | Supervisado · regresión | `target_variacion_matricula` (variación relativa al siguiente ciclo; `-0.05` = pérdida de 5 %) | MAE / RMSE | S4 |
 | ML-02 | Clasificación de driver dominante | Supervisado · multiclase | `driver_dominante` (1 de 6 drivers) | F1 macro + SHAP | S4 |
 | ML-03 | Clustering de escuelas | No supervisado | — (agrupación por perfil) | Silhouette | S4 |
 
@@ -52,7 +52,7 @@ Mientras `gold.features_escuela` no esté disponible, se trabaja con el fixture 
 | `d6_aire` | `float \| None` | Score normalizado de calidad del aire |
 | `d1_cobertura` … `d6_cobertura` | `OK \| SIN_DATO` | Bandera explícita de cobertura por driver |
 | `indice_completitud_drivers` | `float` | Fracción de drivers con dato real [0.0–1.0] |
-| `target_variacion_matricula` | `float` | Target ML-01: variación de matrícula |
+| `target_variacion_matricula` | `float` | Target ML-01: variación relativa de matrícula; `-0.05` representa una pérdida de 5 % |
 | `driver_dominante` | `str` | Target ML-02, pendiente de publicarse en Gold; hasta entonces se usa `driver_dominante_proxy` |
 
 ---
@@ -108,13 +108,18 @@ Los umbrales se definen ahora sobre datos mock y se confirmarán con datos reale
 
 | Modelo | Métrica | Umbral mínimo |
 |---|---|---|
-| ML-01 | MAE | < 15 alumnos |
-| ML-01 | RMSE | < 25 alumnos |
+| ML-01 | MAE | < 0.03 (3 puntos porcentuales) |
+| ML-01 | RMSE | < 0.05 (5 puntos porcentuales) |
 | ML-02 | F1 macro | ≥ 0.60 |
 | ML-02 | Precision por clase | ≥ 0.50 en cada clase |
 | ML-03 | Silhouette | ≥ 0.30 |
 
 Si el modelo no alcanza el umbral en el fold de producción (Fold 4), se bloquea el merge del PR.
+
+ML-01 se evalúa en la unidad de su target proporcional. No se convierte el error a alumnos porque
+`gold.features_escuela` no incluye la matrícula base necesaria para hacerlo sin ambigüedad. El MAE
+admite hasta 3 puntos porcentuales y el RMSE hasta 5, anclado al cambio de `-0.05` que marca una
+escuela en riesgo. Ambos valores siguen siendo provisionales hasta evaluar datos reales de US-104.
 
 ---
 

@@ -51,30 +51,12 @@ from sqlalchemy.engine import Engine
 from src.modelos.contrato import DRIVERS
 from src.modelos.entrenar_ml01 import cargar_features, entrenar_y_evaluar
 from src.modelos.particion_temporal import COLUMNA_CICLO, ciclos_ordenados
+from src.modelos.recomendaciones import CODIGOS_DRIVER, RECOMENDACION_POR_DRIVER
 from src.modelos.riesgo import RIESGO_ESTABLE, RIESGO_UMBRAL, indice_riesgo
 
 ESQUEMA_GOLD = "gold"
 TABLA_PREDICCIONES = "predicciones"
 TABLA_RECOMENDACIONES = "recomendaciones"
-
-#: Catálogo prescriptivo: qué intervención toca según el driver dominante.
-#:
-#: Coincide **literalmente** con `RECOMENDACION_POR_DRIVER` de `src/api/mock_data.py` (US-401,
-#: Christian Ruiz). Vive aquí porque es dato de negocio que produce la Célula 3, no un mock de la
-#: API; cuando la C4 quite sus datos simulados debería importarlo de este módulo.
-#: `tests/test_publicar_gold.py::test_catalogo_coincide_con_el_de_la_api` falla si divergen.
-RECOMENDACION_POR_DRIVER: dict[str, str] = {
-    "D1": "Priorizar programas de becas y apoyo alimentario en la zona.",
-    "D2": "Coordinar con seguridad pública rutas escolares seguras y entornos protegidos.",
-    "D3": "Gestionar rehabilitación de infraestructura escolar prioritaria.",
-    "D4": "Ampliar conectividad y dotación de equipo de cómputo.",
-    "D5": "Asegurar suministro de agua y planes de contingencia hídrica.",
-    "D6": "Activar protocolos por contingencia de calidad del aire.",
-}
-
-#: Códigos de driver válidos (`D1`…`D6`), en el orden del PRD.
-CODIGOS_DRIVER: tuple[str, ...] = tuple(f"D{i}" for i in range(1, len(DRIVERS) + 1))
-
 
 class Prioridad(str, Enum):
     """Urgencia de la intervención, derivada del `indice_riesgo`."""

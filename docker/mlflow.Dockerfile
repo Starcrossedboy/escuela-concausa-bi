@@ -1,7 +1,7 @@
 # ═══════════════════════════════════════════════════════════════════════
 # FARO — Dockerfile de MLflow
 # ═══════════════════════════════════════════════════════════════════════
-# Imagen con MLflow 2.8.0 pre-instalado para arranque rápido
+# Imagen con MLflow 3.15.1 pre-instalado para arranque rápido
 #
 # Creado: 2026-08-15
 # Owner: Luis Téllez Domínguez (Célula 5)
@@ -13,7 +13,7 @@ FROM python:3.11-slim
 # Metadatos
 LABEL maintainer="Luis Téllez <luis.tellez@faro.local>"
 LABEL description="MLflow Tracking Server para proyecto FARO"
-LABEL version="2.8.0"
+LABEL version="3.15.1"
 
 # Variables de entorno
 ENV PYTHONUNBUFFERED=1 \
@@ -32,7 +32,7 @@ RUN apt-get update && \
 
 # Instalar MLflow y dependencias de Python
 RUN pip install --no-cache-dir \
-    mlflow==2.8.0 \
+    mlflow==3.15.1 \
     psycopg2-binary
 
 # Crear directorio de trabajo

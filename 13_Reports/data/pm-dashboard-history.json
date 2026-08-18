@@ -97,10 +97,10 @@
   {
     "date": "2026-08-18",
     "remaining": 75,
-    "weighted_remaining": 67.9,
+    "weighted_remaining": 66.1,
     "done": 16,
     "scope": 91,
-    "wip": 17,
+    "wip": 22,
     "blocked": 0
   }
 ]

@@ -150,8 +150,14 @@ def test_auth_login_redirige(client: TestClient) -> None:
     assert r.status_code == 302
 
 
-def test_auth_me_devuelve_rol(client: TestClient) -> None:
-    r = client.get(f"{API_PREFIX}/auth/me")
+def test_auth_me_requiere_token(client: TestClient) -> None:
+    # Desde US-402 /auth/me exige access token: sin él responde 401 (no 200).
+    assert client.get(f"{API_PREFIX}/auth/me").status_code == 401
+    from src.api.schemas import Rol
+    from src.api.security.jwt import create_access_token
+
+    token = create_access_token(sub="u1", role=Rol.ciudadano, email="a@b.mx")
+    r = client.get(f"{API_PREFIX}/auth/me", headers={"Authorization": f"Bearer {token}"})
     assert r.status_code == 200
     assert r.json()["role"] in ("ciudadano", "analista")
 

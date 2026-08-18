@@ -1,7 +1,7 @@
 """
 DAG censal estático — orquesta la extracción de la fuente censal única, sin periodicidad (DS-03 CEMABE).
 """
-from datetime import timedelta
+from datetime import datetime, timedelta
 
 from airflow import DAG
 from airflow.operators.python import PythonOperator
@@ -23,7 +23,7 @@ with DAG(
     description="Fuente censal única sin periodicidad (DS-03 CEMABE, snapshot 2013)",
     default_args=default_args,
     schedule=None,  # censo único, sin cadencia real — disparo manual on-demand
-    start_date=None,
+    start_date=datetime(2026, 8, 1),
     catchup=False,
     tags=["censal", "estatico", "DS-03", "celula-1"],
 ) as dag:

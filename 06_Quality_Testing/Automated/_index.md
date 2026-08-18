@@ -26,6 +26,8 @@ tags: [moc, qa, automation]
 | [[06_Quality_Testing/Automated/Particion_Temporal_ML01\|TEST-003]] | US-311 · REQ-003 · AC-003.3 | unit | implemented |
 | [[15_ML_Models/Indice_Riesgo_ML01\|TEST-004]] | US-311 · REQ-003 · US-401 (contrato API) | unit | implemented |
 | [[15_ML_Models/ML01_Entrenamiento\|TEST-005]] | US-311 · REQ-003 · AC-003.2/003.3 | unit | implemented |
+| [[15_ML_Models/Publicacion_Gold\|TEST-006]] | US-313 · REQ-003 · DEC-005 | integración | implemented |
+| [[06_Quality_Testing/Automated/Evaluacion_Modelos\|TEST-007]] | US-312 · REQ-003 · AC-003.2 | unit | implemented |
 
 `TEST-002` ejecuta `python3 _Meta/scripts/validate_pm_dashboard.py .` y verifica 87 US únicas,
 21 personas, usuarios GitHub no duplicados, cobertura exacta de US por integrante, conteos de PR
@@ -41,6 +43,12 @@ el fixture y exige que la verificación de fuga lo rechace. Determinista y sin r
 predicha por ML-01 al `indice_riesgo` ∈ [0,1]. Incluye un caso que construye un `PrediccionOut`
 real de la Célula 4: si alguien recalibra la sigmoide fuera de rango, el CI lo detiene antes de que
 falle la API. Su especificación vive en [[15_ML_Models/Indice_Riesgo_ML01]].
+
+`TEST-007` (`tests/test_evaluar.py`, 13 casos) respalda
+[[06_Quality_Testing/Automated/Evaluacion_Modelos]], que **se genera desde el código** con
+`python -m src.modelos.evaluar` y no se edita a mano. La prueba clave verifica que el reporte sea
+determinista: así las cifras publicadas en el vault no pueden divergir de las que produce el
+pipeline, que es lo que AC-003.2 exige al pedir métricas reproducibles.
 
 ## Convenciones
 - Nombrar tests por comportamiento, no por implementación.

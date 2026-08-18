@@ -84,5 +84,23 @@
     "scope": 91,
     "wip": 7,
     "blocked": 0
+  },
+  {
+    "date": "2026-08-17",
+    "remaining": 75,
+    "weighted_remaining": 67.9,
+    "done": 16,
+    "scope": 91,
+    "wip": 17,
+    "blocked": 0
+  },
+  {
+    "date": "2026-08-18",
+    "remaining": 75,
+    "weighted_remaining": 66.1,
+    "done": 16,
+    "scope": 91,
+    "wip": 22,
+    "blocked": 0
   }
 ]

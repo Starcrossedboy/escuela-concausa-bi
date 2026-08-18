@@ -733,6 +733,12 @@
         "title": "VersionOut",
         "type": "object"
       }
+    },
+    "securitySchemes": {
+      "bearerAuth": {
+        "scheme": "bearer",
+        "type": "http"
+      }
     }
   },
   "info": {
@@ -921,7 +927,7 @@
     },
     "/api/v1/auth/callback": {
       "get": {
-        "description": "Callback de Google: canjea `code` por el par de tokens (mock).",
+        "description": "Callback de Google: valida el `code`, resuelve el rol y emite el par de JWT.",
         "operationId": "callback_api_v1_auth_callback_get",
         "parameters": [
           {
@@ -964,7 +970,7 @@
     },
     "/api/v1/auth/login": {
       "get": {
-        "description": "Inicia OAuth2 con Google (US-402). En el stub redirige a un destino de ejemplo.",
+        "description": "Inicia OAuth2 con Google redirigiendo a la pantalla de consentimiento.\n\nNota de seguridad: el `state` debe ser un valor aleatorio ligado a la sesión para prevenir CSRF;\nsu generación/almacenamiento se cierra al integrar el flujo e2e con credenciales reales (US-402).",
         "operationId": "login_api_v1_auth_login_get",
         "responses": {
           "302": {
@@ -984,7 +990,7 @@
     },
     "/api/v1/auth/me": {
       "get": {
-        "description": "Devuelve el usuario del token en sesión (rol mínimo: ciudadano).",
+        "description": "Devuelve el usuario autenticado (requiere access token válido; 401 en caso contrario).",
         "operationId": "me_api_v1_auth_me_get",
         "responses": {
           "200": {
@@ -998,6 +1004,11 @@
             "description": "Successful Response"
           }
         },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
         "summary": "Me",
         "tags": [
           "Autenticación"
@@ -1006,7 +1017,7 @@
     },
     "/api/v1/auth/refresh": {
       "post": {
-        "description": "Canjea un refresh token válido por un nuevo par (mock).",
+        "description": "Canjea un refresh token válido por un par nuevo, re-resolviendo el rol con la política vigente.",
         "operationId": "refresh_api_v1_auth_refresh_post",
         "requestBody": {
           "content": {

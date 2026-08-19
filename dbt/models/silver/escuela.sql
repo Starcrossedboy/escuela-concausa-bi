@@ -7,8 +7,13 @@ with source_data as (
         nullif(trim(cast(sostenimiento as text)), '') as sostenimiento,
         {{ normalize_cve_ent('entidad') }} as cve_ent,
         {{ normalize_cve_mun('entidad', 'municipio') }} as cve_mun,
-        cast(latitud as double precision) as latitud,
-        cast(longitud as double precision) as longitud,
+        -- FIX (2026-08-19, Diana/US-103): Data_Model.md §6 documenta lat/lon como nullable
+        -- ("Sí" en Nulos) -- una escuela sin georreferencia todavía es un caso real y
+        -- esperado, no un error. El cast directo sin nullif() tronaba con "" (invalid input
+        -- syntax for type double precision), en vez de producir NULL. Mismo patrón que ya
+        -- se usa arriba para nombre/nivel/sostenimiento.
+        nullif(trim(cast(latitud as text)), '')::double precision as latitud,
+        nullif(trim(cast(longitud as text)), '')::double precision as longitud,
         cast(_ingested_at as timestamp) as _ingested_at,
         cast(_source as text) as _source,
         cast(_source_url as text) as _source_url

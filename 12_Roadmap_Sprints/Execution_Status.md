@@ -36,6 +36,8 @@ tags: [roadmap, execution, status, dashboard]
 | US-004 | in_review | 2026-08-03 | — | [[02_Requirements/Traceability_Matrix]] · [[13_Reports/PM_Dashboard_Spec]] (calendario con responsable visible) | 2026-08-12 |
 | US-101 | done | 2026-08-02 | — | [[03_Architecture/Data_Model]] · [[_DevLog/2026-08-07-diana-alvarez-data-model-us101]] · PR #9 · PR #30 (columna indice_riesgo) | 2026-08-17 |
 | US-102 | done | 2026-08-11 | — | [[_DevLog/2026-08-16-diana-alvarez-us102-fix-import-errors]] · PR #29 (DAGs de Airflow para las 8 fuentes) · PR #38 (fix de importación en dags) | 2026-08-17 |
+| US-103 | in_review | 2026-08-15 | — | [[_DevLog/2026-08-19-diana-alvarez-us103-gold-estrella]] · PR #48 (esquema estrella Gold: dim_escuela, dim_municipio, fact_escuela_ciclo; 170 tests, 4 skipped); falta aprobación del code owner para merge | 2026-08-19 |
+| US-104 | in_review | 2026-08-15 | — | [[_DevLog/2026-08-19-diana-alvarez-us104-features-escuela]] · PR #48 (gold.features_escuela con drivers D1-D4 reales); falta aprobación del code owner para merge | 2026-08-19 |
 | US-111 | done | 2026-08-12 | — | [[_DevLog/2026-08-16-deni-garrido-us111-bronze-silver-cierre]] · PR #37 (transformaciones Bronze → Silver con dbt) | 2026-08-17 |
 | US-112 | in_progress | 2026-08-14 | — | PR #31 (US-112b parcial) · PR #39 (Silver → Gold, avance); vence en S3 | 2026-08-17 |
 | US-113 | in_progress | 2026-08-15 | — | PR #32 (cubos de agregación DB-03/DB-04, avance); vence en S3 | 2026-08-17 |

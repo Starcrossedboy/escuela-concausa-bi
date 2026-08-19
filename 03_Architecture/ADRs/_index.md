@@ -17,3 +17,4 @@ tags: [moc, adr, architecture]
 | [[03_Architecture/ADRs/ADR-002-frontend-streamlit]] | Frontend integrado en Streamlit sobre Superset + API | accepted | 2026-08-07 |
 | [[03_Architecture/ADRs/ADR-003-ml-estrategia-modelado]] | Estrategia de modelado ML: partición temporal, backtesting y cobertura parcial | accepted | 2026-08-09 |
 | [[03_Architecture/ADRs/ADR-004-autenticacion-oauth2-jwt]] | Autenticación: OAuth2 con Google + JWT propio (access/refresh) | proposed | 2026-08-17 |
+| [[03_Architecture/ADRs/ADR-005-dim-driver-mapeo]] | Mapeo de D3/D4 en dim_driver: infraestructura y conectividad desde CEMABE | accepted | 2026-08-17 |

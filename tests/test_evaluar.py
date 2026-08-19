@@ -6,6 +6,8 @@ regenera igual, las cifras publicadas y las que produce el pipeline no pueden di
 
 from __future__ import annotations
 
+from pathlib import Path
+
 import pandas as pd
 import pytest
 
@@ -147,3 +149,22 @@ def test_el_reporte_alinea_umbrales_ml01_con_target_proporcional(features, res01
     assert "ML-01 MAE < 0.03 (3 puntos porcentuales)" in reporte
     assert "RMSE < 0.05 (5 puntos porcentuales)" in reporte
     assert "MAE < 15 alumnos" not in reporte
+
+
+def test_el_reporte_publicado_esta_sincronizado(features, res01, res02) -> None:
+    """El documento versionado debe coincidir con lo que produce el generador **hoy**.
+
+    Es la guarda que faltaba. Al alinear los umbrales (US-301) se cambió `evaluar.py` sin
+    regenerar el reporte, y el vault quedó publicando la redacción anterior sin que nada avisara.
+    Con esta prueba, cambiar el generador y olvidar `python -m src.modelos.evaluar` rompe el CI en
+    vez de dejar cifras obsoletas en el vault — que es justo lo que AC-003.2 quiere evitar al pedir
+    métricas reproducibles.
+    """
+    raiz = Path(__file__).resolve().parents[1]
+    publicado = (raiz / "06_Quality_Testing/Automated/Evaluacion_Modelos.md").read_text(
+        encoding="utf-8"
+    )
+    assert publicado == construir_reporte(features, res01, res02), (
+        "El reporte publicado no coincide con el generador. "
+        "Regenéralo con: python -m src.modelos.evaluar"
+    )

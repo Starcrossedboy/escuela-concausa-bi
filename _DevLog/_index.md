@@ -75,6 +75,7 @@ Toda sesión con IA **debe** generar una entrada de DevLog **antes del push** (p
 | [[_DevLog/2026-08-18-andres-gonzalez-alineacion-ml01-catalogo\|2026-08-18]] | Alineación de umbrales ML-01 con target proporcional y catálogo canónico de recomendaciones para Célula 3 | Andrés González Habib | GitHub Copilot | US-301, US-302, ADR-003, DOC-ML-STRATEGY, DOC-ML01-ENTRENAMIENTO, TEST-007 |
 | [[_DevLog/2026-08-19-hector-morales-guarda-contrato-features\|2026-08-19]] | Verificación del contrato `gold.features_escuela` de US-104 contra el espejo de la C3 (coincide) y **TEST-008**, que hace cumplir en CI el acuerdo de avisar antes de cambiar columnas | Héctor Rafael Morales Marbán | Claude Code / opus-5 | US-104, US-311, REQ-001, REQ-003, TEST-008 |
 | [[_DevLog/2026-08-19-diana-alvarez-us105-idw-calidad-aire\|2026-08-19]] | US-105: interpolación IDW de D6 (calidad del aire) hacia cada escuela — 53/53 tests, ADR-006 | Diana Aracely Alvarez Varela | Claude / sonnet-5 | US-105 |
+| [[_DevLog/2026-08-19-edgar-actualizacion-general-estatus\|2026-08-19]] | Actualización general de estatus para el profesor (merges #45–#52): US-103/104/105/122b a `done`, US-522c/123b altas, BLOCK-001 a `mitigating`; **RISK-007** (ciclo único del 911, sin dueño) asignado al PO | Edgar Edmundo Coronel Navarrete | Claude Code / opus-4-8 | US-004, US-103, US-104, US-105, US-122b, US-522c, BLOCK-001, RISK-007, PLAN-EXEC-STATUS |
 
 
 ## Campos del frontmatter

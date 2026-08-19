@@ -530,6 +530,76 @@ def build_performance(
     return {"sprints": sprint_ids, "current_sprint": cur_sprint, "people": rows}
 
 
+def parse_devlog_authors(root: Path) -> dict[str, int]:
+    """Cuenta entradas del índice de DevLog por autor canónico (evidencia de trabajo documentado)."""
+    text = read(root / "_DevLog/_index.md")
+    counts: dict[str, int] = defaultdict(int)
+    for line in text.splitlines():
+        if not line.startswith("| "):
+            continue
+        # Los wikilinks usan `\|` (pipe escapado); se protege antes de partir por columnas.
+        safe = line.strip().strip("|").replace("\\|", "\x00")
+        cells = [c.strip().replace("\x00", "|") for c in safe.split("|")]
+        if len(cells) < 5:
+            continue
+        author = cells[2]
+        if not author or author == "Autor" or set(author) <= set("-: "):
+            continue
+        counts[author] += 1
+    return dict(counts)
+
+
+def build_engagement(
+    people: list[dict[str, Any]],
+    stories: list[dict[str, Any]],
+    devlog_counts: dict[str, int],
+    git_activity: dict[str, Any],
+) -> dict[str, Any]:
+    """Quién ha contribuido con evidencia real vs quién no tiene actividad registrada.
+
+    Señal offline-safe: DevLogs firmados + US propias en estado activo (≠ planned) + PRs mergeados
+    cuando el colector de GitHub trae datos. Un integrante está `activo` si tiene al menos una señal.
+    """
+    prs_by: dict[str, int] = defaultdict(int)
+    for pr in git_activity.get("prs", []):
+        if pr.get("state") == "merged":
+            prs_by[str(pr.get("author", "")).casefold()] += 1
+    by_owner: dict[str, list[dict[str, Any]]] = defaultdict(list)
+    for story in stories:
+        by_owner[story["owner"]].append(story)
+    rows: list[dict[str, Any]] = []
+    for person in people:
+        name = person["name"]
+        gh = (person.get("github_user") or "").casefold()
+        devlogs = devlog_counts.get(name, 0)
+        prs_merged = max(prs_by.get(gh, 0) if gh else 0, int(person.get("pr_merged") or 0))
+        active_us = sum(s["status"] != "planned" for s in by_owner.get(name, []))
+        signals = []
+        if prs_merged:
+            signals.append(f"{prs_merged} PR")
+        if devlogs:
+            signals.append(f"{devlogs} DevLog")
+        if active_us:
+            signals.append(f"{active_us} US activas")
+        rows.append(
+            {
+                "name": name,
+                "cell": person.get("cell", ""),
+                "cell_group": person.get("cell_group", ""),
+                "active": bool(prs_merged or devlogs or active_us),
+                "prs_merged": prs_merged,
+                "devlogs": devlogs,
+                "active_us": active_us,
+                "activity": prs_merged + devlogs + active_us,
+                "signal": " · ".join(signals) if signals else "sin actividad registrada",
+            }
+        )
+    # Activos primero, ordenados por actividad de mayor a menor; los sin actividad, por nombre.
+    rows.sort(key=lambda r: (not r["active"], -r["activity"], r["name"]))
+    active_n = sum(r["active"] for r in rows)
+    return {"people": rows, "active": active_n, "inactive": len(rows) - active_n, "total": len(rows)}
+
+
 def build_pending(stories: list[dict[str, Any]], cur_sprint: str) -> list[dict[str, Any]]:
     """US no terminadas, con responsable, célula, sprint y bandera de turno."""
     cur_order = SPRINT_ORDER.get(cur_sprint, 1)
@@ -712,6 +782,7 @@ def build_snapshot(root: Path) -> dict[str, Any]:
     risks = parse_risks(root)
     cur_sprint = current_sprint(today)
     performance = build_performance(stories, people, git_activity, cur_sprint)
+    engagement = build_engagement(people, stories, parse_devlog_authors(root), git_activity)
     pending = build_pending(stories, cur_sprint)
     prd_compliance = build_prd_compliance(rubric)
     source_ready = sum(source["proof"] == "ok" for source in sources)
@@ -750,7 +821,7 @@ def build_snapshot(root: Path) -> dict[str, Any]:
             "source_fingerprint": source_fingerprint(root),
             "source": "Fuentes canónicas del vault",
             "offline": True,
-            "schema_version": "2.3",
+            "schema_version": "2.4",
         },
         "summary": summary,
         "delivery": delivery,
@@ -762,6 +833,7 @@ def build_snapshot(root: Path) -> dict[str, Any]:
         "risks": risks,
         "blockers": blockers,
         "performance": performance,
+        "engagement": engagement,
         "pending": pending,
         "prd_compliance": prd_compliance,
         "current_sprint": cur_sprint,

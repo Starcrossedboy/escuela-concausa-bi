@@ -3,7 +3,7 @@ id: RPT-PM-SPEC
 title: "Especificación del tablero de control PM — FARO"
 owner: "Edgar Edmundo Coronel Navarrete"
 status: in_review
-version: "2.3"
+version: "2.4"
 source_of_truth: true
 traces_up: ["US-004", "REQ-007", "12_Roadmap_Sprints/PLAN_MAESTRO", "00_Start_Here/Developer_Onboarding"]
 traces_down: ["13_Reports/TABLERO_CONTROL_PM.html", "TEST-002"]
@@ -60,6 +60,7 @@ para auditoría y consumo futuro. Ninguno se edita manualmente.
 | **Ejecutivo 360°** | ¿Cómo va todo el proyecto de un vistazo? | semáforo por módulo (rúbrica), avance ponderado, burndown corregido, cumplimiento PRD, mapa de calor de riesgos, riesgos críticos y pendientes en turno |
 | **Roadmap semáforo** | ¿Cómo avanza cada sprint? | progreso por sprint con semáforo (verde/ámbar/rojo) |
 | **Performance equipo** | ¿Quién va en tiempo y quién arrastra retraso? | heatmap integrante × sprint + engagement (avance ponderado, commits/PR) |
+| **Engagement** | ¿Quién ha trabajado y quién no? | dos columnas (han trabajado / sin actividad) con evidencia real por persona: PR mergeados + DevLogs firmados + US propias en estado activo (bloque `engagement`) |
 | **Cumplimiento PRD** | ¿Cubrimos lo que pide el profesor? | los 7 criterios de la rúbrica: diseño vs. ejecución |
 | Resumen | ¿Llegamos y qué requiere decisión? | confianza, avance, alertas, decisiones y frescura |
 | Sprint y flujo | ¿Terminamos o acumulamos trabajo? | burndown, burn-up, CFD, WIP, aging, velocidad |

@@ -134,12 +134,20 @@ cobertura**. Mapa cubo → dashboard:
 | `gold.cubo_matricula` | DB-01, DB-06 | entidad × municipio × ciclo |
 | `gold.cubo_riesgo_territorial` | DB-02 | municipio × ciclo |
 | `gold.cubo_escuela_360` | DB-03 | cct × ciclo |
-| `gold.cubo_comparador_municipio` | DB-04 | municipio × ciclo |
+| `gold.cubo_comparador_municipio` | DB-04 | municipio × nivel × ciclo |
 | `gold.cubo_driver` | DB-05 | driver × municipio × ciclo |
 | `gold.cubo_completitud` | DB-07 | municipio × driver × ciclo |
 | `gold.cubo_pivot` | DB-08 | cct × driver × ciclo (base pivotable) |
 | `gold.cubo_recomendaciones` | DB-09 | cct × ciclo |
 | `gold.cubo_pipeline` | DB-10 | fuente × fecha_ingesta |
+> **Nota de diseño — `cubo_comparador_municipio`:** el grano original (`municipio × ciclo`)
+> pre-agregaba antes de poder aplicar el filtro global por nivel educativo de AC-002.2 (DB-04),
+> y un cubo ya agregado no se puede desagregar después. Se bajó el grano a
+> `municipio × nivel × ciclo` y las métricas se almacenan como **numerador y denominador por
+> separado** (no como razón/ratio precalculada), para que cualquier filtro downstream reagregue
+> correctamente — mismo principio de medidas aditivas crudas que `fact_escuela_ciclo` (DEC-005).
+> Decisión de esquema tomada por Diana Alvarez Varela (Tech Lead Célula 1, regla 7) el 14 ago
+> 2026, a partir del hallazgo de Marina García en US-211a. Pendiente registrar en Decision_Log.
 
 ### 4.4 `gold.features_escuela` — contrato con la Célula 3
 - **Grano:** una fila por **CCT × ciclo**. Los 6 drivers **normalizados** (0–1) + banderas de cobertura

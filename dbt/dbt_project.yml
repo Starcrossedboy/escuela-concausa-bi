@@ -1,19 +1,39 @@
+
+# Name your project! Project names should contain only lowercase characters
+# and underscores. A good package name should reflect your organization's
+# name or the intended use of these models
 name: 'faro'
 version: '1.0.0'
 config-version: 2
 
+# This setting configures which "profile" dbt uses for this project.
 profile: 'faro'
 
+# These configurations specify where dbt should look for different types of files.
 model-paths: ["models"]
+analysis-paths: ["analyses"]
 test-paths: ["tests"]
 seed-paths: ["seeds"]
 macro-paths: ["macros"]
+snapshot-paths: ["snapshots"]
 
-clean-targets:
+clean-targets:         # directories to be removed by `dbt clean`
   - "target"
   - "dbt_packages"
 
+# Configuring models
+# Full documentation: https://docs.getdbt.com/docs/configuring-models
+#
+# NOTA (merge 2026-08-18, Diana): antes de este merge había DOS dbt_project.yml en
+# conflicto — el de Deni en main (name/profile 'faro', capa silver) y el mío en esta
+# rama (name/profile 'faro_gold', capa gold). Se consolidan aquí en un solo proyecto
+# 'faro' con ambas capas. Si tu ~/.dbt/profiles.yml todavía tiene un target 'faro_gold',
+# necesitas agregar/renombrar a un target 'faro' (ver _DevLog del merge).
 models:
   faro:
     silver:
       +materialized: table
+      +schema: silver
+    gold:
+      +materialized: table
+      +schema: gold

@@ -28,6 +28,7 @@ tags: [moc, qa, automation]
 | [[15_ML_Models/ML01_Entrenamiento\|TEST-005]] | US-311 · REQ-003 · AC-003.2/003.3 | unit | implemented |
 | [[15_ML_Models/Publicacion_Gold\|TEST-006]] | US-313 · REQ-003 · DEC-005 | integración | implemented |
 | [[06_Quality_Testing/Automated/Evaluacion_Modelos\|TEST-007]] | US-312 · REQ-003 · AC-003.2 | unit | implemented |
+| TEST-008 | US-104 · US-311 · REQ-001/003 | contrato | implemented |
 
 `TEST-002` ejecuta `python3 _Meta/scripts/validate_pm_dashboard.py .` y verifica 87 US únicas,
 21 personas, usuarios GitHub no duplicados, cobertura exacta de US por integrante, conteos de PR
@@ -49,6 +50,13 @@ falle la API. Su especificación vive en [[15_ML_Models/Indice_Riesgo_ML01]].
 `python -m src.modelos.evaluar` y no se edita a mano. La prueba clave verifica que el reporte sea
 determinista: así las cifras publicadas en el vault no pueden divergir de las que produce el
 pipeline, que es lo que AC-003.2 exige al pedir métricas reproducibles.
+
+`TEST-008` (`tests/test_contrato_features.py`, 4 casos) vigila el contrato
+`gold.features_escuela` entre la Célula 1 y la Célula 3: compara el modelo dbt de US-104 contra el
+espejo Pydantic `src/modelos/contrato.py`. El `Data_Model` §5.3 exige avisar antes de cambiar
+columnas; esta prueba lo hace cumplir, de modo que un renombre falle en el CI y no al entrenar
+ML-01. Lee los archivos de dbt como texto, sin `yaml` ni `dbt`, para no depender de paquetes que
+el CI no instala.
 
 ## Convenciones
 - Nombrar tests por comportamiento, no por implementación.

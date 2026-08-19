@@ -1,0 +1,13 @@
+cve_mun,entidad,municipio,indice_rezago_social,grado_rezago,pobreza_pct,_ingested_at,_source,_source_url
+01001,01,001,,,,2026-08-18T12:00:00+00:00,DS-07_CONEVAL,https://www.coneval.org.mx/Medicion/Paginas/Indice_Rezago_Social.aspx
+09002,09,002,-1.15,bajo,24.2,2026-08-18T12:00:00+00:00,DS-07_CONEVAL,https://www.coneval.org.mx/Medicion/Paginas/Indice_Rezago_Social.aspx
+09003,09,003,-0.8,medio,28.4,2026-08-18T12:00:00+00:00,DS-07_CONEVAL,https://www.coneval.org.mx/Medicion/Paginas/Indice_Rezago_Social.aspx
+09005,09,005,-0.45,alto,32.6,2026-08-18T12:00:00+00:00,DS-07_CONEVAL,https://www.coneval.org.mx/Medicion/Paginas/Indice_Rezago_Social.aspx
+14039,14,039,-0.1,muy alto,36.8,2026-08-18T12:00:00+00:00,DS-07_CONEVAL,https://www.coneval.org.mx/Medicion/Paginas/Indice_Rezago_Social.aspx
+14098,14,098,0.25,muy bajo,41.0,2026-08-18T12:00:00+00:00,DS-07_CONEVAL,https://www.coneval.org.mx/Medicion/Paginas/Indice_Rezago_Social.aspx
+15020,15,020,0.6,bajo,45.2,2026-08-18T12:00:00+00:00,DS-07_CONEVAL,https://www.coneval.org.mx/Medicion/Paginas/Indice_Rezago_Social.aspx
+15033,15,033,0.95,medio,49.4,2026-08-18T12:00:00+00:00,DS-07_CONEVAL,https://www.coneval.org.mx/Medicion/Paginas/Indice_Rezago_Social.aspx
+15106,15,106,1.3,alto,53.6,2026-08-18T12:00:00+00:00,DS-07_CONEVAL,https://www.coneval.org.mx/Medicion/Paginas/Indice_Rezago_Social.aspx
+19006,19,006,1.65,muy alto,57.8,2026-08-18T12:00:00+00:00,DS-07_CONEVAL,https://www.coneval.org.mx/Medicion/Paginas/Indice_Rezago_Social.aspx
+19039,19,039,2.0,muy bajo,62.0,2026-08-18T12:00:00+00:00,DS-07_CONEVAL,https://www.coneval.org.mx/Medicion/Paginas/Indice_Rezago_Social.aspx
+20067,20,067,2.35,bajo,66.2,2026-08-18T12:00:00+00:00,DS-07_CONEVAL,https://www.coneval.org.mx/Medicion/Paginas/Indice_Rezago_Social.aspx

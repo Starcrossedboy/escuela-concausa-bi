@@ -1,0 +1,73 @@
+cve_ent,cve_mun,anio,mes,tipo_delito,conteo,_ingested_at,_source,_source_url
+01,01001,2024,1,robo a casa habitacion,3,2026-08-18T12:00:00+00:00,DS-04_SESNSP,https://www.gob.mx/sesnsp/acciones-y-programas/incidencia-delictiva-del-fuero-comun-nueva-metodologia
+01,01001,2024,1,robo de vehiculo,4,2026-08-18T12:00:00+00:00,DS-04_SESNSP,https://www.gob.mx/sesnsp/acciones-y-programas/incidencia-delictiva-del-fuero-comun-nueva-metodologia
+01,01001,2024,2,robo a casa habitacion,4,2026-08-18T12:00:00+00:00,DS-04_SESNSP,https://www.gob.mx/sesnsp/acciones-y-programas/incidencia-delictiva-del-fuero-comun-nueva-metodologia
+01,01001,2024,2,robo de vehiculo,5,2026-08-18T12:00:00+00:00,DS-04_SESNSP,https://www.gob.mx/sesnsp/acciones-y-programas/incidencia-delictiva-del-fuero-comun-nueva-metodologia
+01,01001,2024,3,robo a casa habitacion,5,2026-08-18T12:00:00+00:00,DS-04_SESNSP,https://www.gob.mx/sesnsp/acciones-y-programas/incidencia-delictiva-del-fuero-comun-nueva-metodologia
+01,01001,2024,3,robo de vehiculo,6,2026-08-18T12:00:00+00:00,DS-04_SESNSP,https://www.gob.mx/sesnsp/acciones-y-programas/incidencia-delictiva-del-fuero-comun-nueva-metodologia
+09,09002,2024,1,robo a casa habitacion,6,2026-08-18T12:00:00+00:00,DS-04_SESNSP,https://www.gob.mx/sesnsp/acciones-y-programas/incidencia-delictiva-del-fuero-comun-nueva-metodologia
+09,09002,2024,1,robo de vehiculo,7,2026-08-18T12:00:00+00:00,DS-04_SESNSP,https://www.gob.mx/sesnsp/acciones-y-programas/incidencia-delictiva-del-fuero-comun-nueva-metodologia
+09,09002,2024,2,robo a casa habitacion,7,2026-08-18T12:00:00+00:00,DS-04_SESNSP,https://www.gob.mx/sesnsp/acciones-y-programas/incidencia-delictiva-del-fuero-comun-nueva-metodologia
+09,09002,2024,2,robo de vehiculo,8,2026-08-18T12:00:00+00:00,DS-04_SESNSP,https://www.gob.mx/sesnsp/acciones-y-programas/incidencia-delictiva-del-fuero-comun-nueva-metodologia
+09,09002,2024,3,robo a casa habitacion,8,2026-08-18T12:00:00+00:00,DS-04_SESNSP,https://www.gob.mx/sesnsp/acciones-y-programas/incidencia-delictiva-del-fuero-comun-nueva-metodologia
+09,09002,2024,3,robo de vehiculo,9,2026-08-18T12:00:00+00:00,DS-04_SESNSP,https://www.gob.mx/sesnsp/acciones-y-programas/incidencia-delictiva-del-fuero-comun-nueva-metodologia
+09,09003,2024,1,robo a casa habitacion,9,2026-08-18T12:00:00+00:00,DS-04_SESNSP,https://www.gob.mx/sesnsp/acciones-y-programas/incidencia-delictiva-del-fuero-comun-nueva-metodologia
+09,09003,2024,1,robo de vehiculo,10,2026-08-18T12:00:00+00:00,DS-04_SESNSP,https://www.gob.mx/sesnsp/acciones-y-programas/incidencia-delictiva-del-fuero-comun-nueva-metodologia
+09,09003,2024,2,robo a casa habitacion,10,2026-08-18T12:00:00+00:00,DS-04_SESNSP,https://www.gob.mx/sesnsp/acciones-y-programas/incidencia-delictiva-del-fuero-comun-nueva-metodologia
+09,09003,2024,2,robo de vehiculo,11,2026-08-18T12:00:00+00:00,DS-04_SESNSP,https://www.gob.mx/sesnsp/acciones-y-programas/incidencia-delictiva-del-fuero-comun-nueva-metodologia
+09,09003,2024,3,robo a casa habitacion,11,2026-08-18T12:00:00+00:00,DS-04_SESNSP,https://www.gob.mx/sesnsp/acciones-y-programas/incidencia-delictiva-del-fuero-comun-nueva-metodologia
+09,09003,2024,3,robo de vehiculo,12,2026-08-18T12:00:00+00:00,DS-04_SESNSP,https://www.gob.mx/sesnsp/acciones-y-programas/incidencia-delictiva-del-fuero-comun-nueva-metodologia
+09,09005,2024,1,robo a casa habitacion,12,2026-08-18T12:00:00+00:00,DS-04_SESNSP,https://www.gob.mx/sesnsp/acciones-y-programas/incidencia-delictiva-del-fuero-comun-nueva-metodologia
+09,09005,2024,1,robo de vehiculo,13,2026-08-18T12:00:00+00:00,DS-04_SESNSP,https://www.gob.mx/sesnsp/acciones-y-programas/incidencia-delictiva-del-fuero-comun-nueva-metodologia
+09,09005,2024,2,robo a casa habitacion,13,2026-08-18T12:00:00+00:00,DS-04_SESNSP,https://www.gob.mx/sesnsp/acciones-y-programas/incidencia-delictiva-del-fuero-comun-nueva-metodologia
+09,09005,2024,2,robo de vehiculo,14,2026-08-18T12:00:00+00:00,DS-04_SESNSP,https://www.gob.mx/sesnsp/acciones-y-programas/incidencia-delictiva-del-fuero-comun-nueva-metodologia
+09,09005,2024,3,robo a casa habitacion,14,2026-08-18T12:00:00+00:00,DS-04_SESNSP,https://www.gob.mx/sesnsp/acciones-y-programas/incidencia-delictiva-del-fuero-comun-nueva-metodologia
+09,09005,2024,3,robo de vehiculo,15,2026-08-18T12:00:00+00:00,DS-04_SESNSP,https://www.gob.mx/sesnsp/acciones-y-programas/incidencia-delictiva-del-fuero-comun-nueva-metodologia
+14,14039,2024,1,robo a casa habitacion,15,2026-08-18T12:00:00+00:00,DS-04_SESNSP,https://www.gob.mx/sesnsp/acciones-y-programas/incidencia-delictiva-del-fuero-comun-nueva-metodologia
+14,14039,2024,1,robo de vehiculo,16,2026-08-18T12:00:00+00:00,DS-04_SESNSP,https://www.gob.mx/sesnsp/acciones-y-programas/incidencia-delictiva-del-fuero-comun-nueva-metodologia
+14,14039,2024,2,robo a casa habitacion,16,2026-08-18T12:00:00+00:00,DS-04_SESNSP,https://www.gob.mx/sesnsp/acciones-y-programas/incidencia-delictiva-del-fuero-comun-nueva-metodologia
+14,14039,2024,2,robo de vehiculo,2,2026-08-18T12:00:00+00:00,DS-04_SESNSP,https://www.gob.mx/sesnsp/acciones-y-programas/incidencia-delictiva-del-fuero-comun-nueva-metodologia
+14,14039,2024,3,robo a casa habitacion,2,2026-08-18T12:00:00+00:00,DS-04_SESNSP,https://www.gob.mx/sesnsp/acciones-y-programas/incidencia-delictiva-del-fuero-comun-nueva-metodologia
+14,14039,2024,3,robo de vehiculo,3,2026-08-18T12:00:00+00:00,DS-04_SESNSP,https://www.gob.mx/sesnsp/acciones-y-programas/incidencia-delictiva-del-fuero-comun-nueva-metodologia
+14,14098,2024,1,robo a casa habitacion,3,2026-08-18T12:00:00+00:00,DS-04_SESNSP,https://www.gob.mx/sesnsp/acciones-y-programas/incidencia-delictiva-del-fuero-comun-nueva-metodologia
+14,14098,2024,1,robo de vehiculo,4,2026-08-18T12:00:00+00:00,DS-04_SESNSP,https://www.gob.mx/sesnsp/acciones-y-programas/incidencia-delictiva-del-fuero-comun-nueva-metodologia
+14,14098,2024,2,robo a casa habitacion,4,2026-08-18T12:00:00+00:00,DS-04_SESNSP,https://www.gob.mx/sesnsp/acciones-y-programas/incidencia-delictiva-del-fuero-comun-nueva-metodologia
+14,14098,2024,2,robo de vehiculo,5,2026-08-18T12:00:00+00:00,DS-04_SESNSP,https://www.gob.mx/sesnsp/acciones-y-programas/incidencia-delictiva-del-fuero-comun-nueva-metodologia
+14,14098,2024,3,robo a casa habitacion,5,2026-08-18T12:00:00+00:00,DS-04_SESNSP,https://www.gob.mx/sesnsp/acciones-y-programas/incidencia-delictiva-del-fuero-comun-nueva-metodologia
+14,14098,2024,3,robo de vehiculo,6,2026-08-18T12:00:00+00:00,DS-04_SESNSP,https://www.gob.mx/sesnsp/acciones-y-programas/incidencia-delictiva-del-fuero-comun-nueva-metodologia
+15,15020,2024,1,robo a casa habitacion,6,2026-08-18T12:00:00+00:00,DS-04_SESNSP,https://www.gob.mx/sesnsp/acciones-y-programas/incidencia-delictiva-del-fuero-comun-nueva-metodologia
+15,15020,2024,1,robo de vehiculo,7,2026-08-18T12:00:00+00:00,DS-04_SESNSP,https://www.gob.mx/sesnsp/acciones-y-programas/incidencia-delictiva-del-fuero-comun-nueva-metodologia
+15,15020,2024,2,robo a casa habitacion,7,2026-08-18T12:00:00+00:00,DS-04_SESNSP,https://www.gob.mx/sesnsp/acciones-y-programas/incidencia-delictiva-del-fuero-comun-nueva-metodologia
+15,15020,2024,2,robo de vehiculo,8,2026-08-18T12:00:00+00:00,DS-04_SESNSP,https://www.gob.mx/sesnsp/acciones-y-programas/incidencia-delictiva-del-fuero-comun-nueva-metodologia
+15,15020,2024,3,robo a casa habitacion,8,2026-08-18T12:00:00+00:00,DS-04_SESNSP,https://www.gob.mx/sesnsp/acciones-y-programas/incidencia-delictiva-del-fuero-comun-nueva-metodologia
+15,15020,2024,3,robo de vehiculo,9,2026-08-18T12:00:00+00:00,DS-04_SESNSP,https://www.gob.mx/sesnsp/acciones-y-programas/incidencia-delictiva-del-fuero-comun-nueva-metodologia
+15,15033,2024,1,robo a casa habitacion,9,2026-08-18T12:00:00+00:00,DS-04_SESNSP,https://www.gob.mx/sesnsp/acciones-y-programas/incidencia-delictiva-del-fuero-comun-nueva-metodologia
+15,15033,2024,1,robo de vehiculo,10,2026-08-18T12:00:00+00:00,DS-04_SESNSP,https://www.gob.mx/sesnsp/acciones-y-programas/incidencia-delictiva-del-fuero-comun-nueva-metodologia
+15,15033,2024,2,robo a casa habitacion,10,2026-08-18T12:00:00+00:00,DS-04_SESNSP,https://www.gob.mx/sesnsp/acciones-y-programas/incidencia-delictiva-del-fuero-comun-nueva-metodologia
+15,15033,2024,2,robo de vehiculo,11,2026-08-18T12:00:00+00:00,DS-04_SESNSP,https://www.gob.mx/sesnsp/acciones-y-programas/incidencia-delictiva-del-fuero-comun-nueva-metodologia
+15,15033,2024,3,robo a casa habitacion,11,2026-08-18T12:00:00+00:00,DS-04_SESNSP,https://www.gob.mx/sesnsp/acciones-y-programas/incidencia-delictiva-del-fuero-comun-nueva-metodologia
+15,15033,2024,3,robo de vehiculo,12,2026-08-18T12:00:00+00:00,DS-04_SESNSP,https://www.gob.mx/sesnsp/acciones-y-programas/incidencia-delictiva-del-fuero-comun-nueva-metodologia
+15,15106,2024,1,robo a casa habitacion,12,2026-08-18T12:00:00+00:00,DS-04_SESNSP,https://www.gob.mx/sesnsp/acciones-y-programas/incidencia-delictiva-del-fuero-comun-nueva-metodologia
+15,15106,2024,1,robo de vehiculo,13,2026-08-18T12:00:00+00:00,DS-04_SESNSP,https://www.gob.mx/sesnsp/acciones-y-programas/incidencia-delictiva-del-fuero-comun-nueva-metodologia
+15,15106,2024,2,robo a casa habitacion,13,2026-08-18T12:00:00+00:00,DS-04_SESNSP,https://www.gob.mx/sesnsp/acciones-y-programas/incidencia-delictiva-del-fuero-comun-nueva-metodologia
+15,15106,2024,2,robo de vehiculo,14,2026-08-18T12:00:00+00:00,DS-04_SESNSP,https://www.gob.mx/sesnsp/acciones-y-programas/incidencia-delictiva-del-fuero-comun-nueva-metodologia
+15,15106,2024,3,robo a casa habitacion,14,2026-08-18T12:00:00+00:00,DS-04_SESNSP,https://www.gob.mx/sesnsp/acciones-y-programas/incidencia-delictiva-del-fuero-comun-nueva-metodologia
+15,15106,2024,3,robo de vehiculo,15,2026-08-18T12:00:00+00:00,DS-04_SESNSP,https://www.gob.mx/sesnsp/acciones-y-programas/incidencia-delictiva-del-fuero-comun-nueva-metodologia
+19,19006,2024,1,robo a casa habitacion,15,2026-08-18T12:00:00+00:00,DS-04_SESNSP,https://www.gob.mx/sesnsp/acciones-y-programas/incidencia-delictiva-del-fuero-comun-nueva-metodologia
+19,19006,2024,1,robo de vehiculo,16,2026-08-18T12:00:00+00:00,DS-04_SESNSP,https://www.gob.mx/sesnsp/acciones-y-programas/incidencia-delictiva-del-fuero-comun-nueva-metodologia
+19,19006,2024,2,robo a casa habitacion,16,2026-08-18T12:00:00+00:00,DS-04_SESNSP,https://www.gob.mx/sesnsp/acciones-y-programas/incidencia-delictiva-del-fuero-comun-nueva-metodologia
+19,19006,2024,2,robo de vehiculo,2,2026-08-18T12:00:00+00:00,DS-04_SESNSP,https://www.gob.mx/sesnsp/acciones-y-programas/incidencia-delictiva-del-fuero-comun-nueva-metodologia
+19,19006,2024,3,robo a casa habitacion,2,2026-08-18T12:00:00+00:00,DS-04_SESNSP,https://www.gob.mx/sesnsp/acciones-y-programas/incidencia-delictiva-del-fuero-comun-nueva-metodologia
+19,19006,2024,3,robo de vehiculo,3,2026-08-18T12:00:00+00:00,DS-04_SESNSP,https://www.gob.mx/sesnsp/acciones-y-programas/incidencia-delictiva-del-fuero-comun-nueva-metodologia
+19,19039,2024,1,robo a casa habitacion,3,2026-08-18T12:00:00+00:00,DS-04_SESNSP,https://www.gob.mx/sesnsp/acciones-y-programas/incidencia-delictiva-del-fuero-comun-nueva-metodologia
+19,19039,2024,1,robo de vehiculo,4,2026-08-18T12:00:00+00:00,DS-04_SESNSP,https://www.gob.mx/sesnsp/acciones-y-programas/incidencia-delictiva-del-fuero-comun-nueva-metodologia
+19,19039,2024,2,robo a casa habitacion,4,2026-08-18T12:00:00+00:00,DS-04_SESNSP,https://www.gob.mx/sesnsp/acciones-y-programas/incidencia-delictiva-del-fuero-comun-nueva-metodologia
+19,19039,2024,2,robo de vehiculo,5,2026-08-18T12:00:00+00:00,DS-04_SESNSP,https://www.gob.mx/sesnsp/acciones-y-programas/incidencia-delictiva-del-fuero-comun-nueva-metodologia
+19,19039,2024,3,robo a casa habitacion,5,2026-08-18T12:00:00+00:00,DS-04_SESNSP,https://www.gob.mx/sesnsp/acciones-y-programas/incidencia-delictiva-del-fuero-comun-nueva-metodologia
+19,19039,2024,3,robo de vehiculo,6,2026-08-18T12:00:00+00:00,DS-04_SESNSP,https://www.gob.mx/sesnsp/acciones-y-programas/incidencia-delictiva-del-fuero-comun-nueva-metodologia
+20,20067,2024,1,robo a casa habitacion,6,2026-08-18T12:00:00+00:00,DS-04_SESNSP,https://www.gob.mx/sesnsp/acciones-y-programas/incidencia-delictiva-del-fuero-comun-nueva-metodologia
+20,20067,2024,1,robo de vehiculo,7,2026-08-18T12:00:00+00:00,DS-04_SESNSP,https://www.gob.mx/sesnsp/acciones-y-programas/incidencia-delictiva-del-fuero-comun-nueva-metodologia
+20,20067,2024,2,robo a casa habitacion,7,2026-08-18T12:00:00+00:00,DS-04_SESNSP,https://www.gob.mx/sesnsp/acciones-y-programas/incidencia-delictiva-del-fuero-comun-nueva-metodologia
+20,20067,2024,2,robo de vehiculo,8,2026-08-18T12:00:00+00:00,DS-04_SESNSP,https://www.gob.mx/sesnsp/acciones-y-programas/incidencia-delictiva-del-fuero-comun-nueva-metodologia
+20,20067,2024,3,robo a casa habitacion,8,2026-08-18T12:00:00+00:00,DS-04_SESNSP,https://www.gob.mx/sesnsp/acciones-y-programas/incidencia-delictiva-del-fuero-comun-nueva-metodologia
+20,20067,2024,3,robo de vehiculo,9,2026-08-18T12:00:00+00:00,DS-04_SESNSP,https://www.gob.mx/sesnsp/acciones-y-programas/incidencia-delictiva-del-fuero-comun-nueva-metodologia

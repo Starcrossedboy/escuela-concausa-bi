@@ -26,3 +26,73 @@ models:
         description: Año de fin del ciclo escolar
         tests:
           - not_null
+  
+  - name: features_escuela
+    description: >
+      gold.features_escuela (US-104) — contrato Célula 1 -> Célula 3 (Data_Model.md §5.3),
+      un registro por cct x id_ciclo con los 6 drivers normalizados 0-1 (D5/D6 en SIN_DATO
+      explícito hasta que US-105 entregue el join espacial de CONAGUA/SINAICA) y el target
+      de variación de matrícula vs el ciclo anterior. Compartido con Andrés González Habib
+      (C3): avisar antes de cambiar columnas.
+    columns:
+      - name: cct
+        description: "Clave de Centro de Trabajo homologada a 10 caracteres."
+        data_tests:
+          - not_null
+
+      - name: id_ciclo
+        description: "Ciclo escolar, formato AAAA-AAAA."
+        data_tests:
+          - not_null
+
+      - name: d1_cobertura
+        description: "Cobertura de D1 (pobreza/rezago social, CONEVAL)."
+        data_tests:
+          - accepted_values:
+              arguments:
+                values: ['OK', 'SIN_DATO']
+
+      - name: d2_cobertura
+        description: "Cobertura de D2 (inseguridad, SESNSP)."
+        data_tests:
+          - accepted_values:
+              arguments:
+                values: ['OK', 'SIN_DATO']
+
+      - name: d3_cobertura
+        description: "Cobertura de D3 (infraestructura, CEMABE)."
+        data_tests:
+          - accepted_values:
+              arguments:
+                values: ['OK', 'SIN_DATO']
+
+      - name: d4_cobertura
+        description: "Cobertura de D4 (conectividad, CEMABE)."
+        data_tests:
+          - accepted_values:
+              arguments:
+                values: ['OK', 'SIN_DATO']
+
+      - name: d5_cobertura
+        description: "Cobertura de D5 (agua, CONAGUA). SIN_DATO explícito hasta US-105."
+        data_tests:
+          - accepted_values:
+              arguments:
+                values: ['OK', 'SIN_DATO']
+
+      - name: d6_cobertura
+        description: "Cobertura de D6 (aire, SINAICA). SIN_DATO explícito hasta US-105."
+        data_tests:
+          - accepted_values:
+              arguments:
+                values: ['OK', 'SIN_DATO']
+
+      - name: indice_completitud_drivers
+        description: "Fracción (0-1) de los 6 drivers con cobertura OK para este cct x ciclo."
+        data_tests:
+          - not_null
+
+      - name: target_variacion_matricula
+        description: "Etiqueta: variación de matrícula vs el ciclo anterior del mismo cct."
+        data_tests:
+          - not_null    

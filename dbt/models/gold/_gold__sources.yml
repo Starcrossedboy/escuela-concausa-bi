@@ -11,3 +11,38 @@ sources:
             description: Llave de escuela (10 caracteres)
           - name: id_ciclo
             description: "Ciclo escolar, formato AAAA-AAAA (ej. 2023-2024)"
+
+      - name: cemabe
+        description: >
+          Infraestructura escolar a nivel CCT, conformada en Silver (DS-03). Alimenta D3
+          (infraestructura) y D4 (conectividad) vía ADR-004.
+        columns:
+          - name: cct
+            description: Llave de escuela (10 caracteres)
+          - name: drenaje
+          - name: electricidad
+          - name: sanitarios
+          - name: internet
+          - name: computadoras
+
+      - name: rezago_municipio
+        description: >
+          Rezago social y pobreza municipal, conformada en Silver (DS-07). Alimenta D1
+          (pobreza y rezago social).
+        columns:
+          - name: cve_mun
+            description: Clave INEGI de municipio (5 dígitos)
+          - name: indice_rezago_social
+          - name: indice_rezago_social_cobertura
+          - name: periodo_medicion
+
+      - name: delitos_municipio
+        description: >
+          Incidencia delictiva municipal, conformada en Silver (DS-04). Alimenta D2
+          (inseguridad del entorno).
+        columns:
+          - name: cve_mun
+            description: Clave INEGI de municipio (5 dígitos)
+          - name: anio
+          - name: mes
+          - name: conteo

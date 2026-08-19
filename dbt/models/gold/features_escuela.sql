@@ -8,13 +8,18 @@
 --                            documentada abajo, pendiente de refinar)
 --   D3 infraestructura   -- real, silver.cemabe (DS-03) por cct, ADR-005
 --   D4 conectividad      -- real, silver.cemabe (DS-03) por cct, ADR-005
---   D5 agua              -- SIN_DATO explícito: CONAGUA (silver.agua_region) no trae cve_mun
---                            todavía, falta el join espacial/IDW que es alcance de US-105
---   D6 aire              -- SIN_DATO explícito: mismo motivo que D5, para SINAICA
+--   D5 agua              -- SIN_DATO explícito: DS-06 CONAGUA (dueño Emilio Galnares Ruiz)
+--                            todavía no tiene su "prueba de descarga real" completa, no hay
+--                            bronze.conagua con datos todavía
+--   D6 aire              -- real (2026-08-19, ADR-006, US-105): interpolación IDW de
+--                            silver.aire_estacion (SINAICA) hacia cada escuela georreferenciada
+--                            de dim_escuela. Radio válido 15km, potencia 2; fuera de radio ->
+--                            SIN_DATO explícito
 --
--- D5/D6 en SIN_DATO no es un hueco escondido: es la regla del proyecto (Data_Model.md §3,
--- "SIN_DATO explícito, nunca cero ni nulo silencioso") aplicada honestamente a un join que
--- todavía no existe. Cuando US-105 entregue la interpolación IDW, se reemplaza aquí.
+-- D5 en SIN_DATO no es un hueco escondido: es la regla del proyecto (Data_Model.md §3,
+-- "SIN_DATO explícito, nunca cero ni nulo silencioso") aplicada honestamente a una fuente que
+-- todavía no tiene datos reales. Cuando DS-06 entregue su prueba de descarga, se replica aquí
+-- el mismo patrón IDW que ya tiene D6.
 --
 -- FIX (2026-08-19, Diana): Data_Model.md §7 es explícito -- "el filtro WHERE cve_ent IN
 -- SCOPE_ENTIDADES se aplica únicamente en la frontera Silver -> Gold (Y EN FEATURES/MODELOS/
@@ -180,6 +185,92 @@ d2 as (
 
 ),
 
+-- D6: calidad del aire, SINAICA, interpolación IDW hacia cada escuela (ADR-006, US-105).
+-- Mismo enfoque que gold.fact_escuela_ciclo: radio válido 15km, potencia 2 (IDW estándar);
+-- fuera de radio -> SIN_DATO explícito. Solo usa lecturas de PM2.5 (contaminante criterio
+-- más reportado por SINAICA, ver DS-05.md §5) marcadas válidas por la propia API.
+aire_pm25 as (
+
+    select
+        id_estacion,
+        max(latitud) as latitud,
+        max(longitud) as longitud,
+        avg(valor) as pm25_promedio
+    from {{ source('silver', 'aire_estacion') }}
+    where parametro = 'PM2.5' and dato_valido = 1
+        and latitud is not null and longitud is not null
+    group by id_estacion
+
+),
+
+escuela_geo as (
+
+    select cct, latitud, longitud
+    from {{ ref('dim_escuela') }}
+    where latitud is not null and longitud is not null
+
+),
+
+distancias_aire as (
+
+    select
+        e.cct,
+        a.pm25_promedio,
+        6371 * acos(least(1.0, greatest(-1.0,
+            cos(radians(e.latitud)) * cos(radians(a.latitud))
+                * cos(radians(a.longitud) - radians(e.longitud))
+            + sin(radians(e.latitud)) * sin(radians(a.latitud))
+        ))) as distancia_km
+    from escuela_geo e
+    cross join aire_pm25 a
+
+),
+
+dentro_radio_aire as (
+
+    select
+        cct,
+        pm25_promedio,
+        distancia_km,
+        greatest(distancia_km, 0.001) as distancia_km_adj
+    from distancias_aire
+    where distancia_km <= 15
+
+),
+
+d6_interpolado as (
+
+    select
+        cct,
+        sum(pm25_promedio / power(distancia_km_adj, 2)) / sum(1.0 / power(distancia_km_adj, 2))
+            as d6_valor,
+        min(distancia_km) as distancia_min_km
+    from dentro_radio_aire
+    group by cct
+
+),
+
+d6_rango as (
+
+    select min(d6_valor) as min_val, max(d6_valor) as max_val
+    from d6_interpolado
+
+),
+
+d6 as (
+
+    select
+        i.cct,
+        case
+            when rg.max_val > rg.min_val then (i.d6_valor - rg.min_val) / (rg.max_val - rg.min_val)
+            else 0.5
+        end as d6_aire,
+        'OK' as d6_cobertura
+    from d6_interpolado i
+    cross join d6_rango rg
+
+),
+
 ensamblado as (
 
     select
@@ -195,13 +286,14 @@ ensamblado as (
         coalesce(dd.d4_cobertura, 'SIN_DATO') as d4_cobertura,
         cast(null as double precision) as d5_agua,
         'SIN_DATO' as d5_cobertura,
-        cast(null as double precision) as d6_aire,
-        'SIN_DATO' as d6_cobertura,
+        d6.d6_aire,
+        coalesce(d6.d6_cobertura, 'SIN_DATO') as d6_cobertura,
         b.target_variacion_matricula
     from base b
     left join d3_d4 dd on dd.cct = b.cct
     left join d1 on d1.cve_mun = b.cve_mun
     left join d2 on d2.cve_mun = b.cve_mun
+    left join d6 on d6.cct = b.cct
 
 )
 

@@ -68,3 +68,18 @@ sources:
             description: Clave INEGI de municipio (5 dígitos)
           - name: anio
           - name: poblacion
+      
+      - name: aire_estacion
+        description: >
+          Lecturas horarias de calidad del aire por estación y parámetro, conformada en
+          Silver (DS-05, SINAICA). Alimenta D6 (calidad del aire) vía interpolación IDW
+          hacia cada escuela georreferenciada (ADR-006, US-105).
+        columns:
+          - name: id_estacion
+          - name: parametro
+            description: "Contaminante (PM2.5, PM10, O3, CO, NO2, SO2); el modelo usa solo PM2.5"
+          - name: valor
+          - name: dato_valido
+            description: "Bandera de validez de la lectura (1 = válida, propia de la API SINAICA)"
+          - name: latitud
+          - name: longitud

@@ -10,11 +10,10 @@
 -- tabla de entrenamiento ML tomó cve_mun de DS-01 como simplificación aceptada en su momento.
 --
 -- D1-D4 replican la misma lógica real que gold.features_escuela (mismas fuentes Silver,
--- mismo ADR-005 para D3/D4). D5 agua y D6 aire quedan en SIN_DATO explícito por el mismo
--- motivo documentado ahí: CONAGUA/SINAICA no traen cve_mun todavía (alcance de US-105).
--- variacion_matricula excluye el primer ciclo observado de cada cct (no hay "ciclo anterior"
--- real del cual calcular una variación -- mismo principio que target_variacion_matricula en
--- features_escuela: no se rellena con 0 para evitar una fuga de "variación cero" falsa).
+-- mismo ADR-005 para D3/D4). D6 aire ya es real (ADR-006, US-105): interpolación IDW de
+-- silver.aire_estacion (SINAICA) hacia cada escuela georreferenciada de dim_escuela. D5
+-- agua sigue en SIN_DATO explícito: DS-06 CONAGUA (dueño Emilio Galnares Ruiz) todavía no
+-- tiene su "prueba de descarga real" completa, no hay bronze.conagua con datos todavía.
 
 with matricula_ciclo as (
 
@@ -189,6 +188,94 @@ d2 as (
 
 ),
 
+-- D6: calidad del aire, SINAICA, interpolación IDW hacia cada escuela (ADR-006, US-105).
+-- Radio válido 15km, potencia 2 (IDW estándar); fuera de radio -> SIN_DATO explícito. Solo
+-- usa lecturas de PM2.5 (contaminante criterio más reportado por SINAICA, ver DS-05.md §5)
+-- marcadas válidas por la propia API (dato_valido = 1).
+aire_pm25 as (
+
+    select
+        id_estacion,
+        max(latitud) as latitud,
+        max(longitud) as longitud,
+        avg(valor) as pm25_promedio
+    from {{ source('silver', 'aire_estacion') }}
+    where parametro = 'PM2.5' and dato_valido = 1
+        and latitud is not null and longitud is not null
+    group by id_estacion
+
+),
+
+escuela_geo as (
+
+    select cct, latitud, longitud
+    from {{ ref('dim_escuela') }}
+    where latitud is not null and longitud is not null
+
+),
+
+-- Haversine: distancia en km entre cada escuela georreferenciada y cada estación con PM2.5
+-- válido. cross join es barato aquí: decenas de escuelas x un puñado de estaciones.
+distancias_aire as (
+
+    select
+        e.cct,
+        a.pm25_promedio,
+        6371 * acos(least(1.0, greatest(-1.0,
+            cos(radians(e.latitud)) * cos(radians(a.latitud))
+                * cos(radians(a.longitud) - radians(e.longitud))
+            + sin(radians(e.latitud)) * sin(radians(a.latitud))
+        ))) as distancia_km
+    from escuela_geo e
+    cross join aire_pm25 a
+
+),
+
+dentro_radio_aire as (
+
+    select
+        cct,
+        pm25_promedio,
+        distancia_km,
+        -- evita división entre cero si una escuela cae justo sobre una estación
+        greatest(distancia_km, 0.001) as distancia_km_adj
+    from distancias_aire
+    where distancia_km <= 15
+
+),
+
+d6_interpolado as (
+
+    select
+        cct,
+        sum(pm25_promedio / power(distancia_km_adj, 2)) / sum(1.0 / power(distancia_km_adj, 2))
+            as d6_valor,
+        min(distancia_km) as distancia_min_km
+    from dentro_radio_aire
+    group by cct
+
+),
+
+d6_rango as (
+
+    select min(d6_valor) as min_val, max(d6_valor) as max_val
+    from d6_interpolado
+
+),
+
+d6 as (
+
+    select
+        i.cct,
+        case
+            when rg.max_val > rg.min_val then (i.d6_valor - rg.min_val) / (rg.max_val - rg.min_val)
+            else 0.5
+        end as d6,
+        'OK' as d6_cobertura
+    from d6_interpolado i
+    cross join d6_rango rg
+
+),
 ensamblado as (
 
     select
@@ -207,12 +294,13 @@ ensamblado as (
         coalesce(dd.d4_cobertura, 'SIN_DATO') as d4_cobertura,
         cast(null as double precision) as d5,
         'SIN_DATO' as d5_cobertura,
-        cast(null as double precision) as d6,
-        'SIN_DATO' as d6_cobertura
+        d6.d6,
+        coalesce(d6.d6_cobertura, 'SIN_DATO') as d6_cobertura
     from con_municipio cm
     left join d3_d4 dd on dd.cct = cm.cct
     left join d1 on d1.cve_mun = cm.cve_mun
     left join d2 on d2.cve_mun = cm.cve_mun
+    left join d6 on d6.cct = cm.cct
 
 )
 

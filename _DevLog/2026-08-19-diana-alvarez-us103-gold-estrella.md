@@ -1,4 +1,17 @@
+---
+project: "FARO"
+date: "2026-08-19"
+author_human: "Diana Aracely Alvarez Varela"
+agent: "Claude"
+model: "sonnet-5"
+session_duration: "sesión de trabajo — cierre de US-103"
+touches: ["US-103", "US-104"]
+tags: [devlog, gold, dbt, us103]
+---
+
 # DevLog — US-103: Estrella Gold completa (dim_escuela, dim_municipio, fact_escuela_ciclo)
+
+→ [[_DevLog/_index|Volver al índice]]
 
 **Fecha:** 2026-08-19
 **Autora:** Diana Álvarez — Tech Lead, Célula 1 (Data Engineering & Quality)

@@ -1,3 +1,14 @@
+---
+project: "FARO"
+date: "2026-08-19"
+author_human: "Diana Aracely Alvarez Varela"
+agent: "Claude"
+model: "sonnet-5"
+session_duration: "sesión de trabajo — US-104 features_escuela"
+touches: ["US-104", "US-103"]
+tags: [devlog, gold, dbt, us104]
+---
+
 # DevLog — US-104: gold.features_escuela
 
 **Fecha:** 2026-08-19

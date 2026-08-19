@@ -1,6 +1,6 @@
 ---
-id: ADR-004
-title: "ADR-004 — Mapeo de D3/D4 en dim_driver: infraestructura y conectividad desde CEMABE"
+id: ADR-005
+title: "ADR-005 — Mapeo de D3/D4 en dim_driver: infraestructura y conectividad desde CEMABE"
 owner: "Diana Aracely Alvarez Varela"
 status: accepted
 traces_up: ["REQ-001"]
@@ -9,7 +9,7 @@ tags: [architecture, adr, gold, dim_driver]
 date: "2026-08-17"
 ---
 
-# ADR-004 — Mapeo de D3/D4 en dim_driver: infraestructura y conectividad desde CEMABE
+# ADR-005 — Mapeo de D3/D4 en dim_driver: infraestructura y conectividad desde CEMABE
 
 ## Contexto
 `03_Architecture/Data_Model.md` §4.2 y la tabla de `14_Data_Sources/_index.md` documentan que `dim_driver` tiene 6 filas (`D1`...`D6`) y que **CEMABE (DS-03)** alimenta dos de ellas — `D3` y `D4` — pero ningún documento especifica cuál corresponde a cuál. `src/modelos/riesgo.py` (donde eventualmente se define el enum `driver_dominante`) todavía no existe.

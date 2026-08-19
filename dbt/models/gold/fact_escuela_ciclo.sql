@@ -10,7 +10,7 @@
 -- tabla de entrenamiento ML tomó cve_mun de DS-01 como simplificación aceptada en su momento.
 --
 -- D1-D4 replican la misma lógica real que gold.features_escuela (mismas fuentes Silver,
--- mismo ADR-004 para D3/D4). D5 agua y D6 aire quedan en SIN_DATO explícito por el mismo
+-- mismo ADR-005 para D3/D4). D5 agua y D6 aire quedan en SIN_DATO explícito por el mismo
 -- motivo documentado ahí: CONAGUA/SINAICA no traen cve_mun todavía (alcance de US-105).
 -- variacion_matricula excluye el primer ciclo observado de cada cct (no hay "ciclo anterior"
 -- real del cual calcular una variación -- mismo principio que target_variacion_matricula en
@@ -75,7 +75,7 @@ con_municipio as (
 
 ),
 
--- D3/D4: infraestructura y conectividad, CEMABE por CCT (ADR-004)
+-- D3/D4: infraestructura y conectividad, CEMABE por CCT (ADR-005)
 cemabe_binarios as (
 
     select

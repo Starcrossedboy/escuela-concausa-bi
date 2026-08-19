@@ -6,8 +6,8 @@
 --   D2 inseguridad       -- real, silver.delitos_municipio (DS-04) por cve_mun, agregado
 --                            SIN alinear meses al ciclo escolar todavía (simplificación
 --                            documentada abajo, pendiente de refinar)
---   D3 infraestructura   -- real, silver.cemabe (DS-03) por cct, ADR-004
---   D4 conectividad      -- real, silver.cemabe (DS-03) por cct, ADR-004
+--   D3 infraestructura   -- real, silver.cemabe (DS-03) por cct, ADR-005
+--   D4 conectividad      -- real, silver.cemabe (DS-03) por cct, ADR-005
 --   D5 agua              -- SIN_DATO explícito: CONAGUA (silver.agua_region) no trae cve_mun
 --                            todavía, falta el join espacial/IDW que es alcance de US-105
 --   D6 aire              -- SIN_DATO explícito: mismo motivo que D5, para SINAICA
@@ -66,7 +66,7 @@ base as (
 
 ),
 
--- D3/D4: infraestructura y conectividad, CEMABE por CCT (ADR-004)
+-- D3/D4: infraestructura y conectividad, CEMABE por CCT (ADR-005)
 cemabe_binarios as (
 
     select

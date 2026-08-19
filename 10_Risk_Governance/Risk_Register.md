@@ -19,6 +19,7 @@ tags: [risk, register]
 | RISK-004 | Retraso de Gold bloquea BI, ML y API | 4 | 5 | mitigar | Contratos, mocks y fixtures; escalamiento a 24 h | US-103/104 se desvía del gate S3 | Diana Aracely Alvarez Varela | abierto | US-103, US-104 | 2026-08-23 (gate S3) |
 | RISK-005 | Sobre-alcance geográfico o funcional | 3 | 4 | evitar | Respetar `SCOPE_ENTIDADES` y congelar alcance | nueva entidad/feature sin decisión registrada | Edgar Edmundo Coronel Navarrete | mitigando | — | Continuo |
 | RISK-006 | El vault pierde trazabilidad con 21 contribuidores | 3 | 4 | mitigar | linter, steward, matriz y generador validado | link roto, ID duplicado o artefacto huérfano | Edgar Edmundo Coronel Navarrete | mitigando | US-004 | Continuo |
+| RISK-007 | Formato 911 solo tiene el ciclo 2024-2025: sin ≥2 ciclos no hay `target_variacion_matricula` que predecir (ML sin objetivo real) | 4 | 5 | mitigar | Conseguir un 2º ciclo histórico del 911 (SIGED/datos.gob.mx) o redefinir el target/alcance del piloto; decisión del PO | No aparece un 2º ciclo antes del gate ML (S4) | Edgar Edmundo Coronel Navarrete | abierto | US-104, US-311, US-313 | 2026-08-30 (gate S4) |
 
 ## Escala
 Probabilidad e impacto usan escala 1 (mínimo) a 5 (máximo). Severidad = `Prob. × Impacto`.

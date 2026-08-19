@@ -36,13 +36,15 @@ tags: [roadmap, execution, status, dashboard]
 | US-004 | in_review | 2026-08-03 | — | [[02_Requirements/Traceability_Matrix]] · [[13_Reports/PM_Dashboard_Spec]] (calendario con responsable visible) | 2026-08-12 |
 | US-101 | done | 2026-08-02 | — | [[03_Architecture/Data_Model]] · [[_DevLog/2026-08-07-diana-alvarez-data-model-us101]] · PR #9 · PR #30 (columna indice_riesgo) | 2026-08-17 |
 | US-102 | done | 2026-08-11 | — | [[_DevLog/2026-08-16-diana-alvarez-us102-fix-import-errors]] · PR #29 (DAGs de Airflow para las 8 fuentes) · PR #38 (fix de importación en dags) | 2026-08-17 |
-| US-103 | in_review | 2026-08-15 | — | [[_DevLog/2026-08-19-diana-alvarez-us103-gold-estrella]] · PR #48 (esquema estrella Gold: dim_escuela, dim_municipio, fact_escuela_ciclo; 170 tests, 4 skipped); falta aprobación del code owner para merge | 2026-08-19 |
-| US-104 | in_review | 2026-08-15 | — | [[_DevLog/2026-08-19-diana-alvarez-us104-features-escuela]] · PR #48 (gold.features_escuela con drivers D1-D4 reales); falta aprobación del code owner para merge | 2026-08-19 |
+| US-103 | done | 2026-08-15 | — | [[_DevLog/2026-08-19-diana-alvarez-us103-gold-estrella]] · PR #48 (esquema estrella Gold: dim_escuela, dim_municipio, fact_escuela_ciclo; 170 tests) | 2026-08-19 |
+| US-104 | done | 2026-08-15 | — | [[_DevLog/2026-08-19-diana-alvarez-us104-features-escuela]] · PR #48 (gold.features_escuela con drivers D1-D4 reales) | 2026-08-19 |
+| US-105 | done | 2026-08-18 | — | [[_DevLog/2026-08-19-diana-alvarez-us105-idw-calidad-aire]] · PR #52 (interpolación IDW de D6 calidad del aire + cobertura parcial e índice de confianza) | 2026-08-19 |
 | US-111 | done | 2026-08-12 | — | [[_DevLog/2026-08-16-deni-garrido-us111-bronze-silver-cierre]] · PR #37 (transformaciones Bronze → Silver con dbt) | 2026-08-17 |
 | US-112 | in_progress | 2026-08-14 | — | PR #31 (US-112b parcial) · PR #39 (Silver → Gold, avance); vence en S3 | 2026-08-17 |
 | US-113 | in_progress | 2026-08-15 | — | PR #32 (cubos de agregación DB-03/DB-04, avance); vence en S3 | 2026-08-17 |
 | US-121b | done | 2026-08-13 | — | [[_DevLog/2026-08-14-luis-garcia-us121b-prueba-descarga]] · PR #31 (prueba de descarga real DS-04/DS-05) | 2026-08-17 |
-| US-122b | in_review | 2026-08-14 | — | PR #31 (extractores de DS-04 y DS-05); falta DevLog/validación para `done` | 2026-08-17 |
+| US-122b | done | 2026-08-14 | — | [[_DevLog/2026-08-18-luis-garcia-us122b-extractor-sinaica]] · PR #31 · PR #47 (extractor real de DS-05 SINAICA probado contra la API en vivo) | 2026-08-19 |
+| US-123b | in_progress | 2026-08-18 | — | PR #47 (validaciones Great Expectations de DS-04/DS-05, avance); vence en S3 | 2026-08-19 |
 | US-201 | done | 2026-08-07 | — | [[04_UX_Design/Screen_Specs]] · [[_DevLog/2026-08-07-manuel-serrania-us-201]] · PR #10 · PR #27/#36 (KPIs 15-18, JOIN a predicciones) | 2026-08-17 |
 | US-202 | done | 2026-08-15 | — | [[_DevLog/2026-08-16-manuel-serrania-us202-superset]] · PR #39 (Superset: conexión, datasets y capa semántica) | 2026-08-17 |
 | US-206 | in_progress | 2026-08-07 | — | [[_DevLog/2026-08-07-edgar-andamiaje-faro-web]] · [[03_Architecture/Frontend_Architecture]] (solo andamiaje) | 2026-08-10 |
@@ -54,7 +56,7 @@ tags: [roadmap, execution, status, dashboard]
 | US-304a | in_progress | 2026-08-16 | — | PR #33 (avance independiente ML/agente); vence en S5 | 2026-08-17 |
 | US-304b | in_progress | 2026-08-16 | — | PR #33 (avance independiente ML/agente, Carlos); vence en S5 | 2026-08-17 |
 | US-305 | in_progress | 2026-08-07 | — | [[_DevLog/2026-08-07-edgar-andamiaje-faro-web]] · [[03_Architecture/Frontend_Architecture]] (solo andamiaje) | 2026-08-10 |
-| US-311 | in_progress | 2026-08-08 | — | [[_DevLog/2026-08-13-hector-morales-entrenamiento-ml01]] · PR #28 (ML-01 entrenado, **MAE 0.0141 / RMSE 0.0177**, TEST-005) · PR #8 · PR #21; **AC-003.4 NO cumplido**: el modelo no llega al registry por mismatch de MLflow (servidor `2.8.0` vs cliente `3.15.1`) — ver **BLOCK-001** | 2026-08-18 |
+| US-311 | in_progress | 2026-08-08 | — | [[_DevLog/2026-08-13-hector-morales-entrenamiento-ml01]] · PR #28 (ML-01 entrenado, **MAE 0.0141 / RMSE 0.0177**, TEST-005) · PR #8 · PR #21; MLflow ya alineado a 3.15.1 (PR #45, **BLOCK-001 mitigating**) — falta que Héctor re-corra y confirme el registry end-to-end para cerrar AC-003.4 | 2026-08-19 |
 | US-312 | in_progress | 2026-08-18 | — | [[_DevLog/2026-08-18-hector-morales-evaluacion-us312]] · PR #42 (reporte de evaluación comparativa, TEST-007); **avance parcial** — falta ML-03 (US-321) para cerrar AC-003.2 | 2026-08-18 |
 | US-313 | in_progress | 2026-08-14 | — | [[_DevLog/2026-08-14-hector-morales-publicacion-gold]] · PR #41 (job batch a `gold.predicciones`, TEST-006, DEC-005); falta `gold.recomendaciones` (depende de conectar ML-02) | 2026-08-18 |
 | US-401 | done | 2026-08-03 | — | [[03_Architecture/API_Specification]] · `api/openapi.v1.json` · [[_DevLog/2026-08-11-christian-ruiz-us401-contrato-api]] · PR #19 (18 pruebas de contrato) | 2026-08-11 |
@@ -70,6 +72,7 @@ tags: [roadmap, execution, status, dashboard]
 | US-521a | done | 2026-08-12 | — | [[_DevLog/2026-08-12-alejandro-velazquez-mendoza]] · PR #25 (docker-compose + guía local API/Postgres) | 2026-08-17 |
 | US-521b | in_progress | 2026-08-09 | — | [[_Meta/US-521b-guia-ambiente-local]] · [[_DevLog/2026-08-09-edgar-jimenez-setup]] · PR #14 · PR #29 (env DAGs); **verificar si el docker-compose de Airflow/ML ya queda cubierto por el compose del ecosistema (PR #35)** | 2026-08-17 |
 | US-521c | in_review | 2026-08-12 | — | PR #23 (inventario de dependencias + ambiente local Superset/agente); falta DevLog para `done` | 2026-08-17 |
+| US-522c | in_review | 2026-08-18 | — | PR #49 (contenerización de Superset + resolución de bloqueo de arranque); falta DevLog para `done` | 2026-08-19 |
 
 ## Interpretación
 

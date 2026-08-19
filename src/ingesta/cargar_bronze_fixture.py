@@ -6,13 +6,14 @@ producción — ese vive en `extractor_<fuente>.py` y descarga de la fuente real
 `data/bronze/` en Parquet (Data_Model.md §2).
 
 Idempotente sin DELETE/UPDATE/DROP (CLAUDE.md §3 "Nunca..."): crea la tabla si no existe con
-una restricción UNIQUE natural de bronze e inserta con `ON CONFLICT DO NOTHING`, así correr
-el script varias veces con el mismo fixture no duplica filas.
+una restricción UNIQUE natural de bronze (_source, _ingested_at, cct, ciclo) e inserta con
+`ON CONFLICT DO NOTHING`, así correr el script varias veces con el mismo fixture no duplica
+filas.
 
 Ejemplo:
     python -m src.ingesta.cargar_bronze_fixture \
         --fixture tests/fixtures/bronze_formato911_sample.csv \
-        --tabla formato911_2024_2025 --esquema formato911
+        --tabla formato911_2024_2025
 """
 import argparse
 import logging
@@ -119,6 +120,53 @@ COLUMNAS_SESNSP = [
     "_ingested_at", "_source", "_source_url",
 ]
 
+# DS-02 Catalogo CCT: identidad y georreferencia por escuela (llave primaria del proyecto)
+DDL_BRONZE_CCT = """
+CREATE SCHEMA IF NOT EXISTS bronze;
+
+CREATE TABLE IF NOT EXISTS bronze.{tabla} (
+    cct             TEXT,
+    nombre          TEXT,
+    nivel           TEXT,
+    sostenimiento   TEXT,
+    entidad         TEXT,
+    municipio       TEXT,
+    latitud         TEXT,
+    longitud        TEXT,
+    _ingested_at    TIMESTAMPTZ,
+    _source         TEXT,
+    _source_url     TEXT,
+    UNIQUE (_source, _ingested_at, cct)
+);
+"""
+
+COLUMNAS_CCT = [
+    "cct", "nombre", "nivel", "sostenimiento", "entidad", "municipio",
+    "latitud", "longitud", "_ingested_at", "_source", "_source_url",
+]
+
+# DS-08 CONAPO: proyecciones de poblacion por municipio y grupo de edad (alimenta dim_municipio)
+DDL_BRONZE_CONAPO = """
+CREATE SCHEMA IF NOT EXISTS bronze;
+
+CREATE TABLE IF NOT EXISTS bronze.{tabla} (
+    cve_ent         TEXT,
+    cve_mun         TEXT,
+    anio            INTEGER,
+    grupo_edad      TEXT,
+    poblacion       BIGINT,
+    _ingested_at    TIMESTAMPTZ,
+    _source         TEXT,
+    _source_url     TEXT,
+    UNIQUE (_source, _ingested_at, cve_mun, anio, grupo_edad)
+);
+"""
+
+COLUMNAS_CONAPO = [
+    "cve_ent", "cve_mun", "anio", "grupo_edad", "poblacion",
+    "_ingested_at", "_source", "_source_url",
+]
+
 
 def _dsn() -> str:
     return (
@@ -135,6 +183,8 @@ ESQUEMAS = {
     "cemabe": (DDL_BRONZE_CEMABE, COLUMNAS_CEMABE, ["_source", "_ingested_at", "cct"]),
     "coneval": (DDL_BRONZE_CONEVAL, COLUMNAS_CONEVAL, ["_source", "_ingested_at", "cve_mun"]),
     "sesnsp": (DDL_BRONZE_SESNSP, COLUMNAS_SESNSP, ["_source", "_ingested_at", "cve_mun", "anio", "mes", "tipo_delito"]),
+    "cct": (DDL_BRONZE_CCT, COLUMNAS_CCT, ["_source", "_ingested_at", "cct"]),
+    "conapo": (DDL_BRONZE_CONAPO, COLUMNAS_CONAPO, ["_source", "_ingested_at", "cve_mun", "anio", "grupo_edad"]),
 }
 
 
@@ -194,4 +244,3 @@ if __name__ == "__main__":
 
     n = cargar_fixture(args.fixture, args.tabla, args.esquema)
     print(f"OK: {n} filas nuevas cargadas en bronze.{args.tabla}")
-    

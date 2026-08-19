@@ -11,6 +11,8 @@ sources:
             description: Llave de escuela (10 caracteres)
           - name: id_ciclo
             description: "Ciclo escolar, formato AAAA-AAAA (ej. 2023-2024)"
+          - name: cve_ent
+            description: Clave INEGI de entidad (2 dígitos); usada para el filtro SCOPE_ENTIDADES
 
       - name: cemabe
         description: >
@@ -46,3 +48,23 @@ sources:
           - name: anio
           - name: mes
           - name: conteo
+
+      - name: escuela
+        description: >
+          Catálogo de escuelas (identidad y georreferencia), conformada en Silver (DS-02).
+          Llave primaria del proyecto: alimenta dim_escuela y el cve_mun de fact_escuela_ciclo.
+        columns:
+          - name: cct
+            description: Llave de escuela (10 caracteres)
+          - name: cve_ent
+          - name: cve_mun
+
+      - name: poblacion_municipio
+        description: >
+          Proyecciones de población por municipio y grupo de edad, conformada en Silver
+          (DS-08). Alimenta la población (denominador) de dim_municipio.
+        columns:
+          - name: cve_mun
+            description: Clave INEGI de municipio (5 dígitos)
+          - name: anio
+          - name: poblacion

@@ -26,7 +26,7 @@ models:
         description: Año de fin del ciclo escolar
         tests:
           - not_null
-  
+
   - name: features_escuela
     description: >
       gold.features_escuela (US-104) — contrato Célula 1 -> Célula 3 (Data_Model.md §5.3),
@@ -95,4 +95,153 @@ models:
       - name: target_variacion_matricula
         description: "Etiqueta: variación de matrícula vs el ciclo anterior del mismo cct."
         data_tests:
-          - not_null    
+          - not_null
+
+  - name: dim_municipio
+    description: >
+      gold.dim_municipio (US-103) — Data_Model.md §4.2/§6, un registro por cve_mun. Acotado a
+      SCOPE_ENTIDADES (CDMX, Edomex, Nuevo León, Jalisco).
+    columns:
+      - name: cve_mun
+        description: "PK — clave INEGI de municipio (5 dígitos)."
+        data_tests:
+          - unique
+          - not_null
+
+      - name: cve_ent
+        description: "Clave INEGI de entidad (2 dígitos), derivada de cve_mun."
+        data_tests:
+          - not_null
+
+      - name: nombre_municipio
+        data_tests:
+          - not_null
+
+      - name: nombre_entidad
+        data_tests:
+          - not_null
+
+      - name: poblacion
+        description: "Población total del municipio (suma de grupos de edad, CONAPO)."
+
+  - name: dim_escuela
+    description: >
+      gold.dim_escuela (US-103) — Data_Model.md §4.2/§6, un registro por cct. Acotado a
+      SCOPE_ENTIDADES (CDMX, Edomex, Nuevo León, Jalisco).
+    columns:
+      - name: cct
+        description: "PK — Clave de Centro de Trabajo homologada a 10 caracteres."
+        data_tests:
+          - unique
+          - not_null
+
+      - name: cve_ent
+        data_tests:
+          - not_null
+
+      - name: cve_mun
+        data_tests:
+          - not_null
+
+      - name: agua
+        data_tests:
+          - accepted_values:
+              arguments:
+                values: ['0', '1', 'SIN_DATO']
+
+      - name: drenaje
+        data_tests:
+          - accepted_values:
+              arguments:
+                values: ['0', '1', 'SIN_DATO']
+
+      - name: electricidad
+        data_tests:
+          - accepted_values:
+              arguments:
+                values: ['0', '1', 'SIN_DATO']
+
+      - name: sanitarios
+        data_tests:
+          - accepted_values:
+              arguments:
+                values: ['0', '1', 'SIN_DATO']
+
+      - name: internet
+        data_tests:
+          - accepted_values:
+              arguments:
+                values: ['0', '1', 'SIN_DATO']
+
+      - name: computadoras
+        data_tests:
+          - accepted_values:
+              arguments:
+                values: ['0', '1', 'SIN_DATO']
+
+  - name: fact_escuela_ciclo
+    description: >
+      gold.fact_escuela_ciclo (US-103) — hecho central, Data_Model.md §4.1/§6, un registro
+      por cct x id_ciclo. Solo hechos observados (indice_riesgo/driver_dominante viven en
+      gold.predicciones/gold.recomendaciones, se consultan por JOIN). Acotado a
+      SCOPE_ENTIDADES vía INNER JOIN a dim_escuela.
+    columns:
+      - name: cct
+        data_tests:
+          - not_null
+
+      - name: id_ciclo
+        data_tests:
+          - not_null
+
+      - name: cve_mun
+        data_tests:
+          - not_null
+
+      - name: matricula_total
+        data_tests:
+          - not_null
+
+      - name: variacion_matricula
+        data_tests:
+          - not_null
+
+      - name: indice_completitud_drivers
+        data_tests:
+          - not_null
+
+      - name: d1_cobertura
+        data_tests:
+          - accepted_values:
+              arguments:
+                values: ['OK', 'SIN_DATO']
+
+      - name: d2_cobertura
+        data_tests:
+          - accepted_values:
+              arguments:
+                values: ['OK', 'SIN_DATO']
+
+      - name: d3_cobertura
+        data_tests:
+          - accepted_values:
+              arguments:
+                values: ['OK', 'SIN_DATO']
+
+      - name: d4_cobertura
+        data_tests:
+          - accepted_values:
+              arguments:
+                values: ['OK', 'SIN_DATO']
+
+      - name: d5_cobertura
+        data_tests:
+          - accepted_values:
+              arguments:
+                values: ['OK', 'SIN_DATO']
+
+      - name: d6_cobertura
+        data_tests:
+          - accepted_values:
+              arguments:
+                values: ['OK', 'SIN_DATO']

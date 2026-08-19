@@ -61,8 +61,16 @@ def generar_cemabe(ccts):
     return path, len(ccts)
 
 
+NOMBRE_ENTIDAD = {
+    "01": "Aguascalientes", "09": "Ciudad de Mexico", "14": "Jalisco",
+    "15": "Mexico", "19": "Nuevo Leon", "20": "Oaxaca",
+}
+
+
 def generar_coneval(municipios):
-    """DS-07 CONEVAL: rezago social y pobreza a nivel municipio. Un municipio queda
+    """DS-07 CONEVAL: rezago social y pobreza a nivel municipio. `entidad`/`municipio` son
+    los NOMBRES (Data_Model.md §6: nombre_entidad/nombre_municipio vienen de DS-07), no las
+    claves -- las claves numericas ya viven aparte en cve_mun. Un municipio queda
     deliberadamente SIN_DATO (indice_rezago_social vacío)."""
     path = os.path.join(FIXTURES_DIR, "bronze_coneval_sample.csv")
     cols = [
@@ -75,14 +83,16 @@ def generar_coneval(municipios):
         w.writeheader()
         for i, (ent, mun) in enumerate(municipios):
             cve_mun = ent + mun
+            nombre_ent = NOMBRE_ENTIDAD.get(ent, f"Entidad {ent}")
+            nombre_mun = f"Municipio {cve_mun}"
             if i == 0:
                 row = {
-                    "cve_mun": cve_mun, "entidad": ent, "municipio": mun,
+                    "cve_mun": cve_mun, "entidad": nombre_ent, "municipio": nombre_mun,
                     "indice_rezago_social": "", "grado_rezago": "", "pobreza_pct": "",
                 }
             else:
                 row = {
-                    "cve_mun": cve_mun, "entidad": ent, "municipio": mun,
+                    "cve_mun": cve_mun, "entidad": nombre_ent, "municipio": nombre_mun,
                     "indice_rezago_social": str(round(-1.5 + i * 0.35, 4)),
                     "grado_rezago": grados[i % len(grados)],
                     "pobreza_pct": str(round(20.0 + i * 4.2, 2)),

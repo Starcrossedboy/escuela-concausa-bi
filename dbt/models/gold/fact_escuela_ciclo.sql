@@ -1,45 +1,36 @@
--- gold.features_escuela (US-104) — contrato Célula 1 -> Célula 3 (Data_Model.md §5.3/§4.4).
--- Grano: CCT x ciclo. Fuente de la llave y del target: silver.matricula (US-111, Deni).
+-- gold.fact_escuela_ciclo (US-103) — hecho central, Data_Model.md §4.1/§6. Grano: cct x
+-- ciclo. Contiene únicamente hechos OBSERVADOS (nunca salidas de ML: indice_riesgo vive en
+-- gold.predicciones, driver_dominante en gold.recomendaciones -- se consultan por JOIN).
 --
--- Estado de los 6 drivers en esta primera versión:
---   D1 pobreza          -- real, silver.rezago_municipio (DS-07) por cve_mun
---   D2 inseguridad       -- real, silver.delitos_municipio (DS-04) por cve_mun, agregado
---                            SIN alinear meses al ciclo escolar todavía (simplificación
---                            documentada abajo, pendiente de refinar)
---   D3 infraestructura   -- real, silver.cemabe (DS-03) por cct, ADR-004
---   D4 conectividad      -- real, silver.cemabe (DS-03) por cct, ADR-004
---   D5 agua              -- SIN_DATO explícito: CONAGUA (silver.agua_region) no trae cve_mun
---                            todavía, falta el join espacial/IDW que es alcance de US-105
---   D6 aire              -- SIN_DATO explícito: mismo motivo que D5, para SINAICA
+-- Acotado a SCOPE_ENTIDADES (Data_Model.md §7) heredado del INNER JOIN contra dim_escuela
+-- (que ya viene filtrada) -- no se repite el filtro aquí, un solo lugar de verdad.
 --
--- D5/D6 en SIN_DATO no es un hueco escondido: es la regla del proyecto (Data_Model.md §3,
--- "SIN_DATO explícito, nunca cero ni nulo silencioso") aplicada honestamente a un join que
--- todavía no existe. Cuando US-105 entregue la interpolación IDW, se reemplaza aquí.
+-- cve_mun se toma de dim_escuela (origen documentado DS-02, Data_Model.md §6), NO de
+-- silver.matricula directamente -- a diferencia de gold.features_escuela (US-104), que por ser
+-- tabla de entrenamiento ML tomó cve_mun de DS-01 como simplificación aceptada en su momento.
 --
--- FIX (2026-08-19, Diana): Data_Model.md §7 es explícito -- "el filtro WHERE cve_ent IN
--- SCOPE_ENTIDADES se aplica únicamente en la frontera Silver -> Gold (Y EN FEATURES/MODELOS/
--- DASHBOARDS que derivan de Gold)". Esta tabla es Gold y es justo "features" -- debía llevar
--- el filtro desde el día 1 y no lo llevaba. Corregido aquí filtrando por cve_ent de
--- silver.matricula (mismo origen ya aceptado para cve_mun en esta tabla, ver nota de arriba).
+-- D1-D4 replican la misma lógica real que gold.features_escuela (mismas fuentes Silver,
+-- mismo ADR-004 para D3/D4). D5 agua y D6 aire quedan en SIN_DATO explícito por el mismo
+-- motivo documentado ahí: CONAGUA/SINAICA no traen cve_mun todavía (alcance de US-105).
+-- variacion_matricula excluye el primer ciclo observado de cada cct (no hay "ciclo anterior"
+-- real del cual calcular una variación -- mismo principio que target_variacion_matricula en
+-- features_escuela: no se rellena con 0 para evitar una fuga de "variación cero" falsa).
 
 with matricula_ciclo as (
 
-    -- NOTA (US-104, Diana): igual que en dim_tiempo.sql, Data_Model.md §5.1/§6 documenta
-    -- `matricula_total`, pero silver.matricula (US-111, Deni) la entrega como `alumnos_total`.
-    -- Se aliasea aquí por consistencia con el fix ya aplicado en dim_tiempo.sql; sigue pendiente
-    -- reconciliar el nombre canónico con Deni/Edgar y, si aplica, actualizar Data_Model.md.
+    -- NOTA (US-103, Diana): mismo alias que en dim_tiempo.sql/features_escuela --
+    -- Data_Model.md documenta `matricula_total`, silver.matricula la entrega como
+    -- `alumnos_total`. Pendiente reconciliar el nombre canónico con Deni/Edgar.
     select
         cct,
         ciclo as id_ciclo,
-        cve_mun,
         alumnos_total as matricula_total,
         cast(split_part(ciclo, '-', 1) as int) as anio_inicio
     from {{ source('silver', 'matricula') }}
-    where cve_ent in {{ scope_entidades() }}
 
 ),
 
-con_target as (
+con_anterior as (
 
     select
         *,
@@ -52,17 +43,35 @@ con_target as (
 
 base as (
 
-    -- Sin ciclo anterior no hay target que entrenar (es la primera observación del cct);
-    -- se excluye aquí, no se rellena con 0 (evitaría una fuga de "variación cero" falsa).
     select
         cct,
         id_ciclo,
-        cve_mun,
         matricula_total,
         cast(matricula_total - matricula_ciclo_anterior as double precision)
-            as target_variacion_matricula
-    from con_target
+            as variacion_matricula
+    from con_anterior
     where matricula_ciclo_anterior is not null
+
+),
+
+escuela_scope as (
+
+    -- ya viene acotada a SCOPE_ENTIDADES: el join de abajo es lo que restringe el grano
+    select cct, cve_mun
+    from {{ ref('dim_escuela') }}
+
+),
+
+con_municipio as (
+
+    select
+        b.cct,
+        b.id_ciclo,
+        e.cve_mun,
+        b.matricula_total,
+        b.variacion_matricula
+    from base b
+    inner join escuela_scope e on e.cct = b.cct
 
 ),
 
@@ -89,7 +98,7 @@ d3_d4 as (
                 (case when drenaje_num is not null then 1 else 0 end)
                 + (case when electricidad_num is not null then 1 else 0 end)
                 + (case when sanitarios_num is not null then 1 else 0 end), 0)
-            as d3_infraestructura,
+            as d3,
         case
             when drenaje_num is not null or electricidad_num is not null
                  or sanitarios_num is not null then 'OK'
@@ -99,7 +108,7 @@ d3_d4 as (
             / nullif(
                 (case when internet_num is not null then 1 else 0 end)
                 + (case when computadoras_num is not null then 1 else 0 end), 0)
-            as d4_conectividad,
+            as d4,
         case
             when internet_num is not null or computadoras_num is not null then 'OK'
             else 'SIN_DATO'
@@ -138,9 +147,9 @@ d1 as (
             when r.indice_rezago_social_cobertura = 'OK' and rg.max_val > rg.min_val
                 then (r.indice_rezago_social - rg.min_val) / (rg.max_val - rg.min_val)
             when r.indice_rezago_social_cobertura = 'OK'
-                then 0.5  -- todos los municipios con el mismo valor: normalizado al centro
+                then 0.5
             else null
-        end as d1_pobreza,
+        end as d1,
         r.indice_rezago_social_cobertura as d1_cobertura
     from rezago_ultimo r
     cross join rezago_rango rg
@@ -149,7 +158,7 @@ d1 as (
 ),
 
 -- D2: inseguridad, SESNSP por municipio. Suma de todos los delitos disponibles (todavía
--- sin alinear meses al ciclo escolar; simplificación a refinar cuando haya datos reales)
+-- sin alinear meses al ciclo escolar; misma simplificación documentada en features_escuela)
 delitos_por_municipio as (
 
     select cve_mun, sum(conteo) as conteo_total
@@ -173,7 +182,7 @@ d2 as (
             when dr.max_val > dr.min_val
                 then (d.conteo_total - dr.min_val) / cast(dr.max_val - dr.min_val as double precision)
             else 0.5
-        end as d2_inseguridad,
+        end as d2,
         'OK' as d2_cobertura
     from delitos_por_municipio d
     cross join delitos_rango dr
@@ -183,43 +192,36 @@ d2 as (
 ensamblado as (
 
     select
-        b.cct,
-        b.id_ciclo,
-        d1.d1_pobreza,
+        cm.cct,
+        cm.id_ciclo,
+        cm.cve_mun,
+        cm.matricula_total,
+        cm.variacion_matricula,
+        d1.d1,
         coalesce(d1.d1_cobertura, 'SIN_DATO') as d1_cobertura,
-        d2.d2_inseguridad,
+        d2.d2,
         coalesce(d2.d2_cobertura, 'SIN_DATO') as d2_cobertura,
-        dd.d3_infraestructura,
+        dd.d3,
         coalesce(dd.d3_cobertura, 'SIN_DATO') as d3_cobertura,
-        dd.d4_conectividad,
+        dd.d4,
         coalesce(dd.d4_cobertura, 'SIN_DATO') as d4_cobertura,
-        cast(null as double precision) as d5_agua,
+        cast(null as double precision) as d5,
         'SIN_DATO' as d5_cobertura,
-        cast(null as double precision) as d6_aire,
-        'SIN_DATO' as d6_cobertura,
-        b.target_variacion_matricula
-    from base b
-    left join d3_d4 dd on dd.cct = b.cct
-    left join d1 on d1.cve_mun = b.cve_mun
-    left join d2 on d2.cve_mun = b.cve_mun
+        cast(null as double precision) as d6,
+        'SIN_DATO' as d6_cobertura
+    from con_municipio cm
+    left join d3_d4 dd on dd.cct = cm.cct
+    left join d1 on d1.cve_mun = cm.cve_mun
+    left join d2 on d2.cve_mun = cm.cve_mun
 
 )
 
 select
     cct,
     id_ciclo,
-    d1_pobreza,
-    d2_inseguridad,
-    d3_infraestructura,
-    d4_conectividad,
-    d5_agua,
-    d6_aire,
-    d1_cobertura,
-    d2_cobertura,
-    d3_cobertura,
-    d4_cobertura,
-    d5_cobertura,
-    d6_cobertura,
+    cve_mun,
+    matricula_total,
+    variacion_matricula,
     (
         (case when d1_cobertura = 'OK' then 1 else 0 end)
         + (case when d2_cobertura = 'OK' then 1 else 0 end)
@@ -228,5 +230,16 @@ select
         + (case when d5_cobertura = 'OK' then 1 else 0 end)
         + (case when d6_cobertura = 'OK' then 1 else 0 end)
     ) / 6.0 as indice_completitud_drivers,
-    target_variacion_matricula
+    d1,
+    d2,
+    d3,
+    d4,
+    d5,
+    d6,
+    d1_cobertura,
+    d2_cobertura,
+    d3_cobertura,
+    d4_cobertura,
+    d5_cobertura,
+    d6_cobertura
 from ensamblado

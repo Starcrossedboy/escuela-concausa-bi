@@ -236,7 +236,9 @@ services:
   # SUPERSET (Dashboards BI - puerto 8088)
   # ═════════════════════════════════════════════════════════════════════
   superset:
-    image: apache/superset:latest
+    build:
+      context: .
+      dockerfile: docker/superset.Dockerfile
     container_name: faro-superset
     restart: unless-stopped
     environment:
@@ -286,3 +288,8 @@ services:
       IS_PERSISTENT: 1
       ANONYMIZED_TELEMETRY: 0
       ENVIRONMENT: ${ENVIRONMENT:-local}
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/api/v1/heartbeat"]
+      interval: 30s
+      timeout: 10s
+      retries: 3

@@ -63,12 +63,18 @@ predice `t+1`. Verificado mediante test unitario (`TEST-ML-001`).
 
 | Modelo | Métrica principal | Umbral mínimo aceptable | Métrica de alerta |
 |---|---|---|---|
-| ML-01 — Regresión de matrícula | MAE (alumnos) | MAE < 15 alumnos por escuela | RMSE < 25 |
+| ML-01 — Regresión de matrícula | MAE de variación relativa | MAE < 0.03 (3 puntos porcentuales) | RMSE < 0.05 (5 puntos porcentuales) |
 | ML-02 — Clasificador de driver | F1 macro | F1 ≥ 0.60 | Precision por clase ≥ 0.50 |
 | ML-03 — Clustering | Silhouette score | Silhouette ≥ 0.30 | Inercia estabilizada |
 
 Los umbrales son **provisionales** (definidos sobre datos mock). Se revisarán al recibir
 `gold.features_escuela` real (US-104, Diana Alvarez) y se actualizará este ADR si cambian.
+
+Para ML-01, `target_variacion_matricula` es una proporción: `-0.05` representa una pérdida de 5 %.
+Por ello, MAE y RMSE se reportan en puntos porcentuales. La alternativa de conservar umbrales en
+alumnos se descartó porque el contrato de features no aporta la matrícula base necesaria para una
+conversión reproducible. El límite de RMSE coincide con la variación de 5 % que activa el umbral de
+riesgo; el MAE usa un límite más estricto de 3 puntos porcentuales.
 
 ## Protocolo de cobertura parcial (drivers D5 y D6)
 

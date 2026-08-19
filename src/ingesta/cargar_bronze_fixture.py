@@ -167,6 +167,57 @@ COLUMNAS_CONAPO = [
     "_ingested_at", "_source", "_source_url",
 ]
 
+# DS-05 SINAICA: catalogo de estaciones de calidad del aire (identidad + georreferencia)
+DDL_BRONZE_SINAICA_ESTACIONES = """
+CREATE SCHEMA IF NOT EXISTS bronze;
+
+CREATE TABLE IF NOT EXISTS bronze.{tabla} (
+    id              TEXT,
+    nombre          TEXT,
+    codigo          TEXT,
+    "redesId"       TEXT,
+    nombre_red      TEXT,
+    codigo_red      TEXT,
+    "municipioId"   TEXT,
+    "estadoId"      TEXT,
+    latitud         TEXT,
+    longitud        TEXT,
+    "fechaIniDatos" TEXT,
+    _ingested_at    TIMESTAMPTZ,
+    _source         TEXT,
+    _source_url     TEXT,
+    UNIQUE (_source, _ingested_at, id)
+);
+"""
+
+COLUMNAS_SINAICA_ESTACIONES = [
+    "id", "nombre", "codigo", "redesId", "nombre_red", "codigo_red",
+    "municipioId", "estadoId", "latitud", "longitud", "fechaIniDatos",
+    "_ingested_at", "_source", "_source_url",
+]
+
+# DS-05 SINAICA: lecturas horarias por estacion y parametro (alimenta D6 via IDW, ADR-006)
+DDL_BRONZE_SINAICA_OBSERVACIONES = """
+CREATE SCHEMA IF NOT EXISTS bronze;
+
+CREATE TABLE IF NOT EXISTS bronze.{tabla} (
+    fecha           TEXT,
+    hora            TEXT,
+    valor           TEXT,
+    val             TEXT,
+    id_estacion     TEXT,
+    parametro       TEXT,
+    _ingested_at    TIMESTAMPTZ,
+    _source         TEXT,
+    _source_url     TEXT,
+    UNIQUE (_source, _ingested_at, id_estacion, parametro, fecha, hora)
+);
+"""
+
+COLUMNAS_SINAICA_OBSERVACIONES = [
+    "fecha", "hora", "valor", "val", "id_estacion", "parametro",
+    "_ingested_at", "_source", "_source_url",
+]
 
 def _dsn() -> str:
     return (
@@ -185,6 +236,14 @@ ESQUEMAS = {
     "sesnsp": (DDL_BRONZE_SESNSP, COLUMNAS_SESNSP, ["_source", "_ingested_at", "cve_mun", "anio", "mes", "tipo_delito"]),
     "cct": (DDL_BRONZE_CCT, COLUMNAS_CCT, ["_source", "_ingested_at", "cct"]),
     "conapo": (DDL_BRONZE_CONAPO, COLUMNAS_CONAPO, ["_source", "_ingested_at", "cve_mun", "anio", "grupo_edad"]),
+        "sinaica_estaciones": (
+        DDL_BRONZE_SINAICA_ESTACIONES, COLUMNAS_SINAICA_ESTACIONES,
+        ["_source", "_ingested_at", "id"],
+    ),
+    "sinaica_observaciones": (
+        DDL_BRONZE_SINAICA_OBSERVACIONES, COLUMNAS_SINAICA_OBSERVACIONES,
+        ["_source", "_ingested_at", "id_estacion", "parametro", "fecha", "hora"],
+    ),
 }
 
 
@@ -209,13 +268,21 @@ def cargar_fixture(fixture_path: str, tabla: str, esquema: str = "formato911") -
 
     registros = list(df[columnas].itertuples(index=False, name=None))
 
+    # Comillas dobles en cada columna: no-op para nombres en minúsculas, pero necesario para
+    # las columnas camelCase de sinaica_estaciones (redesId, municipioId, estadoId,
+    # fechaIniDatos) -- así llegan en la API real de SINAICA (ver DS-05.md §5) y así las
+    # espera silver/aire_estacion.sql, ya escrito. Sin comillas, Postgres las pliega a
+    # minúsculas al insertar y el INSERT falla contra la columna creada con comillas en el DDL.
+    columnas_sql = [f'"{c}"' for c in columnas]
+    conflicto_sql = [f'"{c}"' for c in conflicto]
+
     with psycopg2.connect(_dsn()) as conn:
         with conn.cursor() as cur:
             cur.execute(ddl.format(tabla=tabla))
             execute_values(
                 cur,
-                f"INSERT INTO bronze.{tabla} ({', '.join(columnas)}) VALUES %s "
-                f"ON CONFLICT ({', '.join(conflicto)}) DO NOTHING",
+                f"INSERT INTO bronze.{tabla} ({', '.join(columnas_sql)}) VALUES %s "
+                f"ON CONFLICT ({', '.join(conflicto_sql)}) DO NOTHING",
                 registros,
             )
             insertadas = cur.rowcount

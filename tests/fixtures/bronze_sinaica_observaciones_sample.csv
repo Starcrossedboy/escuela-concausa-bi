@@ -1,0 +1,11 @@
+fecha,hora,valor,val,id_estacion,parametro,_ingested_at,_source,_source_url
+2026-08-19,0,25.0,1,101,PM2.5,2026-08-19T12:00:00+00:00,DS-05_SINAICA,https://sinaica.inecc.gob.mx
+2026-08-19,1,27.0,1,101,PM2.5,2026-08-19T12:00:00+00:00,DS-05_SINAICA,https://sinaica.inecc.gob.mx
+2026-08-19,2,999.0,0,101,PM2.5,2026-08-19T12:00:00+00:00,DS-05_SINAICA,https://sinaica.inecc.gob.mx
+2026-08-19,3,80.0,1,101,PM10,2026-08-19T12:00:00+00:00,DS-05_SINAICA,https://sinaica.inecc.gob.mx
+2026-08-19,0,45.0,1,102,PM2.5,2026-08-19T12:00:00+00:00,DS-05_SINAICA,https://sinaica.inecc.gob.mx
+2026-08-19,1,43.0,1,102,PM2.5,2026-08-19T12:00:00+00:00,DS-05_SINAICA,https://sinaica.inecc.gob.mx
+2026-08-19,0,60.0,1,103,PM2.5,2026-08-19T12:00:00+00:00,DS-05_SINAICA,https://sinaica.inecc.gob.mx
+2026-08-19,1,58.0,1,103,PM2.5,2026-08-19T12:00:00+00:00,DS-05_SINAICA,https://sinaica.inecc.gob.mx
+2026-08-19,2,90.0,1,103,PM10,2026-08-19T12:00:00+00:00,DS-05_SINAICA,https://sinaica.inecc.gob.mx
+2026-08-19,0,15.0,1,104,PM2.5,2026-08-19T12:00:00+00:00,DS-05_SINAICA,https://sinaica.inecc.gob.mx

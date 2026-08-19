@@ -3,5 +3,5 @@ D1,Pobreza,CONEVAL (DS-07),Nacional,municipio
 D2,Inseguridad,SESNSP (DS-04),Nacional,municipio
 D3,Infraestructura,CEMABE (DS-03),Nacional,escuela
 D4,Conectividad,CEMABE (DS-03),Nacional,escuela
-D5,Agua,CONAGUA SINA (DS-06),Regional,municipio
-D6,Aire,SINAICA (DS-05),Parcial (~80 zonas urbanas),municipio
+D5,Agua,CONAGUA SINA (DS-06),Regional,escuela
+D6,Aire,SINAICA (DS-05),Parcial (~80 zonas urbanas),escuela

@@ -1,8 +1,10 @@
-# Estrategia de merge por UNIÓN para índices/tablas de solo-agregado.
-# Cada PR añade su propia fila a estos archivos, lo que provoca conflictos
-# recurrentes en `_DevLog/_index.md` y en la matriz de trazabilidad. Con
+# Estrategia de merge por UNIÓN solo para logs de SOLO-AGREGADO.
+# `_DevLog/_index.md` recibe una fila nueva por PR (append-only): con
 # `merge=union` (driver integrado de Git) ambos lados se conservan sin
-# marcadores de conflicto — exactamente lo que queremos para un registro
-# append-only. Si dos PR editaran la MISMA fila existente, revisar a mano.
+# marcadores de conflicto — exactamente lo que queremos.
+#
+# La matriz de trazabilidad NO usa union: tiene una fila por REQ que se
+# EDITA en sitio, y union la duplicaba (REQ-002/REQ-003 aparecían dos veces
+# con contenido distinto). Sus conflictos se resuelven a mano. Ver DevLog
+# 2026-08-19-edgar-mitigacion-risk007-target (colisión + de-dup).
 _DevLog/_index.md                      merge=union
-02_Requirements/Traceability_Matrix.md merge=union

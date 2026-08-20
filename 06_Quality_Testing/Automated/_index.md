@@ -29,6 +29,7 @@ tags: [moc, qa, automation]
 | [[15_ML_Models/Publicacion_Gold\|TEST-006]] | US-313 · REQ-003 · DEC-005 | integración | implemented |
 | [[06_Quality_Testing/Automated/Evaluacion_Modelos\|TEST-007]] | US-312 · REQ-003 · AC-003.2 | unit | implemented |
 | TEST-008 | US-104 · US-311 · REQ-001/003 | contrato | implemented |
+| [[15_ML_Models/Target_Hibrido_DEC005\|TEST-009]] | US-311 · US-313 · DEC-005 · RISK-007 | unit | implemented |
 
 `TEST-002` ejecuta `python3 _Meta/scripts/validate_pm_dashboard.py .` y verifica 87 US únicas,
 21 personas, usuarios GitHub no duplicados, cobertura exacta de US por integrante, conteos de PR
@@ -57,6 +58,11 @@ espejo Pydantic `src/modelos/contrato.py`. El `Data_Model` §5.3 exige avisar an
 columnas; esta prueba lo hace cumplir, de modo que un renombre falle en el CI y no al entrenar
 ML-01. Lee los archivos de dbt como texto, sin `yaml` ni `dbt`, para no depender de paquetes que
 el CI no instala.
+
+`TEST-009` (`tests/test_target_hibrido.py`, 18 casos) cubre la agregación del target híbrido de
+DEC-005. La prueba central es `test_no_cuenta_la_ausencia_como_cero`: al promediar los drivers de un
+municipio, una escuela sin dato queda fuera del cálculo en vez de arrastrar el promedio hacia cero.
+Un `fillna(0)` antes del promedio hace fallar la prueba.
 
 ## Convenciones
 - Nombrar tests por comportamiento, no por implementación.

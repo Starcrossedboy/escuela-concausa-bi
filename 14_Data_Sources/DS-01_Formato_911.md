@@ -22,6 +22,11 @@ tags: [data-source, bronze, hecho-central]
 - **URL de descarga:** PENDIENTE-CONFIRMAR (portal esperado: SIGED / datos.gob.mx).
 - **Formato:** CSV / XLSX.
 - **Tamaño aproximado:** PENDIENTE-CONFIRMAR.
+- **Distribución alterna — serie SNIEE:** la SEP publica esta **misma fuente ya agregada** a nivel
+  `municipio × nivel` como serie **multi-año** (SNIEE / Sistema de Consulta de Estadística Educativa,
+  planeacion.sep.gob.mx — URL PENDIENTE-CONFIRMAR). **No es una 9ª fuente**, es DS-01 en otra
+  distribución. Es la vía que habilita el **target real multi-año** por `DEC-005` sin reconstruir años
+  crudos del 911 (el 911 crudo aporta el desglose por escuela para features y driver dominante).
 
 ## 3. Frecuencia real de actualización
 - **Anual**, por ciclo escolar (inicio de cursos).
@@ -59,7 +64,14 @@ tags: [data-source, bronze, hecho-central]
 - [ ] Registros contados: `______`
 - [ ] Esquema verificado (columnas y tipos)
 - [ ] Llave confirmada: CCT presente y válido
+- [ ] **Serie SNIEE municipio×nivel descargada** (≥2 años; habilita el target real de `DEC-005`) para las
+  4 entidades de `SCOPE_ENTIDADES`
+- [ ] **Intento de 2º ciclo crudo del 911** (2023-2024 / 2022-2023) con mapeo de esquema entre ciclos
+  (ver §10) — si aterriza antes del gate S4, sube la granularidad del target a escuela
 - **Responsable:** Diana Aracely Alvarez Varela · **Fecha:** ______
+
+> Trazas: [[10_Risk_Governance/Decision_Log]] (`DEC-005`) · [[10_Risk_Governance/Risk_Register]] (RISK-007)
+> · [[02_Requirements/User_Stories]] (US-104)
 
 ## 10. Riesgos conocidos
 - Cambios de esquema entre ciclos (columnas que se renombran o desaparecen).

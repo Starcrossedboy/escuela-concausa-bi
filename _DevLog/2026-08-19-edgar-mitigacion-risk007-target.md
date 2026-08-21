@@ -4,8 +4,8 @@ date: "2026-08-19"
 author_human: "Edgar Edmundo Coronel Navarrete"
 agent: "Claude Code"
 model: "opus-4-8"
-session_duration: "plan de mitigación de RISK-007 (target de ML sin ≥2 ciclos del 911)"
-touches: ["RISK-007", "DEC-005", "DS-01", "US-104", "US-311", "US-313"]
+session_duration: "mitigación de RISK-007 + resolución de la colisión de ID DEC-005 y de-dup de la matriz (revisión de PR #56)"
+touches: ["RISK-007", "DEC-005", "DEC-006", "DEC-007", "DS-01", "US-104", "US-311", "REQ-002", "REQ-003"]
 tags: [devlog, risk, ml, target, data-source]
 ---
 
@@ -22,7 +22,7 @@ Hallazgo: [[14_Data_Sources/DS-01_Formato_911]] documenta que la serie del 911 e
 la SEP la publica **ya agregada** (SNIEE) a nivel `municipio × nivel`, multi-año. El "hueco" es de lo
 descargado, no de lo publicado.
 
-## Decisión del PO (DEC-005)
+## Decisión del PO (DEC-007)
 **Target híbrido de dos niveles:**
 - **Primario:** target real multi-año a nivel `municipio × nivel` con la **serie SNIEE** (misma fuente
   DS-01, agregada — no una 9ª fuente); **features y driver dominante a nivel escuela** con el 911 2024-2025
@@ -36,11 +36,26 @@ descargado, no de lo publicado.
 ## Qué se hizo
 - **`Risk_Register.md`** — RISK-007 `abierto` → **`mitigando`**, celda de mitigación reescrita con la
   estrategia doble + disparador y fecha.
-- **`Decision_Log.md`** — nueva **`DEC-005`** que fija la definición del target y el fallback.
+- **`Decision_Log.md`** — **`DEC-007`** fija la definición del target y el fallback.
 - **`DS-01_Formato_911.md`** — §2 serie SNIEE como distribución alterna; §9 dos ítems en la prueba de
-  descarga (serie SNIEE + intento de 2º ciclo crudo) y trazas a DEC-005/RISK-007/US-104.
-- **`Execution_Status.md`** — nota en US-104 y US-311 de que el target queda definido por DEC-005 (destraba
-  la ambigüedad "ML sin objetivo"); US-313 ya lo citaba.
+  descarga (serie SNIEE + intento de 2º ciclo crudo) y trazas a DEC-007/RISK-007/US-104.
+- **`Execution_Status.md`** — nota en US-104 y US-311 de que el target queda definido por DEC-007 (destraba
+  la ambigüedad "ML sin objetivo").
+
+## Corrección de gobernanza (revisión de Héctor en PR #56)
+- **Colisión de ID DEC-005.** El target se registró primero como `DEC-005`, pero ese número ya designaba
+  —sin registrar en el `Decision_Log`— la decisión del `indice_riesgo` del 13-14 ago (atajo `DEC-005/006`,
+  referenciada en `publicar_gold.py`, `test_publicar_gold.py`, `Data_Model §4.5`, `Publicacion_Gold` y 4
+  DevLogs). Se resolvió **registrando formalmente** ese hueco como **`DEC-005`** (contrato de schema de
+  `gold.predicciones`) y **`DEC-006`** (umbral `indice_riesgo ≥ 0.6`), y **moviendo el target a `DEC-007`**
+  en todo su rastro (Decision_Log, Risk_Register, DS-01, Execution_Status, `15_ML_Models/Target_Hibrido`
+  —renombrado desde `Target_Hibrido_DEC005`—, `src/modelos/target_hibrido.py`, `generar_fixture_dim.py`,
+  `tests/test_target_hibrido.py`, TEST-009 y los dos DevLogs del 19-ago). Los refs bare `DEC-005` del
+  `indice_riesgo` quedan correctos sin tocarse. Se avisa a Héctor.
+- **Matriz de trazabilidad de-duplicada.** REQ-002 y REQ-003 aparecían dos veces con contenido distinto por
+  el `merge=union` de `.gitattributes` (union concatena filas; una tabla con una fila por REQ se corrompe).
+  Se conservó la fila más completa de cada uno y se **retiró la matriz de `merge=union`** (queda solo para
+  `_DevLog/_index.md`, que sí es log de solo-agregado).
 
 ## Verificación
 - `generate` ✅ · `validate` (TEST-002) ✅ · `vault_lint` ✅.

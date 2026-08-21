@@ -1,11 +1,11 @@
-"""Fixture simulado de `gold.dim_escuela` para probar la agregación de DEC-005 (US-311).
+"""Fixture simulado de `gold.dim_escuela` para probar la agregación de DEC-007 (US-311).
 
 **Datos 100 % sintéticos**, derivados de forma determinista de
 `tests/fixtures/features_escuela_mock.csv` para que ambos fixtures sean consistentes: mismos CCT,
 misma entidad.
 
 Existe porque **`gold.features_escuela` no expone `cve_mun` ni `nivel`** —el contrato §5.3 sólo
-trae `cct`, los 6 drivers, sus banderas, la completitud y el target—, pero DEC-005 pide el objetivo
+trae `cct`, los 6 drivers, sus banderas, la completitud y el target—, pero DEC-007 pide el objetivo
 a nivel `municipio × nivel`. Esas dos columnas viven en `gold.dim_escuela`, así que la agregación
 es un **join a la dimensión** y no requiere cambiar el contrato de la Célula 1.
 

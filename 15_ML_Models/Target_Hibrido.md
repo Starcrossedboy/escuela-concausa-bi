@@ -1,6 +1,6 @@
 ---
 id: DOC-TARGET-HIBRIDO
-title: "Target híbrido de dos niveles para ML-01 (DEC-005)"
+title: "Target híbrido de dos niveles para ML-01 (DEC-007)"
 owner: "Héctor Rafael Morales Marbán"
 status: in_review
 traces_up: ["10_Risk_Governance/Risk_Register", "10_Risk_Governance/Decision_Log", "03_Architecture/Data_Model"]
@@ -8,13 +8,13 @@ traces_down: ["US-311", "US-313"]
 tags: [ml, celula-3, ml-01, dec-005, risk-007]
 ---
 
-# Target híbrido de dos niveles para ML-01 (DEC-005)
+# Target híbrido de dos niveles para ML-01 (DEC-007)
 
 > Implementación de la mitigación de **RISK-007**: el Formato 911 sólo se descargó con el ciclo
 > 2024-2025 y sin ≥2 ciclos no hay `target_variacion_matricula` que predecir.
 > → [[15_ML_Models/ML01_Entrenamiento]] · [[10_Risk_Governance/Risk_Register]] · [[03_Architecture/Data_Model]]
 
-## 1. Qué separa DEC-005
+## 1. Qué separa DEC-007
 
 | | Grano | Fuente |
 |---|---|---|
@@ -58,11 +58,11 @@ cuenta. Agregar es justo donde es fácil perder filas sin notarlo.
 ## 5. Estado
 
 El objetivo real todavía no llega: la serie SNIEE es responsabilidad de la Célula 1 y el **gate de
-DEC-005 es el 30 de agosto**. Por eso `unir_target()` **lo recibe como argumento en vez de
+DEC-007 es el 30 de agosto**. Por eso `unir_target()` **lo recibe como argumento en vez de
 calcularlo** — el mismo patrón que usamos en US-313 con el driver de ML-02. Cuando la serie
 aterrice, es conectarla.
 
-Si nada llega para el gate, el fallback de DEC-005 es un índice compuesto desde los seis drivers
+Si nada llega para el gate, el fallback de DEC-007 es un índice compuesto desde los seis drivers
 marcado `SIN_DATO_REAL`.
 
 ### Ensayo sobre el fixture
@@ -74,7 +74,7 @@ cobertura de dimensión: 100.0%
 ```
 
 Los cinco ciclos se conservan, que es lo único que hace validable el objetivo con partición
-temporal — el propósito entero de DEC-005.
+temporal — el propósito entero de DEC-007.
 
 ## 6. Pruebas
 
@@ -86,7 +86,7 @@ temporal — el propósito entero de DEC-005.
 - `test_reporta_las_escuelas_sin_dimension` — una escuela sin municipio se cuenta, no desaparece.
 - `test_un_grupo_sin_objetivo_queda_fuera_y_no_se_rellena` — entrenar contra un cero inventado es
   peor que tener menos filas.
-- `test_el_agregado_admite_particion_temporal` — el punto de DEC-005, verificado.
+- `test_el_agregado_admite_particion_temporal` — el punto de DEC-007, verificado.
 
 ## 7. Pendiente
 

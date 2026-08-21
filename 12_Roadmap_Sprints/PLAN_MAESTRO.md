@@ -308,6 +308,28 @@ perfil Bajo. Quien no tenía nivel especificado se consideró Bajo.
 | `US-206` | Célula 2 | FARO Web: shell y embebido de los 10 dashboards | Manuel Alejandro Serranía Reinada |
 | `US-405` | Célula 4 | FARO Web: login/logout y vistas por rol | Christian Imanol Ruiz Hurtado |
 
+> ### 🔴 Hito crítico S4 — Ensayo E2E en vivo (Vie 28 – Sáb 29 ago)
+> Primera prueba **integrada del sistema ya desplegado**, ~una semana antes del CODE FREEZE (6 sep). No
+> busca perfección: busca **ejercitar la cadena completa punta a punta sobre la URL pública** y descubrir
+> los puntos de integración rotos con margen para arreglarlos. Lo coordina el PO; cada célula ejecuta su
+> tramo en la misma ventana.
+>
+> | # | Verificación | Dueño | Criterio de paso |
+> |---|---|---|---|
+> | 1 | URL pública viva + `/health` 200 | Luis Téllez (C5) | responde <2 s desde fuera de la red |
+> | 2 | ≥5 fuentes ingeridas, incluida 1 continua (SINAICA/SESNSP) | Diana / Luis García (C1) | corrida fechada del DAG |
+> | 3 | Bronze→Silver→Gold + reporte Great Expectations | Diana (C1) | GE en verde sobre las 4 entidades del scope |
+> | 4 | ≥1 modelo sirviendo por API (ML-01) | Héctor (C3) / Christian (C4) | `/predicciones` devuelve valor (real o simulado, **marcado**) |
+> | 5 | Auth OAuth2 + los 2 roles del PRD | Christian (C4) | login por rol y RBAC bloquea lo que debe |
+> | 6 | ≥3 dashboards leyendo de Gold | Manuel (C2) | DB-01, DB-03 y DB-06 pintan datos reales |
+> | 7 | Agente responde ≥1 consulta Text-to-SQL | Andrés (C3) | 1 pregunta del set de evaluación |
+>
+> **Criterio del hito:** ≥6 de 7 casillas en verde **sobre la URL pública**. **Plan B por casilla:** si un
+> tramo no está listo, se sustituye por su mock/fixture **marcado `SIN_DATO_REAL`** y se registra como deuda
+> de S5 — nunca se presenta simulado como real. **Salida:** lista priorizada de defectos de integración +
+> decisión go/no-go del alcance de la demo; alimenta el dry-run completo del **8 sep**. Enlaza a RISK-001
+> (URL viva) y a los gates de readiness de [[13_Reports/PM_Dashboard_Spec]].
+
 ### S5 · Lun 31 ago - Dom 6 sep
 **Foco: Agente RAG, integracion y CODE FREEZE**
 

@@ -1,4 +1,4 @@
-"""Target híbrido de dos niveles para ML-01 (DEC-005, mitigación de RISK-007).
+"""Target híbrido de dos niveles para ML-01 (DEC-007, mitigación de RISK-007).
 
 ## Por qué existe
 
@@ -6,7 +6,7 @@ El Formato 911 sólo se pudo descargar con el ciclo **2024-2025**. `target_varia
 la variación contra el ciclo anterior, así que **con un solo ciclo no hay etiqueta que predecir**
 (RISK-007).
 
-**DEC-005** resuelve el problema separando los dos niveles:
+**DEC-007** resuelve el problema separando los dos niveles:
 
 | | Grano | Fuente |
 |---|---|---|
@@ -37,7 +37,7 @@ para que el consumidor que sólo entiende el contrato original siga funcionando.
 ## Estado
 
 El target real todavía no llega: la serie SNIEE es responsabilidad de la Célula 1 y el gate de
-DEC-005 es el **30 de agosto**. `unir_target()` lo recibe como argumento en vez de calcularlo, igual
+DEC-007 es el **30 de agosto**. `unir_target()` lo recibe como argumento en vez de calcularlo, igual
 que hicimos con el driver de ML-02 en US-313 — cuando la serie aterrice, es conectarla.
 """
 
@@ -55,7 +55,7 @@ from src.modelos.particion_temporal import COLUMNA_CICLO
 
 DIM_POR_DEFECTO = Path("tests/fixtures/dim_escuela_mock.csv")
 
-#: Llave del grano agregado que fija DEC-005.
+#: Llave del grano agregado que fija DEC-007.
 LLAVE_AGREGADA: tuple[str, ...] = ("cve_mun", "nivel", COLUMNA_CICLO)
 
 #: Columnas que la agregación necesita de `gold.dim_escuela`.
@@ -95,7 +95,7 @@ def cargar_dimension(ruta: Path = DIM_POR_DEFECTO) -> pd.DataFrame:
     faltantes = set(COLUMNAS_DIM) - set(dim.columns)
     if faltantes:
         raise ValueError(
-            f"`dim_escuela` no trae {sorted(faltantes)}. DEC-005 necesita municipio y nivel para "
+            f"`dim_escuela` no trae {sorted(faltantes)}. DEC-007 necesita municipio y nivel para "
             "agregar el objetivo; el contrato de features_escuela no los expone."
         )
     return dim[list(COLUMNAS_DIM)]
@@ -105,10 +105,10 @@ def agregar_a_municipio_nivel(
     features: pd.DataFrame,
     dimension: pd.DataFrame,
 ) -> tuple[pd.DataFrame, ResumenAgregacion]:
-    """Agrega las features de escuela al grano `municipio × nivel × ciclo` de DEC-005.
+    """Agrega las features de escuela al grano `municipio × nivel × ciclo` de DEC-007.
 
     **No calcula el objetivo.** El target agregado viene de la serie SNIEE y se adjunta después con
-    `unir_target()`; agregarlo desde el 911 de un solo ciclo reproduciría el problema que DEC-005
+    `unir_target()`; agregarlo desde el 911 de un solo ciclo reproduciría el problema que DEC-007
     resuelve.
 
     Args:
@@ -159,7 +159,7 @@ def unir_target(agregado: pd.DataFrame, serie_target: pd.DataFrame) -> pd.DataFr
     """Adjunta el objetivo multi-año de la serie SNIEE al grano agregado.
 
     El target **se recibe, no se calcula**: es responsabilidad de la Célula 1 publicarlo, y el gate
-    de DEC-005 es el 30 de agosto. Mientras tanto esta función permite probar el pipeline completo
+    de DEC-007 es el 30 de agosto. Mientras tanto esta función permite probar el pipeline completo
     con una serie simulada.
 
     Args:

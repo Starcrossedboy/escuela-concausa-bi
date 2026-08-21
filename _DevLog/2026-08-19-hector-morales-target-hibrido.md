@@ -5,18 +5,18 @@ author_human: "Héctor Rafael Morales Marbán"
 agent: "Claude Code"
 model: "claude-opus-5"
 session_duration: "3h"
-touches: ["US-311", "US-313", "DEC-005", "RISK-007", "TEST-009", "DOC-TARGET-HIBRIDO", "BLOCK-001"]
+touches: ["US-311", "US-313", "DEC-007", "RISK-007", "TEST-009", "DOC-TARGET-HIBRIDO", "BLOCK-001"]
 tags: [devlog, celula-3, ml, ml-01, dec-005]
 ---
 
-# DevLog — 2026-08-19 — Target híbrido de dos niveles (DEC-005) y corrección del estado de MLflow
+# DevLog — 2026-08-19 — Target híbrido de dos niveles (DEC-007) y corrección del estado de MLflow
 
 → [[_DevLog/_index|Volver al índice]]
 
 ## Contexto
 
 Edgar registró **RISK-007** (el Formato 911 sólo tiene el ciclo 2024-2025) y su mitigación,
-**DEC-005**, que dice explícitamente *"Toca US-104, US-311, US-313"*. Esta sesión implementa la
+**DEC-007**, que dice explícitamente *"Toca US-104, US-311, US-313"*. Esta sesión implementa la
 parte que corresponde a la Célula 3.
 
 ## 1. Corrección del estado de MLflow en [[15_ML_Models/ML01_Entrenamiento]]
@@ -27,11 +27,11 @@ El documento seguía diciendo que el servidor corre **2.8.0**, pero Luis Téllez
 `--default-artifact-root` apuntando a una ruta del contenedor—, con el fix ya probado y pendiente de
 que lo aplique la Célula 5.
 
-## 2. Implementación de DEC-005
+## 2. Implementación de DEC-007
 
 ### El hueco que había que resolver
 
-DEC-005 pide el objetivo a nivel `municipio × nivel`, pero **`gold.features_escuela` no expone
+DEC-007 pide el objetivo a nivel `municipio × nivel`, pero **`gold.features_escuela` no expone
 `cve_mun` ni `nivel`**: el contrato §5.3 sólo trae `cct`, los seis drivers, sus banderas, la
 completitud y el target.
 
@@ -44,8 +44,8 @@ columnas nuevas.
 - `src/modelos/target_hibrido.py` — agregación a `municipio × nivel × ciclo` y unión del objetivo.
 - `src/modelos/generar_fixture_dim.py` — fixture determinista de `dim_escuela`, consistente con el
   de features (mismos CCT, misma entidad).
-- `tests/test_target_hibrido.py` — 18 casos ([[15_ML_Models/Target_Hibrido_DEC005|TEST-009]]).
-- [[15_ML_Models/Target_Hibrido_DEC005]] — documento de la implementación.
+- `tests/test_target_hibrido.py` — 18 casos ([[15_ML_Models/Target_Hibrido|TEST-009]]).
+- [[15_ML_Models/Target_Hibrido]] — documento de la implementación.
 
 ### Decisiones
 
@@ -72,14 +72,14 @@ cobertura de dimensión: 100.0%
 ```
 
 Los cinco ciclos se conservan, que es lo único que hace validable el objetivo con partición
-temporal — el propósito entero de DEC-005.
+temporal — el propósito entero de DEC-007.
 
 ## 🤖 Sesión de IA
 
 - **Agente / modelo:** Claude Code / claude-opus-5
 - **Archivos creados/modificados:** `src/modelos/target_hibrido.py`,
   `src/modelos/generar_fixture_dim.py`, `tests/test_target_hibrido.py`,
-  `tests/fixtures/dim_escuela_mock.csv`, `15_ML_Models/Target_Hibrido_DEC005.md`,
+  `tests/fixtures/dim_escuela_mock.csv`, `15_ML_Models/Target_Hibrido.md`,
   `15_ML_Models/ML01_Entrenamiento.md`, `15_ML_Models/_index.md`,
   `06_Quality_Testing/Automated/_index.md`
 - **Decisiones autónomas del agente:**
@@ -116,6 +116,12 @@ temporal — el propósito entero de DEC-005.
    REQ-002 dice `📋 Planeado` mientras la otra dice `🟡 En progreso`. Es efecto secundario del
    `merge=union` de `.gitattributes`: resuelve conflictos concatenando, y en una tabla eso duplica
    filas en vez de fusionarlas. Va a empeorar con cada merge.
+
+> **Resueltos por el PO (2026-08-20).** (1) Se registró formalmente el `indice_riesgo` como
+> **DEC-005** (contrato de schema) y **DEC-006** (umbral 0.6) —los refs bare `DEC-005` de arriba quedan
+> correctos— y el **target híbrido se movió a DEC-007** en todo su rastro (incluidos los artefactos de
+> esta sesión). (2) La matriz se de-duplicó y se **retiró de `merge=union`** (queda solo el DevLog index).
+> Ver [[10_Risk_Governance/Decision_Log]] y [[_DevLog/2026-08-19-edgar-mitigacion-risk007-target]].
 
 ## Pendiente
 

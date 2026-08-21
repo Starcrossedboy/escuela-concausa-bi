@@ -1,4 +1,4 @@
-"""Pruebas del target híbrido de dos niveles (DEC-005, TEST-009).
+"""Pruebas del target híbrido de dos niveles (DEC-007, TEST-009).
 
 La agregación es donde es más fácil romper la regla de cobertura parcial sin darse cuenta: basta un
 `fillna(0)` antes del promedio para que una escuela sin dato de aire arrastre a todo su municipio
@@ -193,7 +193,7 @@ def test_falla_si_la_serie_trae_llaves_duplicadas(agregado) -> None:
 
 
 def test_el_agregado_admite_particion_temporal(agregado) -> None:
-    """El punto de DEC-005: que el objetivo sea validable con partición temporal."""
+    """El punto de DEC-007: que el objetivo sea validable con partición temporal."""
     agg, _ = agregado
     final = unir_target(agg, _serie_simulada(agg))
     entrena, prueba = dividir_por_ciclo(final, n_ciclos_prueba=1)

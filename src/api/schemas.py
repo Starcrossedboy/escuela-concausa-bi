@@ -82,8 +82,12 @@ class EscuelaOut(BaseModel):
     nivel: StrictStr
     cve_mun: StrictStr = Field(min_length=5, max_length=5)
     matricula_total: StrictInt = Field(ge=0)
-    indice_riesgo: StrictFloat = Field(ge=0, le=1)
-    driver_dominante: StrictStr  # "D1".."D6"
+    # indice_riesgo/driver_dominante vienen de gold.predicciones/gold.recomendaciones por
+    # LEFT JOIN (Data_Model.md §4.1) -- None => SIN_DATO explícito, nunca inventado. Confirmado
+    # por Christian Ruiz (Tech Lead C4) el 2026-08-20, avisado a C2/C3.
+    indice_riesgo: StrictFloat | None = Field(None, ge=0, le=1)
+    driver_dominante: StrictStr | None = None  # "D1".."D6"
+    tiene_prediccion: bool  # True si hay fila en gold.predicciones (modelo ML-01) para este cct
 
 
 class EscuelaDetalleOut(EscuelaOut):
@@ -98,6 +102,10 @@ class EscuelaDetalleOut(EscuelaOut):
     d4: float | None = None
     d5: float | None = None
     d6: float | None = None
+    # DEC-008 (Edgar, 2026-08-20): indice_riesgo de gold.predicciones puede repartirse a nivel
+    # grupo en vez de ser una predicción directa por cct. None mientras tiene_prediccion=False
+    # (todavía no existe la columna en gold.predicciones -- pendiente de Diana/Héctor).
+    es_estimado_por_grupo: bool | None = None
 
 
 class MunicipioOut(BaseModel):

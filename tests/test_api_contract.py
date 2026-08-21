@@ -14,13 +14,27 @@ from fastapi.testclient import TestClient
 
 from scripts.export_openapi import SALIDA
 from src.api.app import API_PREFIX, app
+from src.api.repositorio_gold import get_repositorio_gold
+from tests.fixtures_gold import RepositorioGoldFake
 
 RAIZ = Path(__file__).resolve().parents[1]
 
 
 @pytest.fixture(scope="module")
 def client() -> TestClient:
-    return TestClient(app)
+    """Suite rápida del contrato: corre sin Postgres.
+
+    `/escuelas`, `/municipios` y `/kpis` dependen de `RepositorioGold` (`Depends`), así que aquí
+    se sustituye por `RepositorioGoldFake` (datos en memoria, `tests/fixtures_gold.py`) en vez de
+    conectar a una base real -- patrón acordado con Christian Ruiz (Tech Lead C4) el 2026-08-20
+    para la Decisión 2 de US-411. Las pruebas de integración contra Postgres real viven en US-422
+    (Eloisa González Rubio), nunca aquí.
+    """
+    app.dependency_overrides[get_repositorio_gold] = RepositorioGoldFake
+    try:
+        yield TestClient(app)
+    finally:
+        app.dependency_overrides.clear()
 
 
 # --------------------------------------------------------------------------- #
@@ -82,6 +96,8 @@ def test_escuela_inexistente_404_con_forma_error(client: TestClient) -> None:
 
 
 def test_municipio_ok_y_404(client: TestClient) -> None:
+    # 09010 existe en tests/fixtures_gold.py::MUNICIPIOS_FAKE (no es una coincidencia con datos
+    # reales de Postgres -- el override del repositorio hace que esta prueba no dependa de la BD).
     assert client.get(f"{API_PREFIX}/municipios/09010").status_code == 200
     assert client.get(f"{API_PREFIX}/municipios/00000").status_code == 404
 
@@ -90,6 +106,44 @@ def test_kpis_ok(client: TestClient) -> None:
     r = client.get(f"{API_PREFIX}/kpis")
     assert r.status_code == 200
     assert r.json()["escuelas_en_riesgo"] >= 0
+
+
+# --------------------------------------------------------------------------- #
+# Ordenamiento (Decisión 3 de US-411)
+# --------------------------------------------------------------------------- #
+
+
+def test_escuelas_order_by_matricula_desc(client: TestClient) -> None:
+    r = client.get(f"{API_PREFIX}/escuelas", params={"order_by": "matricula_total", "order": "desc"})
+    assert r.status_code == 200
+    matriculas = [e["matricula_total"] for e in r.json()["items"]]
+    assert matriculas == sorted(matriculas, reverse=True)
+
+
+def test_escuelas_order_by_indice_riesgo_sin_dato_al_final(client: TestClient) -> None:
+    r = client.get(f"{API_PREFIX}/escuelas", params={"order_by": "indice_riesgo", "order": "asc"})
+    assert r.status_code == 200
+    riesgos = [e["indice_riesgo"] for e in r.json()["items"]]
+    con_valor = [v for v in riesgos if v is not None]
+    assert con_valor == sorted(con_valor)
+    assert all(v is None for v in riesgos[len(con_valor) :])
+
+
+def test_escuelas_order_by_invalido_422(client: TestClient) -> None:
+    r = client.get(f"{API_PREFIX}/escuelas", params={"order_by": "no_existe"})
+    assert r.status_code == 422
+
+
+def test_municipios_order_by_poblacion_desc(client: TestClient) -> None:
+    r = client.get(f"{API_PREFIX}/municipios", params={"order_by": "poblacion", "order": "desc"})
+    assert r.status_code == 200
+    poblaciones = [m["poblacion"] for m in r.json()["items"]]
+    assert poblaciones == sorted(poblaciones, reverse=True)
+
+
+def test_municipios_order_by_invalido_422(client: TestClient) -> None:
+    r = client.get(f"{API_PREFIX}/municipios", params={"order_by": "no_existe"})
+    assert r.status_code == 422
 
 
 # --------------------------------------------------------------------------- #

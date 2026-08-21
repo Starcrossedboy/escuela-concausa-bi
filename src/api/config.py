@@ -43,6 +43,22 @@ class Settings(BaseSettings):
     # Allowlist de correos con rol `analista`. Mínimo privilegio: vacío => todos ciudadano.
     analista_emails: str = ""
 
+    # ---- Postgres / Gold (US-411) ----
+    # Nombres alineados a las vars POSTGRES_* que ya usan Airflow/MLflow/dbt en el .env
+    # del equipo (ver .env.example) — una sola fuente de verdad para la conexión local.
+    postgres_host: str = "localhost"
+    postgres_port: int = 5432
+    postgres_db: str = "escuela_concausa_db"
+    postgres_user: str = "postgres"
+    postgres_password: str = ""
+
+    @property
+    def database_url(self) -> str:
+        return (
+            f"postgresql+psycopg2://{self.postgres_user}:{self.postgres_password}"
+            f"@{self.postgres_host}:{self.postgres_port}/{self.postgres_db}"
+        )
+
     @property
     def analista_email_set(self) -> set[str]:
         return {e.strip().lower() for e in self.analista_emails.split(",") if e.strip()}

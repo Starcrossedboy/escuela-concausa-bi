@@ -14,6 +14,7 @@ from src.modelos.entrenar_ml02 import (
     cargar_features_ml02,
     columna_target_disponible,
     entrenar_y_evaluar,
+    explicar_driver,
     generar_driver_dominante_proxy,
     predecir_driver,
     recomendacion_para_driver,
@@ -77,3 +78,26 @@ def test_recomendacion_falla_con_driver_desconocido() -> None:
 
 def test_nombre_mlflow_es_canonico() -> None:
     assert NOMBRE_MODELO == "ML02_DriverClasificador"
+
+
+def test_explicacion_shap_cumple_contrato_api(
+    resultado_ml02,
+    features: pd.DataFrame,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    filas = features.head(2)
+    contribuciones = [
+        {driver: float(indice) for indice, driver in enumerate(DRIVERS)}
+        for _ in range(len(filas))
+    ]
+    monkeypatch.setattr(
+        "src.modelos.entrenar_ml02.calcular_shap_kernel",
+        lambda *args, **kwargs: contribuciones,
+    )
+
+    explicaciones = explicar_driver(resultado_ml02.modelo, features, filas)
+
+    assert len(explicaciones) == len(filas)
+    assert set(explicaciones[0]) == {"cct", "driver_dominante", "contribuciones"}
+    assert set(explicaciones[0]["contribuciones"]) == set(CLASES_DRIVER)
+    assert explicaciones[0]["cct"] == filas.iloc[0]["cct"]

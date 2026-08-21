@@ -45,6 +45,7 @@ def registrar_sklearn(modelo: Any, config: RegistroModelo) -> str:
         `run_id` de la corrida MLflow, que despues se persiste en `gold.predicciones.mlflow_run_id`.
     """
     validar_nombre_modelo(config.nombre_modelo)
+    verificar_compatibilidad(config.tracking_uri)
 
     try:
         import mlflow
@@ -61,7 +62,13 @@ def registrar_sklearn(modelo: Any, config: RegistroModelo) -> str:
             mlflow.log_metrics(dict(config.metricas))
         info = mlflow.sklearn.log_model(modelo, name=config.artifact_path)
         if config.registrar_modelo:
-            mlflow.register_model(info.model_uri, config.nombre_modelo)
+            version = mlflow.register_model(info.model_uri, config.nombre_modelo)
+            numero_version = getattr(version, "version", None)
+            if numero_version is None:
+                raise RuntimeError(
+                    f"MLflow no confirmó una versión para {config.nombre_modelo!r}."
+                )
+            mlflow.set_tag("registered_model_version", str(numero_version))
         return run.info.run_id
 
 

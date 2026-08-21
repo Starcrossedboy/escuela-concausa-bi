@@ -21,10 +21,9 @@ volver a correrlo tras reentrenar simplemente actualiza los valores y el `mlflow
 
 ## Alcance hoy
 
-ML-01 ya está entrenado (US-311), así que `gold.predicciones` se puebla completa. En cambio
-**`driver_dominante` es salida de ML-02 (US-302, Andrés) y todavía no existe**: por eso
-`construir_recomendaciones()` lo recibe como argumento en vez de calcularlo. Cuando ML-02 aterrice,
-es conectar su salida a esta función — el resto de la maquinaria ya está.
+ML-01 puebla `gold.predicciones` y ML-02 produce el driver dominante que alimenta
+`gold.recomendaciones`. Ambos modelos usan el mismo corte por `cct` e `id_ciclo`; la publicación
+falla si las features de alguna predicción no están disponibles para ML-02.
 """
 
 from __future__ import annotations
@@ -50,6 +49,8 @@ from sqlalchemy.engine import Engine
 
 from src.modelos.contrato import DRIVERS
 from src.modelos.entrenar_ml01 import cargar_features, entrenar_y_evaluar
+from src.modelos.entrenar_ml02 import cargar_features_ml02, predecir_driver
+from src.modelos.entrenar_ml02 import entrenar_y_evaluar as entrenar_ml02
 from src.modelos.particion_temporal import COLUMNA_CICLO, ciclos_ordenados
 from src.modelos.recomendaciones import CODIGOS_DRIVER, RECOMENDACION_POR_DRIVER
 from src.modelos.riesgo import RIESGO_ESTABLE, RIESGO_UMBRAL, indice_riesgo
@@ -238,6 +239,31 @@ def construir_recomendaciones(
     return filas
 
 
+def construir_recomendaciones_ml02(
+    predicciones: pd.DataFrame,
+    features: pd.DataFrame,
+    modelo_ml02,
+) -> pd.DataFrame:
+    """Conecta las clases de ML-02 con las recomendaciones del mismo ciclo de ML-01."""
+    llaves = ["cct", "id_ciclo"]
+    corte = predicciones[llaves].merge(
+        features,
+        on=llaves,
+        how="left",
+        validate="one_to_one",
+        indicator=True,
+    )
+    faltantes = corte.loc[corte["_merge"] != "both", "cct"].tolist()
+    if faltantes:
+        raise ValueError(f"Faltan features de ML-02 para los CCT: {faltantes}.")
+
+    salida_ml02 = predecir_driver(modelo_ml02, corte.drop(columns="_merge"))
+    drivers = dict(
+        zip(salida_ml02["cct"], salida_ml02["driver_dominante"], strict=True)
+    )
+    return construir_recomendaciones(predicciones, drivers)
+
+
 def escribir(
     df: pd.DataFrame,
     tabla: Table,
@@ -312,7 +338,7 @@ def main() -> int:
     parser.add_argument(
         "--solo-predicciones",
         action="store_true",
-        help="omite gold.recomendaciones (requiere ML-02, aún no disponible)",
+        help="omite el entrenamiento de ML-02 y gold.recomendaciones",
     )
     args = parser.parse_args()
 
@@ -323,21 +349,28 @@ def main() -> int:
     predicciones = construir_predicciones(features, resultado.modelo, args.run_id)
     print(f"Predicciones construidas: {len(predicciones)} filas (ciclo {predicciones['id_ciclo'].iloc[0]})")
 
-    metadata, tabla_pred, _ = _metadatos(args.esquema)
+    metadata, tabla_pred, tabla_rec = _metadatos(args.esquema)
     engine = _motor(args.url)
     escritas = escribir(predicciones, tabla_pred, engine, metadata)
     print(f"gold.{TABLA_PREDICCIONES}: {escritas} filas publicadas (upsert idempotente)")
 
     if args.solo_predicciones:
-        print("gold.recomendaciones omitida: requiere ML-02 (US-302, pendiente).")
+        print("gold.recomendaciones omitida por --solo-predicciones.")
         return 0
 
-    # Sin ML-02 no hay driver dominante real. Se publica vacío antes que inventar un driver.
-    print(
-        f"gold.{TABLA_RECOMENDACIONES}: sin publicar — `driver_dominante` es salida de ML-02 "
-        "(US-302, pendiente). La maquinaria está lista: conecta su predicción a "
-        "construir_recomendaciones()."
+    features_ml02 = cargar_features_ml02(args.features)
+    resultado_ml02 = entrenar_ml02(features_ml02, n_ventanas=args.ventanas)
+    recomendaciones = construir_recomendaciones_ml02(
+        predicciones,
+        features_ml02,
+        resultado_ml02.modelo,
     )
+    escritas = escribir(recomendaciones, tabla_rec, engine, metadata)
+    print(
+        f"ML-02 entrenado — F1 macro {resultado_ml02.f1_macro_promedio:.4f} ± "
+        f"{resultado_ml02.f1_macro_desviacion:.4f}"
+    )
+    print(f"gold.{TABLA_RECOMENDACIONES}: {escritas} filas publicadas (upsert idempotente)")
     return 0
 
 

@@ -90,3 +90,4 @@ Toda sesión con IA **debe** generar una entrada de DevLog **antes del push** (p
 | `model` | recomendado |
 | `session_duration` | ✅ |
 | `touches` (IDs) | ✅ |
+| [[_DevLog/2026-08-21-luis-tellez-fix-bugs-005-006-007\|2026-08-21]] | Fix BUG-005, BUG-006, BUG-007: Scripts .sh rotos en Windows, healthchecks falsos, puerto MLflow incorrecto | Luis Téllez Domínguez | Claude Code / sonnet-4.5 | BUG-005, BUG-006, BUG-007, US-502 |

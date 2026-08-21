@@ -2,8 +2,8 @@
 id: DOC-ML02-CLASIFICACION-DRIVER
 title: "ML-02 — Clasificación de driver dominante"
 owner: "Andrés González Habib"
-status: draft
-version: "0.1"
+status: in_review
+version: "0.2"
 traces_up: ["US-302", "REQ-003", "15_ML_Models/ML_Strategy"]
 traces_down: ["src/modelos/entrenar_ml02.py", "tests/test_entrenar_ml02.py"]
 tags: [ml, ml-02, clasificacion, shap, celula-3]
@@ -26,9 +26,12 @@ El scaffold ejecutable vive en `src/modelos/entrenar_ml02.py` y ya permite avanz
 - reutiliza backtesting temporal (`generar_backtesting` + `verificar_sin_fuga`);
 - entrena `HistGradientBoostingClassifier`, que tolera `NaN` para preservar `SIN_DATO`;
 - reporta `F1 macro`, `accuracy`, `precision macro` y baseline `most_frequent`;
-- produce `driver_dominante` (`D1`…`D6`) y `recomendacion` para integración posterior con API.
+- produce `driver_dominante` (`D1`…`D6`) y `recomendacion` para integración posterior con API;
+- publica las recomendaciones en Gold, alineadas por `cct` e `id_ciclo` con las predicciones de ML-01;
+- devuelve explicaciones SHAP por escuela con el contrato `cct`, `driver_dominante` y
+	`contribuciones` (`D1`…`D6`);
 - puede registrar el modelo de producción en MLflow con el nombre canónico `ML02_DriverClasificador`
-	cuando el ambiente tenga `mlflow` configurado.
+	y exige confirmación de la versión creada en el Registry.
 
 ## Target provisional
 
@@ -42,9 +45,10 @@ forma preferente y el proxy quedará solo como fallback de desarrollo.
 
 ## Explicabilidad
 
-`calcular_shap_kernel()` calcula contribuciones SHAP si el ambiente de Célula 3 tiene instalado `shap`
-desde `requirements/celula-3.txt`. La función queda fuera del camino crítico del CI base porque SHAP no
-forma parte de `requirements.txt`.
+`calcular_shap_kernel()` calcula contribuciones SHAP mediante `KernelExplainer` y
+`explicar_driver()` las transforma al contrato acordado para Célula 4. SHAP vive en
+`requirements/celula-3.txt`, fuera del camino crítico del CI base. El flujo se verificó localmente
+con una explicación real de seis contribuciones para una escuela.
 
 ## Validación
 
@@ -55,12 +59,15 @@ Pruebas agregadas en `tests/test_entrenar_ml02.py`:
 - backtesting temporal sin fuga;
 - métricas acotadas en `[0,1]`;
 - salida con `cct`, `id_ciclo`, `driver_dominante` y `recomendacion`.
+- contrato de explicación SHAP con contribuciones `D1`…`D6`;
+- publicación de una recomendación por escuela y ciclo en Gold;
+- dos escuelas con igual riesgo y distinto driver reciben recomendaciones distintas;
 - nombre MLflow canónico de ML-02.
 
 ## Pendientes para cerrar US-302
 
 - Confirmar con Célula 1 dónde se publica la etiqueta real `driver_dominante`.
 - Correr métricas sobre `gold.features_escuela` real, no solo fixture sintético.
-- Registrar resultados finales en MLflow como parte de US-303.
-- Confirmar el `MLFLOW_TRACKING_URI` local/CI con Célula 5.
+- Registrar resultados finales en MLflow y validar el Registry end-to-end cuando el entorno local
+	tenga las variables de Compose configuradas.
 - Conectar la explicación SHAP completa al endpoint `/predicciones/{cct}/explicacion` de Célula 4.

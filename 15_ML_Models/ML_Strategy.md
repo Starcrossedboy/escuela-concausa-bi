@@ -125,7 +125,8 @@ escuela en riesgo. Ambos valores siguen siendo provisionales hasta evaluar datos
 
 ## 6. Explicabilidad — ML-02
 
-ML-02 usa **SHAP (TreeExplainer)** para:
+ML-02 usa **SHAP (`KernelExplainer`)** para explicar el clasificador de forma independiente de su
+implementación concreta:
 
 - Calcular la contribución de cada driver a la predicción de cada escuela.
 - Identificar el `driver_dominante` como el feature con mayor `|SHAP value|`.
@@ -137,13 +138,13 @@ Salida esperada del endpoint de ML-02:
 {
   "cct": "09DPR1234X",
   "driver_dominante": "D2",
-  "shap_values": {
-    "d1_pobreza": -0.12,
-    "d2_inseguridad": 0.54,
-    "d3_infraestructura": 0.08,
-    "d4_conectividad": -0.03,
-    "d5_agua": 0.11,
-    "d6_aire": 0.02
+  "contribuciones": {
+    "D1": -0.12,
+    "D2": 0.54,
+    "D3": 0.08,
+    "D4": -0.03,
+    "D5": 0.11,
+    "D6": 0.02
   },
   "recomendacion": "Intervención prioritaria en seguridad del entorno escolar."
 }

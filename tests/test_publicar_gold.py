@@ -14,6 +14,8 @@ import pytest
 from sqlalchemy import create_engine, select
 
 from src.modelos.entrenar_ml01 import entrenar_y_evaluar
+from src.modelos.entrenar_ml02 import entrenar_y_evaluar as entrenar_ml02
+from src.modelos.entrenar_ml02 import generar_driver_dominante_proxy
 from src.modelos.publicar_gold import (
     CODIGOS_DRIVER,
     RECOMENDACION_POR_DRIVER,
@@ -22,6 +24,7 @@ from src.modelos.publicar_gold import (
     _metadatos,
     construir_predicciones,
     construir_recomendaciones,
+    construir_recomendaciones_ml02,
     escribir,
     prioridad_de_riesgo,
 )
@@ -119,10 +122,43 @@ def test_el_texto_corresponde_al_driver(predicciones: pd.DataFrame) -> None:
     assert recomendaciones["recomendacion"].iloc[0] == RECOMENDACION_POR_DRIVER["D2"]
 
 
+def test_igual_riesgo_y_distinto_driver_producen_recomendaciones_distintas(
+    predicciones: pd.DataFrame,
+) -> None:
+    mismas = predicciones.head(2).copy()
+    mismas["indice_riesgo"] = 0.75
+    drivers = dict(zip(mismas["cct"], ["D1", "D2"], strict=True))
+
+    recomendaciones = construir_recomendaciones(mismas, drivers)
+
+    assert recomendaciones["prioridad"].nunique() == 1
+    assert recomendaciones["recomendacion"].nunique() == 2
+
+
 def test_rechaza_drivers_fuera_del_catalogo(predicciones: pd.DataFrame) -> None:
     cct = predicciones["cct"].iloc[0]
     with pytest.raises(ValueError, match="fuera del catálogo"):
         construir_recomendaciones(predicciones, {cct: "D9"})
+
+
+def test_conecta_ml02_con_recomendaciones_del_mismo_ciclo(
+    predicciones: pd.DataFrame,
+    features: pd.DataFrame,
+) -> None:
+    features_ml02 = features.copy()
+    features_ml02["driver_dominante_proxy"] = generar_driver_dominante_proxy(features_ml02)
+    modelo_ml02 = entrenar_ml02(features_ml02, n_ventanas=3).modelo
+
+    recomendaciones = construir_recomendaciones_ml02(
+        predicciones,
+        features_ml02,
+        modelo_ml02,
+    )
+
+    assert len(recomendaciones) == len(predicciones)
+    assert set(recomendaciones["cct"]) == set(predicciones["cct"])
+    assert set(recomendaciones["id_ciclo"]) == set(predicciones["id_ciclo"])
+    assert set(recomendaciones["driver_dominante"]) <= set(CODIGOS_DRIVER)
 
 
 def test_el_catalogo_cubre_los_seis_drivers() -> None:

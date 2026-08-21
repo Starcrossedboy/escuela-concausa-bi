@@ -219,7 +219,7 @@ def parse_github_directory(root: Path) -> dict[str, dict[str, str]]:
 
 
 def load_github_activity(root: Path) -> dict[str, Any]:
-    """Carga el snapshot efímero de GitHub; en local conserva estado no disponible."""
+    """Carga el snapshot efímero de GitHub; en local conserva el último bloque conocido."""
     activity: dict[str, Any] = {
         "available": False,
         "prs": [],
@@ -233,6 +233,20 @@ def load_github_activity(root: Path) -> dict[str, Any]:
                 activity = loaded
         except json.JSONDecodeError:
             pass
+    # Fallback: si la recolección no está disponible (regenerado en local sin token),
+    # conserva el último `git_activity` publicado en `pm-dashboard.json` en vez de
+    # borrarlo — así un PR local no vacía la pestaña Engagement. Fase B lo repuebla
+    # con datos frescos al mergear (refresh-dashboard.yml corre con el PAT).
+    if not activity.get("available"):
+        prev_path = root / "13_Reports/data/pm-dashboard.json"
+        if prev_path.exists():
+            try:
+                prev = json.loads(read(prev_path))
+                prev_ga = prev.get("git_activity") if isinstance(prev, dict) else None
+                if isinstance(prev_ga, dict) and prev_ga.get("available") and prev_ga.get("prs"):
+                    activity = prev_ga
+            except json.JSONDecodeError:
+                pass
     return activity
 
 

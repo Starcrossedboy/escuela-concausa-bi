@@ -123,11 +123,11 @@
   },
   {
     "date": "2026-08-21",
-    "remaining": 71,
-    "weighted_remaining": 61.8,
-    "done": 20,
+    "remaining": 70,
+    "weighted_remaining": 61.4,
+    "done": 21,
     "scope": 91,
-    "wip": 23,
+    "wip": 22,
     "blocked": 0
   }
 ]

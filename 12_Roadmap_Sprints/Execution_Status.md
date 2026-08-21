@@ -49,7 +49,7 @@ tags: [roadmap, execution, status, dashboard]
 | US-202 | done | 2026-08-15 | — | [[_DevLog/2026-08-16-manuel-serrania-us202-superset]] · PR #39 (Superset: conexión, datasets y capa semántica) | 2026-08-17 |
 | US-206 | in_progress | 2026-08-07 | — | [[_DevLog/2026-08-07-edgar-andamiaje-faro-web]] · [[03_Architecture/Frontend_Architecture]] (solo andamiaje) | 2026-08-10 |
 | US-207 | in_progress | 2026-08-07 | — | [[_DevLog/2026-08-07-edgar-andamiaje-faro-web]] · [[03_Architecture/Frontend_Architecture]] (solo andamiaje) | 2026-08-10 |
-| US-211a | in_review | 2026-08-15 | — | PR #32 · PR #39 (métricas y jerarquías de cubos DB-03/DB-04) · DevLog Marina; vence en S3 | 2026-08-17 |
+| US-211a | done | 2026-08-15 | — | [[_DevLog/2026-08-21-marina-garcia-cierre-us211a]] · PR #32 · PR #39 (métricas y jerarquías de cubos DB-03/DB-04, 28 casos `test_semantic_db03_db04`); grano de DB-04 registrado en **DEC-008** | 2026-08-21 |
 | US-301 | done | 2026-08-09 | — | [[03_Architecture/ADRs/ADR-003-ml-estrategia-modelado]] · [[_DevLog/2026-08-09-andres-gonzalez-us301-estrategia-modelado]] · PR #12 | 2026-08-10 |
 | US-302 | in_progress | 2026-08-16 | — | PR #33 (avance independiente ML/agente); vence en S4 | 2026-08-17 |
 | US-303 | in_progress | 2026-08-16 | — | PR #33 (avance independiente ML/agente); vence en S4 | 2026-08-17 |

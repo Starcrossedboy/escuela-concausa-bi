@@ -145,9 +145,9 @@ cobertura**. Mapa cubo → dashboard:
 > y un cubo ya agregado no se puede desagregar después. Se bajó el grano a
 > `municipio × nivel × ciclo` y las métricas se almacenan como **numerador y denominador por
 > separado** (no como razón/ratio precalculada), para que cualquier filtro downstream reagregue
-> correctamente — mismo principio de medidas aditivas crudas que `fact_escuela_ciclo` (DEC-005).
+> correctamente — mismo principio de medidas aditivas crudas de `fact_escuela_ciclo`.
 > Decisión de esquema tomada por Diana Alvarez Varela (Tech Lead Célula 1, regla 7) el 14 ago
-> 2026, a partir del hallazgo de Marina García en US-211a. Pendiente registrar en Decision_Log.
+> 2026, a partir del hallazgo de Marina García en US-211a. Registrada como **DEC-008**.
 
 ### 4.4 `gold.features_escuela` — contrato con la Célula 3
 - **Grano:** una fila por **CCT × ciclo**. Los 6 drivers **normalizados** (0–1) + banderas de cobertura

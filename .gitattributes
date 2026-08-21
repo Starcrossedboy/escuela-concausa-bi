@@ -8,3 +8,15 @@
 # con contenido distinto). Sus conflictos se resuelven a mano. Ver DevLog
 # 2026-08-19-edgar-mitigacion-risk007-target (colisión + de-dup).
 _DevLog/_index.md                      merge=union
+
+# ═══════════════════════════════════════════════════════════════════
+# SCRIPTS SHELL: Forzar LF en todos los sistemas (BUG-005)
+# ═══════════════════════════════════════════════════════════════════
+# Problema: Windows convierte LF a CRLF al checkout con core.autocrlf=true,
+# rompiendo el shebang dentro de contenedores Docker Linux.
+# Síntoma: "$'\r': command not found" o "no such file or directory"
+# Solución: Forzar LF siempre, independiente del sistema operativo del dev.
+# Reportado por: Célula 2 (Marina García / Manuel Serranía)
+# Fecha: 2026-08-21
+# Referencia: BUG-005
+*.sh text eol=lf

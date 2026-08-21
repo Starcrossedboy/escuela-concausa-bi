@@ -59,10 +59,9 @@ según su driver dominante.
 | D5 · Agua | Asegurar suministro de agua y planes de contingencia hídrica. |
 | D6 · Aire | Activar protocolos por contingencia de calidad del aire. |
 
-**No se inventó:** es literalmente el catálogo que la Célula 4 ya usa en `src/api/mock_data.py`
-(US-401). Hoy está duplicado en los dos módulos; `test_catalogo_coincide_con_el_de_la_api` falla si
-divergen. **Propuesta:** cuando la C4 quite sus datos simulados, que importe de
-`src/modelos/publicar_gold.py`, porque el texto prescriptivo es dato de negocio de la Célula 3.
+El catálogo canónico vive en `src/modelos/recomendaciones.py`. Célula 4 todavía conserva una copia
+en `src/api/mock_data.py` (US-401); `test_catalogo_coincide_con_el_de_la_api` falla si divergen.
+Cuando C4 retire sus datos simulados, debe importar el catálogo canónico de Célula 3.
 
 ## 4. Prioridad
 
@@ -75,30 +74,26 @@ Derivada del `indice_riesgo` reutilizando las **anclas ya ratificadas** de
 | `media` | `>= 0.30` | ancla de matrícula estable |
 | `baja` | `< 0.30` | |
 
-## 5. Lo que falta: ML-02
+## 5. Integración con ML-02
 
-`driver_dominante` es salida de **ML-02 (US-302, Andrés González Habib)**, que aún no existe. Por eso
-`construir_recomendaciones()` **lo recibe como argumento en vez de calcularlo**, y el CLI publica
-sólo `gold.predicciones`.
+`driver_dominante` es salida de **ML-02 (US-302, Andrés González Habib)**. El CLI entrena ML-01 y
+ML-02, alinea sus salidas uno-a-uno por `cct` e `id_ciclo`, construye las recomendaciones y publica
+ambas tablas. Si falta una fila de features para ML-02, el job falla en vez de inventar un driver.
 
-Es una decisión deliberada: **antes de inventar un driver, no se publica la fila**. Una
-recomendación prescriptiva con un driver inventado es peor que ninguna recomendación — es
-exactamente el tipo de dato que un tomador de decisiones usaría para asignar presupuesto.
-
-Cuando ML-02 aterrice, se conecta su predicción a `construir_recomendaciones()` y el resto de la
-maquinaria (catálogo, prioridad, contrato, upsert, pruebas) ya está.
+`--solo-predicciones` conserva la posibilidad explícita de omitir ML-02 cuando se necesite aislar
+ML-01 durante diagnóstico.
 
 ## 6. Uso
 
 ```bash
 docker compose up -d db
 export DATABASE_URL="postgresql+psycopg2://postgres:...@localhost:5432/escuela_concausa_db"
-python -m src.modelos.publicar_gold --solo-predicciones --run-id <mlflow_run_id>
+python -m src.modelos.publicar_gold --features <ruta_features> --run-id <mlflow_run_id>
 ```
 
 ## 7. Pruebas
 
-`tests/test_publicar_gold.py` — 18 casos (`TEST-006`), sobre **SQLite en archivo temporal**: el CI
+`tests/test_publicar_gold.py` — 20 casos (`TEST-006`), sobre **SQLite en archivo temporal**: el CI
 no necesita Postgres y el UPSERT se ejercita de verdad, no se simula. El código es dialecto-aware,
 así que es la misma ruta que corre contra Postgres.
 
@@ -109,12 +104,13 @@ Las que importan:
 - `test_conserva_la_variacion_cruda_y_el_riesgo` — DEC-005 en ejecución.
 - `test_catalogo_coincide_con_el_de_la_api` — vigila la duplicación con la Célula 4.
 - `test_rechaza_drivers_fuera_del_catalogo` — un `D9` no se publica en silencio.
+- `test_conecta_ml02_con_recomendaciones_del_mismo_ciclo` — alinea ML-01 y ML-02 por llave.
+- `test_igual_riesgo_y_distinto_driver_producen_recomendaciones_distintas` — verifica AC-003.6.
 
 ## 8. Pendientes
 
-1. **ML-02** para poblar `gold.recomendaciones` (US-302).
-2. **Re-ejecutar con `gold.features_escuela` real** (US-104, Diana, vence 23 ago).
-3. **Resolver la duplicación del catálogo** con la Célula 4.
-4. `03_Architecture/Data_Model.md` **línea 255** conserva la redacción vieja — dice que
+1. **Re-ejecutar con `gold.features_escuela` real** y la etiqueta supervisada confirmada por C1.
+2. **Resolver la duplicación del catálogo** con la Célula 4.
+3. `03_Architecture/Data_Model.md` **línea 255** conserva la redacción vieja — dice que
    `indice_riesgo` vive en la columna `valor`, lo que contradice el §4.5 tras DEC-005. Es de la
    Célula 1.

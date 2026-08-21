@@ -261,6 +261,40 @@ def calcular_shap_kernel(
     return resultados
 
 
+def explicar_driver(
+    modelo: HistGradientBoostingClassifier,
+    referencia: pd.DataFrame,
+    filas: pd.DataFrame,
+    max_referencia: int = 50,
+) -> list[dict[str, object]]:
+    """Devuelve la explicación por escuela según `ExplicacionSHAPOut` de la API."""
+    predicciones = predecir_driver(modelo, filas)
+    valores_shap = calcular_shap_kernel(
+        modelo,
+        referencia,
+        filas,
+        max_referencia=max_referencia,
+    )
+
+    explicaciones: list[dict[str, object]] = []
+    for prediccion, contribuciones in zip(
+        predicciones.to_dict(orient="records"),
+        valores_shap,
+        strict=True,
+    ):
+        explicaciones.append(
+            {
+                "cct": prediccion["cct"],
+                "driver_dominante": prediccion["driver_dominante"],
+                "contribuciones": {
+                    DRIVER_A_CLASE[driver]: float(valor)
+                    for driver, valor in contribuciones.items()
+                },
+            }
+        )
+    return explicaciones
+
+
 def _imprimir_reporte(resultado: ResultadoML02) -> None:
     print(f"Target usado: {resultado.columna_target_usada}")
     print(f"\n{'ventana':52} {'F1 macro':>9} {'accuracy':>9} {'baseline':>9} {'mejora':>8}")

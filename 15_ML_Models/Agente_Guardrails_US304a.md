@@ -2,8 +2,8 @@
 id: DOC-AGENTE-GUARDRAILS-US304A
 title: "Agente FARO — Guardarraíles de seguridad"
 owner: "Andrés González Habib"
-status: draft
-version: "0.1"
+status: in_review
+version: "0.2"
 traces_up: ["US-304a", "REQ-006", "03_Architecture/API_Specification"]
 traces_down: ["src/agente/guardrails.py", "src/agente/prompt.py", "tests/test_agente_guardrails.py", "tests/test_agente_prompt.py"]
 tags: [agente, rag, seguridad, guardrails, celula-3]
@@ -30,7 +30,10 @@ posterior pueda decidir si continúa.
 3. **Sin escritura ni DDL.** Se rechazan `DELETE`, `UPDATE`, `DROP`, `INSERT`, `ALTER`, `TRUNCATE`,
    `CREATE`, `MERGE`, `REPLACE`, `UPSERT` y `VACUUM`.
 4. **Una sentencia.** Se rechazan sentencias múltiples y comentarios SQL.
-5. **Límite auditable.** Toda consulta queda con `LIMIT 1000`; si el modelo propone un límite mayor,
+5. **Solo esquema Gold.** Cada tabla de `FROM` o `JOIN` debe pertenecer a `gold.*`; se permiten CTE
+    definidos en la misma consulta, pero no `public`, `information_schema`, `pg_catalog` ni tablas
+    sin esquema.
+6. **Límite auditable.** Toda consulta queda con `LIMIT 1000`; si el modelo propone un límite mayor,
    se reduce a 1000.
 
 ## Prompt de sistema
@@ -54,7 +57,8 @@ La salida se alinea con `AgenteRespuestaOut`:
 
 - pregunta dentro y fuera del dominio;
 - rechazo de escritura SQL y sentencias múltiples;
-- aceptación de `SELECT`;
+- aceptación de `SELECT` y CTE que solo consultan Gold;
+- rechazo de tablas fuera de Gold, sin esquema y `JOIN` mixtos;
 - inyección o reducción de `LIMIT 1000`;
 - error explícito cuando `preparar_sql_seguro()` recibe un verbo prohibido.
 - presencia de reglas obligatorias en el prompt de sistema y composición con contexto recuperado.

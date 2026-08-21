@@ -2,9 +2,18 @@
 
 from __future__ import annotations
 
+import sys
+from contextlib import nullcontext
+from types import SimpleNamespace
+
 import pytest
 
-from src.modelos.mlflow_utils import NOMBRES_MODELOS_CANONICOS, validar_nombre_modelo
+from src.modelos.mlflow_utils import (
+    NOMBRES_MODELOS_CANONICOS,
+    RegistroModelo,
+    registrar_sklearn,
+    validar_nombre_modelo,
+)
 
 
 def test_nombres_canonicos_incluyen_los_tres_modelos() -> None:
@@ -74,3 +83,33 @@ def test_sin_cliente_instalado_no_bloquea(monkeypatch) -> None:
     monkeypatch.setattr(mlflow_utils, "version_del_servidor", lambda uri, **_: "2.8.0")
     monkeypatch.setattr(mlflow_utils, "version_del_cliente", lambda: None)
     mlflow_utils.verificar_compatibilidad("http://localhost:5001")  # no debe lanzar
+
+
+def test_registro_confirma_version_y_la_deja_como_tag(monkeypatch) -> None:
+    tags: dict[str, str] = {}
+    cliente = SimpleNamespace(
+        sklearn=SimpleNamespace(
+            log_model=lambda modelo, name: SimpleNamespace(model_uri=f"runs:/run-123/{name}")
+        ),
+        set_tracking_uri=lambda uri: None,
+        set_experiment=lambda nombre: None,
+        start_run=lambda run_name: nullcontext(
+            SimpleNamespace(info=SimpleNamespace(run_id="run-123"))
+        ),
+        log_params=lambda parametros: None,
+        log_metrics=lambda metricas: None,
+        register_model=lambda uri, nombre: SimpleNamespace(version="7"),
+        set_tag=lambda clave, valor: tags.__setitem__(clave, valor),
+    )
+    monkeypatch.setitem(sys.modules, "mlflow", cliente)
+    monkeypatch.setattr(mlflow_utils, "verificar_compatibilidad", lambda uri: None)
+    config = RegistroModelo(
+        nombre_modelo="ML02_DriverClasificador",
+        experimento="prueba",
+        registrar_modelo=True,
+    )
+
+    run_id = registrar_sklearn(object(), config)
+
+    assert run_id == "run-123"
+    assert tags["registered_model_version"] == "7"

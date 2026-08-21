@@ -2,11 +2,11 @@
 id: DOC-CUBESPEC-DB0304
 title: "Cube Specs — Contrato semántico de los cubos de DB-03 y DB-04"
 owner: "Marina García del Buey"
-status: in_review
+status: approved
 version: "1.0"
 traces_up: ["DOC-SCREENSPECS", "DOC-DATAMODEL", "US-211a", "REQ-002"]
 traces_down: ["US-212", "US-214a", "US-215a"]
-last_reviewed: "2026-08-14"
+last_reviewed: "2026-08-21"
 tags: [bi, cubos, capa-semantica, dashboards, celula-2]
 ---
 
@@ -66,9 +66,10 @@ silencioso a nivel de fila, que es exactamente lo que R2 prohíbe.
 Por eso ambos cubos exponen `cobertura_prediccion` y `cobertura_recomendacion` con valores
 `OK` / `SIN_DATO`, y la ficha muestra literalmente **"sin dato disponible"** en esos bloques.
 
-> ⚠️ **Pendiente de ratificación de [[04_UX_Design/Screen_Specs|Manuel]]:** este documento no cambia la
+> ✅ **Ratificado por [[04_UX_Design/Screen_Specs|Manuel]] el 2026-08-15** (US-201): el catálogo canónico
+> adoptó el `LEFT JOIN` en el grano de escuela y lo documenta en KPI-17 y KPI-18. Este documento no cambia la
 > regla R1 (la lectura sigue siendo por `JOIN`), solo fija el **tipo de `JOIN`** para el grano de
-> escuela. Confirmar antes del merge de US-212.
+> escuela.
 
 ---
 
@@ -287,7 +288,7 @@ Las fórmulas **no se duplican**: este documento referencia el catálogo de
 | `driver_dominante` / `nombre_driver` | KPI-07 | `cubo_escuela_360` |
 | `poblacion`, `pobreza_pct`, `grado_rezago`, `indice_rezago_social` | KPI-14 | `cubo_comparador_municipio` |
 
-### 5.1 Propuesta de alta de KPIs para DB-03 — **dirigida a Manuel (US-201)**
+### 5.1 KPIs de DB-03 — propuestos aquí, **publicados por Manuel en el catálogo**
 
 El catálogo va de KPI-01 a KPI-14 y **DB-03 no tiene ningún KPI propio**, pero **AC-002.4** exige que la
 ficha muestre perfil, drivers, predicción y recomendación por CCT. Se proponen cuatro altas para que
@@ -301,8 +302,9 @@ un tema, un archivo canónico):
 | **KPI-17** | Predicción de la escuela | cct × ciclo | `indice_riesgo` (`LEFT JOIN gold.predicciones`, `modelo='ML-01'`), semáforo en 0.6 | AC-002.4 |
 | **KPI-18** | Recomendación prescriptiva de la escuela | cct × ciclo | `driver_dominante` + `recomendacion` + `prioridad` (`LEFT JOIN gold.recomendaciones`) | AC-002.4 |
 
-**Ninguno de los cuatro se da de alta desde este documento.** Quedan como propuesta hasta que Manuel
-los publique en su catálogo; mientras tanto, las columnas ya existen en el cubo y DB-03 puede construirse.
+✅ **Los cuatro ya están publicados** en [[04_UX_Design/Screen_Specs]] §4 (2026-08-15, US-201), con las
+mismas fórmulas y el mismo grano que se proponen aquí. El catálogo de Manuel es la **fuente canónica**
+de KPI-15…KPI-18; esta tabla queda como registro del origen de la propuesta.
 
 ---
 
@@ -350,7 +352,10 @@ DB-03 y las métricas de riesgo de DB-04 muestran **"sin dato disponible"** vía
 - **Por qué:** con el grano actual, **AC-002.2 no se puede cumplir en DB-04** — el filtro global de
   nivel educativo no tendría sobre qué operar, y reagregar promedios daría números incorrectos.
 - **Impacto:** cambio de esquema ⇒ **regla 7, revisión humana explícita**. Afecta a US-113 (Deni).
-- **Estado:** ⬜ pendiente de respuesta.
+- **Estado:** ✅ **Aceptado por Diana Alvarez el 2026-08-14.** [[03_Architecture/Data_Model]] §4.3 ya
+  declara el grano `municipio × nivel × ciclo` y adopta las métricas como numerador y denominador
+  separados, con nota de diseño que traza el cambio a este hallazgo de US-211a. Queda pendiente que el
+  PM lo registre en [[10_Risk_Governance/Decision_Log]].
 
 ### 8.2 A Diana Alvarez (C1) — codificación de `SIN_DATO` en `d1`…`d6`
 
@@ -359,13 +364,20 @@ DB-03 y las métricas de riesgo de DB-04 muestran **"sin dato disponible"** vía
   real es **valor `NULL` + `d#_cobertura = 'SIN_DATO'`**.
 - **Mitigación mientras responde:** todo el SQL de este contrato filtra por `d#_cobertura`, que es
   inequívoca en ambas interpretaciones. No hay bloqueo.
-- **Estado:** ⬜ pendiente de confirmación.
+- **Estado:** ⬜ **pendiente de confirmación al 2026-08-21.** `Data_Model` §6 sigue tipando
+  `float | SIN_DATO`. **No bloquea** US-211a ni US-212 por la mitigación de arriba.
 
-### 8.3 A Manuel Serranía (C2) — dos puntos
+### 8.3 A Manuel Serranía (C2) — ✅ resuelto
 
-1. Alta de **KPI-15…KPI-18** en el catálogo (§5.1).
-2. Ratificar el **`LEFT JOIN`** a las salidas de ML en el grano de escuela (§2.2).
-3. Adoptar (o corregir) la convención de carpeta `superset/semantic/` en **US-202**.
+| Solicitud | Resultado |
+|---|---|
+| Alta de **KPI-15…KPI-18** en el catálogo (§5.1) | ✅ Publicados en [[04_UX_Design/Screen_Specs]] §4 (2026-08-15, US-201) |
+| Ratificar el **`LEFT JOIN`** en el grano de escuela (§2.2) | ✅ Ratificado en el mismo cambio; KPI-17 y KPI-18 lo documentan |
+| Adoptar la convención `superset/semantic/` en **US-202** | ✅ Adoptada; US-202 cerrada con [[04_UX_Design/Superset_Setup_US202]] y `superset/sync_semantic_layer.py` |
+
+**Verificación de alineación (2026-08-21):** se comparó KPI-15…KPI-18 del catálogo contra §5.1 y §3.2 de
+este documento. Coinciden en fórmula, grano, tipo de `JOIN`, umbral 0.6 y banderas de cobertura.
+**Sin divergencias.**
 
 ---
 

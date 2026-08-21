@@ -15,6 +15,15 @@ import os
 import re
 import sys
 
+# Windows-safe: las consolas cp1252 lanzan UnicodeEncodeError al imprimir los
+# emoji del reporte (❌ ⚠️ ℹ️ ✅). Forzar UTF-8 con reemplazo evita el crash de
+# impresión sin cambiar el resultado del lint (reportado por Marina, 14-ago).
+for _stream in (sys.stdout, sys.stderr):
+    try:
+        _stream.reconfigure(encoding="utf-8", errors="replace")
+    except (AttributeError, ValueError):
+        pass
+
 WIKILINK = re.compile(r"\[\[([^\]|#]+)(?:[#|\\][^\]]*)?\]\]")
 ID_RE = re.compile(r"^\s*id:\s*(.+?)\s*$", re.MULTILINE)
 FENCED = re.compile(r"```.*?```", re.DOTALL)

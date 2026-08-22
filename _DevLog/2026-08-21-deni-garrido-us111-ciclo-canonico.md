@@ -40,6 +40,8 @@ No se modificaron los contratos Gold.
 - Verificado que `dbt/models/silver/schema.yml` documenta `ciclo`.
 - Verificado que no existen referencias a `id_ciclo` dentro de los modelos Silver.
 - `python _Meta/scripts/vault_lint.py .` → `Vault limpio`.
+- `python -m pytest tests/ -q` → ejecución en verde durante el cierre del ajuste.
+- `git diff --cached --check` → sin errores antes del commit.
 - No se reejecutó `dbt compile/test` porque el ajuste es únicamente documental y no modifica SQL, YAML de dbt ni lógica ejecutable.
 
 ## Revisión requerida

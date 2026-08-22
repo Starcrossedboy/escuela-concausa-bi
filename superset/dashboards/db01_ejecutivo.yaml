@@ -26,9 +26,9 @@ dashboards:
       - columna: id_ciclo
         etiqueta: "Ciclo escolar"
         datasets: [db01_cubo_matricula, db01_distribucion_escuelas, db01_driver_dominante]
-      - columna: cve_ent
+      - columna: nombre_entidad
         etiqueta: "Entidad"
-        datasets: [db01_cubo_matricula]
+        datasets: [db01_cubo_matricula, db01_distribucion_escuelas, db01_driver_dominante]
       - columna: nivel
         etiqueta: "Nivel educativo"
         datasets: [db01_cubo_matricula, db01_distribucion_escuelas]

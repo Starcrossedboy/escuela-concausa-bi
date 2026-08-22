@@ -80,6 +80,21 @@ python superset/sync_semantic_layer.py --validar-datos
 Tableros resultantes: `http://127.0.0.1:8088/superset/dashboard/db01-ejecutivo/` y
 `http://127.0.0.1:8088/superset/dashboard/db02-mapa-riesgo/`.
 
+### Workaround: charts colgados en "Waiting on faro_escuela_concausa_db"
+
+Síntoma observado (US-203, 2026-08-22): un tablero carga y el otro se queda con todos los charts
+en "Waiting on ..." indefinidamente, sin errores en consola ni peticiones `POST /api/v1/chart/data`
+en la red del navegador; las SQL corren en milisegundos directo contra Postgres.
+
+- **Causa probable:** caché de metadatos/resultados en memoria de Superset (esta imagen no tiene
+  Redis ni backend de resultados externo) que quedó en mal estado tras una corrida del sync.
+- **Workaround:** reiniciar solo el contenedor de BI — `docker restart faro-superset` — esperar el
+  healthcheck (`docker ps` → *healthy*, ~30 s) y recargar con hard-refresh (Ctrl/Cmd+Shift+R).
+  Verificado: tras el restart ambos tableros cargan completos en ~2 s.
+- Si reaparece, reportarlo en `06_Quality_Testing/Bug_Register.md` citando este README.
+- Fix definitivo (C5, backlog): backend de caché/resultados externo (Redis) o al menos
+  `DATA_CACHE_CONFIG` persistente en `superset_config.py`.
+
 ### Notas del mock (`mock/gold_ml_outputs_mock.sql`)
 
 - Solo desarrollo local: valores determinísticos por hash del CCT, `mlflow_run_id = 'MOCK-US203'`.

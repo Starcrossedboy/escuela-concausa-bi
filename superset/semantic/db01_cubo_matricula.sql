@@ -17,13 +17,20 @@
 -- Reglas aplicadas: R1 (hechos observados: aqui NO hay salidas de ML),
 --                   R2 (SIN_DATO nunca cero: sin COALESCE a 0),
 --                   R5 (Gold ya viene acotado a SCOPE_ENTIDADES).
+--
+-- NOMBRE OFICIAL DEL MUNICIPIO: gold.dim_municipio sigue siendo la dimension
+--   canonica, pero mientras C1 no cargue el catalogo real de DS-02 sus nombres
+--   son placeholders del fixture ("Municipio 09002"). El GeoJSON versionado ya
+--   trajo el nombre oficial INEGI a gold.geo_municipio, asi que se prefiere ese
+--   y queda dm.nombre_municipio como fallback. Cuando C1 cargue nombres reales,
+--   este COALESCE puede invertirse (o desaparecer) sin tocar los tableros.
 -- =============================================================================
 
 SELECT
     -- ---------- identidad y llaves -------------------------------------------
     f.cve_mun,
     dm.cve_ent,                                -- filtro global: entidad
-    dm.nombre_municipio,
+    COALESCE(g.nombre_municipio, dm.nombre_municipio) AS nombre_municipio,
     dm.nombre_entidad,
     e.nivel,                                   -- filtro global: nivel educativo
     f.id_ciclo,                                -- filtro global: ciclo
@@ -40,9 +47,11 @@ FROM gold.fact_escuela_ciclo f
 JOIN      gold.dim_escuela   e  ON f.cct      = e.cct
 JOIN      gold.dim_tiempo    dt ON f.id_ciclo = dt.id_ciclo
 JOIN      gold.dim_municipio dm ON f.cve_mun  = dm.cve_mun
+LEFT JOIN gold.geo_municipio g  ON f.cve_mun  = g.cve_mun
 GROUP BY
     f.cve_mun,
     dm.cve_ent,
+    g.nombre_municipio,
     dm.nombre_municipio,
     dm.nombre_entidad,
     e.nivel,

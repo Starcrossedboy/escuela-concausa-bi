@@ -25,7 +25,10 @@ dashboards:
     filtros_globales:
       - columna: id_ciclo
         etiqueta: "Ciclo escolar"
-        datasets: [db02_cubo_riesgo_territorial, db02_puntos_escuela]
+        datasets: [db02_cubo_riesgo_territorial, db02_coropletico, db02_puntos_escuela]
+      - columna: nombre_entidad
+        etiqueta: "Entidad"
+        datasets: [db02_cubo_riesgo_territorial, db02_coropletico, db02_puntos_escuela]
       - columna: nivel
         etiqueta: "Nivel educativo"
         datasets: [db02_cubo_riesgo_territorial, db02_puntos_escuela]

@@ -66,7 +66,7 @@ WITH riesgo AS (
 SELECT
     r.cve_mun,
     r.cve_ent,
-    r.nombre_municipio,
+    COALESCE(g.nombre_municipio, r.nombre_municipio) AS nombre_municipio,
     r.nombre_entidad,
     r.id_ciclo,
     r.ciclo,

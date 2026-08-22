@@ -225,7 +225,22 @@ def ensure_datasets(
 
         if name in existing:
             ds_id = existing[name]
-            print(f"  ✔ Dataset '{name}' existe (id={ds_id})")
+            # El SQL del archivo puede haber cambiado desde la última corrida:
+            # comparar contra lo guardado y hacer PUT si difiere (si no, los
+            # tableros seguirían consultando el SQL viejo para siempre).
+            detalle = _request("GET", f"/api/v1/dataset/{ds_id}", token=token).get("result", {})
+            sql_actual = (detalle.get("sql") or "").strip()
+            if sql_actual != sql.strip():
+                _request(
+                    "PUT",
+                    f"/api/v1/dataset/{ds_id}",
+                    token=token,
+                    csrf_token=csrf,
+                    body={"sql": sql},
+                )
+                print(f"  ↻ Dataset '{name}' actualizado (el SQL cambió)")
+            else:
+                print(f"  ✔ Dataset '{name}' existe y está al día (id={ds_id})")
         else:
             body = {
                 "database": db_id,

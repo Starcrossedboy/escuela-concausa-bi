@@ -31,9 +31,12 @@ filtros_globales:
     etiqueta: "Ciclo escolar"
     default: ultimo_ciclo
   - nombre: entidad
-    columna: cve_ent
+    columna: nombre_entidad
     etiqueta: "Entidad"
-    nota: "Acotado a SCOPE_ENTIDADES (09, 15, 19, 14)"
+    nota: >
+      Filtra por nombre legible ('Jalisco', 'Nuevo Leon', ...); `cve_ent` sigue
+      expuesta en todos los datasets como llave canónica del territorio.
+      Acotado a SCOPE_ENTIDADES (09, 15, 19, 14).
   - nombre: nivel
     columna: nivel
     etiqueta: "Nivel educativo"
@@ -83,8 +86,8 @@ datasets:
   - nombre: db01_distribucion_escuelas
     dashboard: DB-01
     sql: db01_distribucion_escuelas.sql
-    grano: [nivel, sostenimiento, id_ciclo]
-    llave_primaria: [nivel, sostenimiento, id_ciclo]
+    grano: [cve_ent, nivel, sostenimiento, id_ciclo]
+    llave_primaria: [cve_ent, nivel, sostenimiento, id_ciclo]
     banderas_cobertura: []
 
     metricas:
@@ -104,8 +107,8 @@ datasets:
   - nombre: db01_driver_dominante
     dashboard: DB-01
     sql: db01_driver_dominante.sql
-    grano: [id_driver, id_ciclo]
-    llave_primaria: [id_driver, id_ciclo]
+    grano: [id_driver, cve_ent, id_ciclo]
+    llave_primaria: [id_driver, cve_ent, id_ciclo]
     banderas_cobertura:
       - cobertura_recomendacion
 

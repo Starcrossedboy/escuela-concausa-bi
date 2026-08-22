@@ -16,13 +16,17 @@
 --
 -- Reglas aplicadas: R1 (ML por JOIN), R2 (SIN_DATO nunca cero),
 --                   R3 (umbral 0.6), R5 (Gold ya viene acotado).
+--
+-- NOMBRE OFICIAL DEL MUNICIPIO: igual que db01_cubo_matricula — el nombre
+--   oficial INEGI vive en gold.geo_municipio mientras dim_municipio trae los
+--   placeholders del fixture de C1; se prefiere el oficial con fallback.
 -- =============================================================================
 
 SELECT
     -- ---------- identidad y llaves -------------------------------------------
     f.cve_mun,
     dm.cve_ent,                                -- filtro global: entidad
-    dm.nombre_municipio,
+    COALESCE(g.nombre_municipio, dm.nombre_municipio) AS nombre_municipio,
     dm.nombre_entidad,
     e.nivel,                                   -- filtro global: nivel educativo
     f.id_ciclo,                                -- filtro global: ciclo
@@ -47,12 +51,14 @@ FROM gold.fact_escuela_ciclo f
 JOIN      gold.dim_escuela   e  ON f.cct      = e.cct
 JOIN      gold.dim_tiempo    dt ON f.id_ciclo = dt.id_ciclo
 JOIN      gold.dim_municipio dm ON f.cve_mun  = dm.cve_mun
+LEFT JOIN gold.geo_municipio g  ON f.cve_mun  = g.cve_mun
 LEFT JOIN gold.predicciones  p  ON f.cct      = p.cct
                                AND f.id_ciclo = p.id_ciclo
                                AND p.modelo   = 'ML-01'
 GROUP BY
     f.cve_mun,
     dm.cve_ent,
+    g.nombre_municipio,
     dm.nombre_municipio,
     dm.nombre_entidad,
     e.nivel,

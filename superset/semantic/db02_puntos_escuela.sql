@@ -29,7 +29,7 @@ SELECT
     -- ---------- territorio y tiempo --------------------------------------------
     f.cve_mun,
     dm.cve_ent,                                  -- filtro global: entidad
-    dm.nombre_municipio,
+    COALESCE(g.nombre_municipio, dm.nombre_municipio) AS nombre_municipio,
     dm.nombre_entidad,
     f.id_ciclo,                                  -- filtro global: ciclo
     dt.ciclo,
@@ -55,6 +55,7 @@ FROM gold.fact_escuela_ciclo f
 JOIN      gold.dim_escuela   e  ON f.cct      = e.cct
 JOIN      gold.dim_tiempo    dt ON f.id_ciclo = dt.id_ciclo
 JOIN      gold.dim_municipio dm ON f.cve_mun  = dm.cve_mun
+LEFT JOIN gold.geo_municipio g  ON f.cve_mun  = g.cve_mun
 LEFT JOIN gold.predicciones  p  ON f.cct      = p.cct
                                AND f.id_ciclo = p.id_ciclo
                                AND p.modelo   = 'ML-01'

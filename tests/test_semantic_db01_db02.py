@@ -246,6 +246,9 @@ def test_los_filtros_globales_tienen_columna(db01_cubo: str, db02_cubo: str, db0
         for columna in ("id_ciclo", "cve_ent", "nivel"):
             assert columna in sql, f"{nombre}: falta la columna del filtro global `{columna}`."
     assert "id_ciclo" in db01_dist and "nivel" in db01_dist
+    assert "cve_ent" in db01_dist, (
+        "distribucion sin cve_ent: el filtro global de entidad (AC-002.2) no la alcanzaria."
+    )
 
 
 # --------------------------------------------------------------------------- capa semántica (YAML)
@@ -291,7 +294,12 @@ def test_el_yaml_declara_los_tres_filtros_globales(metricas: dict) -> None:
 
 def test_el_grano_del_yaml_coincide_con_el_sql(datasets_por_nombre: dict[str, dict]) -> None:
     assert datasets_por_nombre["db01_cubo_matricula"]["grano"] == ["cve_mun", "nivel", "id_ciclo"]
-    assert datasets_por_nombre["db01_distribucion_escuelas"]["grano"] == ["nivel", "sostenimiento", "id_ciclo"]
+    assert datasets_por_nombre["db01_distribucion_escuelas"]["grano"] == [
+        "cve_ent", "nivel", "sostenimiento", "id_ciclo",
+    ]
+    assert datasets_por_nombre["db01_driver_dominante"]["grano"] == [
+        "id_driver", "cve_ent", "id_ciclo",
+    ]
     assert datasets_por_nombre["db02_cubo_riesgo_territorial"]["grano"] == ["cve_mun", "nivel", "id_ciclo"]
     assert datasets_por_nombre["db02_puntos_escuela"]["grano"] == ["cct", "id_ciclo"]
 

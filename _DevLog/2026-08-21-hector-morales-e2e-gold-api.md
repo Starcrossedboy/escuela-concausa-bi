@@ -42,7 +42,7 @@ correctamente — filtra `modelo = 'ML-01'`, hace `LEFT JOIN` por `cct` e `id_ci
 
 ## Dos hallazgos que bloquean el ensayo E2E
 
-### 1. El contenedor de la API corre la app equivocada
+### 1. El contenedor de la API corre la app equivocada — **BUG-008**
 
 `docker/api.Dockerfile` termina en:
 
@@ -69,7 +69,8 @@ resultado es el mismo, es el `CMD`.
 usa este Dockerfile— **también en la URL pública de Cloud Run**. El ensayo del 28–29 evalúa
 justamente esa URL.
 
-Es de la **Célula 5** (`docker/`) en coordinación con la **Célula 4**, dueña de la app.
+Es de la **Célula 5** (`docker/`) en coordinación con la **Célula 4**, dueña de la app. Registrado como
+**BUG-008** en [[06_Quality_Testing/Bug_Register]] con severidad `high`.
 
 ### 2. Las tablas base de Gold no están materializadas
 

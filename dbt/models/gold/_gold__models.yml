@@ -112,6 +112,9 @@ models:
         description: "Clave INEGI de entidad (2 dígitos), derivada de cve_mun."
         data_tests:
           - not_null
+          - accepted_values:
+              arguments:
+                values: ['09', '15', '19', '14']
 
       - name: nombre_municipio
         data_tests:
@@ -123,6 +126,8 @@ models:
 
       - name: poblacion
         description: "Población total del municipio (suma de grupos de edad, CONAPO)."
+        data_tests:
+          - not_null
 
   - name: dim_escuela
     description: >
@@ -135,9 +140,24 @@ models:
           - unique
           - not_null
 
+      - name: nombre
+        data_tests:
+          - not_null
+
+      - name: nivel
+        data_tests:
+          - not_null
+
+      - name: sostenimiento
+        data_tests:
+          - not_null
+
       - name: cve_ent
         data_tests:
           - not_null
+          - accepted_values:
+              arguments:
+                values: ['09', '15', '19', '14']
 
       - name: cve_mun
         data_tests:
@@ -145,36 +165,42 @@ models:
 
       - name: agua
         data_tests:
+          - not_null
           - accepted_values:
               arguments:
                 values: ['0', '1', 'SIN_DATO']
 
       - name: drenaje
         data_tests:
+          - not_null
           - accepted_values:
               arguments:
                 values: ['0', '1', 'SIN_DATO']
 
       - name: electricidad
         data_tests:
+          - not_null
           - accepted_values:
               arguments:
                 values: ['0', '1', 'SIN_DATO']
 
       - name: sanitarios
         data_tests:
+          - not_null
           - accepted_values:
               arguments:
                 values: ['0', '1', 'SIN_DATO']
 
       - name: internet
         data_tests:
+          - not_null
           - accepted_values:
               arguments:
                 values: ['0', '1', 'SIN_DATO']
 
       - name: computadoras
         data_tests:
+          - not_null
           - accepted_values:
               arguments:
                 values: ['0', '1', 'SIN_DATO']
@@ -189,14 +215,26 @@ models:
       - name: cct
         data_tests:
           - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_escuela')
+                field: cct
 
       - name: id_ciclo
         data_tests:
           - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_tiempo')
+                field: id_ciclo
 
       - name: cve_mun
         data_tests:
           - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_municipio')
+                field: cve_mun
 
       - name: matricula_total
         data_tests:
@@ -212,36 +250,42 @@ models:
 
       - name: d1_cobertura
         data_tests:
+          - not_null
           - accepted_values:
               arguments:
                 values: ['OK', 'SIN_DATO']
 
       - name: d2_cobertura
         data_tests:
+          - not_null
           - accepted_values:
               arguments:
                 values: ['OK', 'SIN_DATO']
 
       - name: d3_cobertura
         data_tests:
+          - not_null
           - accepted_values:
               arguments:
                 values: ['OK', 'SIN_DATO']
 
       - name: d4_cobertura
         data_tests:
+          - not_null
           - accepted_values:
               arguments:
                 values: ['OK', 'SIN_DATO']
 
       - name: d5_cobertura
         data_tests:
+          - not_null
           - accepted_values:
               arguments:
                 values: ['OK', 'SIN_DATO']
 
       - name: d6_cobertura
         data_tests:
+          - not_null
           - accepted_values:
               arguments:
                 values: ['OK', 'SIN_DATO']

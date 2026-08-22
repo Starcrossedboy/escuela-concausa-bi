@@ -9,8 +9,8 @@ sources:
         columns:
           - name: cct
             description: Llave de escuela (10 caracteres)
-          - name: id_ciclo
-            description: "Ciclo escolar, formato AAAA-AAAA (ej. 2023-2024)"
+          - name: ciclo
+            description: "Ciclo escolar canónico en Silver (AAAA-AAAA); Gold lo aliasea a id_ciclo."
           - name: cve_ent
             description: Clave INEGI de entidad (2 dígitos); usada para el filtro SCOPE_ENTIDADES
       - name: matricula_historica

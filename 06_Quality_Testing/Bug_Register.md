@@ -18,9 +18,11 @@ tags: [qa, bugs]
 | BUG-002 | dag_censal_estatico.py: preset de cron no soportado | high | fixed | US-102 | fix/diana-varela-us102-dag-import-errors | manual (ver detalle) |
 | BUG-003 | `sklearn` no instalado: `test_entrenar_ml01.py` y `test_entrenar_ml02.py` fallan con `ModuleNotFoundError` en colección de pytest | low | **not_a_bug** | US-311 / REQ-003 | ya resuelto en `main` desde 2026-08-13 (PR #28) — ver detalle | ambiente local desactualizado |
 | BUG-004 | Imagen `apache/superset:latest` no incluye `psycopg2`: conexión a PostgreSQL falla con 422 al crear datasets virtuales | medium | open | US-202 | pendiente (**C5**, Edward Ruiz — US-522c) | — |
-| BUG-005 | Scripts `.sh` se corrompen a CRLF en checkouts de Windows: `.gitattributes` no tiene regla `*.sh text eol=lf`, así que con `core.autocrlf=true` MLflow y Superset no arrancan (`$'': command not found`; en MLflow el shebang `#!/bin/sh` produce un engañoso `no such file or directory`) | high | open | US-502 / REQ-005 | pendiente (**C5**, Luis Téllez) — agregar `*.sh text eol=lf` al `.gitattributes` | — |
-| BUG-006 | Healthcheck de `api` usa `curl -f` pero la imagen no incluye `curl` ni `wget` (solo `python`): el contenedor queda `unhealthy` de forma permanente aunque `/health` responda HTTP 200 | medium | open | US-502 / REQ-004 | pendiente (**C5** + **C4**) — sondear con `python -c "import urllib.request..."` o instalar `curl` en la imagen | — |
-| BUG-007 | Healthcheck de `chromadb` apunta a `/api/v1/heartbeat`, que responde **HTTP 410 Gone** (endpoint retirado); la ruta viva es `/api/v2/heartbeat`. Además arrastra el mismo problema de `curl` de BUG-006 | medium | open | US-502 / REQ-006 | pendiente (**C5**) — corregir ruta a v2 y cambiar la sonda | — |
+| BUG-005 | Scripts `.sh` se corrompen a CRLF en checkouts de Windows: `.gitattributes` no tiene regla `*.sh text eol=lf`, así que con `core.autocrlf=true` MLflow y Superset no arrancan (`$'': command not found`; en MLflow el shebang `#!/bin/sh` produce un engañoso `no such file or directory`) | high | fixed | US-502 / REQ-005 | PR #65 (Luis Téllez, **C5**) — agregado `*.sh text eol=lf` a `.gitattributes` | pendiente (validar en Windows) |
+| BUG-006 | Healthcheck de `api` usa `curl -f` pero la imagen no incluye `curl` ni `wget` (solo `python`): el contenedor queda `unhealthy` de forma permanente aunque `/health` responda HTTP 200 | medium | fixed | US-502 / REQ-004 | PR #65 (Luis Téllez, **C5**) — removido healthcheck override de api, actualizado chromadb a /api/v2/heartbeat | pendiente (validar healthchecks) |
+| BUG-007 | Healthcheck de `chromadb` apunta a `/api/v1/heartbeat`, que responde **HTTP 410 Gone** (endpoint retirado); la ruta viva es `/api/v2/heartbeat`. Además arrastra el mismo problema de `curl` de BUG-006 | medium | fixed | US-502 / REQ-006 | PR #65 (Luis Téllez, **C5**) — actualizado puerto MLflow en documentación (5000 → 5001) | validado |
+| BUG-008 | `docker/api.Dockerfile` arranca `src.api.main:app` (el hola mundo de US-501, **3 rutas**) en vez de `src.api.app:app` (la app real del contrato v1, **18 rutas** bajo `/api/v1`): en el contenedor —y en la URL pública si usa este Dockerfile— **US-401, US-402 y US-411 son inalcanzables** | **high** | open | US-501 / US-411 / REQ-004 / REQ-005 | pendiente (**C5** + C4) | correr `uvicorn src.api.app:app` a mano fuera del contenedor | ver detalle |
+| BUG-009 | 7 de 10 fuentes Bronze en `sources.yml` sin `identifier` por default: cualquier `dbt build`/`dbt run` completo puede fallar en compilación aunque el modelo probado no use esas fuentes | high | open | US-111 | pendiente (Edgar decide reparto) | — |
 
 ## Convención
 
@@ -139,6 +141,68 @@ dependencias.
 Se preguntó si el fix correspondía a la Célula 3 por tocar `src/modelos/`. **No había fix de código
 pendiente**, y la decisión de no tocar `src/modelos/` fuera del alcance propio fue la correcta.
 
+<<<<<<< HEAD
+## BUG-008 — El contenedor de la API corre el «hola mundo», no la app real
+
+| | |
+|---|---|
+| **Severidad** | high — bloquea el ensayo E2E del 28–29 de agosto |
+| **Estado** | `open` |
+| **Detectado** | 2026-08-21, al ensayar el tramo ML → Gold → API |
+| **Owner** | **Célula 5** (`docker/`), en coordinación con **Célula 4** (dueña de la app) |
+
+### Qué pasa
+
+`docker/api.Dockerfile` termina en:
+
+```
+CMD uvicorn src.api.main:app --host 0.0.0.0 --port ${PORT}
+```
+
+Pero hay **dos aplicaciones** en el repositorio:
+
+| Módulo | Qué es | Rutas |
+|---|---|---|
+| `src/api/main.py` | el **«hola mundo»** de US-501 (Cloud Run): `/`, `/health`, `/info` | **3** |
+| `src/api/app.py` | la app real — `create_app()`, *"FARO API — Contrato v1"*, router `api_v1_router` bajo `/api/v1` | **18** |
+
+El contenedor arranca la primera.
+
+### Evidencia
+
+Levantando ambas y consultando su OpenAPI:
+
+```
+src.api.main:app  → 3 rutas   (/, /health, /info)
+src.api.app:app   → 18 rutas  (/api/v1/escuelas, /api/v1/predicciones/{cct},
+                               /api/v1/auth/*, /api/v1/agente/consulta, …)
+```
+
+Se reconstruyó la imagen con `docker compose up -d --build api` para descartar caché: el resultado
+es idéntico. Es el `CMD`, no la imagen.
+
+### Impacto
+
+**Todo US-401 (contrato v1), US-402 (OAuth2/JWT) y US-411 (endpoints sobre Gold) es inalcanzable en
+el contenedor.** Si el despliegue de Cloud Run usa este mismo Dockerfile, tampoco están en la URL
+pública — y el **ensayo E2E del 28–29 evalúa exactamente esa URL** con criterio go/no-go.
+
+### Corrección propuesta
+
+Apuntar el `CMD` a `src.api.app:app` y verificar la URL pública antes del 28. Conviene además
+decidir qué pasa con `src/api/main.py`: si se conserva como *health probe* mínimo o se retira, para
+que no vuelva a confundirse cuál es la app.
+
+Nota: la app real publica su OpenAPI en `/api/v1/openapi.json` y sus docs en `/api/v1/docs`, no en
+la raíz. Cualquier verificación automatizada del ensayo debe apuntar ahí.
+
+### Por qué no lo arregla quien lo reporta
+
+`docker/` es de la Célula 5 y un cambio de despliegue requiere revisión explícita de su dueño
+(regla 7 del vault).
+
+=======
+>>>>>>> origin/main
 ## BUG-004 — Imagen `apache/superset:latest` no incluye `psycopg2`
 
 - **Owner:** **Célula 5** (DevOps/Cloud) — Edward Ruiz (US-522c)
@@ -183,3 +247,47 @@ docker exec -u root faro-superset pip install --target /app/.venv/lib/python3.10
 
 ### Test de regresión
 - pendiente
+
+<<<<<<< HEAD
+---
+
+## BUG-009 — 7 fuentes Bronze en sources.yml sin identifier por default
+=======
+## BUG-008 — 7 fuentes Bronze en sources.yml sin identifier por default
+>>>>>>> origin/main
+
+- **Owner:** Edgar Edmundo Coronel Navarrete
+- **Severidad:** high
+- **Estado:** open
+- **traces_up:** US-111
+- **found_on:** 2026-08-21
+
+### Descripción
+Al validar `matricula_historica` (modelo nuevo y aislado, RISK-007/DEC-007) con `dbt build --select matricula_historica`, el build falló con `Required var 'bronze_cct_identifier' not found in config` — una fuente que el modelo ni siquiera consume. Causa: 7 de las 10 tablas Bronze declaradas en `dbt/models/sources.yml` no tienen un valor por default en su `identifier` (a diferencia de `formato911`, `formato911_historico` y `cemabe`, que sí lo tienen). Como dbt necesita renderizar el manifest completo del proyecto antes de ejecutar cualquier selección, cualquier `--select` falla si falta CUALQUIERA de las 7 vars, sin importar si el modelo seleccionado las usa.
+
+Las 7 fuentes afectadas tocan varias historias distintas, sin un solo dueño:
+- `bronze_cct_identifier` (DS-02 Catálogo CCT)
+- `bronze_sesnsp_identifier`, `bronze_sinaica_observaciones_identifier`, `bronze_sinaica_estaciones_identifier` (DS-04/DS-05, Luis García)
+- `bronze_coneval_identifier` (DS-07, Deni)
+- `bronze_conagua_identifier`, `bronze_conapo_identifier` (DS-06/DS-08, Emilio)
+
+`sources.yml` es de Deni (US-111).
+
+### Pasos para reproducir
+1. `cd dbt`
+2. Correr cualquier `dbt build`/`dbt run`, con o sin `--select`, sin pasar las 7 vars por `--vars`.
+3. Falla con `Compilation Error: Required var 'bronze_cct_identifier' not found in config` (o el nombre de la siguiente var sin default que encuentre).
+
+### Resultado actual vs esperado
+- **Actual:** `dbt build --select <modelo>` falla al renderizar fuentes que ese modelo no consume.
+- **Esperado:** `dbt build --select <modelo>` sólo debería requerir las vars/fuentes que ese modelo realmente usa; o, alternativamente, las 7 fuentes deberían tener un valor por default como ya tienen `formato911`/`formato911_historico`/`cemabe`.
+
+### Entorno
+- dbt-core 1.12.0, dbt-postgres 1.11.0 (`requirements/celula-1.txt`)
+- `dbt/models/sources.yml`
+
+### Causa raíz
+7 de los 10 `identifier` en `sources.yml` se declararon como `"{{ var('bronze_X_identifier') }}"` sin segundo argumento de default, a diferencia de los 3 que sí lo tienen (`"{{ var('bronze_formato911_identifier', 'formato911_2024_2025') }}"`, etc.).
+
+### Fix
+- pendiente — Edgar decide el reparto entre las historias/dueños involucrados; opción propuesta: agregar valor por default a las 7 (mismo patrón que `formato911`/`cemabe`).

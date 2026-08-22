@@ -9,7 +9,7 @@ tags: [data-source, bronze, hecho-central]
 
 # DS-01 · SEP Formato 911
 
-> → [[14_Data_Sources/_index]] · Prueba de descarga real **PENDIENTE** (Semana 1)
+> → [[14_Data_Sources/_index]] · Prueba de descarga real — 911 crudo confirmado, **6 ciclos** (2019-2020 a 2024-2025), serie SNIEE municipio×nivel aún pendiente (ver §9/§9a)
 
 ## 1. Identificación
 - **Nombre oficial:** Estadística Educativa — Formato 911.
@@ -58,17 +58,48 @@ tags: [data-source, bronze, hecho-central]
 ## 8. Licencia de uso
 - Términos de Libre Uso MX (datos.gob.mx) — **confirmar** en la ficha oficial.
 
-## 9. Prueba de descarga real — **PENDIENTE** (Semana 1)
-- [ ] Archivo descargado físicamente (o API llamada)
-- [ ] Abierto y con datos utilizables
-- [ ] Registros contados: `______`
-- [ ] Esquema verificado (columnas y tipos)
-- [ ] Llave confirmada: CCT presente y válido
+## 9. Prueba de descarga real — 6 ciclos cerrados (ver detalle 2026-08-22)
+- [x] Archivo descargado físicamente — **6 ciclos reales** (2019-2020, 2020-2021, 2021-2022,
+  2022-2023, 2023-2024, 2024-2025), ver DevLog 2026-08-21/22
+- [x] Abierto y con datos utilizables
+- [x] Registros contados: 230,424 / 228,852 / 228,804 / 229,691 / 231,534 / 231,913 filas
+  (2019-2020 / 2020-2021 / 2021-2022 / 2022-2023 / 2023-2024 / 2024-2025) — 0 filas con
+  `matricula_total` no numérico en ninguno de los 6
+- [x] Esquema verificado (columnas y tipos) — los 6 parsean con `_parsear_ciclo` sin adivinar nada
+- [x] Llave confirmada: CCT presente y válido (`clave_cct`/`clavecct` según ciclo, ver extractor) en
+  los 6 ciclos
 - [ ] **Serie SNIEE municipio×nivel descargada** (≥2 años; habilita el target real de `DEC-007`) para las
-  4 entidades de `SCOPE_ENTIDADES`
-- [ ] **Intento de 2º ciclo crudo del 911** (2023-2024 / 2022-2023) con mapeo de esquema entre ciclos
-  (ver §10) — si aterriza antes del gate S4, sube la granularidad del target a escuela
-- **Responsable:** Diana Aracely Alvarez Varela · **Fecha:** ______
+  4 entidades de `SCOPE_ENTIDADES` — **NO localizada, ver §9a**
+- **Responsable:** Diana Aracely Alvarez Varela · **Fecha:** 2026-08-21/22
+
+### 9a. Intento 2026-08-22 (a petición de Edgar) — resultado
+
+- **2º ciclo crudo (2023-2024):** ~~el entorno cloud de esta sesión no tiene salida general a
+  internet, pendiente reintentar desde una máquina con internet real~~ — **superado**: Diana
+  descargó y validó los 6 ciclos completos (incluido 2023-2024) desde su propia máquina, ver §9.
+- **Serie SNIEE municipio×nivel:** búsqueda razonablemente exhaustiva vía `WebSearch`/`WebFetch`
+  sobre los 3 portales que esta misma ficha ya nombraba
+  ([`planeacion.sep.gob.mx`](https://www.planeacion.sep.gob.mx/estadisticaeducativas.aspx),
+  [`siged.sep.gob.mx`](https://siged.sep.gob.mx/SIGED/estadistica_educativa.html), `snie.sep.gob.mx`)
+  más descubrimiento orgánico (Atlas de servicios educativos por estado, Principales Cifras,
+  tabulados de INEGI). **No se encontró ninguna descarga pública a nivel municipio×nivel×ciclo.**
+  Lo público y descargable en bloque que sí existe es a nivel **entidad** (serie histórica
+  1990-91→2030-31,
+  [`serie_historica_entidades_sep.xlsm`](https://www.planeacion.sep.gob.mx/Doc/estadistica_e_indicadores/serie_historica_entidades_sep.xlsm) /
+  [`.zip`](https://www.planeacion.sep.gob.mx/Doc/estadistica_e_indicadores/serie_historica_entidades_sep.zip)).
+  El Atlas por estado (ej.
+  [Estado de México](https://planeacion.sep.gob.mx/Doc/Atlas_estados/estado_de_mexico.pdf)) sí
+  desagrega por municipio, pero son indicadores de infraestructura/censo (agua, luz, internet,
+  asistencia escolar por edad), **no matrícula por nivel educativo**. `snie.sep.gob.mx` no resolvió
+  de forma estable (DNS/redirect). No se localizó ningún "sistema de consulta interactivo" con URL
+  pública enlazada — si existe, probablemente requiere navegar un formulario/dropdown en vivo, no
+  un archivo descargable, lo cual queda fuera del alcance de búsqueda automatizada.
+  **Riesgo a escalar con Edgar/Célula 1: la premisa de `DEC-007`/`DOC-TARGET-HIBRIDO` de que la
+  serie SNIEE es "la misma fuente DS-01 en otra distribución" pública y descargable puede no ser
+  correcta — hasta ahora no se ha confirmado que exista en bloque a nivel municipio.** Alternativas
+  a valorar: (a) solicitud directa a SEP/DGPPYEE, (b) navegación manual de algún sistema de consulta
+  interactivo si existe, (c) aceptar el fallback ya previsto en `DOC-TARGET-HIBRIDO` §5 (índice
+  compuesto `SIN_DATO_REAL`) si nada aterriza para el gate del 30 de agosto.
 
 > Trazas: [[10_Risk_Governance/Decision_Log]] (`DEC-007`) · [[10_Risk_Governance/Risk_Register]] (RISK-007)
 > · [[02_Requirements/User_Stories]] (US-104)

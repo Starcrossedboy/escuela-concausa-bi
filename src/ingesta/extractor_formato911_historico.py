@@ -19,12 +19,13 @@ municipio x nivel x ciclo: entidad, municipio, nivel, periodo, insc_t (matricula
 (llave de escuela) y turno (para la UNIQUE de bronze -- un cct puede reportar mas de un turno en
 el mismo ciclo). El resto de las columnas no se necesita para este target.
 
-La columna llave de escuela cambio de nombre entre ciclos (`clavecct` en 2019-2020 y 2021-2022,
-`clave_cct` en 2024-2025 -- verificado real con `head -1` contra los 3 archivos, ver DevLog). NO
-se asume el nombre para los 3 ciclos que no se compararon columna por columna (2020-2021,
-2022-2023, 2023-2024): se detecta cual de las dos variantes trae el archivo, y si no encuentra
-ninguna, FALLA con un error explicito en vez de adivinar. Lo mismo aplica a las columnas fijas
-(entidad/municipio/nivel/periodo/insc_t/turno): se valida su presencia antes de procesar.
+La columna llave de escuela cambia de nombre entre ciclos (`clavecct` en 2019-2020/2021-2022,
+`clave_cct` en 2024-2025). Verificado real contra los 6 CSV descargados por Diana (2019-2020 a
+2024-2025, ver DevLog 2026-08-22): los 6 parsean con `_parsear_ciclo` sin adivinar nada, 0 filas
+con `matricula_total` no numerico en ninguno. Aun asi el detector no asume la variante -- si un
+archivo futuro no trae ninguna de las dos, FALLA con un error explicito en vez de adivinar. Lo
+mismo aplica a las columnas fijas (entidad/municipio/nivel/periodo/insc_t/turno): se valida su
+presencia antes de procesar.
 
 Bronze es nacional (Data_Model.md Section7): el filtro a SCOPE_ENTIDADES se aplica en Gold, no aqui
 -- mismo principio que ya sigue el resto del proyecto (ver comentarios en fact_escuela_ciclo.sql).

@@ -37,3 +37,10 @@ models:
     gold:
       +materialized: table
       +schema: gold
+
+# `dim_driver` es un catálogo estático, pero forma parte del esquema estrella Gold.
+# Se materializa explícitamente en `gold.dim_driver` para no depender de target.schema.
+seeds:
+  faro:
+    dim_driver:
+      +schema: gold

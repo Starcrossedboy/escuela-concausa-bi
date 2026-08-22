@@ -18,9 +18,7 @@ tags: [qa, bugs]
 | BUG-002 | dag_censal_estatico.py: preset de cron no soportado | high | fixed | US-102 | fix/diana-varela-us102-dag-import-errors | manual (ver detalle) |
 | BUG-003 | `sklearn` no instalado: `test_entrenar_ml01.py` y `test_entrenar_ml02.py` fallan con `ModuleNotFoundError` en colección de pytest | low | **not_a_bug** | US-311 / REQ-003 | ya resuelto en `main` desde 2026-08-13 (PR #28) — ver detalle | ambiente local desactualizado |
 | BUG-004 | Imagen `apache/superset:latest` no incluye `psycopg2`: conexión a PostgreSQL falla con 422 al crear datasets virtuales | medium | open | US-202 | pendiente (**C5**, Edward Ruiz — US-522c) | — |
-| BUG-005 | Scripts `.sh` se corrompen a CRLF en checkouts de Windows: `.gitattributes` no tiene regla `*.sh text eol=lf`, así que con `core.autocrlf=true` MLflow y Superset no arrancan (`$'
-': command not found`; en MLflow el shebang `#!/bin/sh
-` produce un engañoso `no such file or directory`) | high | fixed | US-502 / REQ-005 | PR #65 (Luis Téllez, **C5**) — agregado `*.sh text eol=lf` a `.gitattributes` | pendiente (validar en Windows) |
+| BUG-005 | Scripts `.sh` se corrompen a CRLF en checkouts de Windows: `.gitattributes` no tiene regla `*.sh text eol=lf`, así que con `core.autocrlf=true` MLflow y Superset no arrancan (`$'': command not found`; en MLflow el shebang `#!/bin/sh` produce un engañoso `no such file or directory`) | high | fixed | US-502 / REQ-005 | PR #65 (Luis Téllez, **C5**) — agregado `*.sh text eol=lf` a `.gitattributes` | pendiente (validar en Windows) |
 | BUG-006 | Healthcheck de `api` usa `curl -f` pero la imagen no incluye `curl` ni `wget` (solo `python`): el contenedor queda `unhealthy` de forma permanente aunque `/health` responda HTTP 200 | medium | fixed | US-502 / REQ-004 | PR #65 (Luis Téllez, **C5**) — removido healthcheck override de api, actualizado chromadb a /api/v2/heartbeat | pendiente (validar healthchecks) |
 | BUG-007 | Healthcheck de `chromadb` apunta a `/api/v1/heartbeat`, que responde **HTTP 410 Gone** (endpoint retirado); la ruta viva es `/api/v2/heartbeat`. Además arrastra el mismo problema de `curl` de BUG-006 | medium | fixed | US-502 / REQ-006 | PR #65 (Luis Téllez, **C5**) — actualizado puerto MLflow en documentación (5000 → 5001) | validado |
 | BUG-008 | `docker/api.Dockerfile` arranca `src.api.main:app` (el hola mundo de US-501, **3 rutas**) en vez de `src.api.app:app` (la app real del contrato v1, **18 rutas** bajo `/api/v1`): en el contenedor —y en la URL pública si usa este Dockerfile— **US-401, US-402 y US-411 son inalcanzables** | **high** | open | US-501 / US-411 / REQ-004 / REQ-005 | pendiente (**C5** + C4) | correr `uvicorn src.api.app:app` a mano fuera del contenedor | ver detalle |
@@ -143,6 +141,7 @@ dependencias.
 Se preguntó si el fix correspondía a la Célula 3 por tocar `src/modelos/`. **No había fix de código
 pendiente**, y la decisión de no tocar `src/modelos/` fuera del alcance propio fue la correcta.
 
+<<<<<<< HEAD
 ## BUG-008 — El contenedor de la API corre el «hola mundo», no la app real
 
 | | |
@@ -202,6 +201,8 @@ la raíz. Cualquier verificación automatizada del ensayo debe apuntar ahí.
 `docker/` es de la Célula 5 y un cambio de despliegue requiere revisión explícita de su dueño
 (regla 7 del vault).
 
+=======
+>>>>>>> origin/main
 ## BUG-004 — Imagen `apache/superset:latest` no incluye `psycopg2`
 
 - **Owner:** **Célula 5** (DevOps/Cloud) — Edward Ruiz (US-522c)
@@ -247,9 +248,13 @@ docker exec -u root faro-superset pip install --target /app/.venv/lib/python3.10
 ### Test de regresión
 - pendiente
 
+<<<<<<< HEAD
 ---
 
 ## BUG-009 — 7 fuentes Bronze en sources.yml sin identifier por default
+=======
+## BUG-008 — 7 fuentes Bronze en sources.yml sin identifier por default
+>>>>>>> origin/main
 
 - **Owner:** Edgar Edmundo Coronel Navarrete
 - **Severidad:** high

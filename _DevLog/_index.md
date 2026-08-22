@@ -86,6 +86,10 @@ Toda sesión con IA **debe** generar una entrada de DevLog **antes del push** (p
 | [[_DevLog/2026-08-21-edgar-marina-us211a-dec008-vaultlint\|2026-08-21]] | Atiende la revisión de Marina: US-211a → `done`; **DEC-008** registra el cambio de grano de `cubo_comparador_municipio` (DB-04); corrige la cita `DEC-005` mal puesta en Data_Model §4.3; fix Windows de `vault_lint.py` (UnicodeEncodeError al imprimir emoji). Puntos de matriz/union ya estaban resueltos | Edgar Edmundo Coronel Navarrete | Claude Code / opus-4-8 | US-211a, DEC-008, DOC-DATAMODEL, META-RULES, REQ-002, US-004 |
 | [[_DevLog/2026-08-21-marina-garcia-ambiente-local-bugs\|2026-08-21]] | Ambiente local completo (venv 3.11, .env, 7 servicios en Docker) y 3 defectos reportados: CRLF en los `.sh` por falta de regla en `.gitattributes` (BUG-005), y healthchecks de `api` y `chromadb` que marcan `unhealthy` servicios que sí responden (BUG-006, BUG-007) | Marina García del Buey | Claude Code / claude-opus-5 | BUG-005, BUG-006, BUG-007, DOC-BUGREG, US-502 |
 | [[_DevLog/2026-08-21-edgar-preservar-git-activity\|2026-08-21]] | Hardening del generador: `load_github_activity()` conserva el último `git_activity` publicado cuando se regenera en local sin token, para que un PR no vacíe la pestaña Engagement (observación de Marina). Fase B lo repuebla al mergear | Edgar Edmundo Coronel Navarrete | Claude Code / opus-4-8 | US-004, REQ-007, META-RULES, RPT-PM-SPEC |
+| [[_DevLog/2026-08-21-manuel-serrania-us203-tableros-db01-db02\|2026-08-21]] | US-203: DB-01 Ejecutivo y DB-02 Mapa de riesgo en Superset 6.1 — 6 datasets virtuales + métricas YAML (KPI-01..05,07..10), tableros declarativos sincronizados por API (9+7 charts, filtros nativos), mock ML idempotente MOCK-US203 con catálogo dim_driver D1–D6, GeoJSON municipal del alcance (317 municipios, 606 KB) en `gold.geo_municipio`; fix latente del driver Postgres en la imagen Superset (venv uv) | Manuel Alejandro Serrania Reinada | OpenCode / opencode-big-pickle | US-203, REQ-002, KPI-01, KPI-02, KPI-03, KPI-04, KPI-05, KPI-07, KPI-08, KPI-09, KPI-10, DEC-005, DEC-008 |
+| [[_DevLog/2026-08-21-luis-tellez-fix-bugs-005-006-007\|2026-08-21]] | Fix BUG-005, BUG-006, BUG-007: Scripts .sh rotos en Windows, healthchecks falsos, puerto MLflow incorrecto | Luis Téllez Domínguez | Claude Code / sonnet-4.5 | BUG-005, BUG-006, BUG-007, US-502 |
+| [[_DevLog/2026-08-22-handoff-us203-tableros-superset\|2026-08-22]] | **Handoff** US-203 sesión 2: depuración E2E con Playwright tras revisión visual — 4 bugs del sync corregidos (% con doble escalado, métricas que no se actualizaban, claves lonCol/latCol del scatter, orientación VERTICAL mayúsculas); 16/16 charts verificados, filtros aplican end-to-end, suite 256 passed | Manuel Alejandro Serrania Reinada | OpenCode / opencode/big-pickle | US-203, REQ-002, KPI-01..05, KPI-07..10 |
+
 ## Campos del frontmatter
 | Campo | Obligatorio |
 |---|---|
@@ -94,4 +98,4 @@ Toda sesión con IA **debe** generar una entrada de DevLog **antes del push** (p
 | `model` | recomendado |
 | `session_duration` | ✅ |
 | `touches` (IDs) | ✅ |
-| [[_DevLog/2026-08-21-luis-tellez-fix-bugs-005-006-007\|2026-08-21]] | Fix BUG-005, BUG-006, BUG-007: Scripts .sh rotos en Windows, healthchecks falsos, puerto MLflow incorrecto | Luis Téllez Domínguez | Claude Code / sonnet-4.5 | BUG-005, BUG-006, BUG-007, US-502 |
+

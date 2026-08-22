@@ -1,0 +1,113 @@
+# =============================================================================
+# DB-01 - Tablero Ejecutivo · definicion declarativa (US-203)
+# -----------------------------------------------------------------------------
+# Historia : US-203 (Manuel Alejandro Serrania Reinada, Celula 2 - Analytics & BI)
+# Contrato : 04_UX_Design/Screen_Specs.md §4
+# Consumido por : superset/sync_semantic_layer.py (idempotente)
+#
+# Cada entrada `charts:` se convierte en un chart de Superset; el dashboard
+# se arma con layout en grilla (ancho en columnas de 12) y filtros nativos.
+# Ajustes finos de visualizacion van en `params_extra`, no en el script.
+# =============================================================================
+
+version: "1.0"
+owner: "Manuel Alejandro Serranía Reinada"
+story: US-203
+
+dashboards:
+  - titulo: "DB-01 · Ejecutivo"
+    slug: db01-ejecutivo
+    descripcion: >
+      Panorama general del sistema educativo del alcance: matrícula y su
+      variación (KPI-01/02), completitud de drivers (KPI-05), composición
+      de escuelas por nivel y sostenimiento (KPI-08/09) y driver dominante
+      según ML-02 (KPI-07).
+    filtros_globales:
+      - columna: id_ciclo
+        etiqueta: "Ciclo escolar"
+        datasets: [db01_cubo_matricula, db01_distribucion_escuelas, db01_driver_dominante]
+      - columna: cve_ent
+        etiqueta: "Entidad"
+        datasets: [db01_cubo_matricula]
+      - columna: nivel
+        etiqueta: "Nivel educativo"
+        datasets: [db01_cubo_matricula, db01_distribucion_escuelas]
+
+    charts:
+      # ----- Fila 1: tiles KPI -------------------------------------------------
+      - nombre: "KPI-01 · Matrícula total"
+        dataset: db01_cubo_matricula
+        metrica: matricula_total
+        viz: big_number_total
+        ancho: 3
+        alto: 38
+        subheader: "Alumnado inscrito en el ciclo seleccionado"
+
+      - nombre: "KPI-02 · Variación de matrícula"
+        dataset: db01_cubo_matricula
+        metrica: variacion_ponderada_pct
+        viz: big_number_total
+        ancho: 3
+        alto: 38
+        subheader: "Variación ponderada vs ciclo anterior"
+
+      - nombre: "KPI-05 · Completitud de drivers"
+        dataset: db01_cubo_matricula
+        metrica: completitud_promedio
+        viz: big_number_total
+        ancho: 3
+        alto: 38
+        subheader: "% de drivers poblados en escuelas"
+
+      - nombre: "Escuelas en alcance"
+        dataset: db01_cubo_matricula
+        metrica: escuelas
+        viz: big_number_total
+        ancho: 3
+        alto: 38
+        subheader: "Centros de trabajo con datos"
+
+      # ----- Fila 2: evolución y ranking ---------------------------------------
+      - nombre: "Matrícula por ciclo"
+        dataset: db01_cubo_matricula
+        metrica: matricula_total
+        viz: echarts_timeseries_bar
+        ancho: 6
+        alto: 60
+        eje_x: ciclo
+        etiqueta_serie: "Matrícula total"
+
+      - nombre: "Ranking municipal por matrícula"
+        dataset: db01_cubo_matricula
+        metrica: matricula_total
+        viz: table
+        ancho: 6
+        alto: 60
+        dimensiones: [nombre_entidad, nombre_municipio]
+        row_limit: 50
+
+      # ----- Fila 3: composición -----------------------------------------------
+      - nombre: "Escuelas por nivel (KPI-08)"
+        dataset: db01_distribucion_escuelas
+        metrica: escuelas
+        viz: pie
+        ancho: 4
+        alto: 55
+        dimensiones: [nivel]
+
+      - nombre: "Escuelas por sostenimiento (KPI-09)"
+        dataset: db01_distribucion_escuelas
+        metrica: escuelas
+        viz: pie
+        ancho: 4
+        alto: 55
+        dimensiones: [sostenimiento]
+
+      - nombre: "Driver dominante (KPI-07)"
+        dataset: db01_driver_dominante
+        metrica: escuelas
+        viz: echarts_timeseries_bar
+        ancho: 4
+        alto: 55
+        eje_x: nombre_driver
+        etiqueta_serie: "Escuelas"

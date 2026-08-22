@@ -1,0 +1,240 @@
+# =============================================================================
+# Capa semantica de DB-01 y DB-02 - metricas, jerarquias y filtros
+# -----------------------------------------------------------------------------
+# Historia : US-203 (Manuel Alejandro Serrania Reinada, Celula 2 - Analytics & BI)
+# Contrato : 04_UX_Design/Screen_Specs.md §2 y §4
+# Uso      : declaracion de las metricas que se dan de alta en Superset al
+#            construir DB-01 Ejecutivo y DB-02 Mapa de riesgo territorial.
+#            Mismo formato propio del proyecto fijado en US-202/US-211a
+#            (ver metrics_db03_db04.yaml).
+#
+# Regla transversal: toda razon se expresa como SUM(numerador)/SUM(denominador)
+# para que se pueda reagregar con cualquier combinacion de filtros globales.
+# Ninguna metrica usa COALESCE(<driver>, 0): SIN_DATO nunca se dibuja como cero.
+#
+# Nota: los cubos matricula / riesgo_territorial son VIRTUALES hoy; cuando C1
+# materialice gold.cubo_matricula y gold.cubo_riesgo_territorial (US-113), el SQL
+# de cada dataset se reduce a `SELECT * FROM gold.<cubo>` y este YAML no cambia.
+# =============================================================================
+
+version: "1.0"
+owner: "Manuel Alejandro Serranía Reinada"
+story: US-203
+traces_up: DOC-SCREENSPECS
+
+# -----------------------------------------------------------------------------
+# Filtros globales (AC-002.2) - aplican a los dos tableros
+# -----------------------------------------------------------------------------
+filtros_globales:
+  - nombre: ciclo
+    columna: id_ciclo
+    etiqueta: "Ciclo escolar"
+    default: ultimo_ciclo
+  - nombre: entidad
+    columna: cve_ent
+    etiqueta: "Entidad"
+    nota: "Acotado a SCOPE_ENTIDADES (09, 15, 19, 14)"
+  - nombre: nivel
+    columna: nivel
+    etiqueta: "Nivel educativo"
+
+datasets:
+  # ---------------------------------------------------------------------------
+  # DB-01 - Ejecutivo · cubo municipal de matrícula
+  # ---------------------------------------------------------------------------
+  - nombre: db01_cubo_matricula
+    dashboard: DB-01
+    sql: db01_cubo_matricula.sql
+    grano: [cve_mun, nivel, id_ciclo]
+    llave_primaria: [cve_mun, nivel, id_ciclo]
+    cubo_canonico_futuro: gold.cubo_matricula
+    banderas_cobertura: []
+
+    jerarquias:
+      - nombre: territorio
+        niveles: [cve_ent, cve_mun]
+      - nombre: tiempo
+        niveles: [anio_inicio, id_ciclo]
+
+    metricas:
+      - nombre: escuelas
+        etiqueta: "Escuelas"
+        expresion: "SUM(escuelas)"
+        formato: entero
+      - nombre: matricula_total
+        etiqueta: "Matrícula total"
+        expresion: "SUM(matricula_total)"
+        formato: entero
+        kpi: KPI-01
+      - nombre: variacion_ponderada_pct
+        etiqueta: "Variación de matrícula"
+        expresion: "SUM(variacion_x_matricula) / NULLIF(SUM(matricula_total), 0)"
+        formato: porcentaje_1
+        kpi: KPI-02
+      - nombre: completitud_promedio
+        etiqueta: "Completitud de drivers"
+        expresion: "SUM(suma_completitud) / NULLIF(SUM(escuelas), 0)"
+        formato: porcentaje_0
+        kpi: KPI-05
+
+  # ---------------------------------------------------------------------------
+  # DB-01 - Distribución de escuelas (KPI-08 / KPI-09)
+  # ---------------------------------------------------------------------------
+  - nombre: db01_distribucion_escuelas
+    dashboard: DB-01
+    sql: db01_distribucion_escuelas.sql
+    grano: [nivel, sostenimiento, id_ciclo]
+    llave_primaria: [nivel, sostenimiento, id_ciclo]
+    banderas_cobertura: []
+
+    metricas:
+      - nombre: escuelas
+        etiqueta: "Escuelas"
+        expresion: "SUM(escuelas)"
+        formato: entero
+        kpi: KPI-08
+      - nombre: matricula_total
+        etiqueta: "Matrícula total"
+        expresion: "SUM(matricula_total)"
+        formato: entero
+
+  # ---------------------------------------------------------------------------
+  # DB-01 - Driver dominante (KPI-07, salida ML-02 por JOIN)
+  # ---------------------------------------------------------------------------
+  - nombre: db01_driver_dominante
+    dashboard: DB-01
+    sql: db01_driver_dominante.sql
+    grano: [id_driver, id_ciclo]
+    llave_primaria: [id_driver, id_ciclo]
+    banderas_cobertura:
+      - cobertura_recomendacion
+
+    metricas:
+      - nombre: escuelas
+        etiqueta: "Escuelas"
+        expresion: "SUM(escuelas)"
+        formato: entero
+        kpi: KPI-07
+        nota: >
+          La categoría 'SIN_DATO' agrupa las escuelas que ML-02 todavía no ha
+          explicado. Se muestra como tal, nunca se reparte entre drivers reales.
+
+  # ---------------------------------------------------------------------------
+  # DB-02 - Mapa de riesgo territorial · cubo municipal (KPI-10 coroplético)
+  # ---------------------------------------------------------------------------
+  - nombre: db02_cubo_riesgo_territorial
+    dashboard: DB-02
+    sql: db02_cubo_riesgo_territorial.sql
+    grano: [cve_mun, nivel, id_ciclo]
+    llave_primaria: [cve_mun, nivel, id_ciclo]
+    cubo_canonico_futuro: gold.cubo_riesgo_territorial
+    llave_geojson: cve_mun
+    nota_geojson: >
+      El coroplético cruza contra un GeoJSON municipal cuya propiedad de llave
+      es la clave INEGI de 5 dígitos (cve_ent + cve_mun_local), igual que
+      dim_municipio.cve_mun. Municipios sin predicción se pintan como SIN_DATO,
+      nunca en el color de riesgo cero.
+    banderas_cobertura:
+      - cobertura_riesgo
+
+    jerarquias:
+      - nombre: territorio
+        niveles: [cve_ent, cve_mun]
+      - nombre: tiempo
+        niveles: [anio_inicio, id_ciclo]
+
+    metricas:
+      - nombre: indice_riesgo_promedio
+        etiqueta: "Índice de riesgo promedio"
+        expresion: "SUM(suma_indice_riesgo) / NULLIF(SUM(escuelas_con_prediccion), 0)"
+        formato: decimal_2
+        kpi: KPI-03
+        cobertura: cobertura_riesgo
+      - nombre: escuelas_en_riesgo
+        etiqueta: "Escuelas en riesgo"
+        expresion: "SUM(escuelas_en_riesgo)"
+        formato: entero
+        kpi: KPI-04
+        umbral: 0.6
+      - nombre: pct_escuelas_en_riesgo
+        etiqueta: "% escuelas en riesgo"
+        expresion: "SUM(escuelas_en_riesgo) / NULLIF(SUM(escuelas_con_prediccion), 0)"
+        formato: porcentaje_1
+        denominador_visible: escuelas_con_prediccion
+        nota: >
+          Divide entre escuelas con predicción, no entre el total. Decir "10% en riesgo"
+          cuando solo el 30% fue puntuada inventaría una cobertura que no existe.
+      - nombre: matricula_total
+        etiqueta: "Matrícula total"
+        expresion: "SUM(matricula_total)"
+        formato: entero
+        kpi: KPI-01
+      - nombre: variacion_ponderada_pct
+        etiqueta: "Variación de matrícula"
+        expresion: "SUM(variacion_x_matricula) / NULLIF(SUM(matricula_total), 0)"
+        formato: porcentaje_1
+        kpi: KPI-02
+
+  # ---------------------------------------------------------------------------
+  # DB-02 - Coroplético municipal (KPI-10): cubo + geometrías
+  # ---------------------------------------------------------------------------
+  - nombre: db02_coropletico
+    dashboard: DB-02
+    sql: db02_coropletico.sql
+    grano: [cve_mun, id_ciclo]
+    llave_primaria: [cve_mun, id_ciclo]
+    nota_geometria: >
+      Requiere gold.geo_municipio (tabla local creada por
+      superset/cargar_geojson_municipios.py desde el asset versionado
+      superset/assets/geojson/municipios_scope.geojson). La columna `geometria`
+      viaja como texto GeoJSON para deck_polygon. Sin `nivel` en el grano a
+      propósito: nivel duplicaría polígonos superpuestos.
+    banderas_cobertura:
+      - cobertura_riesgo
+
+    metricas:
+      - nombre: indice_riesgo_promedio
+        etiqueta: "Índice de riesgo promedio"
+        expresion: "SUM(suma_indice_riesgo) / NULLIF(SUM(escuelas_con_prediccion), 0)"
+        formato: decimal_2
+        kpi: KPI-10
+        cobertura: cobertura_riesgo
+        nota: >
+          Color del polígono. Municipios con cobertura SIN_DATO no deben pintarse
+          en la escala (riesgo desconocido), nunca con el valor mínimo.
+      - nombre: escuelas_en_riesgo
+        etiqueta: "Escuelas en riesgo"
+        expresion: "SUM(escuelas_en_riesgo)"
+        formato: entero
+        kpi: KPI-04
+        umbral: 0.6
+      - nombre: pct_escuelas_en_riesgo
+        etiqueta: "% escuelas en riesgo"
+        expresion: "SUM(escuelas_en_riesgo) / NULLIF(SUM(escuelas_con_prediccion), 0)"
+        formato: porcentaje_1
+        denominador_visible: escuelas_con_prediccion
+      - nombre: matricula_total
+        etiqueta: "Matrícula total"
+        expresion: "SUM(matricula_total)"
+        formato: entero
+        kpi: KPI-01
+
+  # ---------------------------------------------------------------------------
+  # DB-02 - Puntos de escuela (capa scatter sobre el coroplético)
+  # ---------------------------------------------------------------------------
+  - nombre: db02_puntos_escuela
+    dashboard: DB-02
+    sql: db02_puntos_escuela.sql
+    grano: [cct, id_ciclo]
+    llave_primaria: [cct, id_ciclo]
+    banderas_cobertura:
+      - cobertura_prediccion
+
+    metricas:
+      - nombre: indice_riesgo
+        etiqueta: "Índice de riesgo"
+        expresion: "AVG(indice_riesgo)"
+        formato: decimal_2
+        kpi: KPI-03
+        cobertura: cobertura_prediccion
+        nota: "Al grano cct × ciclo es un AVG de una sola fila; reagrega bien si se filtra."

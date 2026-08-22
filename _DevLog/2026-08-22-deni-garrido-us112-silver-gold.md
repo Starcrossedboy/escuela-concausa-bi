@@ -66,12 +66,14 @@ Se usó la base local aislada `faro_us112_validation` y fixtures anonimizados de
 - [x] No se modificaron rutas 🔴 del Agent Context.
 - [x] Revisión humana línea por línea completada — aprobada explícitamente por Deni el 2026-08-22.
 
-## Bloqueantes
-- Commit/push deliberadamente bloqueados hasta la revisión humana del patch.
+## Bloqueantes / seguimiento
+- Implementación técnica completada; no quedan bloqueantes de código propios de US-112.
 - DS-06 sigue siendo dependencia upstream para D5 real; `SIN_DATO` es el comportamiento contractual mientras tanto.
+- PR #72 creado; checks y revisión humana del PR están pendientes.
 
 ## Próximos pasos
-1. Revisión línea por línea completada y aprobada por Deni.
-2. Tras aprobación explícita, aplicar **ese mismo patch** sobre una rama `feat/deni-fragoso-us112-silver-gold`.
-3. Repetir validaciones, crear commit Conventional Commits, push y PR.
-4. Solicitar revisión técnica de Diana y compuerta de proceso de Edgar.
+1. Mantener US-112 en **100% · En revisión** mientras PR #72 esté abierto.
+2. Esperar checks del repositorio; no marcar CI verde manualmente.
+3. Solicitar revisión técnica de Diana por cambios de materialización/tests Gold.
+4. Solicitar/esperar la compuerta de proceso y trazabilidad de Edgar.
+5. No hacer merge desde este flujo; el merge queda sujeto a las aprobaciones del repositorio.

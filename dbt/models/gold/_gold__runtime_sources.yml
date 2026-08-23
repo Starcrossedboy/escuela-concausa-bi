@@ -1,0 +1,49 @@
+version: 2
+
+sources:
+  - name: gold_ml_runtime
+    schema: gold
+    description: >
+      Relaciones Gold publicadas por la Célula 3 mediante
+      src/modelos/publicar_gold.py. Son tablas físicas runtime, no modelos dbt;
+      US-113 las consume por source() para no duplicar ownership ni lógica ML.
+    tables:
+      - name: predicciones
+        description: "Llave runtime: cct × id_ciclo × modelo."
+        columns:
+          - name: cct
+            data_tests: [not_null]
+          - name: id_ciclo
+            data_tests: [not_null]
+          - name: modelo
+            data_tests: [not_null]
+          - name: valor
+            data_tests: [not_null]
+          - name: indice_riesgo
+            data_tests: [not_null]
+          - name: mlflow_run_id
+            data_tests: [not_null]
+          - name: generado_at
+            data_tests: [not_null]
+
+      - name: recomendaciones
+        description: "Llave runtime: cct × id_ciclo."
+        columns:
+          - name: cct
+            data_tests: [not_null]
+          - name: id_ciclo
+            data_tests: [not_null]
+          - name: driver_dominante
+            data_tests:
+              - not_null
+              - accepted_values:
+                  arguments:
+                    values: ['D1', 'D2', 'D3', 'D4', 'D5', 'D6']
+          - name: recomendacion
+            data_tests: [not_null]
+          - name: prioridad
+            data_tests:
+              - not_null
+              - accepted_values:
+                  arguments:
+                    values: ['alta', 'media', 'baja']

@@ -343,6 +343,9 @@ GOLD    fact_escuela_ciclo + dims + cubos   (estrella, 4 ENTIDADES)
    ▼
 CUBOS materializados  ──►  Superset DB-01 … DB-10
 ```
+> **Detalle completo (US-106):** el diagrama de arriba es la vista rápida por capa. El linaje
+> nodo por nodo — cada tabla real, su estado de materialización, y la checklist de freeze — vive
+> en [[03_Architecture/Data_Lineage_US106|Data_Lineage_US106]].
 
 ---
 

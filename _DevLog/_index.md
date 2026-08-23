@@ -105,3 +105,4 @@ Toda sesión con IA **debe** generar una entrada de DevLog **antes del push** (p
 | `touches` (IDs) | ✅ |
 
 | [[_DevLog/2026-08-22-deni-garrido-us112-silver-gold\|2026-08-22]] | US-112: cierre Silver→Gold; materialización Gold y tests nativos dbt (`unique`, `not_null`, `relationships`, `accepted_values`) validados end-to-end | Deni Garrido Fragoso | ChatGPT / GPT-5.6 Sol | US-112, REQ-001, DS-01–DS-08 |
+| [[_DevLog/2026-08-23-diana-alvarez-dec010-grano-dual-predicciones\|2026-08-23]] | **DEC-010**: `gold.predicciones` adopta grano dual (`grano` + `cve_mun`/`nivel` como llave alternativa a `cct`) para no repartir predicciones de ML-01 a escuela cuando predice a municipio×nivel (DEC-007); revisión de PR #56 confirma que `gold.matricula_municipio_nivel` (RISK-007/DEC-007, ya mergeada) es la serie que Héctor esperaba para `unir_target()` | Diana Aracely Alvarez Varela | Claude (Cowork) / claude-sonnet-5 | DEC-010, DEC-007, REQ-003, US-311, US-313 |

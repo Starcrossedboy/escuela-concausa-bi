@@ -154,10 +154,25 @@ cobertura**. Mapa cubo → dashboard:
   + el target de entrenamiento. Contrato **cerrado y versionado** (ver §5.3).
 
 ### 4.5 Salida de modelos
-- **`gold.predicciones`** — `cct`, `id_ciclo`, `modelo` (`ML-01`/`ML-02`/`ML-03`), `valor`
-  (variación cruda, para métricas MAE/RMSE de ML-01), **`indice_riesgo`** (float[0,1], columna
-  derivada calculada en `src/modelos/riesgo.py`), `probabilidad`, `mlflow_run_id`, `generado_at`.
+- **`gold.predicciones`** — grano **dual** desde DEC-010: `grano` (`escuela` | `municipio_nivel`,
+  discriminador explícito) · `cct` (sólo si `grano = escuela`) · `cve_mun` + `nivel` (sólo si
+  `grano = municipio_nivel`) · `id_ciclo` · `modelo` (`ML-01`/`ML-02`/`ML-03`) · `valor`
+  (variación cruda, para métricas MAE/RMSE de ML-01) · **`indice_riesgo`** (float[0,1], columna
+  derivada calculada en `src/modelos/riesgo.py`, sólo tiene sentido a nivel `escuela` hoy) ·
+  `probabilidad` · `mlflow_run_id` · `generado_at`. Exactamente uno de `cct` o
+  (`cve_mun`+`nivel`) debe estar poblado según `grano` — nunca ambos, nunca ninguno.
 - **`gold.recomendaciones`** — `cct`, `id_ciclo`, `driver_dominante`, `recomendacion`, `prioridad`.
+  Se mantiene siempre a grano escuela (el carácter prescriptivo no se agrega, ver PR #56).
+
+> **Nota de diseño — `gold.predicciones` a grano dual:** ML-01 puede predecir a nivel
+> `municipio × nivel` (DEC-007, mitigación de RISK-007) mientras las features y el driver
+> dominante se mantienen a nivel `cct`. Repartir el valor predicho a cada escuela del grupo le
+> atribuiría a una escuela un valor que no se midió ahí — mismo tipo de dato inventado que las
+> reglas de `SIN_DATO` de este proyecto prohíben en otros contextos. Se agrega el discriminador
+> `grano` en vez de repartir. Decisión de esquema tomada por Diana Alvarez Varela (Tech Lead
+> Célula 1, regla 7) el 23-ago-2026, a partir de la pregunta de Héctor Morales (PR #56) — forma
+> exacta del contrato de la API (`PrediccionOut`) pendiente de confirmar con Imanol Ruiz Hurtado
+> (Tech Lead Célula 4). Registrada como **DEC-010**.
 
 ---
 

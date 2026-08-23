@@ -131,12 +131,12 @@ cobertura**. Mapa cubo → dashboard:
 
 | Cubo | Alimenta | Grano |
 |---|---|---|
-| `gold.cubo_matricula` | DB-01, DB-06 | entidad × municipio × ciclo |
-| `gold.cubo_riesgo_territorial` | DB-02 | municipio × ciclo |
+| `gold.cubo_matricula` | DB-01, DB-06 | municipio × nivel × ciclo |
+| `gold.cubo_riesgo_territorial` | DB-02 | municipio × nivel × ciclo |
 | `gold.cubo_escuela_360` | DB-03 | cct × ciclo |
 | `gold.cubo_comparador_municipio` | DB-04 | municipio × nivel × ciclo |
-| `gold.cubo_driver` | DB-05 | driver × municipio × ciclo |
-| `gold.cubo_completitud` | DB-07 | municipio × driver × ciclo |
+| `gold.cubo_driver` | DB-05 | driver × municipio × nivel × ciclo |
+| `gold.cubo_completitud` | DB-07 | municipio × nivel × driver × ciclo |
 | `gold.cubo_pivot` | DB-08 | cct × driver × ciclo (base pivotable) |
 | `gold.cubo_recomendaciones` | DB-09 | cct × ciclo |
 | `gold.cubo_pipeline` | DB-10 | fuente × fecha_ingesta |
@@ -148,6 +148,17 @@ cobertura**. Mapa cubo → dashboard:
 > correctamente — mismo principio de medidas aditivas crudas de `fact_escuela_ciclo`.
 > Decisión de esquema tomada por Diana Alvarez Varela (Tech Lead Célula 1, regla 7) el 14 ago
 > 2026, a partir del hallazgo de Marina García en US-211a. Registrada como **DEC-008**.
+>
+> **Nota de diseño — `cubo_matricula`, `cubo_riesgo_territorial`, `cubo_driver`,
+> `cubo_completitud`:** mismo problema de `cubo_comparador_municipio`, extendido a los cuatro
+> cubos restantes que alimentan tableros con filtro global de nivel educativo (DB-01, DB-02,
+> DB-05, DB-07). Los cuatro bajan su grano para incluir `nivel` y guardan sus métricas como
+> **numerador y denominador por separado**, nunca como razón/promedio precalculado — mismo
+> principio que DEC-008. `cubo_pivot` (DB-08) y `cubo_escuela_360` (DB-03) no lo necesitan: su
+> grano a nivel CCT ya trae `nivel` gratis vía `dim_escuela`.
+> Señalado por Deni Garrido Fragoso (US-113) y Monserrat Xcaret Miranda Olivas (US-211b,
+> `04_UX_Design/Cube_Specs_DB05_DB08.md` §8.1) el 22 ago 2026; decisión de esquema tomada por
+> Diana Alvarez Varela (Tech Lead Célula 1, regla 7) el 23 ago 2026. Registrada como **DEC-009**.
 
 ### 4.4 `gold.features_escuela` — contrato con la Célula 3
 - **Grano:** una fila por **CCT × ciclo**. Los 6 drivers **normalizados** (0–1) + banderas de cobertura

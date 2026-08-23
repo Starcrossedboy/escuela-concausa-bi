@@ -5,7 +5,7 @@ author_human: "Diana Aracely Alvarez Varela"
 agent: "Claude (Cowork)"
 model: "claude-sonnet-5"
 session_duration: "extensa -- multiples turnos, cruzo compactacion de contexto"
-touches: ["RISK-007", "DEC-007", "BUG-008", "DS-01"]
+touches: ["RISK-007", "DEC-007", "BUG-009", "DS-01"]
 tags: [devlog]
 ---
 
@@ -35,10 +35,11 @@ tags: [devlog]
   en verde).
 - Corregida una mala referencia propia (DEC-005 → DEC-007) en los comentarios del nuevo código,
   a partir de la colisión de IDs que Edgar ya había resuelto formalmente el 2026-08-19.
-- **BUG-008 encontrado, investigado y registrado**: 7 de 10 fuentes Bronze en `sources.yml`
-  sin `identifier` por default rompen cualquier `dbt build`/`dbt run` completo, aunque el
-  modelo seleccionado no las use. Reportado a Edgar; a petición suya, registrado formalmente
-  en `06_Quality_Testing/Bug_Register.md` (owner: Edgar).
+- **BUG-009 encontrado, investigado y registrado** (renumerado desde BUG-008 el 22-ago por
+  Edgar — ver "Reconciliación BUG-008 → BUG-009" abajo): 7 de 10 fuentes Bronze en
+  `sources.yml` sin `identifier` por default rompen cualquier `dbt build`/`dbt run` completo,
+  aunque el modelo seleccionado no las use. Reportado a Edgar; a petición suya, registrado
+  formalmente en `06_Quality_Testing/Bug_Register.md` (owner: Edgar).
 - **Falsa alarma autocorregida (no llegó a registrarse como bug)**: se sospechó inicialmente
   que la sintaxis `accepted_values: → arguments: → values:` de Deni/Luis (Silver) estaba mal
   y causaba un error `'NoneType' object is not iterable`. Verificado con el código fuente
@@ -78,10 +79,10 @@ inconsistente con lo documentado arriba:
   `cargar_bronze_fixture.py` — resueltos sin tocar contenido de nadie más.
 - **Confirmada pérdida real y acotada**: `dbt/models/gold/matricula_municipio_nivel.sql`, su test
   `unique_matricula_municipio_nivel_cve_mun_nivel_ciclo.sql`, las entradas correspondientes en
-  `_gold__models.yml`/`_gold__sources.yml`, y el registro de BUG-008 en `Bug_Register.md` — todo
-  descrito arriba como ya construido y validado (`dbt build`, 72/72 filas) — no sobrevivieron a la
-  transición de contenedor. Sí sobrevivió un borrador de BUG-008 en `/tmp/Bug_Register_final.md`
-  (aplicado desde ahí). El resto (extractor, `silver.matricula_historica`, sus tests dbt, las 12
+  `_gold__models.yml`/`_gold__sources.yml`, y el registro de BUG-009 (numerado BUG-008 en ese
+  momento, ver "Reconciliación" abajo) en `Bug_Register.md` — todo descrito arriba como ya
+  construido y validado (`dbt build`, 72/72 filas) — no sobrevivieron a la transición de
+  contenedor. Sí sobrevivió un borrador en `/tmp/Bug_Register_final.md` (aplicado desde ahí). El resto (extractor, `silver.matricula_historica`, sus tests dbt, las 12
   pruebas unitarias, `sources.yml`/`schema.yml` de Silver) sí sobrevivió intacto.
 - **Reconstruido, no recuperado**: con Diana confirmando seguir adelante, se reescribió
   `matricula_municipio_nivel.sql` (y su test + entradas YAML) desde cero siguiendo el spec ya
@@ -100,9 +101,10 @@ inconsistente con lo documentado arriba:
   `agua_region`/`delitos_municipio`/`rezago_municipio`/`poblacion_municipio` (vars sin default
   ajenas, fuera de alcance de RISK-007, no tocadas). 12/12 pruebas unitarias del extractor
   re-confirmadas en verde. `vault_lint.py` corrido: vault limpio.
-- BUG-008 re-aplicado a `06_Quality_Testing/Bug_Register.md` (fila + detalle) desde el borrador
-  recuperado de `/tmp`, cuidando no pisar las filas de BUG-005/006/007 que ya se actualizaron a
-  `fixed` (PR #65, Luis Téllez) en `origin/main` desde la sesión original.
+- Bug re-aplicado (numerado BUG-008 en ese momento, renumerado a BUG-009 el 22-ago, ver
+  "Reconciliación" abajo) a `06_Quality_Testing/Bug_Register.md` (fila + detalle) desde el
+  borrador recuperado de `/tmp`, cuidando no pisar las filas de BUG-005/006/007 que ya se
+  actualizaron a `fixed` (PR #65, Luis Téllez) en `origin/main` desde la sesión original.
 
 ## Continuación 2026-08-22 (tercera sesión) — a petición de Edgar: SNIEE, 2º ciclo y vault
 
@@ -148,17 +150,19 @@ Resultado, documentado con evidencia en `14_Data_Sources/DS-01_Formato_911.md` �
   - `dbt/models/gold/_gold__sources.yml` (fuente `matricula_historica`)
   - `dbt/models/gold/_gold__models.yml` (modelo + tests de `matricula_municipio_nivel`)
   - `dbt/tests/unique_matricula_municipio_nivel_cve_mun_nivel_ciclo.sql` (nuevo)
-  - `06_Quality_Testing/Bug_Register.md` (registro de BUG-008)
-- **Decisiones autónomas del agente:** conclusión inicial incorrecta sobre la causa raíz de
-  un supuesto "BUG-009" (`arguments:` anidado), corregida en la misma sesión al contrastarla
-  con evidencia real (código fuente de dbt-core + corrida real) antes de reportarla a nadie;
+  - `06_Quality_Testing/Bug_Register.md` (registro de BUG-009, numerado BUG-008 en el momento
+    de esta sesión)
+- **Decisiones autónomas del agente:** conclusión inicial incorrecta sobre la causa raíz de un
+  supuesto bug adicional (`accepted_values`/`arguments:` anidado — nunca llegó a registrarse
+  con ID, no confundir con BUG-009 arriba), corregida en la misma sesión al contrastarla con
+  evidencia real (código fuente de dbt-core + corrida real) antes de reportarla a nadie;
   usar `{{ source('silver', ...) }}` en vez de `{{ ref(...) }}` para el nuevo modelo Gold,
   verificado contra los modelos Gold reales existentes antes de escribir código nuevo; SUMAR
   por turno en Silver en vez de tomar el primero, verificado con datos reales de 2024-2025.
 - **Correcciones manuales:** ninguna a nivel de código (todo se aplicó tal cual se entregó,
   verificado con `dbt build`/`pytest` reales antes y después de cada paso). A nivel de
-  proceso, Diana detuvo el reporte a Deni/Luis del supuesto BUG-009 hasta confirmar con
-  evidencia real que no había nada que reportar.
+  proceso, Diana detuvo el reporte a Deni/Luis del supuesto bug adicional (`arguments:`
+  anidado) hasta confirmar con evidencia real que no había nada que reportar.
 - **Prompt inicial:** continuación de sesión anterior (extractor ya validado contra datos
   reales; pendiente construir el pipeline completo Bronze→Silver→Gold).
 
@@ -169,14 +173,17 @@ Resultado, documentado con evidencia en `14_Data_Sources/DS-01_Formato_911.md` �
       verde, corridas en dos máquinas distintas y re-confirmadas tras la reconstrucción
 - [x] Validado con `dbt build` real (Bronze cargado, Silver y Gold corridos y probados con
       datos), no sólo `dbt compile` — dos veces: sesión original y tras la reconstrucción
-- [x] DevLog enlaza a los IDs afectados (RISK-007, DEC-007, BUG-008)
+- [x] DevLog enlaza a los IDs afectados (RISK-007, DEC-007, BUG-009)
 
 ## Bloqueantes
 - ~~ID de historia formal pendiente~~ **resuelto 2026-08-22**: Diana decidió que esto no es una
   historia formal, es un arreglo/parte para avanzar — no lleva `US-###`. Nombre de rama genérico,
   sin ID: `feat/diana-varela-matricula-historica-risk007` (ya referencia RISK-007, que es lo que
   resuelve).
-- Respuesta de Edgar sobre BUG-008 (ya reportado y registrado) todavía pendiente.
+- ~~Respuesta de Edgar sobre BUG-008 (ya reportado y registrado) todavía pendiente~~
+  **resuelto**: Edgar respondió renumerando el bug a **BUG-009** el 22-ago, por colisión con
+  un BUG-008 distinto y preexistente (docker/api.Dockerfile) de otra rama — ver "Reconciliación
+  BUG-008 → BUG-009" abajo.
 - ~~Rama... no pusheada~~ **resuelto 2026-08-22**: Diana pusheó `feat/diana-varela-matricula-historica-risk007`
   desde su propia máquina, resolvió el conflicto de merge contra `origin/main` en
   `06_Quality_Testing/Bug_Register.md` (divergencia real: filas de BUG-005/006/007 ya actualizadas
@@ -215,17 +222,99 @@ Los 6 parsean limpio con la misma función real del extractor, sin adivinar colu
 en `DS-01_Formato_911.md` §9, y el comentario de cabecera de
 `src/ingesta/extractor_formato911_historico.py` (ya no dice "3 comparados, 3 asumidos").
 
+## PR abierto y decisión sobre SNIEE (2026-08-22)
+
+- Diana pusheó `feat/diana-varela-matricula-historica-risk007` y abrió el PR con el título
+  "RISK-007/DEC-007: pipeline aislado de matrícula histórica multi-ciclo (Bronze→Silver→Gold)",
+  usando la plantilla completa de `.github/PULL_REQUEST_TEMPLATE.md`. Reviewer: @edgarcoroneln
+  (DEC-003, compuerta única).
+- **Corrección adicional sobre la sección "Avance entregado":** la vía de la serie SNIEE no se
+  descartó por no existir — el sitio `snie.sep.gob.mx` estaba **caído por falla de DNS** al
+  momento de intentar acceder, así que nunca se pudo confirmar si la serie existe ahí. Diana ya
+  había propuesto por Teams (con Héctor y Edgar) usar el microdato real del 911 multi-ciclo en
+  vez de esperar a SNIEE, y el equipo lo acordó — este PR entrega exactamente esa decisión ya
+  tomada, no un hallazgo nuevo de esta sesión. Corregido en `DS-01_Formato_911.md` §9/§9a y en
+  la descripción del PR.
+- Mensaje enviado a Teams anunciando el cierre a Héctor (con el link del PR), explicando también
+  la falla de DNS de SNIEE.
+
+## Revisión de estado general de Diana (US-101 a US-106) y PR #31/#63
+
+A petición de Diana, se revisó qué le falta de sus 6 historias y si sus bloqueantes previos ya se
+resolvieron:
+
+- **US-101 a US-105: `done`** (ver `Execution_Status.md`). **US-106** ("Congelar esquema y
+  documentar linaje completo", S5) sigue `⬜ Por iniciar`, vence el 6 de septiembre.
+- Su tabla de autoseguimiento en `12_Roadmap_Sprints/Sprints/1-diana-aracely-alvarez-varela.md`
+  §9 está **desactualizada** (todavía marca US-103/104/105/106 en 0% y un bloqueo de
+  `docker-compose.yml` en US-102 ya resuelto) — pendiente que ella la actualice antes del próximo
+  standup.
+- **RISK-004** (suyo) — `cerrado`. **RISK-002** (suyo) — sigue `mitigando`, pero lo pendiente
+  (DS-06/DS-08) es de Emilio, no de ella.
+- **PR #31** (Luis E. García, US-121b/122b): DS-04 (SESNSP) sigue bloqueada — el enlace oficial
+  redirige al login de Microsoft/SharePoint; dos alternativas ya probadas y fallidas
+  (`datos.gob.mx` CKAN → 403 Akamai; `secretariadoejecutivo.gob.mx` → sin conexión). Luis lo
+  escaló a Diana el 14-ago y volvió a recordarlo el 21-ago. **Decisión tomada por Diana:** buscar
+  otra fuente pública equivalente para incidencia delictiva municipal, en vez de pelear con el
+  login de SharePoint. Comunicada a Luis en el PR #31.
+- **PR #63** (Luis E. García, US-123b, Great Expectations para DS-05): encontró que 24/384
+  estaciones SINAICA (≈6.3%) traen lat/lon inutilizable — 3 `NULL` genuinos y 21 con el
+  placeholder literal `"0.0"` en vez de `SIN_DATO`. Preocupación: que el IDW de US-105 (Diana,
+  19-ago) jale esas coordenadas `(0,0)` hacia el cálculo de escuelas cercanas.
+  - **Análisis:** revisando `fact_escuela_ciclo.sql`/`features_escuela.sql`, los 3 `NULL` ya
+    estaban filtrados (`latitud is not null and longitud is not null`). Las 21 estaciones con
+    `"0.0"` no llegaban a corromper el resultado porque el filtro de radio (`distancia_km <= 15`)
+    ya las excluía de facto — ninguna escuela de México cae a <15km de `(0,0)` — pero era
+    "correcto de casualidad" (por geografía), no por diseño explícito.
+  - **Fix aplicado:** se agregó `and latitud != 0 and longitud != 0` al filtro de la CTE
+    `aire_pm25` en ambos modelos, para no depender de la geografía (regla del proyecto,
+    `Data_Model.md` §3: "SIN_DATO explícito, nunca cero ni nulo silencioso").
+  - **Validado real:** `dbt build --select fact_escuela_ciclo features_escuela` contra Postgres
+    real → **26/26 tests PASS, 0 errores**. Confirmado además a nivel SQL que
+    `cast('0.0' as double precision) != 0` da `false` en Postgres — el filtro sí excluye el
+    placeholder.
+  - Respuesta enviada a Luis en el PR #63 confirmando el hallazgo, el análisis y el fix.
+
+## Reconciliación BUG-008 → BUG-009 (2026-08-22, tras revisión de `origin/main`)
+
+- El bug de las 7/10 fuentes Bronze sin `identifier` (documentado arriba como "BUG-008" en el
+  momento de esta sesión) **colisionó** con otro BUG-008 preexistente, distinto y de otra rama
+  (`docker/api.Dockerfile` arrancando `src.api.main:app` — el "hola mundo" de US-501 — en vez de
+  `src.api.app:app`, la app real del contrato v1; bloquea US-401/402/411).
+- Edgar resolvió la colisión directamente en `main` (commits `c3af546`/`3b407d8`, 2026-08-22
+  15:17–15:20): el bug de docker se queda como **BUG-008**, y el bug de Diana (sources.yml) se
+  **renumera a BUG-009**. Fila actual en `Bug_Register.md`:
+  `BUG-009 | 7 de 10 fuentes Bronze en sources.yml sin identifier por default... | high | open |
+  US-111 | pendiente (Edgar decide reparto)`.
+- Todas las referencias a "BUG-008" de este DevLog para este hallazgo se corrigieron a BUG-009
+  arriba. El único open item real es el mismo de siempre: reparto/fix pendiente, ahora bajo el
+  ID correcto.
+
+## Fix D6 IDW aplicado, pendiente de push (2026-08-23)
+
+- El fix del hallazgo de Luis (PR #63, sección arriba) — `and latitud != 0 and longitud != 0`
+  en `fact_escuela_ciclo.sql` y `features_escuela.sql`, validado 26/26 tests PASS — se aplicó y
+  documentó en sesión, pero **Diana pausó antes de comitearlo y pushearlo**. La rama original
+  (`feat/diana-varela-matricula-historica-risk007`) ya se mergeó como PR #68 y se borró de
+  `origin`, así que este fix sale en una rama nueva.
+- Verificado contra `origin/main` (`711840b`, con PR #63/#69/#70/#71/#72 ya mergeados desde el
+  PR #68 de Diana): ningún PR posterior tocó `fact_escuela_ciclo.sql` ni `features_escuela.sql`
+  — el fix aplica limpio, sin conflictos.
+- Nota informativa (no bloqueante): PR #72 (Deni, US-112) resolvió formalmente la duda pendiente
+  de `ciclo` vs `id_ciclo` en `dim_tiempo.sql` — queda como decisión canónica coordinada en
+  US-111, ya no es ambigüedad abierta.
+- Nota de proceso: PR #69 (Edward Bustillos) agregó `.github/workflows/quality_gate.yml` —
+  todo PR nuevo hacia `main` ahora falla en CI si la descripción deja alguna casilla `[ ]` sin
+  marcar en la plantilla, y corre `vault_lint.py`. Aplica al PR de este fix.
+
 ## Próximos pasos
-- Push de `feat/diana-varela-matricula-historica-risk007` + abrir PR — lo hace Diana desde su
-  propia máquina (sin ID formal, sin renombrar rama; ver "Bloqueantes").
-- Actualizar `14_Data_Sources/DS-01_Formato_911.md` con la nueva distribución histórica. ✅ hecho
-  hoy (§9/§9a).
-- Agregar fila en la Traceability Matrix.
+- Comitear y pushear el fix D6 (`fact_escuela_ciclo.sql`/`features_escuela.sql`) + este DevLog
+  actualizado desde una rama nueva, y abrir PR (ver sección arriba).
+- Actualizar `12_Roadmap_Sprints/Sprints/1-diana-aracely-alvarez-varela.md` §9 (tabla de
+  autoseguimiento) para reflejar el estado real de US-101 a US-106.
+- Agregar fila en la Traceability Matrix para este PR.
 - Considerar con Edgar si vale la pena una nota corta al equipo sobre la pérdida de estado
   entre sesiones (ver "Continuación" arriba) — no bloquea nada de RISK-007, pero es información
   útil si le vuelve a pasar a alguien más.
-- Decidir con Edgar cómo seguir con la serie SNIEE (solicitud directa a SEP/DGPPYEE, navegación
-  manual de algún sistema de consulta si existe, o aceptar el fallback `SIN_DATO_REAL` de
-  `DOC-TARGET-HIBRIDO` §5).
-- Abrir el PR de `feat/diana-varela-matricula-historica-risk007` (título y descripción ya
-  preparados, con los 6 ciclos correctos).
+- Esperar respuesta de Luis en PR #31 sobre una fuente alterna para DS-04 (incidencia delictiva).
+- Empezar US-106 (congelar esquema y documentar linaje completo), vence 6 de septiembre.

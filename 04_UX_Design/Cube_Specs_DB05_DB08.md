@@ -2,7 +2,7 @@
 id: DOC-CUBESPEC-DB0508
 title: "Cube Specs — Contrato semántico de los cubos de DB-05 y DB-08"
 owner: "Monserrat Xcaret Miranda Olivas"
-status: in_review
+status: approved
 version: "1.0"
 traces_up: ["DOC-SCREENSPECS", "DOC-DATAMODEL", "US-211b", "REQ-002"]
 traces_down: ["US-213", "US-214b", "US-215b"]
@@ -299,7 +299,11 @@ explícito (§3.3). El tablero no se rompe ni miente con ceros.
 > un PR de seguimiento antes de que US-213 (Sprint 4) consuma el cubo. ¿Me confirmas?
 
 - **Impacto:** cambio de esquema ⇒ **regla 7, revisión humana explícita**. Afecta a US-113 (Deni).
-- **Estado:** 🟡 Solicitud enviada el 2026-08-22. **No bloquea US-211b.**
+- **Estado:** ✅ **Aceptado por Diana Álvarez el 2026-08-22**, registrado como **DEC-009** (mismo
+  formato que DEC-008). Diana extendió el criterio a los 4 cubos nuevos del sprint (`cubo_matricula`,
+  `cubo_riesgo_territorial`, `cubo_driver`, `cubo_completitud`) — todos bajan el grano agregando
+  `nivel` y guardan las métricas como componentes aditivos. Actualiza `Data_Model.md` §4.3 ella
+  misma. `cubo_pivot` confirmado sin cambios (§8.2).
 
 ### 8.2 A Diana Alvarez (C1) — nota, no solicitud
 
@@ -330,11 +334,14 @@ registrado para que quede claro por qué solo §8.1 pide un cambio.
 
 | Solicitud | Estado |
 |---|---|
-| Alta de KPI-19 y KPI-20 en el catálogo (§5.1) | ⬜ pendiente |
-| Ratificar el **formato largo** como patrón aceptado para cubos analíticos nuevos | ⬜ pendiente |
+| Alta de KPI-19 y KPI-20 en el catálogo (§5.1) | ✅ Validados por Manuel el 2026-08-22 |
+| Ratificar el **formato largo** como patrón aceptado para cubos analíticos nuevos | ✅ Ratificado |
 | Confirmar si `cubo_driver` debe absorber KPI-07 (driver dominante) | ⬜ pendiente, no bloquea |
 
-**Estado:** 🟡 Solicitud enviada el 2026-08-22.
+**Estado:** ✅ Aprobado por Manuel Serranía el 2026-08-22 (revisión de PR #73), con 2 correcciones
+bloqueantes solicitadas y aplicadas: doble escalado (`*100`) en `pct_escuelas_sin_dato` — el
+formato `porcentaje_1` (d3 `%`) ya multiplica por 100 al mostrar, regla no escrita de US-202 — y
+checklist del PR con casillas sin marcar.
 
 ---
 

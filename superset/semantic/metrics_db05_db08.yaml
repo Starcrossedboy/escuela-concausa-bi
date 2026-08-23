@@ -88,10 +88,13 @@ datasets:
         formato: entero
       - nombre: pct_escuelas_sin_dato
         etiqueta: "% escuelas sin dato del driver"
-        expresion: "(SUM(escuelas) - SUM(escuelas_con_dato)) * 100.0 / NULLIF(SUM(escuelas), 0)"
+        expresion: "(SUM(escuelas) - SUM(escuelas_con_dato)) / NULLIF(SUM(escuelas), 0)"
         formato: porcentaje_1
         kpi: KPI-06
-        nota: "Reusa formula/KPI de DB-07 (Screen_Specs) -- mismo nombre, mismo id."
+        nota: >
+          Reusa formula/KPI de DB-07 (Screen_Specs) -- mismo nombre, mismo id. Sin *100: el
+          formato d3 porcentaje_1 (,.1%) ya multiplica por 100 al mostrar (convencion US-202,
+          hallazgo de Manuel Serrania en la revision de este PR).
 
     # Propuesta de alta en el catalogo canonico de Manuel (Cube_Specs §5.1/§8.3).
     # Aun NO son KPIs oficiales: pendiente de que Manuel los publique en

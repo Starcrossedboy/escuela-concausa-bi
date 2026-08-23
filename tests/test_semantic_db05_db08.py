@@ -267,6 +267,22 @@ def test_cubo_driver_declara_grano_canonico_y_cambio_solicitado(metricas: dict) 
     assert "cambio_de_grano_solicitado_a" not in cubo_pivot
 
 
+def test_ninguna_metrica_porcentaje_duplica_el_escalado(metricas: dict) -> None:
+    """El formato `porcentaje_*` (d3 `%`) ya multiplica por 100 al mostrar (convención US-202).
+    Si la expresión SQL también multiplica por 100, el valor se muestra x100 de más (ej. "3,180.0%"
+    en vez de "31.8%") -- bug real encontrado por Manuel Serranía en la revisión de US-211b."""
+    for dataset in metricas["datasets"]:
+        for metrica in dataset["metricas"]:
+            formato = metrica.get("formato", "")
+            expresion = metrica.get("expresion", "")
+            if formato.startswith("porcentaje"):
+                assert not re.search(r"\*\s*100\b", expresion), (
+                    f"{dataset['nombre']}.{metrica['nombre']}: usa formato '{formato}' (ya "
+                    "multiplica x100 al mostrar) pero la expresión también multiplica por 100 -- "
+                    "doble escalado."
+                )
+
+
 def test_cada_metrica_de_valor_declara_su_cobertura(metricas: dict) -> None:
     cubo_driver = next(d for d in metricas["datasets"] if d["nombre"] == "cubo_driver")
     metrica_driver = next(m for m in cubo_driver["metricas"] if m["nombre"] == "valor_promedio_driver")

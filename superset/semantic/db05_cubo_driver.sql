@@ -7,9 +7,9 @@
 -- Uso        : dataset virtual de Superset para DB-05 y SQL de referencia para
 --              US-113 (materializacion en dbt, Celula 1).
 --
--- ATENCION - CAMBIO DE GRANO SOLICITADO A CELULA 1 (Cube_Specs §8.1):
---   Data_Model §4.3 declara el grano driver x municipio x ciclo. Ese grano NO
---   permite cumplir AC-002.2 (filtro global por nivel educativo) en DB-05: si
+-- CAMBIO DE GRANO ACEPTADO POR CELULA 1 -- DEC-009, 2026-08-22 (Cube_Specs §8.1):
+--   Data_Model §4.3 declaraba el grano driver x municipio x ciclo. Ese grano NO
+--   permitia cumplir AC-002.2 (filtro global por nivel educativo) en DB-05: si
 --   el cubo se pre-agrega sin 'nivel', el filtro no tiene sobre que operar. Se
 --   baja el grano a driver x municipio x nivel x ciclo y se reagrega con
 --   metricas aditivas. Cambio de esquema => regla 7 del vault: revision

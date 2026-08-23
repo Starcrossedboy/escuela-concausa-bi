@@ -105,3 +105,4 @@ Toda sesión con IA **debe** generar una entrada de DevLog **antes del push** (p
 | `session_duration` | ✅ |
 | `touches` (IDs) | ✅ |
 
+| [[_DevLog/2026-08-22-deni-garrido-us112-silver-gold\|2026-08-22]] | US-112: cierre Silver→Gold; materialización Gold y tests nativos dbt (`unique`, `not_null`, `relationships`, `accepted_values`) validados end-to-end | Deni Garrido Fragoso | ChatGPT / GPT-5.6 Sol | US-112, REQ-001, DS-01–DS-08 |

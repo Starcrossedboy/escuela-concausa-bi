@@ -12,6 +12,9 @@ seeds:
         tests:
           - unique
           - not_null
+          - accepted_values:
+              arguments:
+                values: ['D1', 'D2', 'D3', 'D4', 'D5', 'D6']
 
       - name: nombre
         description: Nombre del driver
@@ -29,6 +32,9 @@ seeds:
           - not_null
 
       - name: nivel_geografico
-        description: Nivel de agregación geográfica (escuela/municipio)
+        description: Nivel de agregación geográfica (escuela/municipio/region)
         tests:
           - not_null
+          - accepted_values:
+              arguments:
+                values: ['escuela', 'municipio', 'region']

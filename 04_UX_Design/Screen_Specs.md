@@ -5,7 +5,7 @@ owner: "Manuel Alejandro Serranía Reinada"
 status: in_review
 traces_up: ["DOC-US", "02_Requirements/Requirements_Detailed", "01_Product/PRD"]
 traces_down: ["US-201", "US-202", "US-203", "US-204", "US-205", "US-211a", "US-211b", "US-212", "US-213", "US-214a", "US-214b", "US-221", "US-222", "US-223"]
-last_reviewed: "2026-08-15"
+last_reviewed: "2026-08-23"
 tags: [ux, dashboards, kpis, celula-2]
 ---
 
@@ -141,6 +141,8 @@ flowchart TD
 | KPI-16 | Perfil de drivers de la escuela | cct × ciclo | escuela | DB-03 |
 | KPI-17 | Predicción de la escuela | cct × ciclo | escuela | DB-03 |
 | KPI-18 | Recomendación prescriptiva de la escuela | cct × ciclo | escuela | DB-03 |
+| KPI-19 | Valor promedio del driver | driver × municipio × nivel × ciclo | municipio / entidad | DB-05 |
+| KPI-20 | Valor del driver por escuela (exploración) | cct × driver × ciclo | escuela | DB-08 |
 
 ### KPI-01 · Matrícula total
 
@@ -417,6 +419,80 @@ LEFT JOIN gold.recomendaciones r ON f.cct = r.cct
 LEFT JOIN gold.dim_driver dd ON r.driver_dominante = dd.id_driver
 WHERE f.cct = :cct
   AND f.id_ciclo = :id_ciclo;
+```
+
+### KPI-19 · Valor promedio del driver
+
+Valor promedio observado de cada driver en el territorio (DB-05, grano `driver × municipio × nivel ×
+ciclo`). Alimenta el análisis por driver con "un tab por driver" (US-213) sobre formato largo — un
+pivot por driver, no columnas d1..d6. **Cubo:** `gold.cubo_driver`.
+
+**Regla de lectura:** la razón se guarda pura (numerador/denominador); en Superset el `%` lo aplica
+el formato d3 (`,.2f` para valores, nunca `*100` en SQL). La cobertura gobierna el color:
+`cobertura_driver = 'SIN_DATO'` se muestra como hueco, nunca como cero.
+
+```sql
+SELECT driver,
+       COUNT(DISTINCT cct)                              AS escuelas,
+       SUM(valor)   FILTER (WHERE cobertura = 'OK')     AS suma_valor,
+       COUNT(*)     FILTER (WHERE cobertura = 'OK')     AS escuelas_con_dato,
+       CASE WHEN COUNT(*) FILTER (WHERE cobertura = 'OK') = 0
+            THEN 'SIN_DATO' ELSE 'OK' END               AS cobertura_driver,
+       f.cve_mun, dm.nombre_municipio, e.cve_ent, e.nivel, f.id_ciclo
+FROM (
+    SELECT f.cct, f.cve_mun, f.id_ciclo,
+           'D1' AS driver, f.d1 AS valor, f.d1_cobertura AS cobertura
+    FROM gold.fact_escuela_ciclo f
+    UNION ALL SELECT f.cct, f.cve_mun, f.id_ciclo, 'D2', f.d2, f.d2_cobertura FROM gold.fact_escuela_ciclo f
+    UNION ALL SELECT f.cct, f.cve_mun, f.id_ciclo, 'D3', f.d3, f.d3_cobertura FROM gold.fact_escuela_ciclo f
+    UNION ALL SELECT f.cct, f.cve_mun, f.id_ciclo, 'D4', f.d4, f.d4_cobertura FROM gold.fact_escuela_ciclo f
+    UNION ALL SELECT f.cct, f.cve_mun, f.id_ciclo, 'D5', f.d5, f.d5_cobertura FROM gold.fact_escuela_ciclo f
+    UNION ALL SELECT f.cct, f.cve_mun, f.id_ciclo, 'D6', f.d6, f.d6_cobertura FROM gold.fact_escuela_ciclo f
+) ed
+JOIN gold.dim_escuela    e  ON ed.cct     = e.cct
+JOIN gold.dim_municipio dm ON ed.cve_mun = dm.cve_mun
+GROUP BY driver, f.cve_mun, dm.nombre_municipio, e.cve_ent, e.nivel, f.id_ciclo;
+-- valor_promedio_driver = SUM(suma_valor) / NULLIF(SUM(escuelas_con_dato), 0)
+--   (razón pura en la capa semántica: metrics_db05_db08.yaml, KPI-19)
+```
+
+> ⚠️ **Formato largo — doble conteo controlado:** `escuelas` y `suma_valor` se repiten una vez por
+> `id_driver`. Ninguna métrica de este cubo se suma sin agrupar o filtrar por `id_driver`
+> (`metrics_db05_db08.yaml → dimension_obligatoria_en_agregacion`). Ratificado el 2026-08-23
+> (ref. `04_UX_Design/Cube_Specs_DB05_DB08.md` §8.3 — PR #73; convertir a wikilink al integrarse).
+
+### KPI-20 · Valor del driver por escuela (exploración)
+
+Valor del driver al grano de detalle (`cct × driver × ciclo`) para el explorador libre del cubo
+(DB-08). Permite segmentar por nivel, sostenimiento y territorio sin pre-agregación. **Cubo:**
+`gold.cubo_pivot`.
+
+```sql
+SELECT f.cct,
+       e.nombre            AS nombre_escuela,
+       e.nivel,
+       e.sostenimiento,
+       dm.cve_ent,
+       dm.nombre_entidad,
+       f.id_ciclo,
+       u.id_driver,
+       u.valor             AS valor_driver,
+       u.cobertura         AS cobertura_driver
+FROM gold.fact_escuela_ciclo f
+JOIN (
+    SELECT f.cct, f.id_ciclo,
+           'D1' AS id_driver, f.d1 AS valor, f.d1_cobertura AS cobertura
+    FROM gold.fact_escuela_ciclo f
+    UNION ALL SELECT f.cct, f.id_ciclo, 'D2', f.d2, f.d2_cobertura FROM gold.fact_escuela_ciclo f
+    UNION ALL SELECT f.cct, f.id_ciclo, 'D3', f.d3, f.d3_cobertura FROM gold.fact_escuela_ciclo f
+    UNION ALL SELECT f.cct, f.id_ciclo, 'D4', f.d4, f.d4_cobertura FROM gold.fact_escuela_ciclo f
+    UNION ALL SELECT f.cct, f.id_ciclo, 'D5', f.d5, f.d5_cobertura FROM gold.fact_escuela_ciclo f
+    UNION ALL SELECT f.cct, f.id_ciclo, 'D6', f.d6, f.d6_cobertura FROM gold.fact_escuela_ciclo f
+) u ON f.cct = u.cct AND f.id_ciclo = u.id_ciclo
+JOIN gold.dim_escuela    e  ON f.cct      = e.cct
+JOIN gold.dim_municipio dm ON f.cve_mun  = dm.cve_mun;
+-- valor_driver se agrega con AVG() al ser grano de detalle (no es promedio de promedios;
+-- AVG ignora NULL nativamente: SIN_DATO no entra a la media).
 ```
 
 ---

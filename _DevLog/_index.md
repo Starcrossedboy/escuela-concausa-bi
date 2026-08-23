@@ -105,3 +105,4 @@ Toda sesión con IA **debe** generar una entrada de DevLog **antes del push** (p
 | `touches` (IDs) | ✅ |
 
 | [[_DevLog/2026-08-22-deni-garrido-us112-silver-gold\|2026-08-22]] | US-112: cierre Silver→Gold; materialización Gold y tests nativos dbt (`unique`, `not_null`, `relationships`, `accepted_values`) validados end-to-end | Deni Garrido Fragoso | ChatGPT / GPT-5.6 Sol | US-112, REQ-001, DS-01–DS-08 |
+| [[_DevLog/2026-08-22-deni-garrido-us113-avance-bloqueos\|2026-08-22]] | US-113: 4 cubos Gold aplicados + 4 cubos validados/aprobados congelados; DEC-009 aún no canónico y DB-10 sin relación física de metadata de ingesta | Deni Garrido Fragoso | ChatGPT / GPT-5.6 Sol | US-113, REQ-001, DEC-009, DB-01…DB-10 |

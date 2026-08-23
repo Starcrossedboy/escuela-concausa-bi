@@ -289,7 +289,7 @@ Actualiza esta tabla **antes de cada standup**. El PM la revisa para el tablero 
 |---|---|---|---|---|---|
 | `US-111` | Implementar transformaciones Bronze -> Sil | ◉ En revisión | 100% | — | Dom 16 ago |
 | `US-112` | Implementar transformaciones Silver -> Gol | ◉ En revisión | 100% | PR #72 · checks/revisión pendientes | Dom 23 ago |
-| `US-113` | Construir los cubos de agregacion | ⬜ Por iniciar | 0% | — | Dom 23 ago |
+| `US-113` | Construir los cubos de agregacion | 🔴 Bloqueado | 85% | DEC-009 no canónico en `origin/main`; `cubo_pipeline` sin relación dbt canónica de metadata de ingesta | Dom 23 ago |
 | `US-114` | Optimizar consultas y crear indices | ⬜ Por iniciar | 0% | — | Dom 6 sep |
 
 **Estados válidos:** ⬜ Por iniciar · 🟡 En curso · 🔵 En revisión (PR abierto) · ✅ Terminado · 🔴 Bloqueado

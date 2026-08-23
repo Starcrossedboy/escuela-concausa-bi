@@ -141,7 +141,8 @@ dependencias.
 Se preguntó si el fix correspondía a la Célula 3 por tocar `src/modelos/`. **No había fix de código
 pendiente**, y la decisión de no tocar `src/modelos/` fuera del alcance propio fue la correcta.
 
-<<<<<<< HEAD
+---
+
 ## BUG-008 — El contenedor de la API corre el «hola mundo», no la app real
 
 | | |
@@ -201,8 +202,8 @@ la raíz. Cualquier verificación automatizada del ensayo debe apuntar ahí.
 `docker/` es de la Célula 5 y un cambio de despliegue requiere revisión explícita de su dueño
 (regla 7 del vault).
 
-=======
->>>>>>> origin/main
+---
+
 ## BUG-004 — Imagen `apache/superset:latest` no incluye `psycopg2`
 
 - **Owner:** **Célula 5** (DevOps/Cloud) — Edward Ruiz (US-522c)
@@ -248,13 +249,9 @@ docker exec -u root faro-superset pip install --target /app/.venv/lib/python3.10
 ### Test de regresión
 - pendiente
 
-<<<<<<< HEAD
 ---
 
 ## BUG-009 — 7 fuentes Bronze en sources.yml sin identifier por default
-=======
-## BUG-008 — 7 fuentes Bronze en sources.yml sin identifier por default
->>>>>>> origin/main
 
 - **Owner:** Edgar Edmundo Coronel Navarrete
 - **Severidad:** high
@@ -291,3 +288,25 @@ Las 7 fuentes afectadas tocan varias historias distintas, sin un solo dueño:
 
 ### Fix
 - pendiente — Edgar decide el reparto entre las historias/dueños involucrados; opción propuesta: agregar valor por default a las 7 (mismo patrón que `formato911`/`cemabe`).
+
+### Actualización 2026-08-23 — valores reales encontrados (Diana, materializando Gold para el ensayo E2E de Héctor, PR #70)
+
+Al construir un `dbt build` real contra la base del docker-compose local (no solo compilar, con datos) para que Héctor tuviera algo que mostrar en el ensayo del 28-29, se ubicaron los valores reales de 6 de las 7 identifiers, más 2 vars adicionales no documentadas antes que también hacían falta:
+
+| Var | Valor real encontrado |
+|---|---|
+| `bronze_cct_identifier` | `cct_sample` |
+| `bronze_sesnsp_identifier` | `sesnsp_test` |
+| `bronze_sinaica_observaciones_identifier` | `sinaica_observaciones_test` |
+| `bronze_sinaica_estaciones_identifier` | `sinaica_estaciones_test` |
+| `bronze_conapo_identifier` | `conapo_sample` |
+| `bronze_coneval_identifier` | `coneval_v2` (existe también `coneval_test`, con `entidad` como código crudo en vez de nombre — parece una ingesta de prueba anterior; **no confirmado con el dueño de DS-07**) |
+| `bronze_conagua_identifier` | sin resolver — no existe ninguna tabla `conagua*` ingerida todavía en `bronze` |
+
+Además, `poblacion_municipio.sql` y `delitos_municipio.sql` requieren dos vars que tampoco estaban documentadas aquí:
+- `bronze_conapo_age_column` → `grupo_edad` (la columna ya existe con ese nombre literal en `conapo_sample`)
+- `bronze_sesnsp_count_column` → `conteo` (idem, ya existe en `sesnsp_test`)
+
+Y `rezago_municipio.sql` requiere `coneval_periodo_medicion`, que **no es una columna** — ninguna de las dos tablas `coneval_*` trae año/período. Es un valor entero fijo que hay que decidir a mano. Se usó `2020` como placeholder solo para el ensayo E2E (no confirmado contra la fuente real) — **pendiente que Deni (dueña de DS-07) confirme el año correcto** antes de usar estos datos para algo más que la demo.
+
+Esto no cierra BUG-009 — sigue pendiente que Edgar decida el reparto para que estos valores (o los que correspondan) queden como default permanente en `sources.yml` — pero deja evidencia empírica lista para quien lo tome. Detalle completo en el DevLog `_DevLog/2026-08-23-diana-alvarez-bug009-hallazgos-gold-e2e.md`.

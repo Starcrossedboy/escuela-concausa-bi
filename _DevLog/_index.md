@@ -105,3 +105,4 @@ Toda sesión con IA **debe** generar una entrada de DevLog **antes del push** (p
 | `touches` (IDs) | ✅ |
 
 | [[_DevLog/2026-08-22-deni-garrido-us112-silver-gold\|2026-08-22]] | US-112: cierre Silver→Gold; materialización Gold y tests nativos dbt (`unique`, `not_null`, `relationships`, `accepted_values`) validados end-to-end | Deni Garrido Fragoso | ChatGPT / GPT-5.6 Sol | US-112, REQ-001, DS-01–DS-08 |
+| [[_DevLog/2026-08-23-diana-alvarez-bug009-hallazgos-gold-e2e\|2026-08-23]] | Materializa Gold real (14 modelos, 126 tests) contra el docker-compose local para el ensayo E2E de Héctor (PR #70); hallazgos reales de **BUG-009** (identifiers/columnas bronze reales); fix de marcadores de conflicto de git sin resolver, comiteados en `Bug_Register.md` desde la renumeración BUG-008→BUG-009 | Diana Aracely Alvarez Varela | Claude (Cowork) / claude-sonnet-5 | BUG-009, BUG-008, DOC-BUGREG, US-111, US-411 |

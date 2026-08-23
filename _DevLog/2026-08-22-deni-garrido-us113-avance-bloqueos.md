@@ -112,3 +112,22 @@ PostgreSQL efímero y, según correspondía:
 US-113: **85% — bloqueada por dependencias canónicas externas**.
 
 `REQ-001` permanece **En progreso**.
+
+## Corrección de criterio posterior
+
+Después de registrar el cierre parcial, se revisó la confirmación escrita de
+Diana, owner del Data Model. Diana confirmó explícitamente los cuatro granos con
+`nivel` y autorizó a Deni a materializar bajo ese criterio para US-113.
+
+Por lo tanto:
+
+- DEC-009 **ya no se considera bloqueo para materializar en la rama US-113**.
+- La publicación de DEC-009 / `Data_Model.md` se conserva como gate antes del
+  **merge final** a `main`, no como gate de desarrollo.
+- Los cuatro patches aprobados (`cubo_completitud`, `cubo_matricula`,
+  `cubo_riesgo_territorial`, `cubo_driver`) se aplicaron con sus SHA-256
+  aprobados y fueron revalidados en conjunto.
+- El único bloqueo técnico externo restante es DB-10 / `cubo_pipeline`, porque
+  todavía no existe una relación dbt canónica y versionada de metadata de ingesta.
+
+Estado actualizado de US-113: **92% — bloqueada únicamente por DB-10 / cubo_pipeline**.

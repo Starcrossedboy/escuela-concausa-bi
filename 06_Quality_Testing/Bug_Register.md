@@ -22,7 +22,7 @@ tags: [qa, bugs]
 | BUG-006 | Healthcheck de `api` usa `curl -f` pero la imagen no incluye `curl` ni `wget` (solo `python`): el contenedor queda `unhealthy` de forma permanente aunque `/health` responda HTTP 200 | medium | fixed | US-502 / REQ-004 | PR #65 (Luis Téllez, **C5**) — removido healthcheck override de api, actualizado chromadb a /api/v2/heartbeat | pendiente (validar healthchecks) |
 | BUG-007 | Healthcheck de `chromadb` apunta a `/api/v1/heartbeat`, que responde **HTTP 410 Gone** (endpoint retirado); la ruta viva es `/api/v2/heartbeat`. Además arrastra el mismo problema de `curl` de BUG-006 | medium | fixed | US-502 / REQ-006 | PR #65 (Luis Téllez, **C5**) — actualizado puerto MLflow en documentación (5000 → 5001) | validado |
 | BUG-008 | `docker/api.Dockerfile` arranca `src.api.main:app` (el hola mundo de US-501, **3 rutas**) en vez de `src.api.app:app` (la app real del contrato v1, **18 rutas** bajo `/api/v1`): en el contenedor —y en la URL pública si usa este Dockerfile— **US-401, US-402 y US-411 son inalcanzables** | **high** | open | US-501 / US-411 / REQ-004 / REQ-005 | pendiente (**C5** + C4) | correr `uvicorn src.api.app:app` a mano fuera del contenedor | ver detalle |
-| BUG-009 | 7 de 10 fuentes Bronze en `sources.yml` sin `identifier` por default: cualquier `dbt build`/`dbt run` completo puede fallar en compilación aunque el modelo probado no use esas fuentes | high | open | US-111 | pendiente (Edgar decide reparto) | — |
+| BUG-009 | 11 vars de dbt sin valor por default (7 `identifier` de fuentes Bronze + 4 vars de modelo): cualquier `dbt parse`/`build`/`run` falla al renderizar el manifest aunque el modelo probado no use esas fuentes | high | fixed | US-111 | defaults inline en `sources.yml` + bloque `vars:` en `dbt_project.yml` (DEC-011) | `dbt parse` en `ci.yml` (job `dbt-contract`) |
 
 ## Convención
 
@@ -251,13 +251,14 @@ docker exec -u root faro-superset pip install --target /app/.venv/lib/python3.10
 
 ---
 
-## BUG-009 — 7 fuentes Bronze en sources.yml sin identifier por default
+## BUG-009 — 11 vars de dbt sin valor por default
 
 - **Owner:** Edgar Edmundo Coronel Navarrete
 - **Severidad:** high
-- **Estado:** open
+- **Estado:** fixed
 - **traces_up:** US-111
 - **found_on:** 2026-08-21
+- **fixed_on:** 2026-08-23
 
 ### Descripción
 Al validar `matricula_historica` (modelo nuevo y aislado, RISK-007/DEC-007) con `dbt build --select matricula_historica`, el build falló con `Required var 'bronze_cct_identifier' not found in config` — una fuente que el modelo ni siquiera consume. Causa: 7 de las 10 tablas Bronze declaradas en `dbt/models/sources.yml` no tienen un valor por default en su `identifier` (a diferencia de `formato911`, `formato911_historico` y `cemabe`, que sí lo tienen). Como dbt necesita renderizar el manifest completo del proyecto antes de ejecutar cualquier selección, cualquier `--select` falla si falta CUALQUIERA de las 7 vars, sin importar si el modelo seleccionado las usa.
@@ -286,8 +287,58 @@ Las 7 fuentes afectadas tocan varias historias distintas, sin un solo dueño:
 ### Causa raíz
 7 de los 10 `identifier` en `sources.yml` se declararon como `"{{ var('bronze_X_identifier') }}"` sin segundo argumento de default, a diferencia de los 3 que sí lo tienen (`"{{ var('bronze_formato911_identifier', 'formato911_2024_2025') }}"`, etc.).
 
+Además, `dbt/dbt_project.yml` no tenía ningún bloque `vars:`, así que las 4 vars usadas dentro de modelos Silver tampoco tenían dónde tomar un default. El alcance real eran **11 vars, no 7**.
+
 ### Fix
-- pendiente — Edgar decide el reparto entre las historias/dueños involucrados; opción propuesta: agregar valor por default a las 7 (mismo patrón que `formato911`/`cemabe`).
+- **PR:** `fix/edgar-navarrete-bug009-defaults-dbt` · **DEC-011** · 2026-08-23
+- **Reparto (decisión del PM):** no se dividió entre los 4 dueños de DS. Cuatro PRs paralelos sobre
+  el mismo YAML garantizaban conflicto y 4 ciclos de revisión para ~15 líneas, a dos semanas del
+  freeze. Lo ejecuta el PM en un solo PR; cada dueño de fuente revisa **sus** valores como reviewer.
+- **Ubicación (ratificada por Diana Alvarez Varela, TL Célula 1, regla 7):** los `identifier` llevan
+  su default **inline** en `sources.yml`, extendiendo el patrón que ya existía; las 4 vars de modelo
+  van en un bloque `vars:` nuevo en `dbt_project.yml`, porque `sources.yml` no tiene dónde alojarlas.
+
+| Var | Default | Dueño que confirma |
+|---|---|---|
+| `bronze_cct_identifier` | `cct_sample` | Diana Alvarez Varela (DS-02) |
+| `bronze_sesnsp_identifier` | `sesnsp_test` | Luis Enrique García Vázquez (DS-04) |
+| `bronze_sinaica_observaciones_identifier` | `sinaica_observaciones_test` | Luis Enrique García Vázquez (DS-05) |
+| `bronze_sinaica_estaciones_identifier` | `sinaica_estaciones_test` | Luis Enrique García Vázquez (DS-05) |
+| `bronze_conapo_identifier` | `conapo_sample` | Emilio Galnares Ruiz (DS-08) |
+| `bronze_coneval_identifier` | `coneval_v2` | Deni Garrido Fragoso (DS-07) |
+| `bronze_conagua_identifier` | `conagua_no_ingerido` ⚠️ falso a propósito | Emilio Galnares Ruiz (DS-06) |
+| `bronze_conapo_age_column` | `grupo_edad` | Emilio Galnares Ruiz (DS-08) |
+| `bronze_sesnsp_count_column` | `conteo` | Luis Enrique García Vázquez (DS-04) |
+| `bronze_conagua_id_column` | `id_estacion` (del esquema documentado, sin datos que lo confirmen) | Emilio Galnares Ruiz (DS-06) |
+| `coneval_periodo_medicion` | `2020` ⚠️ deuda técnica | Deni Garrido Fragoso (DS-07) |
+
+**Los dos valores que no se resolvieron, y por qué no se cerraron callados:**
+
+1. `bronze_conagua_identifier` → `conagua_no_ingerido`. No existe ninguna tabla `conagua*` real en
+   `bronze`. El nombre es deliberadamente falso (a sugerencia de Diana) para que nadie lo confunda
+   con una tabla real al verlo en un log: deja pasar el parse del proyecto y hace que `agua_region`
+   falle en runtime **de forma visible**. D5 sigue `SIN_DATO` explícito.
+2. `coneval_periodo_medicion` → `2020`. **Deuda técnica aceptada explícitamente por Edgar Coronel
+   (PM).** No es una columna: ninguna tabla `coneval_*` trae año o período, así que es un entero
+   fijo heredado del ensayo E2E (PR #70) y sin confirmar contra la fuente. Si está mal, no rompe
+   nada — **etiqueta mal en silencio** el período de medición del rezago social en
+   `silver.rezago_municipio` y todo lo que cuelga de ahí. Pendiente de confirmación por Deni Garrido
+   Fragoso (dueña de DS-07) antes del freeze del 6-sep-2026; es también un ítem del checklist de
+   freeze en [[03_Architecture/Data_Lineage_US106]].
+   **Rastreado como `RISK-008`** en [[10_Risk_Governance/Risk_Register]], con dueña y fecha objetivo:
+   el `Bug_Register` no lo alcanza porque el defecto ya está corregido — lo que queda es un valor sin
+   confirmar, y el tablero PM lee el registro de riesgos, no el de bugs.
+
+- **Test de regresión:** job `dbt-contract` en `.github/workflows/ci.yml` — corre `dbt parse` en cada
+  PR con un perfil dummy (parse no abre conexión a la base). Verificado empíricamente antes de
+  abrir el PR: con `main` el parse aborta con `Compilation Error: Required var 'bronze_cct_identifier'
+  not found in config`; con el fix termina en exit 0 y genera el manifest completo. Es un cambio a
+  `.github/` (regla 7): lo revisa Diana Alvarez Varela como TL de Célula 1 y ratificadora de DEC-011,
+  bajo la compuerta única de DEC-003. La revisión de Célula 5 se omite conscientemente por tiempo
+  (freeze el 6-sep); el job está aislado y es reversible sin tocar nada más.
+- **Efecto colateral:** los comandos que `CLAUDE.md` documenta como estándar (`dbt run --select
+  silver`, `dbt test`) estaban rotos de fábrica para cualquiera que clonara el repo. Ahora funcionan
+  sin pasar `--vars` a mano.
 
 ### Actualización 2026-08-23 — valores reales encontrados (Diana, materializando Gold para el ensayo E2E de Héctor, PR #70)
 
@@ -310,3 +361,14 @@ Además, `poblacion_municipio.sql` y `delitos_municipio.sql` requieren dos vars 
 Y `rezago_municipio.sql` requiere `coneval_periodo_medicion`, que **no es una columna** — ninguna de las dos tablas `coneval_*` trae año/período. Es un valor entero fijo que hay que decidir a mano. Se usó `2020` como placeholder solo para el ensayo E2E (no confirmado contra la fuente real) — **pendiente que Deni (dueña de DS-07) confirme el año correcto** antes de usar estos datos para algo más que la demo.
 
 Esto no cierra BUG-009 — sigue pendiente que Edgar decida el reparto para que estos valores (o los que correspondan) queden como default permanente en `sources.yml` — pero deja evidencia empírica lista para quien lo tome. Detalle completo en el DevLog `_DevLog/2026-08-23-diana-alvarez-bug009-hallazgos-gold-e2e.md`.
+
+### Actualización 2026-08-23 — cierre (Edgar, PM · DEC-011)
+
+Al ejecutar el reparto apareció una **var número 11** que no estaba en esta lista:
+`bronze_conagua_id_column`, en `dbt/models/silver/agua_region.sql:4`. No se había topado porque
+`conagua` no tiene datos ingeridos y `agua_region` nunca llegó a correr. Diana la ratificó como parte
+del alcance el mismo día.
+
+Los 11 defaults quedaron aplicados con la ubicación que decidió Diana (identifiers inline en
+`sources.yml`, vars de modelo en `dbt_project.yml`) — ver la sección **Fix** arriba para la tabla
+completa de valores, dueños y los dos casos que quedaron sin confirmar.

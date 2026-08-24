@@ -83,16 +83,26 @@ intentado entrenar sobre ella.
 - El `CHECK` y los índices parciales se ejercitaron con **SQLite**, que también los aplica: hay
   pruebas de que la base rechaza una fila con ambas llaves y una sin ninguna.
 
-> **Pendiente:** la comprobación contra **Postgres** no se pudo hacer — Docker Desktop no estaba
-> corriendo en esta sesión. El código es dialecto-aware y los `postgresql_where` están declarados,
-> pero conviene correrlo contra Postgres antes de darlo por cerrado.
+### Verificado también contra Postgres
+
+Se levantó el Postgres del `docker-compose` y se comprobó lo que SQLite no puede garantizar por sí
+solo:
+
+- **Ambos granos conviven:** 80 filas `escuela` + 46 `municipio_nivel`.
+- **Idempotencia por grano:** repetir ambas escrituras deja 80 + 46, no 160 + 92.
+- **Los dos índices parciales existen** con su predicado: `ux_predicciones_escuela WHERE grano =
+  'escuela'` y `ux_predicciones_municipio_nivel WHERE grano = 'municipio_nivel'`.
+- **El `CHECK` rechaza por SQL directo** —sin pasar por el job— tres casos: fila con las dos llaves,
+  fila sin ninguna, y un `grano` inventado (`'municipal'`).
+- **El índice parcial rechaza duplicados** dentro del mismo grano.
+
+El contenedor se bajó al terminar.
 
 ## Pendiente
 
-1. **Verificar el grano dual contra Postgres** (ver arriba).
-2. **Forma exacta del contrato de la API:** DEC-010 la deja pendiente con Christian Ruiz, dueño de
+1. **Forma exacta del contrato de la API:** DEC-010 la deja pendiente con Christian Ruiz, dueño de
    `PrediccionOut`, que hoy asume grano escuela.
-3. **BUG-008 sigue `open`** y el `CMD` del Dockerfile intacto: el contenedor sigue sirviendo el hola
+2. **BUG-008 sigue `open`** y el `CMD` del Dockerfile intacto: el contenedor sigue sirviendo el hola
    mundo. Quedan **5 días** para el ensayo E2E del 28–29, que evalúa la URL pública.
-4. La serie SNIEE / el extractor multi-ciclo del 911 sigue siendo lo que separa estas métricas de
+3. La serie SNIEE / el extractor multi-ciclo del 911 sigue siendo lo que separa estas métricas de
    ser reales.

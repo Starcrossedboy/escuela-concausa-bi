@@ -64,6 +64,23 @@ nunca ninguno*— se aplica en **tres capas**:
 El UPSERT elige su objetivo de conflicto según el grano del lote, y **rechaza lotes que mezclen
 granos**: con dos índices, un lote mixto haría ambiguo contra cuál resolver el conflicto.
 
+### Verificado contra Postgres
+
+Además de las pruebas con SQLite, se comprobó contra el Postgres del `docker-compose`:
+
+| Comprobación | Resultado |
+|---|---|
+| Ambos granos conviven | 80 filas `escuela` + 46 `municipio_nivel` |
+| Idempotencia por grano | repetir ambas escrituras deja 80 + 46, no 160 + 92 |
+| Índices parciales creados | `ux_predicciones_escuela` y `ux_predicciones_municipio_nivel`, con su `WHERE` |
+| `CHECK` rechaza las dos llaves | ✅ |
+| `CHECK` rechaza ninguna llave | ✅ |
+| `CHECK` rechaza un `grano` inventado | ✅ |
+| Índice parcial rechaza duplicados del mismo grano | ✅ |
+
+Las tres primeras filas de rechazo se probaron por **SQL directo**, sin pasar por el job: es
+justamente lo que el `CHECK` protege.
+
 > El `indice_riesgo` se calcula en ambos granos, pero sus anclas se fijaron sobre la variación de
 > **una escuela concreta**. A nivel `municipio × nivel` es una lectura agregada, **no una alerta por
 > plantel**; el `Data_Model` §4.5 lo advierte igual.
@@ -146,9 +163,7 @@ Las que importan:
 ## 9. Pendientes
 
 1. **Re-ejecutar con `gold.features_escuela` real** y la etiqueta supervisada confirmada por C1.
-2. **Verificar el grano dual contra Postgres**: el `CHECK` y los índices parciales se probaron con
-   SQLite (que también los aplica), pero la comprobación contra Postgres quedó pendiente porque
-   Docker no estaba disponible en esa sesión.
+2. ~~Verificar el grano dual contra Postgres~~ — **hecho** (ver §3).
 3. **Forma exacta del contrato de la API**: DEC-010 la deja pendiente de confirmar con Christian
    Ruiz, dueño de `PrediccionOut`. Hoy el esquema de `PrediccionOut` asume grano escuela.
 2. **Resolver la duplicación del catálogo** con la Célula 4.

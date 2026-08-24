@@ -60,6 +60,36 @@ def _agregar_chunk(chunk: pd.DataFrame) -> pd.DataFrame:
     return largo.groupby(COLUMNAS_LLAVE_AGREGACION, as_index=False)["conteo"].sum()
 
 
+def _derivar_cve_mun_local(cve_ent: str, cve_municipio_completo: str) -> str:
+    """
+    `Cve. Municipio` de la fuente es `cve_ent` (sin padding) + código local de 3
+    dígitos concatenados (ej. ent="21", "21002" -> local "002"). Se devuelve solo la
+    parte local porque `dbt/macros/normalize_cve_mun.sql` ya sabe reconstruir la
+    clave INEGI de 5 dígitos a partir de `cve_ent` + este valor.
+    """
+    return cve_municipio_completo[len(cve_ent):]
+
+
+def _finalizar_agregado(df_parcial: pd.DataFrame) -> pd.DataFrame:
+    """
+    Re-agrega los parciales de todos los chunks (un mismo municipio/año/mes/tipo de
+    delito puede caer en más de un chunk, el CSV no está particionado por esa llave),
+    deriva `cve_mun` local y renombra al esquema final de Bronze.
+    """
+    df = df_parcial.groupby(COLUMNAS_LLAVE_AGREGACION, as_index=False)["conteo"].sum()
+
+    df["cve_mun_local"] = df.apply(
+        lambda fila: _derivar_cve_mun_local(fila["Clave_Ent"], fila["Cve. Municipio"]), axis=1
+    )
+
+    return df.rename(columns={
+        "Año": "anio",
+        "Clave_Ent": "cve_ent",
+        "cve_mun_local": "cve_mun",
+        "Tipo de delito": "tipo_delito",
+    })[["cve_ent", "cve_mun", "anio", "mes", "tipo_delito", "conteo"]]
+
+
 def _descargar_a_temporal(url: str) -> str:
     """
     Descarga `url` completa a un archivo temporal antes de parsear.
@@ -129,28 +159,7 @@ def extraer_sesnsp() -> str:
     if not parciales:
         raise ValueError(f"{SOURCE_NAME}: respuesta vacía, no se guarda nada")
 
-    # Un mismo municipio/año/mes/tipo_delito puede aparecer en más de un chunk
-    # (el CSV no está particionado por esa llave) -- se vuelve a agregar al final.
-    df = (
-        pd.concat(parciales, ignore_index=True)
-        .groupby(COLUMNAS_LLAVE_AGREGACION, as_index=False)["conteo"]
-        .sum()
-    )
-
-    # Cve. Municipio = Clave_Ent (sin padding) + código local de 3 dígitos
-    # concatenados (ej. ent=21, "21002" -> local "002"). cve_ent/cve_mun se dejan en
-    # este formato crudo porque dbt/macros/normalize_cve_mun.sql ya sabe reconstruir
-    # la clave INEGI de 5 dígitos a partir de exactamente estas dos columnas.
-    df["cve_mun_local"] = df.apply(
-        lambda fila: fila["Cve. Municipio"][len(fila["Clave_Ent"]):], axis=1
-    )
-
-    df = df.rename(columns={
-        "Año": "anio",
-        "Clave_Ent": "cve_ent",
-        "cve_mun_local": "cve_mun",
-        "Tipo de delito": "tipo_delito",
-    })[["cve_ent", "cve_mun", "anio", "mes", "tipo_delito", "conteo"]]
+    df = _finalizar_agregado(pd.concat(parciales, ignore_index=True))
 
     df["_ingested_at"] = datetime.now(timezone.utc)
     df["_source"] = SOURCE_NAME

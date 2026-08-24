@@ -18,6 +18,7 @@ import glob
 import logging
 
 import pandas as pd
+from great_expectations.expectations.row_conditions import Column
 
 import great_expectations as gx
 
@@ -56,9 +57,9 @@ def _archivo_mas_reciente(patron: str) -> str:
     return archivos[-1]
 
 
-def _contexto():
-    """Data Context de Great Expectations, persistido en `great_expectations/`."""
-    return gx.get_context(mode="file", context_root_dir=GE_CONTEXT_DIR)
+def _contexto(ge_context_dir: str = GE_CONTEXT_DIR):
+    """Data Context de Great Expectations, persistido en `ge_context_dir`."""
+    return gx.get_context(mode="file", context_root_dir=ge_context_dir)
 
 
 def _obtener_o_crear_asset(context, nombre_datasource: str, nombre_asset: str):
@@ -137,28 +138,33 @@ def _expectativas_observaciones() -> list:
     ]
 
     # Rango físico específico por parámetro (unidades distintas por contaminante,
-    # así que un solo rango para toda la columna `valor` no tendría sentido).
+    # así que un solo rango para toda la columna `valor` no tendría sentido). Se usa
+    # `Column(...) == ...` (API de Condition) en vez de `row_condition` como string +
+    # `condition_parser` -- esa forma está deprecada desde GX Core 1.9.0.
     for parametro, (minimo, maximo) in RANGOS_FISICOS.items():
         expectativas.append(
             gx.expectations.ExpectColumnValuesToBeBetween(
                 column="valor",
                 min_value=minimo,
                 max_value=maximo,
-                row_condition=f'parametro == "{parametro}"',
-                condition_parser="pandas",
+                row_condition=Column("parametro") == parametro,
             )
         )
 
     return expectativas
 
 
-def validar_sinaica_estaciones() -> "gx.core.expectation_validation_result.ExpectationSuiteValidationResult":
-    """Valida el catálogo de estaciones (`sinaica_estaciones`) contra el Bronze más reciente."""
-    archivo = _archivo_mas_reciente(BRONZE_ESTACIONES_GLOB)
-    logger.info("Validando sinaica_estaciones desde %s", archivo)
-    df = pd.read_parquet(archivo)
+def validar_sinaica_estaciones(
+    df: pd.DataFrame | None = None, ge_context_dir: str = GE_CONTEXT_DIR
+) -> "gx.core.expectation_validation_result.ExpectationSuiteValidationResult":
+    """Valida el catálogo de estaciones (`sinaica_estaciones`) contra el Bronze más
+    reciente, o contra `df` si se pasa explícito (pruebas, sin red -- ver `US-124b`)."""
+    if df is None:
+        archivo = _archivo_mas_reciente(BRONZE_ESTACIONES_GLOB)
+        logger.info("Validando sinaica_estaciones desde %s", archivo)
+        df = pd.read_parquet(archivo)
 
-    context = _contexto()
+    context = _contexto(ge_context_dir)
     resultado = _validar(context, df, "sinaica_estaciones", _expectativas_estaciones())
     logger.info(
         "sinaica_estaciones: success=%s (%d/%d expectativas)",
@@ -169,13 +175,17 @@ def validar_sinaica_estaciones() -> "gx.core.expectation_validation_result.Expec
     return resultado
 
 
-def validar_sinaica_observaciones() -> "gx.core.expectation_validation_result.ExpectationSuiteValidationResult":
-    """Valida las lecturas horarias (`sinaica_observaciones`) contra el Bronze más reciente."""
-    archivo = _archivo_mas_reciente(BRONZE_OBSERVACIONES_GLOB)
-    logger.info("Validando sinaica_observaciones desde %s", archivo)
-    df = pd.read_parquet(archivo)
+def validar_sinaica_observaciones(
+    df: pd.DataFrame | None = None, ge_context_dir: str = GE_CONTEXT_DIR
+) -> "gx.core.expectation_validation_result.ExpectationSuiteValidationResult":
+    """Valida las lecturas horarias (`sinaica_observaciones`) contra el Bronze más
+    reciente, o contra `df` si se pasa explícito (pruebas, sin red -- ver `US-124b`)."""
+    if df is None:
+        archivo = _archivo_mas_reciente(BRONZE_OBSERVACIONES_GLOB)
+        logger.info("Validando sinaica_observaciones desde %s", archivo)
+        df = pd.read_parquet(archivo)
 
-    context = _contexto()
+    context = _contexto(ge_context_dir)
     resultado = _validar(context, df, "sinaica_observaciones", _expectativas_observaciones())
     logger.info(
         "sinaica_observaciones: success=%s (%d/%d expectativas)",

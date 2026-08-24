@@ -296,7 +296,7 @@ Actualiza esta tabla **antes de cada standup**. El PM la revisa para el tablero 
 | `US-121b` | Prueba de descarga real DS-04 y DS-05 | ✅ Terminado | 100% | — | Dom 9 ago (vencida) |
 | `US-122b` | Extractores de DS-04 y DS-05 | ✅ Terminado | 100% | — | Dom 16 ago (vencida) |
 | `US-123b` | Great Expectations de DS-04 y DS-05 | ✅ Terminado | 100% | — | Dom 23 ago (vencida) |
-| `US-124b` | Fixtures de DS-04 y DS-05 | ⬜ Por iniciar | 0% | — | Dom 30 ago |
+| `US-124b` | Fixtures de DS-04 y DS-05 | ✅ Terminado | 100% | — | Dom 30 ago |
 
 **Estados válidos:** ⬜ Por iniciar · 🟡 En curso · 🔵 En revisión (PR abierto) · ✅ Terminado · 🔴 Bloqueado
 

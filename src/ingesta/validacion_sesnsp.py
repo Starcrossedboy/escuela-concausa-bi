@@ -58,9 +58,9 @@ def _archivo_mas_reciente(patron: str) -> str:
     return archivos[-1]
 
 
-def _contexto():
-    """Data Context de Great Expectations, persistido en `great_expectations/`."""
-    return gx.get_context(mode="file", context_root_dir=GE_CONTEXT_DIR)
+def _contexto(ge_context_dir: str = GE_CONTEXT_DIR):
+    """Data Context de Great Expectations, persistido en `ge_context_dir`."""
+    return gx.get_context(mode="file", context_root_dir=ge_context_dir)
 
 
 def _obtener_o_crear_asset(context, nombre_datasource: str, nombre_asset: str):
@@ -123,13 +123,32 @@ def _expectativas_sesnsp(catalogo_tipo_delito: list[str]) -> list:
     ]
 
 
-def validar_sesnsp() -> "gx.core.expectation_validation_result.ExpectationSuiteValidationResult":
-    """Valida la tabla Bronze de SESNSP contra el Parquet más reciente y publica Data Docs."""
-    archivo = _archivo_mas_reciente(BRONZE_GLOB)
-    logger.info("Validando sesnsp desde %s", archivo)
-    df = pd.read_parquet(archivo)
+def validar_sesnsp(
+    df: pd.DataFrame | None = None,
+    ge_context_dir: str = GE_CONTEXT_DIR,
+    construir_data_docs: bool = True,
+) -> "gx.core.expectation_validation_result.ExpectationSuiteValidationResult":
+    """
+    Valida la tabla Bronze de SESNSP y publica Data Docs.
 
-    context = _contexto()
+    Args:
+        df: DataFrame a validar. Si es None (uso normal en CLI/DAG), se lee el Parquet
+            más reciente de `data/bronze/sesnsp/`. Pasarlo explícito permite correr
+            esta suite en pruebas (`tests/test_validacion_sesnsp.py`) sin red ni
+            depender de que exista una extracción real -- eso es lo que destraba
+            `US-124b` (CI sin descargar datos reales).
+        ge_context_dir: carpeta del Data Context de Great Expectations. Las pruebas
+            pasan un `tmp_path` para no mezclar suites de prueba con las reales de
+            `great_expectations/expectations/`.
+        construir_data_docs: si es False, no reconstruye el sitio HTML (pruebas no lo
+            necesitan y ahorra tiempo).
+    """
+    if df is None:
+        archivo = _archivo_mas_reciente(BRONZE_GLOB)
+        logger.info("Validando sesnsp desde %s", archivo)
+        df = pd.read_parquet(archivo)
+
+    context = _contexto(ge_context_dir)
     resultado = _validar(context, df, "sesnsp", _expectativas_sesnsp(CATALOGO_TIPO_DELITO))
     logger.info(
         "sesnsp: success=%s (%d/%d expectativas)",
@@ -137,8 +156,9 @@ def validar_sesnsp() -> "gx.core.expectation_validation_result.ExpectationSuiteV
         resultado.statistics["successful_expectations"],
         resultado.statistics["evaluated_expectations"],
     )
-    context.build_data_docs()
-    logger.info("Data Docs actualizados en great_expectations/uncommitted/data_docs/")
+    if construir_data_docs:
+        context.build_data_docs()
+        logger.info("Data Docs actualizados en great_expectations/uncommitted/data_docs/")
     return resultado
 
 

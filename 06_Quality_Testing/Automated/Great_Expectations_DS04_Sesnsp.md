@@ -62,6 +62,20 @@ $env:PYTHONPATH = "src"
 # Data Docs en great_expectations/uncommitted/data_docs/local_site/index.html
 ```
 
+## Cobertura automatizada (US-124b, `tests/test_validacion_sesnsp.py`)
+
+`validar_sesnsp()` acepta un `df` y un `ge_context_dir` explícitos — permite correr esta suite en
+`pytest` con datos sintéticos pequeños (esquema real, sin red, sin descargar los 380 MB del CSV
+fuente ni tocar el `great_expectations/` real del repo). Los 4 casos reproducen a propósito el
+mismo tipo de hallazgo que apareció en producción (conteo negativo por corrección retroactiva),
+más tipo de delito fuera de catálogo y llave duplicada — cada uno demuestra que la suite SÍ
+atrapa el problema, no solo que corre sin tronar. `tests/test_extractor_sesnsp.py` cubre además
+la lógica de agregación (suma de subtipo/modalidad, derivación de `cve_mun`) sin red.
+
+```bash
+pytest tests/test_validacion_sesnsp.py tests/test_extractor_sesnsp.py -v
+```
+
 ## Ver también
 
 - `TEST-010` (DS-05) para el diseño general de estas suites (por qué Bronze no está tipado, cómo

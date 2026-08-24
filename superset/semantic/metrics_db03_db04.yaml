@@ -93,10 +93,10 @@ datasets:
         expresion: "6 - ROUND(AVG(indice_completitud_drivers) * 6)"
         formato: entero
 
-    # Propuesta de alta en el catalogo canonico de Manuel (Cube_Specs §5.1).
-    # Aun NO son KPIs oficiales: pendiente de que Manuel los publique en
-    # 04_UX_Design/Screen_Specs.md.
-    kpis_propuestos:
+    # Publicados por Manuel en 04_UX_Design/Screen_Specs.md §4 el 2026-08-15
+    # (US-201). El catalogo de Manuel es la fuente canonica; esta lista queda
+    # como registro del origen de la propuesta (Cube_Specs §5.1).
+    kpis_canonicos:
       - id: KPI-15
         nombre: "Perfil de matrícula de la escuela"
         sustenta: [AC-002.4, AC-002.5]
@@ -118,8 +118,10 @@ datasets:
     sql: db04_cubo_comparador_municipio.sql
     grano: [cve_mun, nivel, id_ciclo]
     llave_primaria: [cve_mun, nivel, id_ciclo]
-    grano_canonico_actual: [cve_mun, id_ciclo]
-    cambio_de_grano_solicitado_a: "Diana Aracely Alvarez Varela (C1) - Cube_Specs §8.1"
+    # Grano ratificado por Diana Alvarez (C1) el 2026-08-14 y registrado como
+    # DEC-008: se bajo de `municipio x ciclo` a `municipio x nivel x ciclo` para
+    # poder cumplir AC-002.2 (filtro global por nivel) en DB-04.
+    grano_ratificado_en: "DEC-008 · Data_Model.md §4.3"
     banderas_cobertura:
       - escuelas_con_d1
       - escuelas_con_d2

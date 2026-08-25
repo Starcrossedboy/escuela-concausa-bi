@@ -77,6 +77,9 @@ tags: [data-source, bronze, driver-d5, ingesta-continua]
       (nulos en nombre_oficial/estado/cap_namo, unicidad de id_presa, rangos físicos
       de cap_namo 0-100,000 hm³ y alt_cort 0-500m). Resultado: 7/7 exitosas (100%).
       Script: `validaciones_ds06.py`. Data Docs generado localmente.
+- [x] Fixture de prueba generado (US-124a): `tests/fixtures/ds06_fixture.csv` con
+      180 filas (muestra completa, la fuente ya tiene menos de 500 registros).
+      Semilla fija (random_state=42) para reproducibilidad en CI.
 - Nota: 180 registros vía este endpoint vs. 210 en el catálogo estático de
   datos.gob.mx — posible diferencia entre "presas principales" (monitoreadas)
   y el catálogo completo de estructuras. Pendiente de confirmar con el equipo.

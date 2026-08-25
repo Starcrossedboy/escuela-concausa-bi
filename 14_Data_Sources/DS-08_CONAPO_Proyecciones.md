@@ -65,6 +65,10 @@ tags: [data-source, bronze, denominador]
       (nulos en cve_mun/NOM_MUN/POB_TOTAL/ANO/SEXO, rango de POB_TOTAL 0-25M,
       longitud de cve_mun=5 caracteres). Resultado: 7/7 exitosas (100%) sobre
       252,450 registros. Script: `validaciones_ds08.py`. Data Docs generado localmente.
+- [x] Fixture de prueba generado (US-124a): `tests/fixtures/ds08_fixture.csv` con
+      muestra aleatoria de 500 filas (de 252,450 totales). Semilla fija
+      (random_state=42) para reproducibilidad en CI. Sin datos personales
+      (población agregada por municipio/sexo/año, no hay identificación individual).
 - **Responsable:** Emilio Galnares Ruiz · **Fecha:** 24/08/2026
 
 ## 10. Riesgos conocidos

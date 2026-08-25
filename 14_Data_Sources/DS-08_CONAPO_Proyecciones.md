@@ -56,7 +56,12 @@ tags: [data-source, bronze, denominador]
 - [x] Llave confirmada: columna `CLAVE` (tipo int64 en el archivo original), requiere
       conversión a texto con relleno de ceros a la izquierda (`.astype(str).str.zfill(5)`)
       para obtener la clave INEGI de 5 dígitos estándar. Columna resultante: `cve_mun`.
-- **Responsable:** Emilio Galnares Ruiz · **Fecha:** 16/08/2026
+- [x] Extractor construido (US-122a): script `extractor_ds08.py` que lee el archivo
+      local descargado (CONAPO no ofrece link de descarga fijo, ver limitación en
+      sección 10), corrige la clave de municipio a 5 dígitos (`cve_mun`), y guarda
+      252,450 registros en `data/bronze/ds08_conapo.parquet` con columnas
+      `_ingested_at`, `_source`, `_source_url`.
+- **Responsable:** Emilio Galnares Ruiz · **Fecha:** 24/08/2026
 
 ## 10. Riesgos conocidos
 - Son **proyecciones**, no censos: hay incertidumbre inherente.

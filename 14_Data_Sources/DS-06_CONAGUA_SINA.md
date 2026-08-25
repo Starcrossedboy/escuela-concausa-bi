@@ -76,7 +76,7 @@ tags: [data-source, bronze, driver-d5, ingesta-continua]
 - Nota: 180 registros vía este endpoint vs. 210 en el catálogo estático de
   datos.gob.mx — posible diferencia entre "presas principales" (monitoreadas)
   y el catálogo completo de estructuras. Pendiente de confirmar con el equipo.
-- **Responsable:** Emilio Galnares Ruiz · **Fecha:** 16/08/2026
+- **Responsable:** Emilio Galnares Ruiz · **Fecha:** 24/08/2026
 
 ## 10. Riesgos conocidos (actualizado)
 - No hay descarga CSV/API directa: los datos están en tablas web (HTML), se requiere

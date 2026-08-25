@@ -66,6 +66,16 @@ tags: [data-source, bronze, driver-d5, ingesta-continua]
 - [x] Llave confirmada: nombre/ID de presa + Estado (texto). NO trae clave INEGI de
       municipio directa; requiere mapeo posterior (Estado → municipio vía otra fuente,
       o geoespacial con lat/lon del catálogo de datos.gob.mx).
+      
+- [x] Extractor automatizado construido (US-122a): script `extractor_ds06.py` que
+      replica la petición POST del formulario web (endpoint interno
+      `mapa.php`, Accion=Presas, query con los 33 id_estado) y trae 180 presas
+      con datos volumétricos (cap_name, cap_namo) sin necesidad de scraping HTML
+      ni navegación manual. Guardado en `data/bronze/ds06_conagua_presas.parquet`
+      con columnas `_ingested_at`, `_source`, `_source_url`.
+- Nota: 180 registros vía este endpoint vs. 210 en el catálogo estático de
+  datos.gob.mx — posible diferencia entre "presas principales" (monitoreadas)
+  y el catálogo completo de estructuras. Pendiente de confirmar con el equipo.
 - **Responsable:** Emilio Galnares Ruiz · **Fecha:** 16/08/2026
 
 ## 10. Riesgos conocidos (actualizado)

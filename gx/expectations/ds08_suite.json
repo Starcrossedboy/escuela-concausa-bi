@@ -1,0 +1,76 @@
+{
+  "expectations": [
+    {
+      "id": "84047e84-680a-4648-9866-b963c766213a",
+      "kwargs": {
+        "column": "cve_mun"
+      },
+      "meta": {},
+      "severity": "critical",
+      "type": "expect_column_values_to_not_be_null"
+    },
+    {
+      "id": "dac319c3-efaa-414f-8de7-4dcd816130a8",
+      "kwargs": {
+        "column": "NOM_MUN"
+      },
+      "meta": {},
+      "severity": "critical",
+      "type": "expect_column_values_to_not_be_null"
+    },
+    {
+      "id": "c66e9687-c833-4d5c-8196-a481d32c4999",
+      "kwargs": {
+        "column": "POB_TOTAL"
+      },
+      "meta": {},
+      "severity": "critical",
+      "type": "expect_column_values_to_not_be_null"
+    },
+    {
+      "id": "389b3104-ccac-4638-91af-60bb19a2fe91",
+      "kwargs": {
+        "column": "ANO"
+      },
+      "meta": {},
+      "severity": "critical",
+      "type": "expect_column_values_to_not_be_null"
+    },
+    {
+      "id": "a87855f4-2c20-4626-aa32-792b5a2fa8ac",
+      "kwargs": {
+        "column": "SEXO"
+      },
+      "meta": {},
+      "severity": "critical",
+      "type": "expect_column_values_to_not_be_null"
+    },
+    {
+      "id": "77ff0266-5bb0-44a2-a90d-c9507e4f9828",
+      "kwargs": {
+        "column": "POB_TOTAL",
+        "max_value": 25000000.0,
+        "min_value": 0.0
+      },
+      "meta": {},
+      "severity": "critical",
+      "type": "expect_column_values_to_be_between"
+    },
+    {
+      "id": "391d04c6-5104-44ca-9317-9cb536e98899",
+      "kwargs": {
+        "column": "cve_mun",
+        "value": 5.0
+      },
+      "meta": {},
+      "severity": "critical",
+      "type": "expect_column_value_lengths_to_equal"
+    }
+  ],
+  "id": "56dd6118-b43e-4e46-91a5-bfac9d5f28ce",
+  "meta": {
+    "great_expectations_version": "1.20.0"
+  },
+  "name": "ds08_suite",
+  "notes": null
+}

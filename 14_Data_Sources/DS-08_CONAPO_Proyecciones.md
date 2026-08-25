@@ -61,6 +61,10 @@ tags: [data-source, bronze, denominador]
       sección 10), corrige la clave de municipio a 5 dígitos (`cve_mun`), y guarda
       252,450 registros en `data/bronze/ds08_conapo.parquet` con columnas
       `_ingested_at`, `_source`, `_source_url`.
+- [x] Validaciones Great Expectations (US-123a): suite `ds08_suite` con 7 expectativas
+      (nulos en cve_mun/NOM_MUN/POB_TOTAL/ANO/SEXO, rango de POB_TOTAL 0-25M,
+      longitud de cve_mun=5 caracteres). Resultado: 7/7 exitosas (100%) sobre
+      252,450 registros. Script: `validaciones_ds08.py`. Data Docs generado localmente.
 - **Responsable:** Emilio Galnares Ruiz · **Fecha:** 24/08/2026
 
 ## 10. Riesgos conocidos

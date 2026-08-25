@@ -73,6 +73,10 @@ tags: [data-source, bronze, driver-d5, ingesta-continua]
       con datos volumétricos (cap_name, cap_namo) sin necesidad de scraping HTML
       ni navegación manual. Guardado en `data/bronze/ds06_conagua_presas.parquet`
       con columnas `_ingested_at`, `_source`, `_source_url`.
+- [x] Validaciones Great Expectations (US-123a): suite `ds06_suite` con 7 expectativas
+      (nulos en nombre_oficial/estado/cap_namo, unicidad de id_presa, rangos físicos
+      de cap_namo 0-100,000 hm³ y alt_cort 0-500m). Resultado: 7/7 exitosas (100%).
+      Script: `validaciones_ds06.py`. Data Docs generado localmente.
 - Nota: 180 registros vía este endpoint vs. 210 en el catálogo estático de
   datos.gob.mx — posible diferencia entre "presas principales" (monitoreadas)
   y el catálogo completo de estructuras. Pendiente de confirmar con el equipo.

@@ -303,7 +303,7 @@ Actualiza esta tabla **antes de cada standup**. El PM la revisa para el tablero 
 | ID | Historia | Estado | % | Bloqueado por | Fecha compromiso |
 |---|---|---|---|---|---|
 | `US-521b` | Guia ambiente local: Airflow y ML | ⬜ Por iniciar | 0% | — | Dom 9 ago |
-| `US-522b` | Contenerizar Airflow y jobs ML | ⬜ Por iniciar | 0% | — | Dom 23 ago |
+| `US-522b` | Contenerizar Airflow y jobs ML | ⬜ En Revision (PR abierto) | 90% | — | Dom 23 ago |
 | `US-523b` | Quality gate CI: lint y pruebas | ⬜ Por iniciar | 0% | — | Dom 23 ago |
 | `US-524b` | Monitoreo de Airflow y jobs ML | ⬜ Por iniciar | 0% | — | Dom 6 sep |
 | `US-525b` | Runbook rollback Airflow y ML | ⬜ Por iniciar | 0% | — | Mar 8 sep |

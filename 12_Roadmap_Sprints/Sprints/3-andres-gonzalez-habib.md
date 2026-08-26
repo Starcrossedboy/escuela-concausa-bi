@@ -3,10 +3,10 @@ id: SPRINT-ANDRES-GONZALEZ-HABIB
 title: "Plan de Sprints — Andrés González Habib"
 owner: "Andrés González Habib"
 status: approved
-version: "1.0"
+version: "1.1"
 traces_up: ["01_Product/PRD", "02_Requirements/User_Stories"]
-traces_down: ["US-301", "US-302", "US-303", "US-304a"]
-last_reviewed: "2026-07-31"
+traces_down: ["US-301", "US-302", "US-303", "US-304a", "US-305"]
+last_reviewed: "2026-08-26"
 tags: [sprint, plan, celula-3, nivel-alto]
 ---
 
@@ -297,10 +297,11 @@ Actualiza esta tabla **antes de cada standup**. El PM la revisa para el tablero 
 
 | ID | Historia | Estado | % | Bloqueado por | Fecha compromiso |
 |---|---|---|---|---|---|
-| `US-301` | Disenar la estrategia de modelado y el pro | ⬜ Por iniciar | 0% | — | Dom 23 ago |
-| `US-302` | Entrenar el Modelo 2 - Clasificacion de dr | ⬜ Por iniciar | 0% | — | Dom 30 ago |
-| `US-303` | Registrar los 3 modelos en MLflow y expone | ⬜ Por iniciar | 0% | — | Dom 30 ago |
-| `US-304a` | Diseno del agente: prompt y guardarraines | ⬜ Por iniciar | 0% | — | Dom 6 sep |
+| `US-301` | Diseñar la estrategia de modelado y validación | ✅ Terminado | 100% | — | Cerrada 9 ago |
+| `US-302` | Entrenar ML-02: clasificación de driver | 🔵 En revisión | 85% | Etiqueta supervisada real de C1 · Registry MLflow E2E · endpoint SHAP de C4 | Dom 30 ago |
+| `US-303` | Registrar los 3 modelos en MLflow y exponerlos vía API | 🟡 En curso | 65% | ML-03 de Estefany · confirmar Registry en servidor Docker · integración de C4 | Dom 30 ago |
+| `US-304a` | Diseñar prompt y guardarraíles del agente | 🔵 En revisión | 90% | Integración con RAG de Carlos · set de evaluación | Dom 6 sep |
+| `US-305` | Integrar el widget de chat RAG en FARO Web | 🔵 En revisión | 50% | RAG de Carlos · JWT de C4 · prueba end-to-end contra API integrada | Dom 6 sep |
 
 **Estados válidos:** ⬜ Por iniciar · 🟡 En curso · 🔵 En revisión (PR abierto) · ✅ Terminado · 🔴 Bloqueado
 

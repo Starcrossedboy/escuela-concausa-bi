@@ -3,9 +3,9 @@ id: DOC-WIDGET-CHAT-US305
 title: "FARO Web — Widget de chat del agente"
 owner: "Andrés González Habib"
 status: in_review
-version: "0.1"
+version: "0.2"
 traces_up: ["US-305", "REQ-006", "03_Architecture/API_Specification"]
-traces_down: ["src/frontend/agente_client.py", "src/frontend/pages/3_Chat.py", "tests/test_frontend_agente_client.py"]
+traces_down: ["src/frontend/agente_client.py", "src/frontend/pages/3_Chat.py", "tests/test_frontend_agente_client.py", "tests/test_frontend_chat_streamlit.py"]
 tags: [frontend, agente, chat, streamlit, celula-3]
 ---
 
@@ -33,7 +33,9 @@ La variable local `FARO_API_BASE_URL` define la URL de la API. Si no existe, el 
 
 - `tests/test_frontend_agente_client.py`: URL, payload, timeout, respuesta, límites de entrada y
 	rechazo de contratos incompletos mediante transporte falso.
-- Página cargada mediante `streamlit.testing.v1.AppTest` sin excepciones.
+- `tests/test_frontend_chat_streamlit.py`: dos turnos completos contra un servidor HTTP efímero;
+	verifica historial, SQL auditable y advertencia para preguntas fuera de alcance. Si Streamlit no
+	está instalado, pytest omite únicamente este caso.
 - Ruff limpio en el cliente y la página.
 
 ## Pendientes para cerrar US-305

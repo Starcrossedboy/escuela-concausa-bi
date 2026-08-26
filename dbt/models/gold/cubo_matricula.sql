@@ -1,7 +1,7 @@
 {{ config(materialized='materialized_view') }}
 
 -- US-113 / DB-01 + DB-06
--- Grano aprobado por Diana (DEC-009 pendiente de publicación canónica):
+-- Grano canónico ratificado en DEC-009:
 -- cve_mun × nivel × id_ciclo.
 --
 -- DB-01 conserva componentes observados aditivos del SQL semántico C2.
@@ -64,6 +64,7 @@ prediccion as (
         on f.cct = p.cct
         and f.id_ciclo = p.id_ciclo
         and p.modelo = 'ML-01'
+        and coalesce(nullif(to_jsonb(p)->>'grano', ''), 'escuela') = 'escuela'
 
     group by
         f.cve_mun,

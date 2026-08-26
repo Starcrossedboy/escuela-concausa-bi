@@ -71,6 +71,7 @@ left join {{ source('gold_ml_runtime', 'predicciones') }} p
     on f.cct = p.cct
     and f.id_ciclo = p.id_ciclo
     and p.modelo = 'ML-01'
+    and coalesce(nullif(to_jsonb(p)->>'grano', ''), 'escuela') = 'escuela'
 left join {{ source('gold_ml_runtime', 'recomendaciones') }} r
     on f.cct = r.cct
     and f.id_ciclo = r.id_ciclo

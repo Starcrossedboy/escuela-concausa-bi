@@ -9,10 +9,23 @@ sources:
       US-113 las consume por source() para no duplicar ownership ni lógica ML.
     tables:
       - name: predicciones
-        description: "Llave runtime: cct × id_ciclo × modelo."
+        description: >
+          Contrato runtime DEC-010 con grano dual. Para grano=escuela la llave es
+          cct × id_ciclo × modelo; para grano=municipio_nivel la llave es
+          cve_mun × nivel × id_ciclo × modelo. Durante la transición,
+          US-113 admite el esquema legacy sin columna grano y lo interpreta como
+          grano=escuela mediante to_jsonb(), sin inventar columnas físicas.
         columns:
+          - name: grano
+            description: >
+              Discriminador DEC-010 (escuela o municipio_nivel). Puede no existir
+              temporalmente en el runtime legacy; por eso no lleva data_test directo.
           - name: cct
-            data_tests: [not_null]
+            description: "Llave poblada solo cuando grano=escuela."
+          - name: cve_mun
+            description: "Llave poblada solo cuando grano=municipio_nivel."
+          - name: nivel
+            description: "Llave poblada solo cuando grano=municipio_nivel."
           - name: id_ciclo
             data_tests: [not_null]
           - name: modelo

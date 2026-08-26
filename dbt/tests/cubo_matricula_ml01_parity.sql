@@ -12,6 +12,7 @@ with esperado as (
         on f.cct = p.cct
         and f.id_ciclo = p.id_ciclo
         and p.modelo = 'ML-01'
+        and coalesce(nullif(to_jsonb(p)->>'grano', ''), 'escuela') = 'escuela'
     group by f.cve_mun, e.nivel, f.id_ciclo
 )
 select

@@ -1,7 +1,7 @@
 {{ config(materialized='materialized_view') }}
 
 -- US-113 / DB-02
--- Grano aprobado por Diana (DEC-009 pendiente de publicación canónica):
+-- Grano canónico ratificado en DEC-009:
 -- cve_mun × nivel × id_ciclo.
 --
 -- Replica el contrato semántico C2:
@@ -60,6 +60,7 @@ riesgo as (
         on f.cct = p.cct
         and f.id_ciclo = p.id_ciclo
         and p.modelo = 'ML-01'
+        and coalesce(nullif(to_jsonb(p)->>'grano', ''), 'escuela') = 'escuela'
 
     group by
         f.cve_mun,

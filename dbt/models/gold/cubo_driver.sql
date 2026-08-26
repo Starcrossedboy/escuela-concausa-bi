@@ -1,7 +1,7 @@
 {{ config(materialized='materialized_view') }}
 
 -- US-113 / DB-05
--- Grano aprobado por Diana, pendiente de publicación canónica en DEC-009:
+-- Grano canónico ratificado en DEC-009:
 -- id_driver × cve_mun × nivel × id_ciclo.
 --
 -- El universo observado se expande a los 6 drivers para distinguir:

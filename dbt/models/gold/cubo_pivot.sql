@@ -73,6 +73,7 @@ pred_ml01 as (
         p.probabilidad
     from {{ source('gold_ml_runtime', 'predicciones') }} p
     where p.modelo = 'ML-01'
+      and coalesce(nullif(to_jsonb(p)->>'grano', ''), 'escuela') = 'escuela'
 )
 
 select

@@ -39,6 +39,13 @@ tags: [requirements, traceability, matrix]
 | [[02_Requirements/Requirements_Detailed\|REQ-006]] · Agente | AC-006.1…AC-006.4 (4) | [[02_Requirements/User_Stories\|4 US]]: US-304a, US-304b, US-305, US-323 | — (vía Gold) | — (RAG sobre Gold) | [[03_Architecture/API_Specification\|API_Spec]] (`/agente`) · [[03_Architecture/Data_Model\|Data_Model]] | ⬜ | ⬜ | ⬜ | 📋 Planeado |
 | [[02_Requirements/Requirements_Detailed\|REQ-007]] · Equipo/Git/Docs | AC-007.1…AC-007.5 (5) | [[02_Requirements/User_Stories\|13 US]]: US-001–006, US-503, US-521a/b/c, US-523a/b/c | — | — | [[AGENTS\|AGENTS.md]] · [[_Meta/Vault_Rules\|vault]] · [[13_Reports/PM_Dashboard_Spec\|Tablero PM]] | [[06_Quality_Testing/Automated/_index\|TEST-002 ✅]] | [[_DevLog/2026-08-05-edgar-tablero-control-pm-v2\|2026-08-05]] · [[_DevLog/2026-08-06-edgar-directorio-github-codeowners\|2026-08-06]] · [[_DevLog/2026-08-12-alejandro-velazquez-mendoza\|2026-08-12]] · [[_DevLog/2026-08-15-luis-tellez-us503-ci-pipeline\|2026-08-15]] · US-503 · [[_DevLog/2026-08-25-alejandro-velazquez-us522a\|2026-08-25]] | ⬜ | 🟡 En progreso |
 
+## Evidencia incremental — 2026-08-26
+
+| REQ | Historias | Evidencia de prueba | DevLog | Estado |
+|---|---|---|---|---|
+| `REQ-003` | `US-302`, `US-303` | ML-02/MLflow/Gold/guardarraíles: 71 pruebas enfocadas ✅ · Registry local MLflow 3.15.1: `ML02_DriverClasificador` v1 ✅ | [[_DevLog/2026-08-26-andres-gonzalez-plan-registry-guardrails]] | 🟡 En progreso |
+| `REQ-006` | `US-304a`, `US-305` | Guardarraíles y prompt ✅ · cliente HTTP: 8 pruebas ✅ · carga Streamlit `AppTest` ✅ · Ruff ✅ | [[_DevLog/2026-08-26-andres-gonzalez-plan-registry-guardrails]] | 🟡 En progreso |
+
 ---
 
 ## Leyenda de estado

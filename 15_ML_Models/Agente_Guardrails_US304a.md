@@ -51,6 +51,10 @@ La salida se alinea con `AgenteRespuestaOut`:
 - `sql_generado`: consulta auditada, o `None` si no aplica;
 - `fuera_de_alcance`: `true` cuando el guardarraíl rechaza la pregunta.
 
+El contrato canónico de `03_Architecture/API_Specification.md` y `api/openapi.v1.json` no define un
+campo separado para la razón del rechazo. La explicación se devuelve en `respuesta`, mientras
+`fuera_de_alcance=true` permite al cliente representarla como rechazo sin interpretar el texto.
+
 ## Validación
 
 `tests/test_agente_guardrails.py` cubre:
@@ -65,6 +69,5 @@ La salida se alinea con `AgenteRespuestaOut`:
 
 ## Pendientes para cerrar US-304a
 
-- Acordar con Célula 4 si el endpoint devuelve la razón de rechazo o solo `fuera_de_alcance=true`.
 - Integrar estos guardarraíles en el servicio del agente cuando exista la capa de recuperación US-304b.
 - Registrar ejemplos aceptados/rechazados en el set de evaluación del agente (US-323).

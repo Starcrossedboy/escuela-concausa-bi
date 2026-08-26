@@ -310,7 +310,7 @@ Actualiza esta tabla **antes de cada standup**. El PM la revisa para el tablero 
 | `US-103` | Modelar la capa GOLD como esquema estrella | ✅ Terminado | 100% | — | Dom 23 ago |
 | `US-104` | Definir e implementar la tabla de features | ✅ Terminado | 100% | — | Dom 23 ago |
 | `US-105` | Implementar la estrategia de cobertura par | ✅ Terminado | 100% | — | Dom 23 ago |
-| `US-106` | Congelar esquema y documentar linaje compl | 🟡 En curso | 80% | Linaje documentado (PR #77); falta declarar el freeze — pendientes: cubos DEC-009 y `coneval_periodo_medicion` (Deni, US-113), default permanente de BUG-009 (en definición con Edgar) | Dom 6 sep |
+| `US-106` | Congelar esquema y documentar linaje compl | 🟡 En curso | 80% | Linaje documentado (PR #77); falta declarar el freeze — pendientes: cubos DEC-009 y `coneval_periodo_medicion` (Deni, US-113) | Dom 6 sep |
 
 **Estados válidos:** ⬜ Por iniciar · 🟡 En curso · 🔵 En revisión (PR abierto) · ✅ Terminado · 🔴 Bloqueado
 

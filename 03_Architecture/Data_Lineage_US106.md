@@ -234,15 +234,22 @@ flowchart TD
 
 No declarar el freeze hasta que:
 
-- [ ] PR #74 (fix D6 IDW), #75 (DEC-009) y #76 (hallazgos BUG-009) estén mergeados a `main`
+- [x] PR #74 (fix D6 IDW), #75 (DEC-009) y #76 (hallazgos BUG-009) estén mergeados a `main`
+      — los tres mergeados el 2026-08-23, junto con #73, #77, #78 y #79
 - [ ] Los 4 cubos de DEC-009 (`cubo_matricula`, `cubo_riesgo_territorial`, `cubo_driver`,
       `cubo_completitud`) estén materializados con el grano nuevo (US-113, Deni) o, si no alcanza
       el tiempo, quede documentado explícitamente como deuda técnica aceptada por Edgar
-- [ ] BUG-009 tenga default permanente en `sources.yml` (o, alternativa, se documenten los valores
+- [x] BUG-009 tenga default permanente en `sources.yml` (o, alternativa, se documenten los valores
       reales como configuración estándar del ambiente) — Edgar decide el reparto
+      — cerrado por **DEC-011**: las 11 vars (no 7) con default permanente, identifiers inline en
+      `sources.yml` y vars de modelo en `dbt_project.yml`; `dbt parse` en CI como test de regresión
 - [ ] `coneval_periodo_medicion` esté confirmado por Deni (no el placeholder `2020`)
-- [ ] El PR de Monserrat (`feat/monserrat-olivas-us211b-cubos-db05-db08`) esté abierto y su SQL de
-      `cubo_driver` revisado
+      — **sigue abierto**: `2020` quedó como deuda técnica aceptada explícitamente por Edgar Coronel
+      (PM) en DEC-011, no como valor confirmado. Rastreado como **RISK-008** (dueña: Deni, fecha
+      objetivo: 6-sep). Si no lo confirma antes del freeze, se declara con esta deuda a la vista, no
+      cerrada en silencio. Incluye confirmar que `coneval_v2` es la tabla correcta y no `coneval_test`
+- [x] El PR de Monserrat (`feat/monserrat-olivas-us211b-cubos-db05-db08`) esté abierto y su SQL de
+      `cubo_driver` revisado — PR #73, revisado y aprobado por Manuel Serranía, mergeado el 2026-08-23
 - [ ] Este documento pase de `status: draft` a `status: approved` con fecha de freeze real
 
 ## 5. Qué significa "congelar" el esquema

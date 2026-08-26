@@ -14,9 +14,412 @@ tags: [qa, bugs]
 
 | BUG | Título | Severidad | Estado | US/REQ | Fix (PR) | Test regresión |
 |---|---|---|---|---|---|---|
-| BUG-001 | | high | open | US-### | | TEST-### |
+| BUG-001 | dag_anual.py: falta start_date | high | fixed | US-102 | fix/diana-varela-us102-dag-import-errors | manual (ver detalle) |
+| BUG-002 | dag_censal_estatico.py: preset de cron no soportado | high | fixed | US-102 | fix/diana-varela-us102-dag-import-errors | manual (ver detalle) |
+| BUG-003 | `sklearn` no instalado: `test_entrenar_ml01.py` y `test_entrenar_ml02.py` fallan con `ModuleNotFoundError` en colección de pytest | low | **not_a_bug** | US-311 / REQ-003 | ya resuelto en `main` desde 2026-08-13 (PR #28) — ver detalle | ambiente local desactualizado |
+| BUG-004 | Imagen `apache/superset:latest` no incluye `psycopg2`: conexión a PostgreSQL falla con 422 al crear datasets virtuales | medium | open | US-202 | pendiente (**C5**, Edward Ruiz — US-522c) | — |
+| BUG-005 | Scripts `.sh` se corrompen a CRLF en checkouts de Windows: `.gitattributes` no tiene regla `*.sh text eol=lf`, así que con `core.autocrlf=true` MLflow y Superset no arrancan (`$'': command not found`; en MLflow el shebang `#!/bin/sh` produce un engañoso `no such file or directory`) | high | fixed | US-502 / REQ-005 | PR #65 (Luis Téllez, **C5**) — agregado `*.sh text eol=lf` a `.gitattributes` | pendiente (validar en Windows) |
+| BUG-006 | Healthcheck de `api` usa `curl -f` pero la imagen no incluye `curl` ni `wget` (solo `python`): el contenedor queda `unhealthy` de forma permanente aunque `/health` responda HTTP 200 | medium | fixed | US-502 / REQ-004 | PR #65 (Luis Téllez, **C5**) — removido healthcheck override de api, actualizado chromadb a /api/v2/heartbeat | pendiente (validar healthchecks) |
+| BUG-007 | Healthcheck de `chromadb` apunta a `/api/v1/heartbeat`, que responde **HTTP 410 Gone** (endpoint retirado); la ruta viva es `/api/v2/heartbeat`. Además arrastra el mismo problema de `curl` de BUG-006 | medium | fixed | US-502 / REQ-006 | PR #65 (Luis Téllez, **C5**) — actualizado puerto MLflow en documentación (5000 → 5001) | validado |
+| BUG-008 | `docker/api.Dockerfile` arranca `src.api.main:app` (el hola mundo de US-501, **3 rutas**) en vez de `src.api.app:app` (la app real del contrato v1, **18 rutas** bajo `/api/v1`): en el contenedor —y en la URL pública si usa este Dockerfile— **US-401, US-402 y US-411 son inalcanzables** | **high** | open | US-501 / US-411 / REQ-004 / REQ-005 | pendiente (**C5** + C4) | correr `uvicorn src.api.app:app` a mano fuera del contenedor | ver detalle |
+| BUG-009 | 11 vars de dbt sin valor por default (7 `identifier` de fuentes Bronze + 4 vars de modelo): cualquier `dbt parse`/`build`/`run` falla al renderizar el manifest aunque el modelo probado no use esas fuentes | high | fixed | US-111 | defaults inline en `sources.yml` + bloque `vars:` en `dbt_project.yml` (DEC-011) | `dbt parse` en `ci.yml` (job `dbt-contract`) |
+| BUG-010 | `/api/v1/predicciones/*` sigue leyendo `src/api/mock_data.py` en vez de `gold.predicciones` + `gold.recomendaciones`: la verificación **#4 del ensayo E2E** («≥1 modelo sirviendo por API») devolvería un valor fijo, no la predicción de ML-01 | **high** | open | US-412 / US-415 / REQ-004 / REQ-003 | pendiente (**C4**) | consultar Gold directo por SQL | ver detalle |
 
 ## Convención
+
 - Severidad: critical / high / medium / low
 - Estado: open → in_progress → fixed → closed (o wont_fix)
 - Todo `fixed` requiere test de regresión antes de `closed`.
+
+---
+
+## BUG-001 — dag_anual.py: falta start_date
+
+- **Owner:** Diana Aracely Alvarez Varela
+- **Severidad:** high
+- **Estado:** fixed
+- **traces_up:** US-102
+- **found_on:** 2026-08-16
+
+### Descripción
+Airflow no podía importar `dag_anual.py`: el DAG no tenía definido `start_date`, parámetro requerido por Airflow para poder programarse.
+
+### Pasos para reproducir
+1. Levantar el stack con `docker compose up`.
+2. Ejecutar `docker compose exec airflow-webserver airflow dags list-import-errors`.
+3. `dag_anual.py` aparece con error de importación.
+
+### Resultado actual vs esperado
+- **Actual:** DAG no cargaba, error de importación en la UI de Airflow.
+- **Esperado:** DAG carga sin errores y aparece programable en la UI.
+
+### Entorno
+- Docker Compose local, servicios airflow-webserver / airflow-scheduler / airflow-init (PR #34, US-502).
+
+### Causa raíz
+Faltaba el argumento `start_date` en la definición del DAG.
+
+### Fix
+- **PR:** fix/diana-varela-us102-dag-import-errors
+- **Test de regresión:** manual — `docker compose exec airflow-webserver airflow dags list-import-errors` ya no reporta `dag_anual.py`; confirmado en la UI de Airflow "6/6 DAGs, 0 failed".
+
+---
+
+## BUG-002 — dag_censal_estatico.py: preset de cron no soportado
+
+- **Owner:** Diana Aracely Alvarez Varela
+- **Severidad:** high
+- **Estado:** fixed
+- **traces_up:** US-102
+- **found_on:** 2026-08-16
+
+### Descripción
+Airflow no podía importar `dag_censal_estatico.py`: usaba un preset de `schedule` no soportado por el parser de cron de Airflow (`cron_descriptor.Exception.FormatException: Expression only has 1 parts. At least 5 part are required`).
+
+### Pasos para reproducir
+1. Levantar el stack con `docker compose up`.
+2. Ejecutar `docker compose exec airflow-webserver airflow dags list-import-errors`.
+3. `dag_censal_estatico.py` aparece con error de importación.
+
+### Resultado actual vs esperado
+- **Actual:** DAG no cargaba; traceback de `cron_descriptor` al parsear el preset.
+- **Esperado:** DAG carga sin errores, con una expresión cron válida de 5 partes (o el preset correcto soportado por Airflow).
+
+### Entorno
+- Docker Compose local, servicios airflow-webserver / airflow-scheduler / airflow-init (PR #34, US-502).
+
+### Causa raíz
+El `schedule` usaba un preset no reconocido por el parser de cron de Airflow.
+
+### Fix
+- **PR:** fix/diana-varela-us102-dag-import-errors
+- **Test de regresión:** manual — `docker compose exec airflow-webserver airflow dags list-import-errors` ya no reporta `dag_censal_estatico.py`; confirmado en la UI de Airflow "6/6 DAGs, 0 failed".
+
+---
+
+## BUG-003 — `sklearn` no instalado al correr pytest
+
+| | |
+|---|---|
+| **Estado** | `not_a_bug` — el repositorio no tiene el defecto |
+| **Reportado** | 2026-08-17 (commit `78ede8c`, US-202) |
+| **Historia** | US-311 / REQ-003 |
+| **Cerrado por** | Héctor Rafael Morales Marbán, 2026-08-17 |
+
+### Diagnóstico
+
+**No es un defecto del repositorio: es un ambiente local desactualizado.**
+
+`scikit-learn>=1.5` ya está en `requirements.txt` desde el **13 de agosto**, cuatro días antes de
+que se registrara este bug. Se agregó en el commit `5f0f04a` (PR #28) precisamente porque el CI
+instala **sólo** `requirements.txt` y nunca los `requirements/celula-*.txt`, así que las pruebas de
+`src/modelos/` fallaban en el runner.
+
+### Evidencia
+
+- `requirements.txt` contiene `scikit-learn>=1.5` (sección "Célula 3 - ML").
+- El job **"Calidad de codigo y vault"** del CI hace `pip install -r requirements.txt` y luego
+  `pytest tests/ -q`. Está **verde en `main`** en las corridas recientes: si faltara `sklearn`, la
+  colección de pytest fallaría ahí primero.
+- Cubre los **dos** archivos reportados: `entrenar_ml02.py` sólo necesita `sklearn` en imports de
+  nivel superior (`shap` y `mlflow` son imports diferidos).
+
+### Remediación para quien lo encuentre
+
+No hay que tocar código, ni de la Célula 3 ni de nadie:
+
+```bash
+source .venv/bin/activate
+pip install -r requirements.txt
+pytest tests/ -q
+```
+
+Le pasa a cualquier ambiente virtual creado antes del 13 de agosto que no haya reinstalado
+dependencias.
+
+### Nota de alcance
+
+Se preguntó si el fix correspondía a la Célula 3 por tocar `src/modelos/`. **No había fix de código
+pendiente**, y la decisión de no tocar `src/modelos/` fuera del alcance propio fue la correcta.
+
+---
+
+## BUG-008 — El contenedor de la API corre el «hola mundo», no la app real
+
+| | |
+|---|---|
+| **Severidad** | high — bloquea el ensayo E2E del 28–29 de agosto |
+| **Estado** | `open` |
+| **Detectado** | 2026-08-21, al ensayar el tramo ML → Gold → API |
+| **Owner** | **Célula 5** (`docker/`), en coordinación con **Célula 4** (dueña de la app) |
+
+### Qué pasa
+
+`docker/api.Dockerfile` termina en:
+
+```
+CMD uvicorn src.api.main:app --host 0.0.0.0 --port ${PORT}
+```
+
+Pero hay **dos aplicaciones** en el repositorio:
+
+| Módulo | Qué es | Rutas |
+|---|---|---|
+| `src/api/main.py` | el **«hola mundo»** de US-501 (Cloud Run): `/`, `/health`, `/info` | **3** |
+| `src/api/app.py` | la app real — `create_app()`, *"FARO API — Contrato v1"*, router `api_v1_router` bajo `/api/v1` | **18** |
+
+El contenedor arranca la primera.
+
+### Evidencia
+
+Levantando ambas y consultando su OpenAPI:
+
+```
+src.api.main:app  → 3 rutas   (/, /health, /info)
+src.api.app:app   → 18 rutas  (/api/v1/escuelas, /api/v1/predicciones/{cct},
+                               /api/v1/auth/*, /api/v1/agente/consulta, …)
+```
+
+Se reconstruyó la imagen con `docker compose up -d --build api` para descartar caché: el resultado
+es idéntico. Es el `CMD`, no la imagen.
+
+### Impacto
+
+**Todo US-401 (contrato v1), US-402 (OAuth2/JWT) y US-411 (endpoints sobre Gold) es inalcanzable en
+el contenedor.** Si el despliegue de Cloud Run usa este mismo Dockerfile, tampoco están en la URL
+pública — y el **ensayo E2E del 28–29 evalúa exactamente esa URL** con criterio go/no-go.
+
+### Corrección propuesta
+
+Apuntar el `CMD` a `src.api.app:app` y verificar la URL pública antes del 28. Conviene además
+decidir qué pasa con `src/api/main.py`: si se conserva como *health probe* mínimo o se retira, para
+que no vuelva a confundirse cuál es la app.
+
+Nota: la app real publica su OpenAPI en `/api/v1/openapi.json` y sus docs en `/api/v1/docs`, no en
+la raíz. Cualquier verificación automatizada del ensayo debe apuntar ahí.
+
+### Por qué no lo arregla quien lo reporta
+
+`docker/` es de la Célula 5 y un cambio de despliegue requiere revisión explícita de su dueño
+(regla 7 del vault).
+
+---
+
+## BUG-010 — `/predicciones` sirve datos simulados, no la salida de ML-01
+
+| | |
+|---|---|
+| **Severidad** | high — impide cumplir la verificación **#4** del ensayo E2E del 28–29 |
+| **Estado** | `open` |
+| **Detectado** | 2026-08-24, preparando el guion de la verificación #4 |
+| **Owner** | **Célula 4** (`src/api/`) |
+
+### Qué pasa
+
+`src/api/v1/predicciones.py` importa `src.api.mock_data` y construye la respuesta desde ahí. Su
+propio docstring lo anticipa: *"Los valores provienen de `mock_data`; al integrar MLflow (Célula 3)
+es un swap"*. Ese swap no se ha hecho.
+
+`src/api/repositorio_gold.py` (US-411) sí lee Gold, pero cubre `/escuelas`, `/municipios` y `/kpis`
+— **no `/predicciones`**.
+
+### Por qué importa ahora
+
+El PLAN_MAESTRO fija como verificación #4 del ensayo: *«≥1 modelo sirviendo por API (ML-01) …
+`/predicciones` devuelve valor (real o simulado, marcado)»*.
+
+El criterio **admite valores simulados si están marcados**, así que la falta de datos reales del 911
+no bloquea. Lo que sí bloquea es que hoy el endpoint no consulta el modelo en absoluto: devolvería un
+número escrito a mano, no la predicción de ML-01. La verificación pasaría de forma engañosa.
+
+### Lo que el swap necesita
+
+`gold.predicciones` y `gold.recomendaciones` ya están pobladas y verificadas contra Postgres
+(US-313). El mapeo a `PrediccionOut` es directo salvo por un campo:
+
+| Campo de `PrediccionOut` | Origen | ¿Existe? |
+|---|---|---|
+| `cct`, `id_ciclo` | `gold.predicciones` (filtrar `grano = 'escuela'`, `modelo = 'ML-01'`) | ✅ |
+| `indice_riesgo` | `gold.predicciones.indice_riesgo` | ✅ |
+| `mlflow_run_id` | `gold.predicciones.mlflow_run_id` | ✅ |
+| `driver_dominante`, `recomendacion` | `gold.recomendaciones` por `cct` + `id_ciclo` | ✅ |
+| **`cluster`** | **ML-03 (US-321, Estefany Hernández)** | ❌ **no existe** |
+
+**`PrediccionOut.cluster` es un `StrictInt` obligatorio sin productor.** Mientras ML-03 no exista,
+el swap no puede completar la respuesta sin inventar el valor. Opciones a decidir por la Célula 4:
+hacer `cluster` opcional, o declararlo explícitamente ausente — nunca rellenarlo con un entero
+arbitrario, por la misma regla de `SIN_DATO` que rige el resto del proyecto.
+
+### Nota
+
+Filtrar por `grano = 'escuela'` es necesario desde **DEC-010**: `gold.predicciones` admite también
+filas a `municipio × nivel`, que no corresponden a un CCT.
+
+## BUG-004 — Imagen `apache/superset:latest` no incluye `psycopg2`
+
+- **Owner:** **Célula 5** (DevOps/Cloud) — Edward Ruiz (US-522c)
+- **Severidad:** medium
+- **Estado:** open
+- **traces_up:** US-202
+- **found_on:** 2026-08-17
+
+### Descripción
+La imagen oficial `apache/superset:latest` no trae el driver `psycopg2` para PostgreSQL. Sin él, Superset no puede conectarse a la base de datos PostgreSQL y la creación de datasets virtuales vía API falla con HTTP 422 ("Connection failed, please check your connection settings").
+
+### Pasos para reproducir
+1. `docker compose up -d db superset`
+2. Abrir Superset en http://127.0.0.1:8088
+3. Ir a Data → Databases → Add → PostgreSQL
+4. Configurar la conexión (host: `db`, puerto: `5432`, usuario, contraseña, base de datos)
+5. Probar conexión → falla con 422
+
+### Resultado actual vs esperado
+- **Actual:** 422 "Connection failed" al intentar conectar Superset con PostgreSQL.
+- **Esperado:** Conexión exitosa; Superset puede crear datasets virtuales sobre la base de datos.
+
+### Entorno
+- Docker Compose local, servicio `superset` (`apache/superset:latest`)
+- PostgreSQL en servicio `db` (`postgres:15-alpine`)
+
+### Causa raíz
+La imagen oficial no incluye `psycopg2-binary` en su venv (`/app/.venv/`). Superset intenta usar SQLAlchemy para conectarse a PostgreSQL pero falla al importar el driver.
+
+### Fix temporal (workaround)
+```bash
+docker exec -u root faro-superset pip install --target /app/.venv/lib/python3.10/site-packages psycopg2-binary
+```
+> **Nota:** se pierde al reiniciar el contenedor.
+
+### Fix permanente (pendiente)
+- Crear un Dockerfile custom que extienda `apache/superset` e instale `psycopg2-binary`, O
+- Agregar la instalación a `docker/superset-init.sh` ejecutando como root antes de iniciar Superset.
+
+### Fix (PR)
+- pendiente (**C5**, Edward Ruiz — US-522c)
+
+### Test de regresión
+- pendiente
+
+---
+
+## BUG-009 — 11 vars de dbt sin valor por default
+
+- **Owner:** Edgar Edmundo Coronel Navarrete
+- **Severidad:** high
+- **Estado:** fixed
+- **traces_up:** US-111
+- **found_on:** 2026-08-21
+- **fixed_on:** 2026-08-23
+
+### Descripción
+Al validar `matricula_historica` (modelo nuevo y aislado, RISK-007/DEC-007) con `dbt build --select matricula_historica`, el build falló con `Required var 'bronze_cct_identifier' not found in config` — una fuente que el modelo ni siquiera consume. Causa: 7 de las 10 tablas Bronze declaradas en `dbt/models/sources.yml` no tienen un valor por default en su `identifier` (a diferencia de `formato911`, `formato911_historico` y `cemabe`, que sí lo tienen). Como dbt necesita renderizar el manifest completo del proyecto antes de ejecutar cualquier selección, cualquier `--select` falla si falta CUALQUIERA de las 7 vars, sin importar si el modelo seleccionado las usa.
+
+Las 7 fuentes afectadas tocan varias historias distintas, sin un solo dueño:
+- `bronze_cct_identifier` (DS-02 Catálogo CCT)
+- `bronze_sesnsp_identifier`, `bronze_sinaica_observaciones_identifier`, `bronze_sinaica_estaciones_identifier` (DS-04/DS-05, Luis García)
+- `bronze_coneval_identifier` (DS-07, Deni)
+- `bronze_conagua_identifier`, `bronze_conapo_identifier` (DS-06/DS-08, Emilio)
+
+`sources.yml` es de Deni (US-111).
+
+### Pasos para reproducir
+1. `cd dbt`
+2. Correr cualquier `dbt build`/`dbt run`, con o sin `--select`, sin pasar las 7 vars por `--vars`.
+3. Falla con `Compilation Error: Required var 'bronze_cct_identifier' not found in config` (o el nombre de la siguiente var sin default que encuentre).
+
+### Resultado actual vs esperado
+- **Actual:** `dbt build --select <modelo>` falla al renderizar fuentes que ese modelo no consume.
+- **Esperado:** `dbt build --select <modelo>` sólo debería requerir las vars/fuentes que ese modelo realmente usa; o, alternativamente, las 7 fuentes deberían tener un valor por default como ya tienen `formato911`/`formato911_historico`/`cemabe`.
+
+### Entorno
+- dbt-core 1.12.0, dbt-postgres 1.11.0 (`requirements/celula-1.txt`)
+- `dbt/models/sources.yml`
+
+### Causa raíz
+7 de los 10 `identifier` en `sources.yml` se declararon como `"{{ var('bronze_X_identifier') }}"` sin segundo argumento de default, a diferencia de los 3 que sí lo tienen (`"{{ var('bronze_formato911_identifier', 'formato911_2024_2025') }}"`, etc.).
+
+Además, `dbt/dbt_project.yml` no tenía ningún bloque `vars:`, así que las 4 vars usadas dentro de modelos Silver tampoco tenían dónde tomar un default. El alcance real eran **11 vars, no 7**.
+
+### Fix
+- **PR:** `fix/edgar-navarrete-bug009-defaults-dbt` · **DEC-011** · 2026-08-23
+- **Reparto (decisión del PM):** no se dividió entre los 4 dueños de DS. Cuatro PRs paralelos sobre
+  el mismo YAML garantizaban conflicto y 4 ciclos de revisión para ~15 líneas, a dos semanas del
+  freeze. Lo ejecuta el PM en un solo PR; cada dueño de fuente revisa **sus** valores como reviewer.
+- **Ubicación (ratificada por Diana Alvarez Varela, TL Célula 1, regla 7):** los `identifier` llevan
+  su default **inline** en `sources.yml`, extendiendo el patrón que ya existía; las 4 vars de modelo
+  van en un bloque `vars:` nuevo en `dbt_project.yml`, porque `sources.yml` no tiene dónde alojarlas.
+
+| Var | Default | Dueño que confirma |
+|---|---|---|
+| `bronze_cct_identifier` | `cct_sample` | Diana Alvarez Varela (DS-02) |
+| `bronze_sesnsp_identifier` | `sesnsp_test` | Luis Enrique García Vázquez (DS-04) |
+| `bronze_sinaica_observaciones_identifier` | `sinaica_observaciones_test` | Luis Enrique García Vázquez (DS-05) |
+| `bronze_sinaica_estaciones_identifier` | `sinaica_estaciones_test` | Luis Enrique García Vázquez (DS-05) |
+| `bronze_conapo_identifier` | `conapo_sample` | Emilio Galnares Ruiz (DS-08) |
+| `bronze_coneval_identifier` | `coneval_v2` | Deni Garrido Fragoso (DS-07) |
+| `bronze_conagua_identifier` | `conagua_no_ingerido` ⚠️ falso a propósito | Emilio Galnares Ruiz (DS-06) |
+| `bronze_conapo_age_column` | `grupo_edad` | Emilio Galnares Ruiz (DS-08) |
+| `bronze_sesnsp_count_column` | `conteo` | Luis Enrique García Vázquez (DS-04) |
+| `bronze_conagua_id_column` | `id_estacion` (del esquema documentado, sin datos que lo confirmen) | Emilio Galnares Ruiz (DS-06) |
+| `coneval_periodo_medicion` | `2020` ⚠️ deuda técnica | Deni Garrido Fragoso (DS-07) |
+
+**Los dos valores que no se resolvieron, y por qué no se cerraron callados:**
+
+1. `bronze_conagua_identifier` → `conagua_no_ingerido`. No existe ninguna tabla `conagua*` real en
+   `bronze`. El nombre es deliberadamente falso (a sugerencia de Diana) para que nadie lo confunda
+   con una tabla real al verlo en un log: deja pasar el parse del proyecto y hace que `agua_region`
+   falle en runtime **de forma visible**. D5 sigue `SIN_DATO` explícito.
+2. `coneval_periodo_medicion` → `2020`. **Deuda técnica aceptada explícitamente por Edgar Coronel
+   (PM).** No es una columna: ninguna tabla `coneval_*` trae año o período, así que es un entero
+   fijo heredado del ensayo E2E (PR #70) y sin confirmar contra la fuente. Si está mal, no rompe
+   nada — **etiqueta mal en silencio** el período de medición del rezago social en
+   `silver.rezago_municipio` y todo lo que cuelga de ahí. Pendiente de confirmación por Deni Garrido
+   Fragoso (dueña de DS-07) antes del freeze del 6-sep-2026; es también un ítem del checklist de
+   freeze en [[03_Architecture/Data_Lineage_US106]].
+   **Rastreado como `RISK-008`** en [[10_Risk_Governance/Risk_Register]], con dueña y fecha objetivo:
+   el `Bug_Register` no lo alcanza porque el defecto ya está corregido — lo que queda es un valor sin
+   confirmar, y el tablero PM lee el registro de riesgos, no el de bugs.
+
+- **Test de regresión:** job `dbt-contract` en `.github/workflows/ci.yml` — corre `dbt parse` en cada
+  PR con un perfil dummy (parse no abre conexión a la base). Verificado empíricamente antes de
+  abrir el PR: con `main` el parse aborta con `Compilation Error: Required var 'bronze_cct_identifier'
+  not found in config`; con el fix termina en exit 0 y genera el manifest completo. Es un cambio a
+  `.github/` (regla 7): lo revisa Diana Alvarez Varela como TL de Célula 1 y ratificadora de DEC-011,
+  bajo la compuerta única de DEC-003. La revisión de Célula 5 se omite conscientemente por tiempo
+  (freeze el 6-sep); el job está aislado y es reversible sin tocar nada más.
+- **Efecto colateral:** los comandos que `CLAUDE.md` documenta como estándar (`dbt run --select
+  silver`, `dbt test`) estaban rotos de fábrica para cualquiera que clonara el repo. Ahora funcionan
+  sin pasar `--vars` a mano.
+
+### Actualización 2026-08-23 — valores reales encontrados (Diana, materializando Gold para el ensayo E2E de Héctor, PR #70)
+
+Al construir un `dbt build` real contra la base del docker-compose local (no solo compilar, con datos) para que Héctor tuviera algo que mostrar en el ensayo del 28-29, se ubicaron los valores reales de 6 de las 7 identifiers, más 2 vars adicionales no documentadas antes que también hacían falta:
+
+| Var | Valor real encontrado |
+|---|---|
+| `bronze_cct_identifier` | `cct_sample` |
+| `bronze_sesnsp_identifier` | `sesnsp_test` |
+| `bronze_sinaica_observaciones_identifier` | `sinaica_observaciones_test` |
+| `bronze_sinaica_estaciones_identifier` | `sinaica_estaciones_test` |
+| `bronze_conapo_identifier` | `conapo_sample` |
+| `bronze_coneval_identifier` | `coneval_v2` (existe también `coneval_test`, con `entidad` como código crudo en vez de nombre — parece una ingesta de prueba anterior; **no confirmado con el dueño de DS-07**) |
+| `bronze_conagua_identifier` | sin resolver — no existe ninguna tabla `conagua*` ingerida todavía en `bronze` |
+
+Además, `poblacion_municipio.sql` y `delitos_municipio.sql` requieren dos vars que tampoco estaban documentadas aquí:
+- `bronze_conapo_age_column` → `grupo_edad` (la columna ya existe con ese nombre literal en `conapo_sample`)
+- `bronze_sesnsp_count_column` → `conteo` (idem, ya existe en `sesnsp_test`)
+
+Y `rezago_municipio.sql` requiere `coneval_periodo_medicion`, que **no es una columna** — ninguna de las dos tablas `coneval_*` trae año/período. Es un valor entero fijo que hay que decidir a mano. Se usó `2020` como placeholder solo para el ensayo E2E (no confirmado contra la fuente real) — **pendiente que Deni (dueña de DS-07) confirme el año correcto** antes de usar estos datos para algo más que la demo.
+
+Esto no cierra BUG-009 — sigue pendiente que Edgar decida el reparto para que estos valores (o los que correspondan) queden como default permanente en `sources.yml` — pero deja evidencia empírica lista para quien lo tome. Detalle completo en el DevLog `_DevLog/2026-08-23-diana-alvarez-bug009-hallazgos-gold-e2e.md`.
+
+### Actualización 2026-08-23 — cierre (Edgar, PM · DEC-011)
+
+Al ejecutar el reparto apareció una **var número 11** que no estaba en esta lista:
+`bronze_conagua_id_column`, en `dbt/models/silver/agua_region.sql:4`. No se había topado porque
+`conagua` no tiene datos ingeridos y `agua_region` nunca llegó a correr. Diana la ratificó como parte
+del alcance el mismo día.
+
+Los 11 defaults quedaron aplicados con la ubicación que decidió Diana (identifiers inline en
+`sources.yml`, vars de modelo en `dbt_project.yml`) — ver la sección **Fix** arriba para la tabla
+completa de valores, dueños y los dos casos que quedaron sin confirmar.

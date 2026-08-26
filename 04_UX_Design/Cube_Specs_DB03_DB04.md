@@ -1,0 +1,390 @@
+---
+id: DOC-CUBESPEC-DB0304
+title: "Cube Specs — Contrato semántico de los cubos de DB-03 y DB-04"
+owner: "Marina García del Buey"
+status: approved
+version: "1.0"
+traces_up: ["DOC-SCREENSPECS", "DOC-DATAMODEL", "US-211a", "REQ-002"]
+traces_down: ["US-212", "US-214a", "US-215a"]
+last_reviewed: "2026-08-21"
+tags: [bi, cubos, capa-semantica, dashboards, celula-2]
+---
+
+# Cube Specs — Contrato semántico de DB-03 y DB-04
+
+> Métricas, jerarquías y granos de los cubos que alimentan **DB-03 (Ficha de escuela)** y
+> **DB-04 (Comparador de municipios)**. Implementa **US-211a** (REQ-002) y es el **insumo formal
+> para US-113** (construcción de los cubos, Célula 1).
+> → [[04_UX_Design/_index]] · Fuentes canónicas: [[03_Architecture/Data_Model]] · [[04_UX_Design/Screen_Specs]]
+
+---
+
+## 1. Alcance y frontera de responsabilidad
+
+| Qué | Quién | Dónde vive |
+|---|---|---|
+| **Modelar** métricas, jerarquías y granos (este documento) | Marina García del Buey (C2) | `04_UX_Design/Cube_Specs_DB03_DB04.md` |
+| **Materializar** los cubos en Gold (`dbt`) | Deni Garrido Fragoso (C1) · **US-113** | `dbt/` |
+| **Esquema canónico** de Gold | Diana Aracely Alvarez Varela (C1) | [[03_Architecture/Data_Model]] |
+| **Catálogo canónico de KPIs** | Manuel Alejandro Serranía Reinada (C2) · US-201 | [[04_UX_Design/Screen_Specs]] |
+| **Capa semántica de Superset** (convención) | Manuel Alejandro Serranía Reinada (C2) · US-202 | `superset/` |
+| **Datasets y métricas de DB-03/DB-04** | Marina García del Buey (C2) | `superset/semantic/` |
+
+Este documento **no modifica** el esquema canónico. Donde se necesita un cambio en Gold, se registra
+como **solicitud a la Célula 1** (§8), nunca como edición de [[03_Architecture/Data_Model]]
+(regla 7 del vault: cambio de esquema = revisión humana explícita).
+
+---
+
+## 2. Reglas de modelado heredadas (no negociables)
+
+| # | Regla | Origen |
+|---|---|---|
+| R1 | **Las salidas de ML se leen siempre por `JOIN`**, nunca como columna del hecho. `indice_riesgo` vive en `gold.predicciones` (`modelo = 'ML-01'`); `driver_dominante`, `recomendacion` y `prioridad` en `gold.recomendaciones`. Se unen por `cct, id_ciclo`. | [[03_Architecture/Data_Model]] §4.1 · [[_DevLog/2026-08-13-manuel-serrania-screenspecs-cubos]] |
+| R2 | **`SIN_DATO` explícito: nunca cero, nunca nulo silencioso.** Prohibido `COALESCE(<driver>, 0)`. Toda métrica de driver viaja con su bandera `d#_cobertura`. | [[03_Architecture/Data_Model]] §1 · Screen_Specs P2 |
+| R3 | **Umbral de negocio:** "escuela en riesgo" = `indice_riesgo >= 0.6` ≈ perder ~5% de matrícula. | [[15_ML_Models/Indice_Riesgo_ML01]] · ratificado 2026-08-13 |
+| R4 | **Llaves:** `cct` (10 caracteres), `cve_mun` (5 dígitos INEGI = `cve_ent`(2) + municipio(3)), `id_ciclo`. | [[03_Architecture/Data_Model]] §9 |
+| R5 | **Gold acotado** a `SCOPE_ENTIDADES = ["09","15","19","14"]`. El filtro ya viene aplicado desde Gold; los cubos **no** lo repiten. | [[03_Architecture/Data_Model]] §7 |
+| R6 | **La escuela es la unidad mínima; jamás el alumno.** Ninguna métrica desagrega por persona. | [[03_Architecture/Data_Model]] §1 |
+| R7 | **Filtros globales obligatorios:** ciclo, entidad y nivel educativo, aplicables a *ambos* tableros. | AC-002.2 ([[02_Requirements/Requirements_Detailed]]) |
+
+### 2.1 Decisión de diseño: promedios que **excluyen** `SIN_DATO`
+
+Un promedio de driver **nunca** se calcula sobre el total de escuelas: se calcula sobre las escuelas
+con cobertura `OK` y se publica junto al **denominador real** (`escuelas_con_d#`). Promediar tratando
+`SIN_DATO` como cero afirmaría "aquí no hay problema" justo donde el Estado no está midiendo — que es
+el hallazgo que el proyecto quiere mostrar, no esconder.
+
+### 2.2 Decisión de diseño: `LEFT JOIN` a las salidas de ML
+
+Los KPI agregados del catálogo de Manuel (KPI-03, KPI-04, KPI-10) usan `JOIN` interno porque miden
+poblaciones donde la predicción existe. **En DB-03 el `JOIN` debe ser `LEFT`**: la ficha de una escuela
+tiene que renderizarse aunque el modelo todavía no la haya puntuado (hoy `gold.predicciones` ni existe;
+llega en S4). Con `JOIN` interno, la escuela desaparecería del tablero sin explicación — un nulo
+silencioso a nivel de fila, que es exactamente lo que R2 prohíbe.
+
+Por eso ambos cubos exponen `cobertura_prediccion` y `cobertura_recomendacion` con valores
+`OK` / `SIN_DATO`, y la ficha muestra literalmente **"sin dato disponible"** en esos bloques.
+
+> ✅ **Ratificado por [[04_UX_Design/Screen_Specs|Manuel]] el 2026-08-15** (US-201): el catálogo canónico
+> adoptó el `LEFT JOIN` en el grano de escuela y lo documenta en KPI-17 y KPI-18. Este documento no cambia la
+> regla R1 (la lectura sigue siendo por `JOIN`), solo fija el **tipo de `JOIN`** para el grano de
+> escuela.
+
+---
+
+## 3. `gold.cubo_escuela_360` — DB-03 Ficha de escuela
+
+### 3.1 Grano y llaves
+
+| | |
+|---|---|
+| **Grano** | una fila por **`cct` × `id_ciclo`** |
+| **Llave primaria** | (`cct`, `id_ciclo`) |
+| **Cardinalidad esperada** | escuelas de las 4 entidades × ciclos disponibles |
+| **Banderas de cobertura** | `d1_cobertura`…`d6_cobertura`, `cobertura_prediccion`, `cobertura_recomendacion` |
+| **Alimenta** | DB-03 (AC-002.4: perfil, drivers, predicción y recomendación por CCT) |
+
+### 3.2 Columnas del cubo
+
+**Identidad y contexto** (dimensiones conformadas, no se agregan):
+
+| Columna | Tipo | Origen | Uso en DB-03 |
+|---|---|---|---|
+| `cct` | str(10) | `fact_escuela_ciclo` | Llave de drill-down y de búsqueda |
+| `id_ciclo` / `ciclo` | str | `dim_tiempo` | Filtro global de ciclo · eje de la serie de tiempo |
+| `anio_inicio` | int | `dim_tiempo` | Orden cronológico de la serie |
+| `nombre_escuela` | str | `dim_escuela.nombre` | Encabezado de la ficha |
+| `nivel` | str | `dim_escuela` | **Filtro global de nivel** |
+| `sostenimiento` | str | `dim_escuela` | Segmentación |
+| `latitud` / `longitud` | float | `dim_escuela` | Mini-mapa de ubicación |
+| `cve_ent` | str(2) | `dim_escuela` | **Filtro global de entidad** |
+| `cve_mun` | str(5) | `fact_escuela_ciclo` | Salto a DB-04 |
+| `nombre_municipio` / `nombre_entidad` | str | `dim_municipio` | Migas de pan de la jerarquía |
+
+**Métricas observadas** (aditivas salvo nota):
+
+| Columna | Tipo | Agregación | Nota |
+|---|---|---|---|
+| `matricula_total` | int | `SUM` | Serie de tiempo del tablero |
+| `variacion_matricula` | float | **no aditiva** — ponderar por matrícula | Ver métrica derivada §3.4 |
+| `indice_completitud_drivers` | float[0,1] | `AVG` | Cuántos de los 6 drivers se observaron |
+
+**Drivers** (uno por cada D1…D6):
+
+| Columna | Tipo | Nota |
+|---|---|---|
+| `d1`…`d6` | float \| `NULL` | Score del driver. **`NULL` solo cuando la bandera dice `SIN_DATO`** |
+| `d1_cobertura`…`d6_cobertura` | enum `OK`/`SIN_DATO` | **Fuente de verdad de la cobertura.** El tablero lee esta columna, no el nulo |
+
+**Infraestructura CEMABE** (perfil de la escuela, D3/D4):
+
+`agua`, `drenaje`, `electricidad`, `sanitarios`, `internet`, `computadoras` — desde `dim_escuela`.
+Se muestran como *chips* con tres estados: **sí / no / sin dato**. Nunca "no" cuando es `SIN_DATO`.
+
+**Salidas de modelos** (`LEFT JOIN`, §2.2):
+
+| Columna | Tipo | Origen | Nota |
+|---|---|---|---|
+| `indice_riesgo` | float[0,1] \| `NULL` | `gold.predicciones` (`ML-01`) | R1 |
+| `en_riesgo` | bool \| `NULL` | derivado | `indice_riesgo >= 0.6` (R3). `NULL` si no hay predicción — **nunca `false`** |
+| `variacion_proyectada` | float \| `NULL` | `gold.predicciones.valor` | Variación cruda del modelo |
+| `probabilidad` | float \| `NULL` | `gold.predicciones` | — |
+| `cobertura_prediccion` | enum `OK`/`SIN_DATO` | derivado | Gobierna qué muestra el bloque de predicción |
+| `driver_dominante` | str (`D1`…`D6`) \| `NULL` | `gold.recomendaciones` | R1 |
+| `nombre_driver` | str \| `NULL` | `dim_driver` | Etiqueta legible del driver dominante |
+| `recomendacion` | str \| `NULL` | `gold.recomendaciones` | El diferenciador prescriptivo del proyecto |
+| `prioridad` | str \| `NULL` | `gold.recomendaciones` | — |
+| `cobertura_recomendacion` | enum `OK`/`SIN_DATO` | derivado | Gobierna el bloque de recomendación |
+
+### 3.3 Jerarquías y drill-down
+
+```
+Entidad (cve_ent)
+   └── Municipio (cve_mun)
+         └── Escuela (cct)                    ← grano del cubo
+               └── Driver (D1…D6)             ← dimensión transversal, dentro de la ficha
+```
+
+| Ruta | Desde | Hacia | Llave |
+|---|---|---|---|
+| Entrada | DB-01 / DB-02 | **DB-03** | `cct` |
+| Lateral | **DB-03** | DB-04 | `cve_mun` de la escuela |
+| Salida | **DB-03** | DB-06 / DB-09 | `cct` + `id_ciclo` |
+
+Las rutas se implementan en **US-214a**; aquí solo se fija la llave que las hace posibles.
+Coinciden con la tabla de navegación cruzada de [[04_UX_Design/Screen_Specs]] §3.
+
+### 3.4 Métricas derivadas (capa semántica de Superset)
+
+| Métrica | Expresión | Formato |
+|---|---|---|
+| `matricula_total` | `SUM(matricula_total)` | entero |
+| `variacion_ponderada_pct` | `SUM(variacion_matricula * matricula_total) / NULLIF(SUM(matricula_total), 0)` | % 1 decimal |
+| `completitud_promedio` | `AVG(indice_completitud_drivers)` | % 0 decimales |
+| `indice_riesgo` | `AVG(indice_riesgo)` | 0.00 |
+| `escuelas_en_riesgo` | `COUNT(*) FILTER (WHERE en_riesgo)` | entero |
+| `drivers_sin_dato` | `6 - ROUND(indice_completitud_drivers * 6)` | entero |
+
+> En el grano de una sola escuela estas agregaciones devuelven el valor de la fila; se declaran así
+> para que los mismos objetos sirvan cuando DB-03 muestre varias escuelas de un municipio.
+
+---
+
+## 4. `gold.cubo_comparador_municipio` — DB-04 Comparador de municipios
+
+### 4.1 Grano y llaves
+
+| | |
+|---|---|
+| **Grano propuesto** | una fila por **`cve_mun` × `nivel` × `id_ciclo`** |
+| **Grano en el esquema canónico hoy** | `municipio × ciclo` ([[03_Architecture/Data_Model]] §4.3) |
+| **Llave primaria** | (`cve_mun`, `nivel`, `id_ciclo`) |
+| **Banderas de cobertura** | `escuelas_con_d1`…`escuelas_con_d6`, `cobertura_riesgo` |
+| **Alimenta** | DB-04 (comparación lado a lado de municipios) |
+
+> 🔴 **Cambio de grano solicitado a la Célula 1 — ver §8.1.** El grano canónico (`municipio × ciclo`)
+> **no puede satisfacer AC-002.2**: si el cubo se pre-agrega sin `nivel`, el filtro global de nivel
+> educativo no tiene sobre qué operar en DB-04. La solución estándar es bajar un nivel el grano y
+> **reagregarlo con métricas aditivas** (§4.3).
+
+### 4.2 Columnas del cubo
+
+**Identidad y contexto:**
+
+| Columna | Tipo | Origen |
+|---|---|---|
+| `cve_mun` | str(5) | `fact_escuela_ciclo` |
+| `cve_ent` | str(2) | `dim_municipio` |
+| `nombre_municipio` / `nombre_entidad` | str | `dim_municipio` |
+| `nivel` | str | `dim_escuela` |
+| `id_ciclo` / `ciclo` / `anio_inicio` | str/int | `dim_tiempo` |
+
+**Contexto socioeconómico** (KPI-14, constante dentro del municipio × ciclo):
+
+`poblacion`, `pobreza_pct`, `grado_rezago`, `indice_rezago_social` — desde `dim_municipio`.
+
+**Componentes aditivos** (§4.3 explica por qué son componentes y no promedios):
+
+| Columna | Tipo | Definición |
+|---|---|---|
+| `escuelas` | int | `COUNT(DISTINCT cct)` |
+| `matricula_total` | int | `SUM(matricula_total)` |
+| `variacion_x_matricula` | float | `SUM(variacion_matricula * matricula_total)` — numerador de la variación ponderada |
+| `suma_completitud` | float | `SUM(indice_completitud_drivers)` |
+| `suma_d1`…`suma_d6` | float | `SUM(d#)` **solo sobre `d#_cobertura = 'OK'`** |
+| `escuelas_con_d1`…`escuelas_con_d6` | int | Denominador real de cada driver |
+| `suma_indice_riesgo` | float | `SUM(indice_riesgo)` sobre las escuelas con predicción |
+| `escuelas_con_prediccion` | int | Denominador del riesgo promedio |
+| `escuelas_en_riesgo` | int | `COUNT(*) FILTER (WHERE indice_riesgo >= 0.6)` (R3) |
+| `cobertura_riesgo` | enum `OK`/`SIN_DATO` | `SIN_DATO` cuando `escuelas_con_prediccion = 0` |
+
+### 4.3 Por qué componentes aditivos y no promedios
+
+Un promedio **no se puede reagregar**: el promedio de los promedios de tres niveles educativos no es el
+promedio del municipio. Si el cubo guardara `indice_riesgo_promedio` y el usuario quitara el filtro de
+nivel, Superset promediaría promedios y daría un número **incorrecto**.
+
+Guardando el **numerador** y el **denominador** por separado, cualquier combinación de filtros se
+recalcula bien:
+
+```
+indice_riesgo_promedio  = SUM(suma_indice_riesgo)  / NULLIF(SUM(escuelas_con_prediccion), 0)
+variacion_ponderada_pct = SUM(variacion_x_matricula) / NULLIF(SUM(matricula_total), 0)
+d1_promedio             = SUM(suma_d1)             / NULLIF(SUM(escuelas_con_d1), 0)
+```
+
+Las dos primeras fórmulas son **idénticas** a KPI-03 y KPI-02 de [[04_UX_Design/Screen_Specs]]: el cubo
+solo las precalcula, no las redefine.
+
+### 4.4 Métricas derivadas (capa semántica de Superset)
+
+| Métrica | Expresión | Formato |
+|---|---|---|
+| `escuelas` | `SUM(escuelas)` | entero |
+| `matricula_total` | `SUM(matricula_total)` | entero |
+| `variacion_ponderada_pct` | `SUM(variacion_x_matricula) / NULLIF(SUM(matricula_total), 0)` | % 1 decimal |
+| `matricula_por_escuela` | `SUM(matricula_total) / NULLIF(SUM(escuelas), 0)` | 1 decimal |
+| `indice_riesgo_promedio` | `SUM(suma_indice_riesgo) / NULLIF(SUM(escuelas_con_prediccion), 0)` | 0.00 |
+| `escuelas_en_riesgo` | `SUM(escuelas_en_riesgo)` | entero |
+| `pct_escuelas_en_riesgo` | `SUM(escuelas_en_riesgo) * 100.0 / NULLIF(SUM(escuelas_con_prediccion), 0)` | % 1 decimal |
+| `completitud_promedio` | `SUM(suma_completitud) / NULLIF(SUM(escuelas), 0)` | % 0 decimales |
+| `d1_promedio`…`d6_promedio` | `SUM(suma_d#) / NULLIF(SUM(escuelas_con_d#), 0)` | 0.00 |
+| `pct_escuelas_con_d1`…`d6` | `SUM(escuelas_con_d#) * 100.0 / NULLIF(SUM(escuelas), 0)` | % 0 decimales |
+
+> `pct_escuelas_en_riesgo` divide entre **escuelas con predicción**, no entre el total: decir "10% en
+> riesgo" cuando solo el 30% de las escuelas fue puntuada sería inventar una cobertura que no existe.
+> Todo gráfico que use esta métrica muestra al lado `escuelas_con_prediccion` como denominador visible.
+
+### 4.5 Jerarquías y drill-down
+
+```
+Entidad (cve_ent)
+   └── Municipio (cve_mun)          ← grano de comparación (n a n, 2 a 4 municipios)
+         └── Nivel educativo         ← desglose interno / filtro global
+               └── (salto a DB-03 por cct)
+```
+
+| Ruta | Desde | Hacia | Llave |
+|---|---|---|---|
+| Entrada | DB-02 Mapa | **DB-04** | `cve_mun` seleccionado |
+| Lateral | **DB-04** | DB-03 | `cct` de la escuela elegida en el municipio |
+
+---
+
+## 5. Mapeo a los KPIs canónicos
+
+Las fórmulas **no se duplican**: este documento referencia el catálogo de
+[[04_UX_Design/Screen_Specs]] §4 y solo precalcula sus componentes.
+
+| Métrica del cubo | KPI canónico | Cubo |
+|---|---|---|
+| `matricula_total` | KPI-01 | ambos |
+| `variacion_ponderada_pct` | KPI-02 | ambos |
+| `indice_riesgo_promedio` | KPI-03 | `cubo_comparador_municipio` |
+| `escuelas_en_riesgo` | KPI-04 | ambos |
+| `completitud_promedio` | KPI-05 | ambos |
+| `pct_escuelas_con_d#` | KPI-06 (complemento) | `cubo_comparador_municipio` |
+| `driver_dominante` / `nombre_driver` | KPI-07 | `cubo_escuela_360` |
+| `poblacion`, `pobreza_pct`, `grado_rezago`, `indice_rezago_social` | KPI-14 | `cubo_comparador_municipio` |
+
+### 5.1 KPIs de DB-03 — propuestos aquí, **publicados por Manuel en el catálogo**
+
+El catálogo va de KPI-01 a KPI-14 y **DB-03 no tiene ningún KPI propio**, pero **AC-002.4** exige que la
+ficha muestre perfil, drivers, predicción y recomendación por CCT. Se proponen cuatro altas para que
+Manuel las incorpore a [[04_UX_Design/Screen_Specs]] (documento canónico suyo — regla 1 del vault:
+un tema, un archivo canónico):
+
+| ID propuesto | KPI | Grano | Expresión | Sustenta |
+|---|---|---|---|---|
+| **KPI-15** | Perfil de matrícula de la escuela | cct × ciclo | `SUM(matricula_total)` + serie por `anio_inicio` | AC-002.4, AC-002.5 |
+| **KPI-16** | Perfil de drivers de la escuela | cct × ciclo | `d1`…`d6` con su `d#_cobertura`; `SIN_DATO` se dibuja como hueco, no como cero | AC-002.4, AC-002.6 |
+| **KPI-17** | Predicción de la escuela | cct × ciclo | `indice_riesgo` (`LEFT JOIN gold.predicciones`, `modelo='ML-01'`), semáforo en 0.6 | AC-002.4 |
+| **KPI-18** | Recomendación prescriptiva de la escuela | cct × ciclo | `driver_dominante` + `recomendacion` + `prioridad` (`LEFT JOIN gold.recomendaciones`) | AC-002.4 |
+
+✅ **Los cuatro ya están publicados** en [[04_UX_Design/Screen_Specs]] §4 (2026-08-15, US-201), con las
+mismas fórmulas y el mismo grano que se proponen aquí. El catálogo de Manuel es la **fuente canónica**
+de KPI-15…KPI-18; esta tabla queda como registro del origen de la propuesta.
+
+---
+
+## 6. SQL de referencia — entregable para US-113 (Célula 1)
+
+El SQL vive en `superset/semantic/` para poder usarse también como **dataset virtual** de Superset
+mientras los cubos físicos no existan:
+
+- `superset/semantic/db03_cubo_escuela_360.sql`
+- `superset/semantic/db04_cubo_comparador_municipio.sql`
+
+Son **propuestas de implementación**, no código de producción: la materialización (`dbt`, índices,
+estrategia de refresco) es decisión de la Célula 1 en US-113 y US-114.
+
+Índices sugeridos a C1:
+
+| Cubo | Índice sugerido | Motivo |
+|---|---|---|
+| `cubo_escuela_360` | `(cct, id_ciclo)` único · `(cve_mun, id_ciclo)` · `(cve_ent, nivel, id_ciclo)` | Búsqueda por CCT y filtros globales |
+| `cubo_comparador_municipio` | `(cve_mun, nivel, id_ciclo)` único · `(cve_ent, id_ciclo)` | Comparación n a n y filtro de entidad |
+
+---
+
+## 7. Contrato de dependencias
+
+| Columna(s) | Depende de | Historia | Estado hoy (14-ago) |
+|---|---|---|---|
+| Todo el hecho, dimensiones y `d1`…`d6` | Célula 1 · Gold | US-103, US-112, US-113 | ⬜ No existe `gold.*`; `dbt/` vacío |
+| `indice_riesgo`, `variacion_proyectada`, `probabilidad` | Célula 3 · `gold.predicciones` | US-311 (ML-01) | 🟡 En progreso |
+| `driver_dominante`, `recomendacion`, `prioridad` | Célula 3 · `gold.recomendaciones` | US-302 / US-303 | ⬜ S4 |
+| Convención de datasets y métricas de Superset | Célula 2 · Manuel | US-202 | ⬜ S3, en paralelo |
+
+**Comportamiento mientras las dependencias no llegan:** los bloques de predicción y recomendación de
+DB-03 y las métricas de riesgo de DB-04 muestran **"sin dato disponible"** vía `cobertura_prediccion`,
+`cobertura_recomendacion` y `cobertura_riesgo`. El tablero no se rompe ni miente con ceros.
+
+---
+
+## 8. Solicitudes formales a otras células
+
+### 8.1 A Diana Alvarez (C1) — cambio de grano de `cubo_comparador_municipio`
+
+- **Qué:** grano de `municipio × ciclo` → **`municipio × nivel × ciclo`** en
+  [[03_Architecture/Data_Model]] §4.3, con métricas guardadas como componentes aditivos (§4.3).
+- **Por qué:** con el grano actual, **AC-002.2 no se puede cumplir en DB-04** — el filtro global de
+  nivel educativo no tendría sobre qué operar, y reagregar promedios daría números incorrectos.
+- **Impacto:** cambio de esquema ⇒ **regla 7, revisión humana explícita**. Afecta a US-113 (Deni).
+- **Estado:** ✅ **Aceptado por Diana Alvarez el 2026-08-14.** [[03_Architecture/Data_Model]] §4.3 ya
+  declara el grano `municipio × nivel × ciclo` y adopta las métricas como numerador y denominador
+  separados, con nota de diseño que traza el cambio a este hallazgo de US-211a. Queda pendiente que el
+  PM lo registre en [[10_Risk_Governance/Decision_Log]].
+
+### 8.2 A Diana Alvarez (C1) — codificación de `SIN_DATO` en `d1`…`d6`
+
+- **Qué:** el diccionario ([[03_Architecture/Data_Model]] §6) tipa `d1`…`d6` como `float | SIN_DATO`,
+  pero una columna `float` no puede almacenar la cadena `SIN_DATO`. Confirmar que la codificación
+  real es **valor `NULL` + `d#_cobertura = 'SIN_DATO'`**.
+- **Mitigación mientras responde:** todo el SQL de este contrato filtra por `d#_cobertura`, que es
+  inequívoca en ambas interpretaciones. No hay bloqueo.
+- **Estado:** ⬜ **pendiente de confirmación al 2026-08-21.** `Data_Model` §6 sigue tipando
+  `float | SIN_DATO`. **No bloquea** US-211a ni US-212 por la mitigación de arriba.
+
+### 8.3 A Manuel Serranía (C2) — ✅ resuelto
+
+| Solicitud | Resultado |
+|---|---|
+| Alta de **KPI-15…KPI-18** en el catálogo (§5.1) | ✅ Publicados en [[04_UX_Design/Screen_Specs]] §4 (2026-08-15, US-201) |
+| Ratificar el **`LEFT JOIN`** en el grano de escuela (§2.2) | ✅ Ratificado en el mismo cambio; KPI-17 y KPI-18 lo documentan |
+| Adoptar la convención `superset/semantic/` en **US-202** | ✅ Adoptada; US-202 cerrada con [[04_UX_Design/Superset_Setup_US202]] y `superset/sync_semantic_layer.py` |
+
+**Verificación de alineación (2026-08-21):** se comparó KPI-15…KPI-18 del catálogo contra §5.1 y §3.2 de
+este documento. Coinciden en fórmula, grano, tipo de `JOIN`, umbral 0.6 y banderas de cobertura.
+**Sin divergencias.**
+
+---
+
+## 9. Trazabilidad
+
+- **Implementa:** US-211a (REQ-002)
+- **Consume:** [[03_Architecture/Data_Model]] §4 · [[04_UX_Design/Screen_Specs]] §4 · [[15_ML_Models/Indice_Riesgo_ML01]]
+- **Alimenta:** US-212 (construcción de DB-03/DB-04), US-214a (filtros y drill-down), US-215a (usabilidad)
+- **Insumo para:** US-113 (construcción de los cubos, Célula 1)
+- **Sustenta AC:** AC-002.2, AC-002.4, AC-002.5, AC-002.6

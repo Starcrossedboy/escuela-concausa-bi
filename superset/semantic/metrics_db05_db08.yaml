@@ -1,0 +1,166 @@
+# =============================================================================
+# Capa semantica de DB-05 y DB-08 - metricas, jerarquias y filtros
+# -----------------------------------------------------------------------------
+# Historia : US-211b (Monserrat Xcaret Miranda Olivas, Celula 2 - Analytics & BI)
+# Contrato : 04_UX_Design/Cube_Specs_DB05_DB08.md (DOC-CUBESPEC-DB0508)
+# Uso      : declaracion de las metricas que se dan de alta en Superset al
+#            construir DB-05 y DB-08 (US-213). Convencion fijada por Manuel en
+#            US-202 (superset/README.md); este archivo se alinea con ella.
+#
+# Regla transversal: toda razon se expresa como SUM(numerador)/SUM(denominador)
+# para que se pueda reagregar con cualquier combinacion de filtros globales.
+# Ninguna metrica usa COALESCE(<driver>, 0): SIN_DATO nunca se dibuja como cero.
+#
+# FORMATO LARGO: ambos cubos guardan una fila por driver (id_driver), no
+# columnas d1..d6. 'dimension_obligatoria_en_agregacion: id_driver' documenta
+# que ninguna metrica de estos datasets se debe sumar sin agrupar/filtrar por
+# id_driver (si no, se infla x6). Verificado por tests/test_semantic_db05_db08.py.
+# =============================================================================
+
+version: "1.0"
+owner: "Monserrat Xcaret Miranda Olivas"
+story: US-211b
+traces_up: DOC-CUBESPEC-DB0508
+
+# -----------------------------------------------------------------------------
+# Filtros globales (AC-002.2) - aplican a los dos tableros
+# -----------------------------------------------------------------------------
+filtros_globales:
+  - nombre: ciclo
+    columna: id_ciclo
+    etiqueta: "Ciclo escolar"
+    default: ultimo_ciclo
+  - nombre: entidad
+    columna: cve_ent
+    etiqueta: "Entidad"
+    nota: "Acotado a SCOPE_ENTIDADES (09, 15, 19, 14)"
+  - nombre: nivel
+    columna: nivel
+    etiqueta: "Nivel educativo"
+
+# -----------------------------------------------------------------------------
+# DB-05 - Analisis por driver
+# -----------------------------------------------------------------------------
+datasets:
+  - nombre: cubo_driver
+    dashboard: DB-05
+    sql: db05_cubo_driver.sql
+    grano: [id_driver, cve_mun, nivel, id_ciclo]
+    llave_primaria: [id_driver, cve_mun, nivel, id_ciclo]
+    grano_canonico_actual: [id_driver, cve_mun, id_ciclo]
+    cambio_de_grano_solicitado_a: "Diana Aracely Alvarez Varela (C1) - Cube_Specs_DB05_DB08 §8.1"
+    formato: largo
+    dimension_obligatoria_en_agregacion: id_driver
+    nota_formato: >
+      Formato largo (unpivot via UNION ALL, mismo patron que KPI-06 de Screen_Specs).
+      'escuelas', 'suma_valor' y 'escuelas_con_dato' se repiten una vez por id_driver:
+      no sumar sin agrupar o filtrar por id_driver.
+    banderas_cobertura:
+      - cobertura_driver
+
+    jerarquias:
+      - nombre: territorio
+        niveles: [cve_ent, cve_mun]
+      - nombre: oferta
+        niveles: [cve_mun, nivel]
+      - nombre: tiempo
+        niveles: [anio_inicio, id_ciclo]
+      - nombre: driver
+        niveles: [id_driver]
+        nota: "Selector de tab (US-213), dimension transversal"
+
+    metricas:
+      - nombre: valor_promedio_driver
+        etiqueta: "Valor promedio del driver"
+        expresion: "SUM(suma_valor) / NULLIF(SUM(escuelas_con_dato), 0)"
+        formato: decimal_2
+        kpi: KPI-19
+        cobertura: cobertura_driver
+        nota: "Agrupar/filtrar siempre por id_driver."
+      - nombre: escuelas
+        etiqueta: "Escuelas en el alcance"
+        expresion: "SUM(escuelas)"
+        formato: entero
+        nota: "Repetida x6 en formato largo: usar solo agrupada/filtrada por id_driver."
+      - nombre: escuelas_con_dato
+        etiqueta: "Escuelas con dato del driver"
+        expresion: "SUM(escuelas_con_dato)"
+        formato: entero
+      - nombre: pct_escuelas_sin_dato
+        etiqueta: "% escuelas sin dato del driver"
+        expresion: "(SUM(escuelas) - SUM(escuelas_con_dato)) / NULLIF(SUM(escuelas), 0)"
+        formato: porcentaje_1
+        kpi: KPI-06
+        nota: >
+          Reusa formula/KPI de DB-07 (Screen_Specs) -- mismo nombre, mismo id. Sin *100: el
+          formato d3 porcentaje_1 (,.1%) ya multiplica por 100 al mostrar (convencion US-202,
+          hallazgo de Manuel Serrania en la revision de este PR).
+
+    # Propuesta de alta en el catalogo canonico de Manuel (Cube_Specs §5.1/§8.3).
+    # Aun NO son KPIs oficiales: pendiente de que Manuel los publique en
+    # 04_UX_Design/Screen_Specs.md.
+    kpis_propuestos:
+      - id: KPI-19
+        nombre: "Valor promedio y evolución del driver"
+        sustenta: ["Screen_Specs §2 (DB-05)", AC-002.2, AC-002.5]
+
+  # ---------------------------------------------------------------------------
+  # DB-08 - Explorador del cubo
+  # ---------------------------------------------------------------------------
+  - nombre: cubo_pivot
+    dashboard: DB-08
+    sql: db08_cubo_pivot.sql
+    grano: [cct, id_driver, id_ciclo]
+    llave_primaria: [cct, id_driver, id_ciclo]
+    formato: largo
+    dimension_obligatoria_en_agregacion: id_driver
+    nota_formato: >
+      Grano de detalle (1 fila = 1 escuela x driver x ciclo). 'matricula_total' e
+      'indice_completitud_drivers' viajan repetidos x6: no sumar sin agrupar/filtrar
+      por id_driver.
+    banderas_cobertura:
+      - cobertura_driver
+
+    jerarquias:
+      - nombre: territorio
+        niveles: [cve_ent, cve_mun, cct]
+      - nombre: tiempo
+        niveles: [anio_inicio, id_ciclo]
+      - nombre: driver
+        niveles: [id_driver]
+      - nombre: oferta
+        niveles: [nivel, sostenimiento]
+
+    metricas:
+      - nombre: valor_driver
+        etiqueta: "Valor del driver"
+        expresion: "AVG(valor_driver)"
+        formato: decimal_2
+        kpi: KPI-20
+        cobertura: cobertura_driver
+        nota: "Grano de detalle: AVG es seguro aqui (no es promedio de promedios) e ignora NULL nativamente."
+      - nombre: escuelas
+        etiqueta: "Escuelas"
+        expresion: "COUNT(DISTINCT cct)"
+        formato: entero
+      - nombre: matricula_total
+        etiqueta: "Matrícula total"
+        expresion: "SUM(matricula_total)"
+        formato: entero
+        nota: "Repetida x6: filtrar/agrupar por id_driver antes de sumar."
+
+    kpis_propuestos:
+      - id: KPI-20
+        nombre: "Valor del driver por escuela (exploración libre)"
+        sustenta: ["Screen_Specs §2 (DB-08)"]
+
+# -----------------------------------------------------------------------------
+# Navegacion cruzada (se implementa en US-214b)
+# -----------------------------------------------------------------------------
+drill_down:
+  - desde: DB-05
+    hacia: DB-07
+    llave: id_driver
+  - desde: DB-07
+    hacia: DB-05
+    llave: id_driver

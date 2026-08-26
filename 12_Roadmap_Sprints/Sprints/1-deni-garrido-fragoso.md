@@ -287,8 +287,8 @@ Actualiza esta tabla **antes de cada standup**. El PM la revisa para el tablero 
 
 | ID | Historia | Estado | % | Bloqueado por | Fecha compromiso |
 |---|---|---|---|---|---|
-| `US-111` | Implementar transformaciones Bronze -> Sil | ⬜ Por iniciar | 0% | — | Dom 16 ago |
-| `US-112` | Implementar transformaciones Silver -> Gol | ⬜ Por iniciar | 0% | — | Dom 23 ago |
+| `US-111` | Implementar transformaciones Bronze -> Sil | ◉ En revisión | 100% | — | Dom 16 ago |
+| `US-112` | Implementar transformaciones Silver -> Gol | ◉ En revisión | 100% | PR #72 · checks/revisión pendientes | Dom 23 ago |
 | `US-113` | Construir los cubos de agregacion | ⬜ Por iniciar | 0% | — | Dom 23 ago |
 | `US-114` | Optimizar consultas y crear indices | ⬜ Por iniciar | 0% | — | Dom 6 sep |
 

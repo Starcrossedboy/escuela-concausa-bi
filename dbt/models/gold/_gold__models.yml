@@ -1,0 +1,323 @@
+version: 2
+
+models:
+  - name: dim_tiempo
+    description: >
+      Dimensión de tiempo — un registro por ciclo escolar (gold.dim_tiempo,
+      Data_Model.md §6).
+    columns:
+      - name: id_ciclo
+        description: PK — identificador del ciclo escolar
+        tests:
+          - unique
+          - not_null
+
+      - name: ciclo
+        description: "Ciclo escolar en formato AAAA-AAAA"
+        tests:
+          - not_null
+
+      - name: anio_inicio
+        description: Año de inicio del ciclo escolar
+        tests:
+          - not_null
+
+      - name: anio_fin
+        description: Año de fin del ciclo escolar
+        tests:
+          - not_null
+
+  - name: features_escuela
+    description: >
+      gold.features_escuela (US-104) — contrato Célula 1 -> Célula 3 (Data_Model.md §5.3),
+      un registro por cct x id_ciclo con los 6 drivers normalizados 0-1 (D5/D6 en SIN_DATO
+      explícito hasta que US-105 entregue el join espacial de CONAGUA/SINAICA) y el target
+      de variación de matrícula vs el ciclo anterior. Compartido con Andrés González Habib
+      (C3): avisar antes de cambiar columnas.
+    columns:
+      - name: cct
+        description: "Clave de Centro de Trabajo homologada a 10 caracteres."
+        data_tests:
+          - not_null
+
+      - name: id_ciclo
+        description: "Ciclo escolar, formato AAAA-AAAA."
+        data_tests:
+          - not_null
+
+      - name: d1_cobertura
+        description: "Cobertura de D1 (pobreza/rezago social, CONEVAL)."
+        data_tests:
+          - accepted_values:
+              arguments:
+                values: ['OK', 'SIN_DATO']
+
+      - name: d2_cobertura
+        description: "Cobertura de D2 (inseguridad, SESNSP)."
+        data_tests:
+          - accepted_values:
+              arguments:
+                values: ['OK', 'SIN_DATO']
+
+      - name: d3_cobertura
+        description: "Cobertura de D3 (infraestructura, CEMABE)."
+        data_tests:
+          - accepted_values:
+              arguments:
+                values: ['OK', 'SIN_DATO']
+
+      - name: d4_cobertura
+        description: "Cobertura de D4 (conectividad, CEMABE)."
+        data_tests:
+          - accepted_values:
+              arguments:
+                values: ['OK', 'SIN_DATO']
+
+      - name: d5_cobertura
+        description: "Cobertura de D5 (agua, CONAGUA). SIN_DATO explícito hasta US-105."
+        data_tests:
+          - accepted_values:
+              arguments:
+                values: ['OK', 'SIN_DATO']
+
+      - name: d6_cobertura
+        description: "Cobertura de D6 (aire, SINAICA). SIN_DATO explícito hasta US-105."
+        data_tests:
+          - accepted_values:
+              arguments:
+                values: ['OK', 'SIN_DATO']
+
+      - name: indice_completitud_drivers
+        description: "Fracción (0-1) de los 6 drivers con cobertura OK para este cct x ciclo."
+        data_tests:
+          - not_null
+
+      - name: target_variacion_matricula
+        description: "Etiqueta: variación de matrícula vs el ciclo anterior del mismo cct."
+        data_tests:
+          - not_null
+
+  - name: dim_municipio
+    description: >
+      gold.dim_municipio (US-103) — Data_Model.md §4.2/§6, un registro por cve_mun. Acotado a
+      SCOPE_ENTIDADES (CDMX, Edomex, Nuevo León, Jalisco).
+    columns:
+      - name: cve_mun
+        description: "PK — clave INEGI de municipio (5 dígitos)."
+        data_tests:
+          - unique
+          - not_null
+
+      - name: cve_ent
+        description: "Clave INEGI de entidad (2 dígitos), derivada de cve_mun."
+        data_tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: ['09', '15', '19', '14']
+
+      - name: nombre_municipio
+        data_tests:
+          - not_null
+
+      - name: nombre_entidad
+        data_tests:
+          - not_null
+
+      - name: poblacion
+        description: "Población total del municipio (suma de grupos de edad, CONAPO)."
+        data_tests:
+          - not_null
+
+  - name: dim_escuela
+    description: >
+      gold.dim_escuela (US-103) — Data_Model.md §4.2/§6, un registro por cct. Acotado a
+      SCOPE_ENTIDADES (CDMX, Edomex, Nuevo León, Jalisco).
+    columns:
+      - name: cct
+        description: "PK — Clave de Centro de Trabajo homologada a 10 caracteres."
+        data_tests:
+          - unique
+          - not_null
+
+      - name: nombre
+        data_tests:
+          - not_null
+
+      - name: nivel
+        data_tests:
+          - not_null
+
+      - name: sostenimiento
+        data_tests:
+          - not_null
+
+      - name: cve_ent
+        data_tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: ['09', '15', '19', '14']
+
+      - name: cve_mun
+        data_tests:
+          - not_null
+
+      - name: agua
+        data_tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: ['0', '1', 'SIN_DATO']
+
+      - name: drenaje
+        data_tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: ['0', '1', 'SIN_DATO']
+
+      - name: electricidad
+        data_tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: ['0', '1', 'SIN_DATO']
+
+      - name: sanitarios
+        data_tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: ['0', '1', 'SIN_DATO']
+
+      - name: internet
+        data_tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: ['0', '1', 'SIN_DATO']
+
+      - name: computadoras
+        data_tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: ['0', '1', 'SIN_DATO']
+
+  - name: fact_escuela_ciclo
+    description: >
+      gold.fact_escuela_ciclo (US-103) — hecho central, Data_Model.md §4.1/§6, un registro
+      por cct x id_ciclo. Solo hechos observados (indice_riesgo/driver_dominante viven en
+      gold.predicciones/gold.recomendaciones, se consultan por JOIN). Acotado a
+      SCOPE_ENTIDADES vía INNER JOIN a dim_escuela.
+    columns:
+      - name: cct
+        data_tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_escuela')
+                field: cct
+
+      - name: id_ciclo
+        data_tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_tiempo')
+                field: id_ciclo
+
+      - name: cve_mun
+        data_tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_municipio')
+                field: cve_mun
+
+      - name: matricula_total
+        data_tests:
+          - not_null
+
+      - name: variacion_matricula
+        data_tests:
+          - not_null
+
+      - name: indice_completitud_drivers
+        data_tests:
+          - not_null
+
+      - name: d1_cobertura
+        data_tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: ['OK', 'SIN_DATO']
+
+      - name: d2_cobertura
+        data_tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: ['OK', 'SIN_DATO']
+
+      - name: d3_cobertura
+        data_tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: ['OK', 'SIN_DATO']
+
+      - name: d4_cobertura
+        data_tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: ['OK', 'SIN_DATO']
+
+      - name: d5_cobertura
+        data_tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: ['OK', 'SIN_DATO']
+
+      - name: d6_cobertura
+        data_tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: ['OK', 'SIN_DATO']
+  
+
+  
+  - name: matricula_municipio_nivel
+    description: >
+      gold.matricula_municipio_nivel -- agregado municipio x nivel x ciclo de
+      silver.matricula_historica (RISK-007/DEC-007), construido para alimentar
+      unir_target() en src/modelos/target_hibrido.py (PR #56, Hector Morales).
+      Acotado a SCOPE_ENTIDADES (CDMX, Edomex, Nuevo León, Jalisco).
+    columns:
+      - name: cve_mun
+        description: "Clave INEGI de municipio (5 dígitos)."
+        data_tests:
+          - not_null
+
+      - name: nivel
+        description: "Nivel educativo, normalizado a MAYÚSCULAS (match con gold.dim_escuela.nivel)."
+        data_tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: ['PREESCOLAR', 'PRIMARIA', 'SECUNDARIA']
+
+      - name: id_ciclo
+        description: "Ciclo escolar, formato AAAA-AAAA."
+        data_tests:
+          - not_null
+
+      - name: matricula_total
+        description: "Matrícula total del municipio x nivel en el ciclo (suma de todos los cct)."
+        data_tests:
+          - not_null

@@ -1,0 +1,63 @@
+version: 2
+
+sources:
+  - name: bronze
+    description: "Capa Bronze nacional definida por el modelo medallón FARO."
+    schema: bronze
+
+    tables:
+      - name: formato911
+        identifier: "{{ var('bronze_formato911_identifier', 'formato911_2024_2025') }}"
+        description: "DS-01 · SEP Formato 911. Datos crudos de matrícula, docentes y grupos por CCT y ciclo escolar."
+      - name: cct
+        identifier: "{{ var('bronze_cct_identifier', 'cct_sample') }}"
+        description: "DS-02 · SEP Catálogo CCT. Identidad y georreferencia nacional de cada escuela."
+
+      - name: formato911_historico
+        identifier: "{{ var('bronze_formato911_historico_identifier', 'formato911_historico') }}"
+        description: >
+          DS-01 · SEP Formato 911, distribución HISTÓRICA multi-ciclo (2019-2020..2024-2025).
+          Aislada de `formato911` (ciclo único 2024-2025) — mitigación de RISK-007/DEC-007, ver
+          src/ingesta/extractor_formato911_historico.py. Grano: cct × ciclo × turno.
+
+      - name: cemabe
+        identifier: "{{ var('bronze_cemabe_identifier', 'cemabe_2013') }}"
+        description: "DS-03 · SEP/INEGI CEMABE 2013. Infraestructura escolar nacional a nivel CCT."
+
+      - name: sesnsp
+        identifier: "{{ var('bronze_sesnsp_identifier', 'sesnsp_test') }}"
+        description: "DS-04 · SESNSP Incidencia Delictiva Municipal. Serie mensual nacional a nivel municipio."
+
+      - name: sinaica_observaciones
+        identifier: "{{ var('bronze_sinaica_observaciones_identifier', 'sinaica_observaciones_test') }}"
+        description: "DS-05 · SINAICA. Observaciones horarias por estación y parámetro."
+
+      - name: sinaica_estaciones
+        identifier: "{{ var('bronze_sinaica_estaciones_identifier', 'sinaica_estaciones_test') }}"
+        description: "DS-05 · SINAICA. Catálogo de estaciones con identidad y georreferencia."
+
+      - name: conagua
+        identifier: "{{ var('bronze_conagua_identifier', 'conagua_no_ingerido') }}"
+        description: >
+          DS-06 · CONAGUA SINA. Observaciones diarias de disponibilidad hídrica a nivel
+          estación/presa o región hidrológica.
+          ATENCIÓN: `conagua_no_ingerido` es un default deliberadamente falso (BUG-009). Hoy no
+          existe ninguna tabla `conagua*` real en `bronze`. El nombre inventado deja pasar el parse
+          del proyecto — para que un `dbt build --select <otro_modelo>` no falle por una fuente que
+          no consume — y hace que `agua_region` falle en runtime de forma visible, en vez de
+          resolver a algo que parezca real en un log. D5 (estrés hídrico) se mantiene `SIN_DATO`
+          explícito hasta que alguien materialice esta fuente. Al ingerirla, cambiar este default
+          por el nombre real de la tabla.
+
+      - name: coneval
+        identifier: "{{ var('bronze_coneval_identifier', 'coneval_v2') }}"
+        description: >
+          DS-07 · CONEVAL Rezago Social y Pobreza Municipal. Mediciones periódicas nacionales a
+          nivel municipio.
+          Existe también `coneval_test`, que trae `entidad` como código crudo en vez de nombre y
+          parece una ingesta de prueba anterior; se elige `coneval_v2` (BUG-009). Pendiente de
+          confirmar por Deni Garrido Fragoso, dueña de DS-07.
+
+      - name: conapo
+        identifier: "{{ var('bronze_conapo_identifier', 'conapo_sample') }}"
+        description: "DS-08 · CONAPO Proyecciones de Población. Serie anual nacional por municipio y grupo de edad."

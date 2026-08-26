@@ -12,7 +12,7 @@ tags: [devops, local-env, verificacion, US-521b]
 Para comprobar que el entorno funciona, sigue estos pasos:
 
 1. **Airflow:** abre el navegador en <http://localhost:8080>
-2. **MLflow:** abre el navegador en <http://localhost:5000>
+2. **MLflow:** abre el navegador en <http://localhost:5001>
 
 Si ambas páginas cargan, el ambiente local está listo.
 

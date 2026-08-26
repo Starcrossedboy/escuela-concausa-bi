@@ -5,7 +5,7 @@ owner: "Manuel Alejandro Serranía Reinada"
 status: in_review
 traces_up: ["DOC-US", "02_Requirements/Requirements_Detailed", "01_Product/PRD"]
 traces_down: ["US-201", "US-202", "US-203", "US-204", "US-205", "US-211a", "US-211b", "US-212", "US-213", "US-214a", "US-214b", "US-221", "US-222", "US-223"]
-last_reviewed: "2026-08-13"
+last_reviewed: "2026-08-23"
 tags: [ux, dashboards, kpis, celula-2]
 ---
 
@@ -39,7 +39,7 @@ tags: [ux, dashboards, kpis, celula-2]
 |---|---|---|---|---|---|
 | DB-01 | Ejecutivo | Visión global del sistema: matrícula, variación, riesgo y composición | Tomadores de decisión | `cubo_matricula` | US-203 |
 | DB-02 | Mapa de riesgo territorial | Coroplético municipal + puntos de escuela por índice de riesgo | Gestores territoriales | `cubo_riesgo_territorial` | US-203 |
-| DB-03 | Ficha de escuela | Drill-down por CCT: perfil, drivers, predicción y recomendación | Directores y gestores | `cubo_escuela_360` | US-212 |
+| DB-03 | Ficha de escuela | Drill-down por CCT: perfil, drivers, predicción y recomendación (KPI-15…18) | Directores y gestores | `cubo_escuela_360` | US-212 |
 | DB-04 | Comparador de municipios | Comparación lado a lado de municipios (matrícula, riesgo, rezago) | Analistas de política pública | `cubo_comparador_municipio` | US-212 |
 | DB-05 | Análisis por driver | Distribución de los 6 drivers y su evolución | Analistas BI | `cubo_driver` | US-213 |
 | DB-06 | Predicciones | Proyección de variación de matrícula (ML-01) y riesgo (ML-02) | Planificadores | `cubo_matricula` | US-204 |
@@ -112,6 +112,14 @@ flowchart TD
 > salidas de ML (`indice_riesgo` en `gold.predicciones`; `driver_dominante` y recomendaciones en
 > `gold.recomendaciones`) se consultan **siempre por JOIN** de `cct, id_ciclo` — aplica a
 > `cubo_riesgo_territorial`, `cubo_driver`, `cubo_recomendaciones` y `cubo_pivot`.
+>
+> **Tipo de JOIN por grano:** en los cubos agregados (municipio/entidad) el JOIN a las salidas de ML es
+> **interno**, porque miden poblaciones donde la predicción existe. En el **grano de escuela**
+> (`cubo_escuela_360` / DB-03; KPI-17 y KPI-18) el JOIN es **`LEFT`**: la ficha debe renderizarse aunque
+> el modelo aún no haya puntuado a la escuela (`gold.predicciones` llega en S4). Una escuela sin
+> predicción no desaparece de su propia ficha: el bloque muestra `cobertura_prediccion = 'SIN_DATO'` y
+> literalmente "sin dato disponible". Ratificado el 2026-08-15 (ref. [[04_UX_Design/Cube_Specs_DB03_DB04]]
+> §2.2) — no modifica la regla anterior, solo fija el tipo de JOIN para el grano de escuela.
 
 | ID | KPI | Grano | Nivel geo | Dashboards |
 |---|---|---|---|---|
@@ -129,6 +137,12 @@ flowchart TD
 | KPI-12 | Variación proyectada (ML-01) | ciclo | entidad | DB-06 |
 | KPI-13 | Estado de la ingesta (pipeline) | fuente × fecha_ingesta | nacional | DB-10 |
 | KPI-14 | Contexto socioeconómico del municipio | municipio × ciclo | municipio | DB-04 |
+| KPI-15 | Perfil de matrícula de la escuela | cct × ciclo | escuela | DB-03 |
+| KPI-16 | Perfil de drivers de la escuela | cct × ciclo | escuela | DB-03 |
+| KPI-17 | Predicción de la escuela | cct × ciclo | escuela | DB-03 |
+| KPI-18 | Recomendación prescriptiva de la escuela | cct × ciclo | escuela | DB-03 |
+| KPI-19 | Valor promedio del driver | driver × municipio × nivel × ciclo | municipio / entidad | DB-05 |
+| KPI-20 | Valor del driver por escuela (exploración) | cct × driver × ciclo | escuela | DB-08 |
 
 ### KPI-01 · Matrícula total
 
@@ -325,6 +339,162 @@ GROUP BY f.cve_mun, dm.nombre_municipio, dm.pobreza_pct,
          dm.grado_rezago, dm.indice_rezago_social;
 ```
 
+### KPI-15 · Perfil de matrícula de la escuela
+
+Matrícula y serie de tiempo de la escuela en su ficha (DB-03, grano `cct × ciclo`). Sustenta
+AC-002.4 (perfil por CCT) y AC-002.5 (serie de tiempo de matrícula). **Cubo:** `gold.cubo_escuela_360`.
+
+```sql
+SELECT f.cct,
+       f.id_ciclo,
+       dt.ciclo,
+       dt.anio_inicio,
+       f.matricula_total,
+       f.variacion_matricula
+FROM gold.fact_escuela_ciclo f
+JOIN gold.dim_tiempo dt ON f.id_ciclo = dt.id_ciclo
+WHERE f.cct = :cct
+ORDER BY dt.anio_inicio;
+```
+
+### KPI-16 · Perfil de drivers de la escuela
+
+Los 6 drivers con su bandera de cobertura. El `SIN_DATO` se dibuja como **hueco, nunca como cero**
+(P2 · AC-002.6). La bandera `d#_cobertura` es la fuente de verdad, no el nulo. **Cubo:**
+`gold.cubo_escuela_360`.
+
+```sql
+SELECT f.cct,
+       f.d1, f.d1_cobertura,
+       f.d2, f.d2_cobertura,
+       f.d3, f.d3_cobertura,
+       f.d4, f.d4_cobertura,
+       f.d5, f.d5_cobertura,
+       f.d6, f.d6_cobertura
+FROM gold.fact_escuela_ciclo f
+WHERE f.cct = :cct;
+```
+
+### KPI-17 · Predicción de la escuela
+
+Salida de ML-01 leída **por `LEFT JOIN`** a `gold.predicciones` (`modelo = 'ML-01'`) — R1 + grano de
+escuela. Semáforo con el umbral ratificado **0.6** (R3). `cobertura_prediccion` gobierna el bloque:
+`SIN_DATO` muestra "sin dato disponible", nunca 0 ni `false` por ausencia. **Cubo:**
+`gold.cubo_escuela_360`.
+
+```sql
+SELECT f.cct,
+       p.indice_riesgo,
+       CASE
+           WHEN p.indice_riesgo IS NULL THEN NULL   -- nunca FALSE por ausencia
+           ELSE (p.indice_riesgo >= 0.6)
+       END AS en_riesgo,
+       p.valor         AS variacion_proyectada,
+       p.probabilidad,
+       CASE WHEN p.cct IS NULL THEN 'SIN_DATO' ELSE 'OK' END AS cobertura_prediccion
+FROM gold.fact_escuela_ciclo f
+LEFT JOIN gold.predicciones p ON f.cct = p.cct
+                             AND f.id_ciclo = p.id_ciclo
+                             AND p.modelo = 'ML-01'
+WHERE f.cct = :cct
+  AND f.id_ciclo = :id_ciclo;
+```
+
+### KPI-18 · Recomendación prescriptiva de la escuela
+
+Driver dominante + recomendación + prioridad — el **diferenciador prescriptivo** del proyecto. Leída por
+**`LEFT JOIN`** a `gold.recomendaciones` (R1 + grano de escuela); `cobertura_recomendacion` gobierna el
+bloque. **Cubo:** `gold.cubo_escuela_360`.
+
+```sql
+SELECT f.cct,
+       r.driver_dominante,
+       dd.nombre         AS nombre_driver,
+       r.recomendacion,
+       r.prioridad,
+       CASE WHEN r.cct IS NULL THEN 'SIN_DATO' ELSE 'OK' END AS cobertura_recomendacion
+FROM gold.fact_escuela_ciclo f
+LEFT JOIN gold.recomendaciones r ON f.cct = r.cct
+                               AND f.id_ciclo = r.id_ciclo
+LEFT JOIN gold.dim_driver dd ON r.driver_dominante = dd.id_driver
+WHERE f.cct = :cct
+  AND f.id_ciclo = :id_ciclo;
+```
+
+### KPI-19 · Valor promedio del driver
+
+Valor promedio observado de cada driver en el territorio (DB-05, grano `driver × municipio × nivel ×
+ciclo`). Alimenta el análisis por driver con "un tab por driver" (US-213) sobre formato largo — un
+pivot por driver, no columnas d1..d6. **Cubo:** `gold.cubo_driver`.
+
+**Regla de lectura:** la razón se guarda pura (numerador/denominador); en Superset el `%` lo aplica
+el formato d3 (`,.2f` para valores, nunca `*100` en SQL). La cobertura gobierna el color:
+`cobertura_driver = 'SIN_DATO'` se muestra como hueco, nunca como cero.
+
+```sql
+SELECT driver,
+       COUNT(DISTINCT cct)                              AS escuelas,
+       SUM(valor)   FILTER (WHERE cobertura = 'OK')     AS suma_valor,
+       COUNT(*)     FILTER (WHERE cobertura = 'OK')     AS escuelas_con_dato,
+       CASE WHEN COUNT(*) FILTER (WHERE cobertura = 'OK') = 0
+            THEN 'SIN_DATO' ELSE 'OK' END               AS cobertura_driver,
+       f.cve_mun, dm.nombre_municipio, e.cve_ent, e.nivel, f.id_ciclo
+FROM (
+    SELECT f.cct, f.cve_mun, f.id_ciclo,
+           'D1' AS driver, f.d1 AS valor, f.d1_cobertura AS cobertura
+    FROM gold.fact_escuela_ciclo f
+    UNION ALL SELECT f.cct, f.cve_mun, f.id_ciclo, 'D2', f.d2, f.d2_cobertura FROM gold.fact_escuela_ciclo f
+    UNION ALL SELECT f.cct, f.cve_mun, f.id_ciclo, 'D3', f.d3, f.d3_cobertura FROM gold.fact_escuela_ciclo f
+    UNION ALL SELECT f.cct, f.cve_mun, f.id_ciclo, 'D4', f.d4, f.d4_cobertura FROM gold.fact_escuela_ciclo f
+    UNION ALL SELECT f.cct, f.cve_mun, f.id_ciclo, 'D5', f.d5, f.d5_cobertura FROM gold.fact_escuela_ciclo f
+    UNION ALL SELECT f.cct, f.cve_mun, f.id_ciclo, 'D6', f.d6, f.d6_cobertura FROM gold.fact_escuela_ciclo f
+) ed
+JOIN gold.dim_escuela    e  ON ed.cct     = e.cct
+JOIN gold.dim_municipio dm ON ed.cve_mun = dm.cve_mun
+GROUP BY driver, f.cve_mun, dm.nombre_municipio, e.cve_ent, e.nivel, f.id_ciclo;
+-- valor_promedio_driver = SUM(suma_valor) / NULLIF(SUM(escuelas_con_dato), 0)
+--   (razón pura en la capa semántica: metrics_db05_db08.yaml, KPI-19)
+```
+
+> ⚠️ **Formato largo — doble conteo controlado:** `escuelas` y `suma_valor` se repiten una vez por
+> `id_driver`. Ninguna métrica de este cubo se suma sin agrupar o filtrar por `id_driver`
+> (`metrics_db05_db08.yaml → dimension_obligatoria_en_agregacion`). Ratificado el 2026-08-23
+> (ref. `04_UX_Design/Cube_Specs_DB05_DB08.md` §8.3 — PR #73; convertir a wikilink al integrarse).
+
+### KPI-20 · Valor del driver por escuela (exploración)
+
+Valor del driver al grano de detalle (`cct × driver × ciclo`) para el explorador libre del cubo
+(DB-08). Permite segmentar por nivel, sostenimiento y territorio sin pre-agregación. **Cubo:**
+`gold.cubo_pivot`.
+
+```sql
+SELECT f.cct,
+       e.nombre            AS nombre_escuela,
+       e.nivel,
+       e.sostenimiento,
+       dm.cve_ent,
+       dm.nombre_entidad,
+       f.id_ciclo,
+       u.id_driver,
+       u.valor             AS valor_driver,
+       u.cobertura         AS cobertura_driver
+FROM gold.fact_escuela_ciclo f
+JOIN (
+    SELECT f.cct, f.id_ciclo,
+           'D1' AS id_driver, f.d1 AS valor, f.d1_cobertura AS cobertura
+    FROM gold.fact_escuela_ciclo f
+    UNION ALL SELECT f.cct, f.id_ciclo, 'D2', f.d2, f.d2_cobertura FROM gold.fact_escuela_ciclo f
+    UNION ALL SELECT f.cct, f.id_ciclo, 'D3', f.d3, f.d3_cobertura FROM gold.fact_escuela_ciclo f
+    UNION ALL SELECT f.cct, f.id_ciclo, 'D4', f.d4, f.d4_cobertura FROM gold.fact_escuela_ciclo f
+    UNION ALL SELECT f.cct, f.id_ciclo, 'D5', f.d5, f.d5_cobertura FROM gold.fact_escuela_ciclo f
+    UNION ALL SELECT f.cct, f.id_ciclo, 'D6', f.d6, f.d6_cobertura FROM gold.fact_escuela_ciclo f
+) u ON f.cct = u.cct AND f.id_ciclo = u.id_ciclo
+JOIN gold.dim_escuela    e  ON f.cct      = e.cct
+JOIN gold.dim_municipio dm ON f.cve_mun  = dm.cve_mun;
+-- valor_driver se agrega con AVG() al ser grano de detalle (no es promedio de promedios;
+-- AVG ignora NULL nativamente: SIN_DATO no entra a la media).
+```
+
 ---
 
 ## 5. Filtros globales
@@ -345,4 +515,4 @@ propaga a todos los dashboards embebidos vía los parámetros del guest token.
 - **Implementa:** US-201 (portafolio + catálogo de KPIs)
 - **Consume:** [[03_Architecture/Data_Model]] (esquema Gold y cubos) · [[01_Product/PRD]] (§12 catálogo DB)
 - **Alimenta:** US-202 (capa semántica), US-203…US-205, US-211a/b…US-223 (construcción de tableros)
-- **Sustenta AC:** AC-002.1, AC-002.2, AC-002.5, AC-002.6
+- **Sustenta AC:** AC-002.1, AC-002.2, AC-002.4, AC-002.5, AC-002.6

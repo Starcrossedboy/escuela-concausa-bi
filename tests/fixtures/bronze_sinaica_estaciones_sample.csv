@@ -1,0 +1,5 @@
+id,nombre,codigo,redesId,nombre_red,codigo_red,municipioId,estadoId,latitud,longitud,fechaIniDatos,_ingested_at,_source,_source_url
+101,Cerca-Escuela-i0-A,COD101,1,Red de prueba,RP,01,09,19.02,-99.02,2020-01-01,2026-08-19T12:00:00+00:00,DS-05_SINAICA,https://sinaica.inecc.gob.mx
+102,Cerca-Escuela-i0-B,COD102,1,Red de prueba,RP,01,09,19.1,-99.05,2020-01-01,2026-08-19T12:00:00+00:00,DS-05_SINAICA,https://sinaica.inecc.gob.mx
+103,Cerca-Escuela-i5,COD103,1,Red de prueba,RP,05,15,19.78,-100.03,2020-01-01,2026-08-19T12:00:00+00:00,DS-05_SINAICA,https://sinaica.inecc.gob.mx
+104,Lejos-BajaCalifornia,COD104,1,Red de prueba,RP,01,02,30.0,-115.0,2020-01-01,2026-08-19T12:00:00+00:00,DS-05_SINAICA,https://sinaica.inecc.gob.mx

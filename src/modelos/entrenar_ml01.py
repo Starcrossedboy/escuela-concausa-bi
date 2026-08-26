@@ -152,14 +152,35 @@ def _matriz(df: pd.DataFrame) -> pd.DataFrame:
     return df[list(DRIVERS)]
 
 
+def _entidades_de(df: pd.DataFrame) -> list[str]:
+    """Deriva la clave de entidad, sea el grano escuela o `municipio × nivel`.
+
+    `features_escuela` no trae `cve_ent`, así que la entidad se deduce de la llave disponible: los
+    dos primeros caracteres del `cct` a nivel escuela, o los de `cve_mun` en el grano agregado de
+    DEC-007. Ambas claves INEGI empiezan con la entidad, así que el desglose de US-312 funciona en
+    los dos granos sin pedir columnas nuevas.
+
+    Raises:
+        ValueError: si el DataFrame no trae ninguna de las dos llaves.
+    """
+    if "cct" in df.columns:
+        return [entidad_de_cct(c) for c in df["cct"]]
+    if "cve_mun" in df.columns:
+        return [str(m)[:2] for m in df["cve_mun"]]
+    raise ValueError(
+        "No hay de dónde derivar la entidad: se esperaba `cct` (grano escuela) o `cve_mun` "
+        "(grano municipio_nivel, DEC-007)."
+    )
+
+
 def _error_por_entidad(df_prueba: pd.DataFrame, predicho: np.ndarray) -> pd.DataFrame:
     """Desglosa el error por entidad federativa (insumo de US-312).
 
-    `features_escuela` no trae `cve_ent`, así que la entidad se deriva del CCT.
+    Funciona en los dos granos: la entidad se deriva de `cct` o de `cve_mun`, según cuál esté.
     """
     detalle = pd.DataFrame(
         {
-            "entidad": [entidad_de_cct(c) for c in df_prueba["cct"]],
+            "entidad": _entidades_de(df_prueba),
             "real": df_prueba[COLUMNA_TARGET].to_numpy(),
             "predicho": predicho,
         }
@@ -249,6 +270,12 @@ def registrar_en_mlflow(
         El `run_id` de la corrida padre, que es el que va a `gold.predicciones.mlflow_run_id`.
     """
     import mlflow  # import diferido: entrenar no debe requerir MLflow instalado
+
+    from src.modelos.mlflow_utils import verificar_compatibilidad
+
+    # Falla temprano si el servidor es de otra versión mayor: si no, las métricas se registran
+    # pero el modelo se pierde con un 404 poco evidente.
+    verificar_compatibilidad(tracking_uri)
 
     mlflow.set_tracking_uri(tracking_uri)
     mlflow.set_experiment(experimento)

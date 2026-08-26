@@ -63,7 +63,9 @@ dice nada**: un MAE de 0.015 puede ser excelente o ridículo según la escala de
 | entrena 2019-2022 → prueba 2022-2023 | 0.0138 | 0.0175 | 0.0283 | **51.3 %** |
 | entrena 2019-2023 → prueba 2023-2024 | 0.0157 | 0.0187 | 0.0295 | **46.8 %** |
 
-**MAE 0.0141 ± 0.0012 · RMSE 0.0177 ± 0.0008** (promedio ± desviación de las ventanas, ADR-003).
+**MAE 0.0141 ± 0.0012 · RMSE 0.0177 ± 0.0008** (1.41 y 1.77 puntos porcentuales,
+respectivamente; promedio ± desviación de las ventanas, ADR-003). Ambos cumplen los umbrales
+provisionales de 3 y 5 puntos porcentuales.
 
 El modelo reduce el error a la mitad frente al baseline en las tres ventanas. La degradación
 progresiva (56 % → 47 %) es esperable: las ventanas tardías predicen ciclos más lejanos del inicio
@@ -90,6 +92,29 @@ de entrenamiento y prueba como parámetros. El `run_id` del padre es el que va a
 ```bash
 python -m src.modelos.entrenar_ml01 --tracking-uri sqlite:///mlflow.db --registrar-modelo
 ```
+
+> [!bug] BLOCK-001 sigue abierto — verificado el 2026-08-19
+> **Primera causa, ya resuelta:** el servidor corría MLflow 2.8.0 contra el cliente 3.15.1 de la
+> Célula 3. Luis Téllez lo alineó a **3.15.1** en el PR #45.
+>
+> **Segunda causa, vigente:** el servicio arranca con `--default-artifact-root /mlflow/artifacts`
+> —una ruta **dentro del contenedor**— y **sin `--serve-artifacts`**. El experimento queda con
+> `artifact_location: /mlflow/artifacts/1`, así que un cliente que entrena **desde el host** intenta
+> escribir esa ruta en su propia máquina y falla con
+> `OSError: [Errno 30] Read-only file system: '/mlflow'`. Las métricas se registran; el modelo no.
+> **AC-003.4 sigue sin cumplirse.**
+>
+> **Fix probado** (pendiente de aplicar por la Célula 5): levantando el mismo `faro-mlflow:3.15.1`
+> con `--serve-artifacts` y `--artifacts-destination ${MLFLOW_ARTIFACT_ROOT}`, el experimento queda
+> con `artifact_location: mlflow-artifacts:/2`, el modelo llega al registry como
+> `ML01_RegresionMatricula` v1 y se recupera con
+> `mlflow.sklearn.load_model("models:/ML01_RegresionMatricula/1")` para predecir.
+>
+> Nota: el experimento actual ya tiene la ruta mala grabada en Postgres; con el cambio los
+> experimentos **nuevos** salen bien pero el existente conserva su `artifact_location`.
+>
+> Mitigación en el código: `mlflow_utils.verificar_compatibilidad()` detecta el desajuste de
+> versiones antes de entrenar. No cubre este segundo caso, que sólo se ve al escribir el artefacto.
 
 > **MLflow 3.x deprecó el file store.** `file:./mlruns` ya no funciona y lanza excepción; el URI
 > debe apuntar a una base de datos (`sqlite:///mlflow.db` en local, Postgres en producción).
@@ -130,5 +155,3 @@ levanta MLflow ni escribe artefactos. Las que importan:
 2. **Ratificar con Andrés** el manejo de cobertura parcial: `NaN` nativo (esta implementación) frente
    a imputación por mediana + indicador (ADR-003).
 3. **Subir a 4 ventanas** cuando haya ciclos suficientes.
-4. Fijar umbrales de aceptación en la unidad correcta: el `ML_Strategy` §5 los declara en alumnos
-   absolutos (`MAE < 15`) y el contrato define el objetivo como variación (float).

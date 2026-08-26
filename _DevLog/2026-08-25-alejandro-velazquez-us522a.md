@@ -14,12 +14,12 @@ date: "2026-08-25"
 
 ## 2. Trabajo realizado
 1. **Auditoría de US-522a:** Se confirmó en el historial de Git que el entregable físico para esta US ya se encuentra en `main`. El `api.Dockerfile` fue subido en el commit `0bfeb2e` por Luis Téllez, y la integración de Postgres en `docker-compose.yml` fue subida en el commit `1ac8e5e` en el PR #25 (US-521a). Se declara la US-522a como **Done (100%)**.
-2. **Auditoría de US-523a:** Se verificó la documentación existente (`Branch_Protection.md`) y el comportamiento actual del repositorio remoto, confirmando que las reglas de protección de rama (bloqueo de push directo y requirement de PR) están **activas en el repositorio**. La historia se marca como **En curso (50%)** a la espera de completar las trazas documentales en la Matriz.
+2. **Auditoría de US-523a:** Se verificó el comportamiento actual del repositorio remoto, confirmando que las reglas de protección de rama (bloqueo de push directo y requirement de PR) están **activas**. Además, se documentó el uso del archivo `.github/CODEOWNERS` y la regla de Compuerta Única del PM (DEC-003) en el artefacto `Branch_Protection.md` añadiendo las trazas requeridas para el Definition of Filed. La historia se marca como **Done (100%)**.
 3. **Actualización de Tabla de Sprint:** Se actualizó la Tabla 9 del archivo `12_Roadmap_Sprints/Sprints/5-alejandro-velazquez-mendoza.md` con los porcentajes reales para que el PM Dashboard refleje el avance correcto.
 
 ## 3. Decisiones técnicas
 - Reclamar completitud de US-522a sin hacer un PR con código redundante, validando únicamente la existencia del código en `main`.
-- Documentar el estatus de la US-523a y dejarla al 50% por transparencia de equipo.
+- Actualizar el artefacto `Branch_Protection.md` con las trazas y la regla de Compuerta Única para cumplir el Definition of Filed y cerrar la US-523a al 100%.
 
 ## 4. Evidencia
 - Commit `0bfeb2e` (api.Dockerfile) y commit `1ac8e5e` (docker-compose).

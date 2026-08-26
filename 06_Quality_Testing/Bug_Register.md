@@ -24,6 +24,7 @@ tags: [qa, bugs]
 | BUG-008 | `docker/api.Dockerfile` arranca `src.api.main:app` (el hola mundo de US-501, **3 rutas**) en vez de `src.api.app:app` (la app real del contrato v1, **18 rutas** bajo `/api/v1`): en el contenedor —y en la URL pública si usa este Dockerfile— **US-401, US-402 y US-411 son inalcanzables** | **high** | open | US-501 / US-411 / REQ-004 / REQ-005 | pendiente (**C5** + C4) | correr `uvicorn src.api.app:app` a mano fuera del contenedor | ver detalle |
 | BUG-009 | 11 vars de dbt sin valor por default (7 `identifier` de fuentes Bronze + 4 vars de modelo): cualquier `dbt parse`/`build`/`run` falla al renderizar el manifest aunque el modelo probado no use esas fuentes | high | fixed | US-111 | defaults inline en `sources.yml` + bloque `vars:` en `dbt_project.yml` (DEC-011) | `dbt parse` en `ci.yml` (job `dbt-contract`) |
 | BUG-010 | `/api/v1/predicciones/*` sigue leyendo `src/api/mock_data.py` en vez de `gold.predicciones` + `gold.recomendaciones`: la verificación **#4 del ensayo E2E** («≥1 modelo sirviendo por API») devolvería un valor fijo, no la predicción de ML-01 | **high** | open | US-412 / US-415 / REQ-004 / REQ-003 | pendiente (**C4**) | consultar Gold directo por SQL | ver detalle |
+| BUG-011 | `sync_semantic_layer.py` lee YAML/SQL con la codificación del sistema (`read_text()` sin `encoding`): en Windows usa cp1252 y truena con los acentos de cualquier `metrics_*.yaml`; el script solo corre con `PYTHONUTF8=1`. Misma familia que BUG-005 (locale de Windows) | medium | fixed | US-203 / US-212 | `fix/manuel-serrania-bug010-sync-charts-utf8` — `encoding="utf-8"` explícito en las 3 lecturas (`_read_yaml`, `_read_sql`) | pendiente (validar en Windows) |
 
 ## Convención
 
@@ -423,3 +424,46 @@ del alcance el mismo día.
 Los 11 defaults quedaron aplicados con la ubicación que decidió Diana (identifiers inline en
 `sources.yml`, vars de modelo en `dbt_project.yml`) — ver la sección **Fix** arriba para la tabla
 completa de valores, dueños y los dos casos que quedaron sin confirmar.
+
+---
+
+## BUG-011 — `sync_semantic_layer.py` lee YAML/SQL en cp1252 en Windows
+
+- **Owner:** Manuel Alejandro Serranía Reinada
+- **Reportó:** Marina García del Buey (revisión de US-212, 2026-08-24)
+- **Severidad:** medium
+- **Estado:** fixed
+- **traces_up:** US-203, US-212
+- **found_on:** 2026-08-24
+- **fixed_on:** 2026-08-25
+
+### Descripción
+`_read_yaml()` y `_read_sql()` de `superset/sync_semantic_layer.py` leen los archivos con
+`path.read_text()` sin `encoding`, así que en Windows Python resuelve la codificación del locale
+(cp1252) y lanza `UnicodeDecodeError` con cualquier `metrics_*.yaml` que traiga acentos o `·`.
+El workaround era exportar `PYTHONUTF8=1` antes de cada corrida. `PYTHONIOENCODING` no basta
+porque solo afecta stdin/stdout, no la apertura de archivos.
+
+Misma familia que BUG-005: suposiciones del locale por defecto que solo explotan en Windows.
+El resto del repo ya usaba `read_text(encoding="utf-8")` explícito; este script (stdlib-only,
+escrito en macOS) se pasó de largo.
+
+### Pasos para reproducir
+1. En Windows: `python superset/sync_semantic_layer.py`
+2. Falla al parsear el primer `metrics_*.yaml` con acentos (`UnicodeDecodeError: 'charmap' codec can't decode byte...`).
+
+### Causa raíz
+3 llamadas a `Path.read_text()` sin `encoding`: `_read_yaml()` (2, rutas PyYAML y parser manual)
+y `_read_sql()` (1).
+
+### Fix
+- Rama `fix/manuel-serrania-bug010-sync-charts-utf8`: `encoding="utf-8"` explícito en las 3 lecturas.
+- El mismo PR corrige el hallazgo hermano de la misma revisión: `ensure_chart()` identificaba
+  charts por `slice_name` global y repuntaba charts homónimos de otro tablero a otro dataset
+  (le pasó a Diana/Marina con "KPI-01 · Matrícula total" entre DB-01 y DB-03). Ahora solo
+  actualiza el candidato cuyo `datasource_id` coincide; si el homónimo vive en otro dataset,
+  crea un chart nuevo y lo avisa en el log.
+
+### Test de regresión
+Pendiente de validar en Windows (el fallo es específico de ese SO; en Linux/macOS el default ya
+era UTF-8 y un test no distinguiría). Quien tenga Windows corre el sync sin `PYTHONUTF8=1`.

@@ -35,15 +35,18 @@ from enum import Enum
 from pathlib import Path
 
 import pandas as pd
-from pydantic import BaseModel, Field, StrictFloat, StrictStr
+from pydantic import BaseModel, Field, StrictFloat, StrictStr, model_validator
 from sqlalchemy import (
+    CheckConstraint,
     Column,
     DateTime,
     Float,
+    Index,
     MetaData,
     String,
     Table,
     create_engine,
+    text,
 )
 from sqlalchemy.engine import Engine
 
@@ -67,12 +70,27 @@ class Prioridad(str, Enum):
     BAJA = "baja"
 
 
+class Grano(str, Enum):
+    """Discriminador de grano de `gold.predicciones` (DEC-010).
+
+    ML-01 puede predecir a `municipio × nivel` (DEC-007) mientras las features y el driver dominante
+    viven a nivel escuela. En vez de **repartir** el valor del grupo a cada escuela —lo que le
+    atribuiría a una escuela un dato que no se midió ahí—, la fila declara su propio grano.
+    """
+
+    ESCUELA = "escuela"
+    MUNICIPIO_NIVEL = "municipio_nivel"
+
+
 class PrediccionGold(BaseModel):
-    """Contrato ejecutable de una fila de `gold.predicciones` (§4.5)."""
+    """Contrato ejecutable de una fila de `gold.predicciones` (§4.5, grano dual DEC-010)."""
 
     model_config = {"extra": "forbid"}
 
-    cct: StrictStr = Field(min_length=10, max_length=10)
+    grano: Grano
+    cct: StrictStr | None = Field(default=None, min_length=10, max_length=10)
+    cve_mun: StrictStr | None = Field(default=None, min_length=5, max_length=5)
+    nivel: StrictStr | None = None
     id_ciclo: StrictStr
     modelo: StrictStr
     valor: StrictFloat
@@ -80,6 +98,26 @@ class PrediccionGold(BaseModel):
     probabilidad: StrictFloat | None
     mlflow_run_id: StrictStr
     generado_at: datetime
+
+    @model_validator(mode="after")
+    def _llave_coherente_con_el_grano(self) -> PrediccionGold:
+        """Exactamente una llave poblada según el grano — nunca ambas, nunca ninguna.
+
+        Es la restricción textual del `Data_Model` §4.5 convertida en validación ejecutable: una
+        fila con las dos llaves no se sabe a qué se refiere, y una sin ninguna no se sabe de quién
+        habla. Ambas son peores que un error.
+        """
+        if self.grano is Grano.ESCUELA:
+            if self.cct is None:
+                raise ValueError("grano 'escuela' exige `cct`.")
+            if self.cve_mun is not None or self.nivel is not None:
+                raise ValueError("grano 'escuela' no debe traer `cve_mun` ni `nivel`.")
+        else:
+            if self.cve_mun is None or self.nivel is None:
+                raise ValueError("grano 'municipio_nivel' exige `cve_mun` y `nivel`.")
+            if self.cct is not None:
+                raise ValueError("grano 'municipio_nivel' no debe traer `cct`.")
+        return self
 
 
 class RecomendacionGold(BaseModel):
@@ -119,17 +157,48 @@ def prioridad_de_riesgo(riesgo: float) -> Prioridad:
 def _metadatos(esquema: str | None = ESQUEMA_GOLD) -> tuple[MetaData, Table, Table]:
     """Define las dos tablas de Gold. `esquema=None` para motores sin esquemas (SQLite)."""
     metadata = MetaData(schema=esquema)
+    # Grano dual (DEC-010): no hay llave primaria única posible, porque `cct` y `cve_mun`+`nivel`
+    # se excluyen entre sí y una PK no admite nulos. Se usan **dos índices únicos parciales**, uno
+    # por grano, más un CHECK que hace cumplir la exclusión en la propia base de datos.
     predicciones = Table(
         TABLA_PREDICCIONES,
         metadata,
-        Column("cct", String(10), primary_key=True),
-        Column("id_ciclo", String, primary_key=True),
-        Column("modelo", String, primary_key=True),
+        Column("grano", String, nullable=False),
+        Column("cct", String(10), nullable=True),
+        Column("cve_mun", String(5), nullable=True),
+        Column("nivel", String, nullable=True),
+        Column("id_ciclo", String, nullable=False),
+        Column("modelo", String, nullable=False),
         Column("valor", Float, nullable=False),
         Column("indice_riesgo", Float, nullable=False),
         Column("probabilidad", Float, nullable=True),
         Column("mlflow_run_id", String, nullable=False),
         Column("generado_at", DateTime(timezone=True), nullable=False),
+        CheckConstraint(
+            "(grano = 'escuela' AND cct IS NOT NULL AND cve_mun IS NULL AND nivel IS NULL)"
+            " OR (grano = 'municipio_nivel' AND cct IS NULL"
+            " AND cve_mun IS NOT NULL AND nivel IS NOT NULL)",
+            name="ck_predicciones_llave_segun_grano",
+        ),
+        Index(
+            "ux_predicciones_escuela",
+            "cct",
+            "id_ciclo",
+            "modelo",
+            unique=True,
+            sqlite_where=text("grano = 'escuela'"),
+            postgresql_where=text("grano = 'escuela'"),
+        ),
+        Index(
+            "ux_predicciones_municipio_nivel",
+            "cve_mun",
+            "nivel",
+            "id_ciclo",
+            "modelo",
+            unique=True,
+            sqlite_where=text("grano = 'municipio_nivel'"),
+            postgresql_where=text("grano = 'municipio_nivel'"),
+        ),
     )
     recomendaciones = Table(
         TABLA_RECOMENDACIONES,
@@ -179,12 +248,78 @@ def construir_predicciones(
 
     filas = pd.DataFrame(
         {
+            "grano": Grano.ESCUELA.value,
             "cct": corte["cct"].to_numpy(),
+            "cve_mun": None,
+            "nivel": None,
             "id_ciclo": objetivo,
             "modelo": "ML-01",
             "valor": variacion.astype(float),
             "indice_riesgo": indice_riesgo(variacion).astype(float),
             # ML-01 es regresión: no produce probabilidad. NULL explícito, nunca 0.
+            "probabilidad": None,
+            "mlflow_run_id": mlflow_run_id,
+            "generado_at": generado_at or datetime.now(tz=UTC),
+        }
+    )
+    for fila in filas.to_dict(orient="records"):
+        PrediccionGold(**fila)
+    return filas
+
+
+def construir_predicciones_municipio_nivel(
+    agregado: pd.DataFrame,
+    modelo,
+    mlflow_run_id: str,
+    id_ciclo_objetivo: str | None = None,
+    generado_at: datetime | None = None,
+) -> pd.DataFrame:
+    """Genera filas de `gold.predicciones` con `grano = municipio_nivel` (DEC-010 + DEC-007).
+
+    Cierra el circuito del target híbrido: `target_hibrido.agregar_a_municipio_nivel()` produce el
+    agregado y esta función publica su predicción **declarando su grano**, en vez de repartir el
+    valor a cada escuela del grupo.
+
+    `indice_riesgo` se calcula igual, pero conviene leer la advertencia del `Data_Model` §4.5: hoy
+    **sólo tiene sentido pleno a nivel escuela**, porque las anclas del índice se fijaron sobre la
+    variación de una escuela concreta. A nivel municipio × nivel es una lectura agregada, no una
+    alerta por plantel.
+
+    Args:
+        agregado: salida de `agregar_a_municipio_nivel`, con `cve_mun`, `nivel` e `id_ciclo`.
+        modelo: estimador entrenado sobre el grano agregado.
+        mlflow_run_id: corrida que lo produjo.
+        id_ciclo_objetivo: ciclo a predecir; por defecto el más reciente.
+        generado_at: marca de tiempo; por defecto ahora en UTC.
+
+    Returns:
+        DataFrame con las columnas de `gold.predicciones` para el grano agregado.
+
+    Raises:
+        ValueError: si faltan las llaves del grano o el ciclo objetivo no existe.
+    """
+    faltantes = {"cve_mun", "nivel", COLUMNA_CICLO} - set(agregado.columns)
+    if faltantes:
+        raise ValueError(f"El agregado no trae {sorted(faltantes)}; DEC-010 las exige como llave.")
+
+    ciclos = ciclos_ordenados(agregado)
+    objetivo = id_ciclo_objetivo or ciclos[-1]
+    if objetivo not in ciclos:
+        raise ValueError(f"El ciclo {objetivo!r} no está en el agregado. Disponibles: {ciclos}.")
+
+    corte = agregado[agregado[COLUMNA_CICLO] == objetivo]
+    variacion = modelo.predict(corte[list(DRIVERS)])
+
+    filas = pd.DataFrame(
+        {
+            "grano": Grano.MUNICIPIO_NIVEL.value,
+            "cct": None,
+            "cve_mun": corte["cve_mun"].to_numpy(),
+            "nivel": corte["nivel"].to_numpy(),
+            "id_ciclo": objetivo,
+            "modelo": "ML-01",
+            "valor": variacion.astype(float),
+            "indice_riesgo": indice_riesgo(variacion).astype(float),
             "probabilidad": None,
             "mlflow_run_id": mlflow_run_id,
             "generado_at": generado_at or datetime.now(tz=UTC),
@@ -266,6 +401,38 @@ def construir_recomendaciones_ml02(
     return construir_recomendaciones(predicciones, drivers)
 
 
+def _objetivo_de_conflicto(df: pd.DataFrame, tabla: Table):
+    """Elige el índice único contra el que hace UPSERT este lote.
+
+    Con grano dual (DEC-010) la tabla no tiene una llave primaria única: tiene **dos índices
+    parciales**, uno por grano. El lote debe ser homogéneo para saber a cuál apuntar; mezclar granos
+    en una sola escritura haría ambiguo el objetivo de conflicto.
+
+    Returns:
+        Tupla (columnas del índice, predicado parcial). `(llaves, None)` si la tabla tiene PK propia
+        —como `gold.recomendaciones`, que sigue a grano escuela.
+
+    Raises:
+        ValueError: si el lote mezcla granos.
+    """
+    if "grano" not in df.columns:
+        return [c.name for c in tabla.primary_key.columns], None
+
+    granos = set(df["grano"].unique())
+    if len(granos) > 1:
+        raise ValueError(
+            f"El lote mezcla granos {sorted(granos)}. Publica un grano por llamada: el objetivo de "
+            "conflicto del UPSERT es distinto para cada uno."
+        )
+
+    grano = granos.pop()
+    if grano == Grano.ESCUELA.value:
+        return ["cct", "id_ciclo", "modelo"], text("grano = 'escuela'")
+    if grano == Grano.MUNICIPIO_NIVEL.value:
+        return ["cve_mun", "nivel", "id_ciclo", "modelo"], text("grano = 'municipio_nivel'")
+    raise ValueError(f"Grano desconocido: {grano!r}. Esperado uno de {[g.value for g in Grano]}.")
+
+
 def escribir(
     df: pd.DataFrame,
     tabla: Table,
@@ -300,7 +467,7 @@ def escribir(
     else:  # pragma: no cover - sólo usamos estos dos motores
         raise NotImplementedError(f"UPSERT no implementado para el dialecto {dialecto!r}.")
 
-    llaves = [c.name for c in tabla.primary_key.columns]
+    llaves, filtro = _objetivo_de_conflicto(df, tabla)
     registros = df.to_dict(orient="records")
 
     with engine.begin() as conexion:
@@ -313,7 +480,9 @@ def escribir(
             c.name: sentencia.excluded[c.name] for c in tabla.columns if c.name not in llaves
         }
         conexion.execute(
-            sentencia.on_conflict_do_update(index_elements=llaves, set_=actualizables)
+            sentencia.on_conflict_do_update(
+                index_elements=llaves, index_where=filtro, set_=actualizables
+            )
         )
     return len(registros)
 

@@ -23,6 +23,7 @@ tags: [qa, bugs]
 | BUG-007 | Healthcheck de `chromadb` apunta a `/api/v1/heartbeat`, que responde **HTTP 410 Gone** (endpoint retirado); la ruta viva es `/api/v2/heartbeat`. Además arrastra el mismo problema de `curl` de BUG-006 | medium | fixed | US-502 / REQ-006 | PR #65 (Luis Téllez, **C5**) — actualizado puerto MLflow en documentación (5000 → 5001) | validado |
 | BUG-008 | `docker/api.Dockerfile` arranca `src.api.main:app` (el hola mundo de US-501, **3 rutas**) en vez de `src.api.app:app` (la app real del contrato v1, **18 rutas** bajo `/api/v1`): en el contenedor —y en la URL pública si usa este Dockerfile— **US-401, US-402 y US-411 son inalcanzables** | **high** | open | US-501 / US-411 / REQ-004 / REQ-005 | pendiente (**C5** + C4) | correr `uvicorn src.api.app:app` a mano fuera del contenedor | ver detalle |
 | BUG-009 | 11 vars de dbt sin valor por default (7 `identifier` de fuentes Bronze + 4 vars de modelo): cualquier `dbt parse`/`build`/`run` falla al renderizar el manifest aunque el modelo probado no use esas fuentes | high | fixed | US-111 | defaults inline en `sources.yml` + bloque `vars:` en `dbt_project.yml` (DEC-011) | `dbt parse` en `ci.yml` (job `dbt-contract`) |
+| BUG-010 | `/api/v1/predicciones/*` sigue leyendo `src/api/mock_data.py` en vez de `gold.predicciones` + `gold.recomendaciones`: la verificación **#4 del ensayo E2E** («≥1 modelo sirviendo por API») devolvería un valor fijo, no la predicción de ML-01 | **high** | open | US-412 / US-415 / REQ-004 / REQ-003 | pendiente (**C4**) | consultar Gold directo por SQL | ver detalle |
 | BUG-011 | `sync_semantic_layer.py` lee YAML/SQL con la codificación del sistema (`read_text()` sin `encoding`): en Windows usa cp1252 y truena con los acentos de cualquier `metrics_*.yaml`; el script solo corre con `PYTHONUTF8=1`. Misma familia que BUG-005 (locale de Windows) | medium | fixed | US-203 / US-212 | `fix/manuel-serrania-bug010-sync-charts-utf8` — `encoding="utf-8"` explícito en las 3 lecturas (`_read_yaml`, `_read_sql`) | pendiente (validar en Windows) |
 
 ## Convención
@@ -204,6 +205,56 @@ la raíz. Cualquier verificación automatizada del ensayo debe apuntar ahí.
 (regla 7 del vault).
 
 ---
+
+## BUG-010 — `/predicciones` sirve datos simulados, no la salida de ML-01
+
+| | |
+|---|---|
+| **Severidad** | high — impide cumplir la verificación **#4** del ensayo E2E del 28–29 |
+| **Estado** | `open` |
+| **Detectado** | 2026-08-24, preparando el guion de la verificación #4 |
+| **Owner** | **Célula 4** (`src/api/`) |
+
+### Qué pasa
+
+`src/api/v1/predicciones.py` importa `src.api.mock_data` y construye la respuesta desde ahí. Su
+propio docstring lo anticipa: *"Los valores provienen de `mock_data`; al integrar MLflow (Célula 3)
+es un swap"*. Ese swap no se ha hecho.
+
+`src/api/repositorio_gold.py` (US-411) sí lee Gold, pero cubre `/escuelas`, `/municipios` y `/kpis`
+— **no `/predicciones`**.
+
+### Por qué importa ahora
+
+El PLAN_MAESTRO fija como verificación #4 del ensayo: *«≥1 modelo sirviendo por API (ML-01) …
+`/predicciones` devuelve valor (real o simulado, marcado)»*.
+
+El criterio **admite valores simulados si están marcados**, así que la falta de datos reales del 911
+no bloquea. Lo que sí bloquea es que hoy el endpoint no consulta el modelo en absoluto: devolvería un
+número escrito a mano, no la predicción de ML-01. La verificación pasaría de forma engañosa.
+
+### Lo que el swap necesita
+
+`gold.predicciones` y `gold.recomendaciones` ya están pobladas y verificadas contra Postgres
+(US-313). El mapeo a `PrediccionOut` es directo salvo por un campo:
+
+| Campo de `PrediccionOut` | Origen | ¿Existe? |
+|---|---|---|
+| `cct`, `id_ciclo` | `gold.predicciones` (filtrar `grano = 'escuela'`, `modelo = 'ML-01'`) | ✅ |
+| `indice_riesgo` | `gold.predicciones.indice_riesgo` | ✅ |
+| `mlflow_run_id` | `gold.predicciones.mlflow_run_id` | ✅ |
+| `driver_dominante`, `recomendacion` | `gold.recomendaciones` por `cct` + `id_ciclo` | ✅ |
+| **`cluster`** | **ML-03 (US-321, Estefany Hernández)** | ❌ **no existe** |
+
+**`PrediccionOut.cluster` es un `StrictInt` obligatorio sin productor.** Mientras ML-03 no exista,
+el swap no puede completar la respuesta sin inventar el valor. Opciones a decidir por la Célula 4:
+hacer `cluster` opcional, o declararlo explícitamente ausente — nunca rellenarlo con un entero
+arbitrario, por la misma regla de `SIN_DATO` que rige el resto del proyecto.
+
+### Nota
+
+Filtrar por `grano = 'escuela'` es necesario desde **DEC-010**: `gold.predicciones` admite también
+filas a `municipio × nivel`, que no corresponden a un CCT.
 
 ## BUG-004 — Imagen `apache/superset:latest` no incluye `psycopg2`
 

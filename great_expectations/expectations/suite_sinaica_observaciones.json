@@ -1,7 +1,7 @@
 {
   "expectations": [
     {
-      "id": "38e0ed3e-121b-4eb4-9b97-891549bd109b",
+      "id": "5b9529d1-a495-4f72-8caa-23ca79b9fef9",
       "kwargs": {
         "column": "id_estacion"
       },
@@ -10,7 +10,7 @@
       "type": "expect_column_values_to_not_be_null"
     },
     {
-      "id": "ce99f195-ae4f-418d-b6e7-ef2417e10aaa",
+      "id": "88cfbf40-56b4-445a-83c9-0532e388d4bb",
       "kwargs": {
         "column": "parametro"
       },
@@ -19,7 +19,7 @@
       "type": "expect_column_values_to_not_be_null"
     },
     {
-      "id": "9b1e2501-317e-4c26-a6d6-289546fa77a2",
+      "id": "72ca12cd-eb6a-4075-b71e-25f8f67d1abf",
       "kwargs": {
         "column": "fecha"
       },
@@ -28,7 +28,7 @@
       "type": "expect_column_values_to_not_be_null"
     },
     {
-      "id": "a2314e84-9e97-4a5c-bf5c-08a9da9e2553",
+      "id": "ff9c0b7e-8a2d-479a-b55a-8cd4ef51e93c",
       "kwargs": {
         "column": "hora"
       },
@@ -37,7 +37,7 @@
       "type": "expect_column_values_to_not_be_null"
     },
     {
-      "id": "3f9b77bb-e2a3-4606-9ff6-e51124e80922",
+      "id": "e1ce13b3-6605-4ad4-bb0b-1d6e267a87df",
       "kwargs": {
         "column": "valor"
       },
@@ -46,7 +46,7 @@
       "type": "expect_column_values_to_not_be_null"
     },
     {
-      "id": "9ee8f103-17e0-4042-a461-a8fd44d3698b",
+      "id": "3361521f-b7a0-4b05-a383-8451cecd6b99",
       "kwargs": {
         "column": "hora",
         "type_": "int64"
@@ -56,7 +56,7 @@
       "type": "expect_column_values_to_be_of_type"
     },
     {
-      "id": "013a6bec-2f75-4de3-9fb8-760738a33129",
+      "id": "21c57da3-6eb2-48be-b966-4768f763b00e",
       "kwargs": {
         "column": "valor",
         "type_": "float64"
@@ -66,7 +66,7 @@
       "type": "expect_column_values_to_be_of_type"
     },
     {
-      "id": "aae7a378-fa0b-43d5-b49c-8ac5e7be3f4d",
+      "id": "9e19e750-8e7b-48cc-84d2-90bfce21105f",
       "kwargs": {
         "column": "hora",
         "max_value": 23.0,
@@ -77,7 +77,7 @@
       "type": "expect_column_values_to_be_between"
     },
     {
-      "id": "543ce0f6-a516-47cf-9c36-0b2a58e747bc",
+      "id": "2e88446e-6226-4bb2-a56f-f442dbf6cb84",
       "kwargs": {
         "column": "valor",
         "min_value": 0.0
@@ -87,7 +87,7 @@
       "type": "expect_column_values_to_be_between"
     },
     {
-      "id": "8de72b5d-466b-498e-b37d-177db739039f",
+      "id": "247997e7-946f-4dac-9aee-ce8d5abe3cfa",
       "kwargs": {
         "column": "val",
         "value_set": [
@@ -100,7 +100,7 @@
       "type": "expect_column_values_to_be_in_set"
     },
     {
-      "id": "bd04bc7b-7825-4cf2-9a9a-3f1e455b4196",
+      "id": "2dd11686-7150-4280-b54c-1d3a7bf5e8ab",
       "kwargs": {
         "column": "parametro",
         "value_set": [
@@ -117,7 +117,7 @@
       "type": "expect_column_values_to_be_in_set"
     },
     {
-      "id": "606c3e5d-37fc-4d06-9309-4198aff41831",
+      "id": "6b2954dd-3a4d-43c7-9748-d87dbcbe9711",
       "kwargs": {
         "column_list": [
           "id_estacion",
@@ -131,15 +131,18 @@
       "type": "expect_compound_columns_to_be_unique"
     },
     {
-      "id": "f31d3d95-42e7-4686-b454-0ce26b602132",
+      "id": "6c3ce4d0-2306-4ae1-a27f-b4870ebb071b",
       "kwargs": {
         "column": "valor",
-        "condition_parser": "pandas",
         "max_value": 0.5,
         "min_value": 0.0,
         "row_condition": {
-          "pass_through_filter": "parametro == \"O3\"",
-          "type": "pass_through"
+          "column": {
+            "name": "parametro"
+          },
+          "operator": "==",
+          "parameter": "O3",
+          "type": "comparison"
         }
       },
       "meta": {},
@@ -147,15 +150,18 @@
       "type": "expect_column_values_to_be_between"
     },
     {
-      "id": "7e3a589d-0dff-4cb8-b7ec-f05b723ac470",
+      "id": "d2e9c6ca-766c-4064-947f-42de5aea3003",
       "kwargs": {
         "column": "valor",
-        "condition_parser": "pandas",
         "max_value": 50.0,
         "min_value": 0.0,
         "row_condition": {
-          "pass_through_filter": "parametro == \"CO\"",
-          "type": "pass_through"
+          "column": {
+            "name": "parametro"
+          },
+          "operator": "==",
+          "parameter": "CO",
+          "type": "comparison"
         }
       },
       "meta": {},
@@ -163,15 +169,18 @@
       "type": "expect_column_values_to_be_between"
     },
     {
-      "id": "e42a8b4b-d5c6-4685-8a18-977818ecc361",
+      "id": "90dc681d-bf21-4e0e-8cb7-da8664120835",
       "kwargs": {
         "column": "valor",
-        "condition_parser": "pandas",
         "max_value": 1.0,
         "min_value": 0.0,
         "row_condition": {
-          "pass_through_filter": "parametro == \"NO2\"",
-          "type": "pass_through"
+          "column": {
+            "name": "parametro"
+          },
+          "operator": "==",
+          "parameter": "NO2",
+          "type": "comparison"
         }
       },
       "meta": {},
@@ -179,15 +188,18 @@
       "type": "expect_column_values_to_be_between"
     },
     {
-      "id": "a4384918-965d-4df2-901b-0f91c9b5ad28",
+      "id": "8730d426-5acf-44e0-b420-05c304ae9e7a",
       "kwargs": {
         "column": "valor",
-        "condition_parser": "pandas",
         "max_value": 1.0,
         "min_value": 0.0,
         "row_condition": {
-          "pass_through_filter": "parametro == \"SO2\"",
-          "type": "pass_through"
+          "column": {
+            "name": "parametro"
+          },
+          "operator": "==",
+          "parameter": "SO2",
+          "type": "comparison"
         }
       },
       "meta": {},
@@ -195,15 +207,18 @@
       "type": "expect_column_values_to_be_between"
     },
     {
-      "id": "7963e762-a4dd-4718-9c73-f8d370e2693c",
+      "id": "33b1cb7b-2084-460c-93f9-92eaf73e0cf8",
       "kwargs": {
         "column": "valor",
-        "condition_parser": "pandas",
         "max_value": 1000.0,
         "min_value": 0.0,
         "row_condition": {
-          "pass_through_filter": "parametro == \"PM2.5\"",
-          "type": "pass_through"
+          "column": {
+            "name": "parametro"
+          },
+          "operator": "==",
+          "parameter": "PM2.5",
+          "type": "comparison"
         }
       },
       "meta": {},
@@ -211,15 +226,18 @@
       "type": "expect_column_values_to_be_between"
     },
     {
-      "id": "7b1c5485-e63d-48e0-b8ae-bfd60e36af5f",
+      "id": "e832c885-7d27-406a-a885-ebf6fa8f9e0e",
       "kwargs": {
         "column": "valor",
-        "condition_parser": "pandas",
         "max_value": 1200.0,
         "min_value": 0.0,
         "row_condition": {
-          "pass_through_filter": "parametro == \"PM10\"",
-          "type": "pass_through"
+          "column": {
+            "name": "parametro"
+          },
+          "operator": "==",
+          "parameter": "PM10",
+          "type": "comparison"
         }
       },
       "meta": {},

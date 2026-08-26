@@ -51,6 +51,7 @@ Toda sesión con IA **debe** generar una entrada de DevLog **antes del push** (p
 | [[_DevLog/2026-08-12-alejandro-velazquez-mendoza\|2026-08-12]] | US-521a: Setup local FastAPI + Postgres (docker-compose y guía) | Alejandro Velázquez Mendoza | Antigravity | US-521a, DOC-DEV-API-LOCAL, REQ-007 |
 | [[_DevLog/2026-08-12-edgar-calendario-responsable\|2026-08-12]] | Calendario del tablero PM: responsable visible por US (avatar de iniciales + nombre corto), pie de responsables por sprint, `owner_short` en el generador y TEST-002 | Edgar Edmundo Coronel Navarrete | Claude Code / opus-4-8 | US-004, REQ-007, RPT-PM-SPEC, TEST-002, PLAN-EXEC-STATUS |
 | [[_DevLog/2026-08-13-manuel-serrania-screenspecs-cubos\|2026-08-13]] | Corrección de Screen_Specs: cubos leen riesgo/driver vía JOIN a `predicciones`/`recomendaciones` (KPI-03/04/07/10) + ratificación del umbral 0.6 = perder ~5% de matrícula | Manuel Alejandro Serranía Reinada | OpenCode / opencode/big-pickle | US-201, REQ-002, DOC-SCREENSPECS, DOC-INDICE-RIESGO |
+| [[_DevLog/2026-08-25-alejandro-velazquez-us522a\|2026-08-25]] | Actualización administrativa de estatus para reflejar US-522a (contenedores listos y mergeados) y validación en vivo de US-523a (branch protection activa) | Alejandro Velázquez Mendoza | Antigravity / gemini-2.5-pro | US-522a, US-523a, REQ-005, REQ-007 |
 
 ## Campos del frontmatter
 | Campo | Obligatorio |

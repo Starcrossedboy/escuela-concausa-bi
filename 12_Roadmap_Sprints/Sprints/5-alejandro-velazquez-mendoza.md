@@ -302,9 +302,9 @@ Actualiza esta tabla **antes de cada standup**. El PM la revisa para el tablero 
 
 | ID | Historia | Estado | % | Bloqueado por | Fecha compromiso |
 |---|---|---|---|---|---|
-| `US-521a` | Guia ambiente local: API y Postgres | ⬜ Por iniciar | 0% | — | Dom 9 ago |
-| `US-522a` | Contenerizar API y Postgres | ⬜ Por iniciar | 0% | — | Dom 23 ago |
-| `US-523a` | Branch protection y required reviews | ⬜ Por iniciar | 0% | — | Dom 23 ago |
+| `US-521a` | Guia ambiente local: API y Postgres | ✅ Terminado | 100% | — | Dom 9 ago |
+| `US-522a` | Contenerizar API y Postgres | ✅ Terminado | 100% | — | Dom 23 ago |
+| `US-523a` | Branch protection y required reviews | 🟡 En curso | 50% | Pendiente DevLog y matriz | Dom 23 ago |
 | `US-524a` | Monitoreo de API y Postgres | ⬜ Por iniciar | 0% | — | Dom 6 sep |
 | `US-525a` | Runbook rollback API y Postgres | ⬜ Por iniciar | 0% | — | Mar 8 sep |
 

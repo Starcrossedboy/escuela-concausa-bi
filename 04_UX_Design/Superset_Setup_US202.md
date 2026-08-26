@@ -45,13 +45,13 @@ docker exec -u root faro-superset pip install --target /app/.venv/lib/python3.10
 
 ### Gold mock (tablas mínimas para validación)
 
-Superset ejecuta el SQL de los datasets virtuales para obtener metadatos de columnas. Si las tablas Gold no existen, la creación falla con 500. Se crearon tablas mock mínimas en `docker/init-db.sql` o vía `psql`:
+Superset ejecuta el SQL de los datasets virtuales para obtener metadatos de columnas. Si las tablas Gold no existen, la creación falla con 500. Los mocks viven en `superset/mock/`; cárgalos vía `psql`:
 
 ```bash
-docker exec -i faro-postgres psql -U postgres -d escuela_concausa_db < docker/gold_mock.sql
+docker exec -i faro-postgres psql -U postgres -d escuela_concausa_db < superset/mock/gold_ml_outputs_mock.sql
 ```
 
-> **Las tablas mock contienen 1 fila dummy cada una.** Serán reemplazadas cuando la Célula 1 entregue `gold.*` (US-112/113).
+> **Las tablas mock contienen 1 fila dummy cada una.** Serán reemplazadas cuando la Célula 1 entregue `gold.*` (US-112/113). Para los datasets de DB-02 (mapa) y DB-03/DB-04 revisa también el resto de archivos en `superset/mock/`.
 
 Login: `SUPERSET_ADMIN_USERNAME` / `SUPERSET_ADMIN_PASSWORD` (definidos en `.env`).
 

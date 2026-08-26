@@ -18,3 +18,4 @@ tags: [moc, qa, testing]
 | [[06_Quality_Testing/Physical_Manual/_index]] | Pruebas en dispositivo real / manuales |
 | [[06_Quality_Testing/QA_Logs/_index]] | Bitácoras de ejecución de QA |
 | [[06_Quality_Testing/Bug_Register]] | Registro de defectos `BUG-###` |
+| [[06_Quality_Testing/Guion_E2E_Verificacion_4]] | Guion de la verificación #4 del ensayo E2E: ML-01 sirviendo por API (C3) |

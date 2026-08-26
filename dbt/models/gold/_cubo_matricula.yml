@@ -1,0 +1,43 @@
+version: 2
+
+models:
+  - name: cubo_matricula
+    description: >
+      US-113 / DB-01 + DB-06. Vista materializada a grano
+      municipio × nivel × ciclo. Conserva componentes aditivos observados
+      y de ML-01, con cobertura explícita.
+    columns:
+      - name: cve_mun
+        data_tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_municipio')
+                field: cve_mun
+      - name: nivel
+        data_tests: [not_null]
+      - name: id_ciclo
+        data_tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_tiempo')
+                field: id_ciclo
+      - name: cve_ent
+        data_tests: [not_null]
+      - name: escuelas
+        data_tests: [not_null]
+      - name: matricula_total
+        data_tests: [not_null]
+      - name: escuelas_con_prediccion
+        data_tests: [not_null]
+      - name: cobertura_matricula
+        data_tests:
+          - not_null
+          - accepted_values:
+              arguments: {values: ['OK']}
+      - name: cobertura_prediccion
+        data_tests:
+          - not_null
+          - accepted_values:
+              arguments: {values: ['OK', 'SIN_DATO']}

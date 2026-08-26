@@ -195,7 +195,7 @@ def ensure_database(token: str, csrf: str) -> int:
 def _read_sql(path: Path) -> str:
     """Lee un archivo .sql y extrae la query (sin comentarios al inicio)."""
     # encoding explícito: en Windows read_text() usa cp1252 y truena con acentos
-    # (misma familia que BUG-005 / BUG-010).
+    # (misma familia que BUG-005 / BUG-011).
     raw = path.read_text(encoding="utf-8")
     # Quitar comentarios SQL al inicio (líneas que empiezan con --)
     lines = []

@@ -6,11 +6,11 @@ agent: "OpenCode"
 model: "ox-alpha"
 type: devlog
 session_duration: "~1h"
-touches: ["US-203", "US-212", "BUG-010", "REQ-002", "PR-84", "US-113"]
+touches: ["US-203", "US-212", "BUG-011", "REQ-002", "PR-84", "US-113"]
 tags: [devlog, superset, sync, windows, celula-2]
 ---
 
-# 2026-08-25 — Manuel Serranía · BUG-010 (encoding Windows) + guardia de charts homónimos + review US-212
+# 2026-08-25 — Manuel Serranía · BUG-011 (encoding Windows) + guardia de charts homónimos + review US-212
 
 ## Contexto
 
@@ -21,13 +21,13 @@ y cierra el review del PR #84.
 
 ## Qué se hizo
 
-### 1. BUG-010 — lectura cp1252 en Windows (reporte de Marina)
+### 1. BUG-011 — lectura cp1252 en Windows (reporte de Marina)
 
 `_read_yaml()` y `_read_sql()` leían con `path.read_text()` sin `encoding`: en Windows Python
 usa el locale (cp1252) y truena con `UnicodeDecodeError` ante cualquier acento de
 `metrics_*.yaml`. El workaround era correr todo con `PYTHONUTF8=1`. Fix: `encoding="utf-8"`
 explícito en las **3** lecturas (las 2 de `_read_yaml`, incluida la ruta del parser manual, y
-la de `_read_sql` que Marina no había mencionado). Registrado como **BUG-010** en
+la de `_read_sql` que Marina no había mencionado). Registrado como **BUG-011** en
 [[06_Quality_Testing/Bug_Register]] — misma familia que BUG-005.
 
 ### 2. Guardia anti-homónimos en `ensure_chart()` (hallazgo principal de Marina)
@@ -81,7 +81,7 @@ main (los cubos aún no están), no sobre la existencia del trabajo.
 
 ## Notas / riesgos
 
-- BUG-010 queda `fixed` con test de regresión **pendiente de validar en Windows** (el fallo
+- BUG-011 queda `fixed` con test de regresión **pendiente de validar en Windows** (el fallo
   es específico de ese SO; quien tenga Windows corre el sync sin `PYTHONUTF8=1`).
 - La guardia de homónimos depende de que la lista de `/api/v1/chart/` traiga
   `datasource_id`; si alguna versión no lo trae, el código cae al detalle por id.

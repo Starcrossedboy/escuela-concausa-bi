@@ -23,7 +23,7 @@ tags: [qa, bugs]
 | BUG-007 | Healthcheck de `chromadb` apunta a `/api/v1/heartbeat`, que responde **HTTP 410 Gone** (endpoint retirado); la ruta viva es `/api/v2/heartbeat`. Además arrastra el mismo problema de `curl` de BUG-006 | medium | fixed | US-502 / REQ-006 | PR #65 (Luis Téllez, **C5**) — actualizado puerto MLflow en documentación (5000 → 5001) | validado |
 | BUG-008 | `docker/api.Dockerfile` arranca `src.api.main:app` (el hola mundo de US-501, **3 rutas**) en vez de `src.api.app:app` (la app real del contrato v1, **18 rutas** bajo `/api/v1`): en el contenedor —y en la URL pública si usa este Dockerfile— **US-401, US-402 y US-411 son inalcanzables** | **high** | open | US-501 / US-411 / REQ-004 / REQ-005 | pendiente (**C5** + C4) | correr `uvicorn src.api.app:app` a mano fuera del contenedor | ver detalle |
 | BUG-009 | 11 vars de dbt sin valor por default (7 `identifier` de fuentes Bronze + 4 vars de modelo): cualquier `dbt parse`/`build`/`run` falla al renderizar el manifest aunque el modelo probado no use esas fuentes | high | fixed | US-111 | defaults inline en `sources.yml` + bloque `vars:` en `dbt_project.yml` (DEC-011) | `dbt parse` en `ci.yml` (job `dbt-contract`) |
-| BUG-010 | `sync_semantic_layer.py` lee YAML/SQL con la codificación del sistema (`read_text()` sin `encoding`): en Windows usa cp1252 y truena con los acentos de cualquier `metrics_*.yaml`; el script solo corre con `PYTHONUTF8=1`. Misma familia que BUG-005 (locale de Windows) | medium | fixed | US-203 / US-212 | `fix/manuel-serrania-bug010-sync-charts-utf8` — `encoding="utf-8"` explícito en las 3 lecturas (`_read_yaml`, `_read_sql`) | pendiente (validar en Windows) |
+| BUG-011 | `sync_semantic_layer.py` lee YAML/SQL con la codificación del sistema (`read_text()` sin `encoding`): en Windows usa cp1252 y truena con los acentos de cualquier `metrics_*.yaml`; el script solo corre con `PYTHONUTF8=1`. Misma familia que BUG-005 (locale de Windows) | medium | fixed | US-203 / US-212 | `fix/manuel-serrania-bug010-sync-charts-utf8` — `encoding="utf-8"` explícito en las 3 lecturas (`_read_yaml`, `_read_sql`) | pendiente (validar en Windows) |
 
 ## Convención
 
@@ -376,7 +376,7 @@ completa de valores, dueños y los dos casos que quedaron sin confirmar.
 
 ---
 
-## BUG-010 — `sync_semantic_layer.py` lee YAML/SQL en cp1252 en Windows
+## BUG-011 — `sync_semantic_layer.py` lee YAML/SQL en cp1252 en Windows
 
 - **Owner:** Manuel Alejandro Serranía Reinada
 - **Reportó:** Marina García del Buey (revisión de US-212, 2026-08-24)

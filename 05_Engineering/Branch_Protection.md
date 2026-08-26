@@ -1,7 +1,7 @@
 ---
 id: DOC-BRANCHPROT
 title: "Branch Protection"
-owner: "Alejandro Velázquez Mendoza"
+owner: "Edgar Edmundo Coronel Navarrete"
 status: approved
 source_of_truth: true
 tags: [engineering, git, security, enforcement]
@@ -11,8 +11,8 @@ traces_down: [".github/CODEOWNERS"]
 
 # Branch Protection — FARO
 
-> Convierte las reglas de workflow en **enforcement técnico**. Configurar en GitHub -> Settings -> Branches.
-> -> [[05_Engineering/_index]]
+> Convierte las reglas de workflow en **enforcement técnico**. Configurar en GitHub → Settings → Branches.
+> → [[05_Engineering/_index]]
 
 ## Reglas obligatorias en `main`
 - ☑️ Require a pull request before merging (**mínimo 1 aprobación**)

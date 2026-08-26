@@ -1,0 +1,162 @@
+# =============================================================================
+# DB-03 · Ficha de escuela — definicion declarativa (US-212)
+# -----------------------------------------------------------------------------
+# Historia : US-212 (Marina Garcia del Buey, Celula 2 - Analytics & BI)
+# Contrato : 04_UX_Design/Cube_Specs_DB03_DB04.md §3 · Screen_Specs.md §4 (KPI-15..18)
+# Consumido por : superset/sync_semantic_layer.py (idempotente)
+#
+# Cubre AC-002.4 (perfil, drivers, prediccion y recomendacion por CCT),
+# AC-002.5 (serie de tiempo de matricula) y AC-002.6 (SIN_DATO visible).
+#
+# ⚠️ Construido y validado contra superset/mock/gold_estrella_mock.sql, porque
+#    US-113 (cubos reales, Celula 1) vencio el 2026-08-23 sin entregarse.
+#    La ESTRUCTURA esta validada; los NUMEROS no. Revalidar contra los cubos
+#    reales antes de dar la historia por cerrada.
+# =============================================================================
+
+version: "1.0"
+owner: "Marina García del Buey"
+story: US-212
+
+dashboards:
+  - titulo: "DB-03 · Ficha de escuela"
+    slug: db03-ficha-escuela
+    descripcion: >
+      Drill-down por CCT: perfil del plantel, los seis drivers con su bandera de
+      cobertura (KPI-16), la prediccion de ML-01 con el umbral de 0.6 (KPI-17) y
+      la recomendacion prescriptiva segun el driver dominante (KPI-18).
+      Donde no hay dato se muestra "sin dato disponible", nunca un cero.
+    filtros_globales:
+      # `cct` es el filtro que convierte el tablero en una FICHA: sin el, el
+      # usuario no puede aterrizar en una escuela concreta (AC-002.4).
+      - columna: cct
+        etiqueta: "Escuela (CCT)"
+        datasets: [db03_cubo_escuela_360]
+      - columna: id_ciclo
+        etiqueta: "Ciclo escolar"
+        datasets: [db03_cubo_escuela_360]
+      - columna: nombre_entidad
+        etiqueta: "Entidad"
+        datasets: [db03_cubo_escuela_360]
+      - columna: nivel
+        etiqueta: "Nivel educativo"
+        datasets: [db03_cubo_escuela_360]
+
+    charts:
+      # ----- Fila 1: tiles KPI --------------------------------------------------
+      - nombre: "KPI-15 · Matrícula de la escuela"
+        dataset: db03_cubo_escuela_360
+        metrica: matricula_total
+        viz: big_number_total
+        ancho: 3
+        alto: 38
+        subheader: "Alumnado inscrito en el ciclo seleccionado"
+
+      - nombre: "KPI-02 · Variación de la escuela"
+        dataset: db03_cubo_escuela_360
+        metrica: variacion_ponderada_pct
+        viz: big_number_total
+        ancho: 3
+        alto: 38
+        subheader: "Variación ponderada vs ciclo anterior"
+
+      - nombre: "KPI-17 · Índice de riesgo"
+        dataset: db03_cubo_escuela_360
+        metrica: indice_riesgo
+        viz: big_number_total
+        ancho: 3
+        alto: 38
+        subheader: "ML-01 · en riesgo desde 0.60 (DEC-006). Vacío = sin dato disponible"
+
+      - nombre: "KPI-05 · Completitud de la escuela"
+        dataset: db03_cubo_escuela_360
+        metrica: completitud_promedio
+        viz: big_number_total
+        ancho: 3
+        alto: 38
+        subheader: "Fracción de los 6 drivers efectivamente observados"
+
+      # ----- Fila 2: evolucion y perfil ----------------------------------------
+      - nombre: "KPI-15 · Matrícula por ciclo"
+        dataset: db03_cubo_escuela_360
+        metrica: matricula_total
+        viz: echarts_timeseries_bar
+        ancho: 6
+        alto: 60
+        eje_x: ciclo
+        etiqueta_serie: "Matrícula total"
+
+      - nombre: "Perfil del plantel"
+        dataset: db03_cubo_escuela_360
+        metrica: matricula_total
+        viz: table
+        ancho: 6
+        alto: 60
+        dimensiones: [cct, nombre_escuela, nivel, sostenimiento, nombre_municipio, nombre_entidad]
+        row_limit: 25
+
+      # ----- Fila 3: los seis drivers con su bandera ---------------------------
+      # Cada driver viaja junto a su d#_cobertura: la bandera es la fuente de
+      # verdad (regla R2), no el nulo. Un hueco debe leerse como SIN_DATO.
+      - nombre: "KPI-16 · Drivers de la escuela y su cobertura"
+        dataset: db03_cubo_escuela_360
+        metrica: matricula_total
+        viz: table
+        ancho: 12
+        alto: 55
+        dimensiones:
+          - cct
+          - ciclo
+          - d1
+          - d1_cobertura
+          - d2
+          - d2_cobertura
+          - d3
+          - d3_cobertura
+          - d4
+          - d4_cobertura
+          - d5
+          - d5_cobertura
+          - d6
+          - d6_cobertura
+        row_limit: 25
+
+      # ----- Fila 4: infraestructura y recomendacion ---------------------------
+      - nombre: "Infraestructura CEMABE (D3/D4)"
+        dataset: db03_cubo_escuela_360
+        metrica: matricula_total
+        viz: table
+        ancho: 6
+        alto: 55
+        dimensiones: [cct, agua, drenaje, electricidad, sanitarios, internet, computadoras]
+        row_limit: 25
+
+      - nombre: "KPI-18 · Recomendación prescriptiva"
+        dataset: db03_cubo_escuela_360
+        metrica: matricula_total
+        viz: table
+        ancho: 6
+        alto: 55
+        dimensiones: [cct, driver_dominante, nombre_driver, recomendacion, prioridad, cobertura_recomendacion]
+        row_limit: 25
+
+      # ----- Fila 5: prediccion y ubicacion ------------------------------------
+      - nombre: "KPI-17 · Detalle de la predicción"
+        dataset: db03_cubo_escuela_360
+        metrica: matricula_total
+        viz: table
+        ancho: 6
+        alto: 55
+        dimensiones: [cct, ciclo, indice_riesgo, en_riesgo, variacion_proyectada, cobertura_prediccion]
+        row_limit: 25
+
+      - nombre: "Ubicación del plantel"
+        dataset: db03_cubo_escuela_360
+        metrica: matricula_total
+        viz: deck_scatter
+        ancho: 6
+        alto: 55
+        latitud: latitud
+        longitud: longitud
+        categoria: nivel
+        radio_px: 10

@@ -5,7 +5,7 @@ author_human: "Marina García del Buey"
 agent: "Claude Code"
 model: "claude-opus-5"
 session_duration: "sesión única: US-212 — construcción de DB-03 y DB-04 en Superset"
-touches: ["US-212", "REQ-002", "DOC-CUBESPEC-DB0304", "DOC-TRACE-MATRIX", "SPRINT-MARINA-GARCIA-DEL-BUEY", "US-113"]
+touches: ["US-212", "REQ-002", "BUG-010", "DOC-CUBESPEC-DB0304", "DOC-TRACE-MATRIX", "SPRINT-MARINA-GARCIA-DEL-BUEY", "US-113"]
 tags: [devlog, bi, dashboards, superset, celula-2]
 ---
 
@@ -74,7 +74,13 @@ publicó) y el bloque de solicitud de cambio de grano → referencia a **DEC-008
 - **Manejo de secretos:** las credenciales se cargaron del `.env` al entorno sin imprimirse; la salida
   del script se filtró para enmascarar la contraseña embebida en la URI de conexión.
 
-## Hallazgos para la Célula 2 (no corregidos aquí)
+## Hallazgos para la Célula 2 — **resueltos por Manuel en BUG-010**
+
+> Los tres se reportaron en el PR y Manuel los corrigió en `fix/manuel-serrania-bug010-sync-charts-utf8`:
+> el script ya compara `datasource_id` antes de reusar un chart homónimo (crea uno nuevo avisando con ⚠
+> en vez de repuntar el ajeno), las tres lecturas usan `read_text(encoding="utf-8")` —así que deja de
+> hacer falta `PYTHONUTF8=1`— y la guía ya apunta al mock real. Se dejan documentados por trazabilidad.
+
 
 1. **Colisión de nombres de chart entre tableros.** `sync_semantic_layer.py` identifica los charts por
    `slice_name` global, no por tablero. Tres charts de DB-03/DB-04 se llamaban igual que los de DB-01
@@ -89,10 +95,34 @@ publicó) y el bloque de solicitud de cambio de grano → referencia a **DEC-008
 3. **Referencia rota en la guía:** `04_UX_Design/Superset_Setup_US202.md` §2 manda correr
    `docker/gold_mock.sql`, que no existe en el repo.
 
+## Correcciones tras la revisión
+
+**Edgar detectó un error de formato que yo no vi** (`pct_escuelas_en_riesgo`): la expresión traía
+`* 100.0` **y** `formato: porcentaje_1`, que el sync mapea al d3 `,.1%` — y ese formato ya multiplica
+por 100 al renderizar. DB-04 habría pintado `10,000.0%` donde debía decir `100.0%`.
+
+No lo detecté porque **el municipio que revisé daba `0.0`, y con cero el error es invisible**: sólo se
+nota en una fila con valor distinto de cero. La corrección es quitar el `* 100.0` y guardar la razón
+como fracción.
+
+Es la **tercera vez** que este error aparece en el proyecto (US-203, US-211b y ahora US-212), así que
+además de corregirlo se cerró la puerta:
+
+- `superset/semantic/metrics_db03_db04.yaml`: expresión corregida + nota explicando por qué no lleva `* 100`.
+- `04_UX_Design/Cube_Specs_DB03_DB04.md` §4.4: se corrigieron **dos** fórmulas —`pct_escuelas_en_riesgo`
+  y `pct_escuelas_con_d1…d6`, esta última **aún sin implementar**, que era la vía por la que el error
+  se iba a propagar una cuarta vez— y se agregó la regla explícita.
+- `tests/test_semantic_db03_db04.py`: **prueba de regresión** (`test_los_porcentajes_no_se_multiplican_dos_veces`)
+  que falla si una métrica con formato de porcentaje contiene `100` en su expresión. Verificada
+  reintroduciendo el error a propósito: la prueba lo atrapa.
+
+Verificado en Superset tras el fix: Naucalpan SECUNDARIA con 1 de 1 escuela en riesgo devuelve `1.0`
+(se pinta `100.0%`), Benito Juárez `0.0` (cero real) y Coyoacán `null` (sin dato).
+
 ## Seguridad / calidad
 
 - [x] Sin secretos hardcodeados; el `.env` no se leyó ni se imprimió
-- [x] 28 pruebas de contrato en verde · 24/24 charts validados contra la API
+- [x] 29 pruebas de contrato en verde · 24/24 charts validados contra la API
 - [x] `python _Meta/scripts/vault_lint.py .` → ✅ Vault limpio
 - [x] Datos 100% sintéticos: ningún CCT real, ninguna descarga de fuente
 

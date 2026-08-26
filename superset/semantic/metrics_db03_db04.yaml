@@ -172,12 +172,14 @@ datasets:
         umbral: 0.6
       - nombre: pct_escuelas_en_riesgo
         etiqueta: "% escuelas en riesgo"
-        expresion: "SUM(escuelas_en_riesgo) * 100.0 / NULLIF(SUM(escuelas_con_prediccion), 0)"
+        expresion: "SUM(escuelas_en_riesgo) / NULLIF(SUM(escuelas_con_prediccion), 0)"
         formato: porcentaje_1
         denominador_visible: escuelas_con_prediccion
         nota: >
           Divide entre escuelas con predicción, no entre el total. Decir "10% en riesgo"
           cuando solo el 30% fue puntuada inventaría una cobertura que no existe.
+          SIN `* 100`: el formato `porcentaje_1` ya se mapea al d3 ",.1%", que multiplica
+          por 100 al renderizar. Con ambos, 0.318 se pintaría como "3,180.0%".
       - nombre: completitud_promedio
         etiqueta: "Completitud de drivers"
         expresion: "SUM(suma_completitud) / NULLIF(SUM(escuelas), 0)"

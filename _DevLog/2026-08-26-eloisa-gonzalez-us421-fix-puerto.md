@@ -1,3 +1,10 @@
+---
+id: DEVLOG-2026-08-26-ELOISA-US421-FIX-PUERTO
+owner: "Eloisa Gonzalez Rubio"
+status: done
+traces_down: ["US-421"]
+---
+
 # DevLog — 2026-08-26 — Eloisa González Rubio
 
 ## Historia: US-421

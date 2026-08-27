@@ -134,7 +134,11 @@ class PrediccionOut(BaseModel):
     indice_riesgo: StrictFloat = Field(ge=0, le=1)  # ML-01
     driver_dominante: StrictStr  # ML-02
     recomendacion: StrictStr
-    cluster: StrictInt  # ML-03
+    # ML-03 (US-321, Estefany Hernández) aún no existe: sin productor, `cluster` es None.
+    # Mismo criterio SIN_DATO que EscuelaOut.indice_riesgo (Christian Ruiz, 2026-08-20) -- nunca
+    # se inventa un entero. BUG-010. Al aterrizar ML-03, vuelve a StrictInt obligatorio con
+    # aviso a C2/C3 (regla de oro del contrato, API_Specification.md).
+    cluster: StrictInt | None = None  # ML-03
     mlflow_run_id: StrictStr
 
 

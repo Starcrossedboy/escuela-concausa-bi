@@ -610,8 +610,15 @@
             "type": "string"
           },
           "cluster": {
-            "title": "Cluster",
-            "type": "integer"
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cluster"
           },
           "driver_dominante": {
             "title": "Driver Dominante",
@@ -642,7 +649,6 @@
           "indice_riesgo",
           "driver_dominante",
           "recomendacion",
-          "cluster",
           "mlflow_run_id"
         ],
         "title": "PrediccionOut",
@@ -1587,7 +1593,7 @@
     },
     "/api/v1/predicciones/batch": {
       "post": {
-        "description": "Inferencia en lote (rol mínimo: **analista** — se forzará en US-403).",
+        "description": "Inferencia en lote (rol mínimo: **analista** — se forzará en US-403).\n\nOmite silenciosamente los CCT sin fila en `gold.predicciones` -- nunca inventa una\npredicción para un CCT fuera de alcance o sin modelo corrido.",
         "operationId": "prediccion_batch_api_v1_predicciones_batch_post",
         "requestBody": {
           "content": {

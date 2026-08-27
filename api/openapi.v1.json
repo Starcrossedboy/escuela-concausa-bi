@@ -864,6 +864,11 @@
             "description": "Validation Error"
           }
         },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
         "summary": "Export",
         "tags": [
           "Administración"
@@ -886,6 +891,11 @@
             "description": "Successful Response"
           }
         },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
         "summary": "Metrics",
         "tags": [
           "Administración"
@@ -928,6 +938,11 @@
             "description": "Validation Error"
           }
         },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
         "summary": "Pipeline Run",
         "tags": [
           "Administración"
@@ -970,6 +985,11 @@
             "description": "Validation Error"
           }
         },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
         "summary": "Consulta",
         "tags": [
           "Agente"
@@ -1263,6 +1283,11 @@
             "description": "Validation Error"
           }
         },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
         "summary": "Listar Escuelas",
         "tags": [
           "Gold"
@@ -1306,6 +1331,11 @@
             "description": "Validation Error"
           }
         },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
         "summary": "Obtener Escuela",
         "tags": [
           "Gold"
@@ -1414,6 +1444,11 @@
             "description": "Validation Error"
           }
         },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
         "summary": "Obtener Kpis",
         "tags": [
           "Gold"
@@ -1542,6 +1577,11 @@
             "description": "Validation Error"
           }
         },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
         "summary": "Listar Municipios",
         "tags": [
           "Gold"
@@ -1585,6 +1625,11 @@
             "description": "Validation Error"
           }
         },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
         "summary": "Obtener Municipio",
         "tags": [
           "Gold"
@@ -1627,6 +1672,11 @@
             "description": "Validation Error"
           }
         },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
         "summary": "Prediccion Batch",
         "tags": [
           "Predicciones"
@@ -1680,6 +1730,11 @@
             "description": "Validation Error"
           }
         },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
         "summary": "Prediccion",
         "tags": [
           "Predicciones"
@@ -1723,6 +1778,11 @@
             "description": "Validation Error"
           }
         },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
         "summary": "Explicacion",
         "tags": [
           "Predicciones"

@@ -63,3 +63,4 @@ graphify-out/20??-??-??/
 # ---- Snapshots efímeros de reportes ----
 13_Reports/data/github-activity.json
 !dbt/seeds/*.csv
+tests/fixtures/fixtures.db

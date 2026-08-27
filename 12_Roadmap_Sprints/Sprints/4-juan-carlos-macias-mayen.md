@@ -3,10 +3,10 @@ id: SPRINT-JUAN-CARLOS-MACIAS-MAYEN
 title: "Plan de Sprints — Juan Carlos Macías Mayen"
 owner: "Juan Carlos Macías Mayen"
 status: approved
-version: "1.0"
+version: "1.1"
 traces_up: ["01_Product/PRD", "02_Requirements/User_Stories"]
 traces_down: ["US-412", "US-415", "US-416"]
-last_reviewed: "2026-07-31"
+last_reviewed: "2026-08-26"
 tags: [sprint, plan, celula-4, nivel-medio]
 ---
 
@@ -49,9 +49,26 @@ Tienes historias de **complejidad intermedia con autonomía**. Implementas pieza
 | | |
 |---|---|
 | **Sprint** | S4 — Lun 24 - Dom 30 ago |
-| **Objetivo** | Rutas que cargan los 3 modelos desde MLflow y devuelven prediccion. Modo batch y tiempo real, con validacion de entrada. |
+| **Objetivo** | Rutas que sirven las predicciones de los 3 modelos, leyendo `gold.predicciones` y `gold.recomendaciones` por SQL. Modo unitario y batch, con validación de entrada. Cierra **BUG-010**. |
 | **Entregable** | Código en su carpeta + documento en el vault con frontmatter + fila en la matriz |
 | **Cómo se entrega** | Rama `feat/juan-mayen-...` → PR con plantilla → revisión del Tech Lead → merge a `main` |
+
+> **Corrección del PM · 2026-08-26.** El objetivo original decía *"rutas que cargan los 3 modelos
+> desde MLflow"*. Se escribió el 31 de julio, antes de **DEC-010** y de US-313: entonces no existía
+> publicación batch a Gold y la única vía imaginable era inferencia viva. Hoy
+> `gold.predicciones` y `gold.recomendaciones` ya están pobladas y verificadas contra Postgres, y
+> **BUG-010** documenta el mapeo campo por campo. La vía sancionada es un `RepositorioModelos` que
+> consulta Postgres, con el mismo patrón `Depends` + doble de prueba que usa `repositorio_gold.py`
+> en US-411.
+>
+> Leer tablas precalculadas **no** debilita el "3 modelos integrados vía API" de la rúbrica:
+> `gold.predicciones.mlflow_run_id` conserva el enlace auditable hacia la corrida de MLflow que
+> produjo cada valor. Hay que dejarlo explícito en el PR.
+>
+> Al consultar, filtrar `grano = 'escuela'` — desde **DEC-010** la tabla admite también filas a
+> `municipio × nivel`, que no corresponden a un CCT.
+>
+> Lo levantó Juan Carlos al terminar US-415, antes de escribir código sobre la premisa vieja.
 
 ### `US-415` · Implementar el contrato de datos entre API y modelos
 
@@ -67,7 +84,13 @@ Tienes historias de **complejidad intermedia con autonomía**. Implementas pieza
 | | |
 |---|---|
 | **Sprint** | S5 — Lun 31 ago - Dom 6 sep |
-| **Objetivo** | Cache de predicciones batch, timeouts, y respuesta degradada si un modelo no responde. |
+| **Objetivo** | Cache de predicciones batch, timeouts, y respuesta degradada cuando falta el dato. |
+
+> **Corrección del PM · 2026-08-26.** Hereda la premisa de US-412: si la inferencia no es viva, "un
+> modelo no responde" deja de significar un timeout de MLflow y pasa a significar **que la tabla no
+> trae fila** para ese CCT y ciclo, o que el modelo no existe todavía (ML-03). La degradación
+> correcta es `SIN_DATO` explícito con su bandera de cobertura, nunca un valor inventado. Los
+> timeouts siguen aplicando, pero sobre Postgres.
 | **Entregable** | Código en su carpeta + documento en el vault con frontmatter + fila en la matriz |
 | **Cómo se entrega** | Rama `feat/juan-mayen-...` → PR con plantilla → revisión del Tech Lead → merge a `main` |
 

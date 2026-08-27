@@ -97,10 +97,48 @@ Vale registrarlo, porque es el error recurrente de este registro:
 | `US-004` | Cerrar la matriz como mantenida | **Edgar Coronel** (PM) |
 | `US-106` | Declarar el freeze: exige US-113 cerrada y RISK-008 confirmado | **Diana Alvarez**, con Deni Garrido |
 
+## Un plan de sprint que describía mal su propia historia
+
+Juan Carlos Macías terminó **US-415** y, antes de escribir una línea de US-412, preguntó en vez de
+asumir. Tenía razón en las dos cosas que levantó.
+
+**Su plan pedía inferencia viva.** El objetivo de US-412 decía *"rutas que cargan los 3 modelos desde
+MLflow y devuelven predicción"*. Se redactó el **31 de julio**, antes de **DEC-010** y de US-313:
+entonces no existía publicación batch a Gold y esa era la única vía imaginable. Hoy
+`gold.predicciones` y `gold.recomendaciones` están pobladas y verificadas contra Postgres, y
+**BUG-010** ya documenta el mapeo campo por campo desde SQL. Se corrigió el objetivo a lectura de
+Gold con `RepositorioModelos`, mismo patrón `Depends` + doble de prueba que `repositorio_gold.py`.
+**US-416 heredaba la premisa** —"respuesta degradada si un modelo no responde"— y se corrigió
+también: sin inferencia viva, eso pasa a significar que la tabla no trae fila, y la degradación
+correcta es `SIN_DATO`, no un valor inventado.
+
+Queda escrito en el plan que leer tablas precalculadas **no** debilita el "3 modelos integrados vía
+API" de la rúbrica: `gold.predicciones.mlflow_run_id` conserva el enlace auditable a la corrida de
+MLflow que produjo cada valor.
+
+**`PrediccionOut.cluster` es un `StrictInt` obligatorio sin productor.** ML-03 (US-321, Estefany
+Hernández) no existe todavía. El BUG-010 ya lo señalaba y lo dejaba a decisión de Célula 4. La
+decisión **no era nueva**: Christian Ruiz sentó el precedente el **20 de agosto**, cuarenta líneas
+más arriba en el mismo archivo, al hacer `EscuelaOut.indice_riesgo` y `driver_dominante` opcionales
+con `None => SIN_DATO explícito, nunca inventado`. `cluster` sigue ese patrón: `StrictInt | None`.
+**Sin bandera de cobertura acompañante**, a diferencia de `tiene_prediccion`: ahí la ausencia varía
+por escuela, aquí ML-03 no existe para nadie y la bandera sería `False` constante.
+
+El cambio toca el contrato público, así que el PR de US-412 exige aviso a **C2** y **C3** por la
+regla de oro de [[03_Architecture/API_Specification]], y suma a **Karla Monter** por ser la dueña
+de ese documento. Arrastra además `tests/test_api_contract.py:160`
+(`assert isinstance(cuerpo["cluster"], int)`, que fallará con `None`) y `src/api/mock_data.py:138`,
+que hoy fabrica el cluster con `int(cve_mun[:2]) % 4` — el entero inventado que haría pasar la
+verificación #4 del ensayo de forma engañosa.
+
+**Lo que este PR no toca:** la tabla §9 de su plan. La actualiza el dueño antes de cada standup; el
+PM corrige el alcance que el PM redactó mal, no reporta el avance ajeno.
+
 ## Uso de IA
 
 - **Archivos modificados:** `05_Engineering/Branch_Protection.md`,
-  `12_Roadmap_Sprints/Execution_Status.md`, `_DevLog/_index.md`, este archivo.
+  `12_Roadmap_Sprints/Execution_Status.md`,
+  `12_Roadmap_Sprints/Sprints/4-juan-carlos-macias-mayen.md`, `_DevLog/_index.md`, este archivo.
 - **Decisiones autónomas del agente:** ninguna de fondo. El agente consultó la API de rulesets,
   cruzó cada historia contra PRs mergeados / auto-reporte / `status` de documentos canónicos, y
   propuso estado y evidencia. Donde el dueño declaraba 100% pero la evidencia no lo sostenía se

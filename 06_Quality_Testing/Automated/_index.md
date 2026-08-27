@@ -31,6 +31,7 @@ tags: [moc, qa, automation]
 | TEST-008 | US-104 · US-311 · REQ-001/003 | contrato | implemented |
 | [[15_ML_Models/Target_Hibrido\|TEST-009]] | US-311 · US-313 · DEC-007 · RISK-007 | unit | implemented |
 | [[06_Quality_Testing/Automated/Great_Expectations_DS05_Sinaica\|TEST-010]] | US-123b · REQ-001 | data quality | implemented |
+| [[06_Quality_Testing/Automated/Great_Expectations_DS04_Sesnsp\|TEST-011]] | US-123b · REQ-001 | data quality | implemented |
 
 `TEST-002` ejecuta `python3 _Meta/scripts/validate_pm_dashboard.py .` y verifica 87 US únicas,
 21 personas, usuarios GitHub no duplicados, cobertura exacta de US por integrante, conteos de PR
@@ -70,6 +71,12 @@ proyecto (GE 1.21, API declarativa). Valida Bronze de DS-05 SINAICA y ya encontr
 ~6.3% de las estaciones traen coordenadas inutilizables (nulo genuino o el placeholder `"0.0"` de
 SINAICA), relevante para la interpolación IDW de `US-105`. Ver
 [[06_Quality_Testing/Automated/Great_Expectations_DS05_Sinaica]] para el detalle y cómo reproducir.
+
+`TEST-011` (`src/ingesta/validacion_sesnsp.py`) valida Bronze de DS-04 SESNSP, destrabada el
+2026-08-24 al encontrar un mirror público (`repodatos.atdt.gob.mx`) del mismo dataset que el
+enlace oficial de SharePoint bloqueaba con login. El extractor agrega el archivo fuente (que trae
+subtipo/modalidad de delito) hasta el grano que espera Silver; esta suite hace cumplir que esa
+agregación produce exactamente una fila por `(cve_ent, cve_mun, anio, mes, tipo_delito)`.
 
 ## Convenciones
 - Nombrar tests por comportamiento, no por implementación.

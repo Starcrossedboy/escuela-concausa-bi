@@ -84,9 +84,23 @@ $env:PYTHONPATH = "src"
 # Data Docs en great_expectations/uncommitted/data_docs/local_site/index.html
 ```
 
+## Cobertura automatizada (US-124b, `tests/test_validacion_sinaica.py`)
+
+`validar_sinaica_estaciones()`/`validar_sinaica_observaciones()` aceptan un `df` y un
+`ge_context_dir` explícitos — permite correr esta suite en `pytest` con datos sintéticos
+pequeños (esquema real, sin red, sin tocar `data/bronze/` ni el `great_expectations/` real del
+repo). Los 8 casos reproducen a propósito el hallazgo real de georreferencia (placeholder
+`"0.0"` y nulo genuino), un valor fuera de rango físico por parámetro, hora fuera de [0,23] y
+llave compuesta duplicada — cada uno demuestra que la suite SÍ atrapa el problema, no solo que
+corre sin tronar. `tests/test_extractor_sinaica.py` cubre además el parseo del `var dat = [...]`
+embebido (incluida la respuesta vacía real de "estación sin ese parámetro") sin red.
+
+```bash
+pytest tests/test_validacion_sinaica.py tests/test_extractor_sinaica.py -v
+```
+
 ## Pendientes
 
 - Conectar la suite a `dags/dag_horario.py` (o a un DAG de calidad aparte) para que corra en cada
-  extracción, no solo manualmente.
-- Suite equivalente para DS-04 (SESNSP) — bloqueada hasta que se resuelva el acceso (ver PR #31).
+  extracción real, no solo manualmente o en pruebas.
 - Publicar Data Docs en CI (hoy son solo locales, `great_expectations/uncommitted/` no se versiona).

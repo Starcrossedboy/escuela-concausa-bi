@@ -52,6 +52,12 @@ con una explicación real de seis contribuciones para una escuela.
 
 ## Validación
 
+El 26 de agosto se validó el flujo completo de registro contra un backend SQLite temporal de MLflow
+3.15.1: el entrenamiento creó una corrida y registró `ML02_DriverClasificador` versión `1`. Esto
+confirma el código cliente y el Registry local; el identificador de corrida es efímero y cambia en
+cada ejecución. Aún falta repetir la prueba contra el servidor Docker compartido para cerrar la
+validación end-to-end de infraestructura.
+
 Pruebas agregadas en `tests/test_entrenar_ml02.py`:
 
 - derivación de `driver_dominante_proxy` sin convertir `SIN_DATO` en cero;
@@ -68,6 +74,6 @@ Pruebas agregadas en `tests/test_entrenar_ml02.py`:
 
 - Confirmar con Célula 1 dónde se publica la etiqueta real `driver_dominante`.
 - Correr métricas sobre `gold.features_escuela` real, no solo fixture sintético.
-- Registrar resultados finales en MLflow y validar el Registry end-to-end cuando el entorno local
-	tenga las variables de Compose configuradas.
+- Validar el Registry contra el servidor Docker compartido cuando el entorno local tenga las
+	variables de Compose configuradas; el Registry local con MLflow 3.15.1 ya fue verificado.
 - Conectar la explicación SHAP completa al endpoint `/predicciones/{cct}/explicacion` de Célula 4.

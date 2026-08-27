@@ -1,0 +1,76 @@
+version: 2
+
+models:
+  - name: cubo_escuela_360
+    description: >
+      US-113 / DB-03. Vista materializada con una fila por CCT × ciclo.
+      Conserva nivel como atributo, drivers observados con sus banderas de
+      cobertura y salidas ML por LEFT JOIN.
+    columns:
+      - name: cct
+        data_tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_escuela')
+                field: cct
+      - name: id_ciclo
+        data_tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_tiempo')
+                field: id_ciclo
+      - name: cve_mun
+        data_tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_municipio')
+                field: cve_mun
+      - name: cve_ent
+        data_tests: [not_null]
+      - name: nivel
+        data_tests: [not_null]
+
+      - name: d1_cobertura
+        data_tests:
+          - not_null
+          - accepted_values:
+              arguments: {values: ['OK', 'SIN_DATO']}
+      - name: d2_cobertura
+        data_tests:
+          - not_null
+          - accepted_values:
+              arguments: {values: ['OK', 'SIN_DATO']}
+      - name: d3_cobertura
+        data_tests:
+          - not_null
+          - accepted_values:
+              arguments: {values: ['OK', 'SIN_DATO']}
+      - name: d4_cobertura
+        data_tests:
+          - not_null
+          - accepted_values:
+              arguments: {values: ['OK', 'SIN_DATO']}
+      - name: d5_cobertura
+        data_tests:
+          - not_null
+          - accepted_values:
+              arguments: {values: ['OK', 'SIN_DATO']}
+      - name: d6_cobertura
+        data_tests:
+          - not_null
+          - accepted_values:
+              arguments: {values: ['OK', 'SIN_DATO']}
+
+      - name: cobertura_prediccion
+        data_tests:
+          - not_null
+          - accepted_values:
+              arguments: {values: ['OK', 'SIN_DATO']}
+      - name: cobertura_recomendacion
+        data_tests:
+          - not_null
+          - accepted_values:
+              arguments: {values: ['OK', 'SIN_DATO']}

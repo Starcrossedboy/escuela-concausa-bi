@@ -194,7 +194,9 @@ def ensure_database(token: str, csrf: str) -> int:
 
 def _read_sql(path: Path) -> str:
     """Lee un archivo .sql y extrae la query (sin comentarios al inicio)."""
-    raw = path.read_text()
+    # encoding explícito: en Windows read_text() usa cp1252 y truena con acentos
+    # (misma familia que BUG-005 / BUG-011).
+    raw = path.read_text(encoding="utf-8")
     # Quitar comentarios SQL al inicio (líneas que empiezan con --)
     lines = []
     in_comment_block = True
@@ -270,7 +272,7 @@ def _read_yaml(path: Path) -> dict:
     """
     try:
         import yaml
-        return yaml.safe_load(path.read_text())
+        return yaml.safe_load(path.read_text(encoding="utf-8"))
     except ImportError:
         pass
 
@@ -283,7 +285,7 @@ def _read_yaml(path: Path) -> dict:
     in_block_scalar = False
     block_lines: list[str] = []
 
-    for line in path.read_text().splitlines():
+    for line in path.read_text(encoding="utf-8").splitlines():
         if not line.strip() or line.strip().startswith("#"):
             continue
 
@@ -659,7 +661,21 @@ def ensure_chart(token: str, csrf: str, chart_cfg: dict, datasets_by_name: dict[
         "filters": [{"col": "slice_name", "opr": "eq", "value": nombre}],
     }), safe="")
     resp = _request("GET", f"/api/v1/chart/?q={filtro}", token=token)
-    existente = next((c for c in resp.get("result", []) if c.get("slice_name") == nombre), None)
+    homonimos = [c for c in resp.get("result", []) if c.get("slice_name") == nombre]
+    # El slice_name NO es identidad global: dos tableros pueden tener charts
+    # homónimos sobre datasets distintos (hallazgo de US-212 — DB-01 y DB-03/04
+    # compartían nombres y el sync repuntaba el chart ajeno sin avisar). Solo se
+    # actualiza el candidato que apunta al MISMO dataset; los demás quedan
+    # intactos y aquí se crea un chart nuevo para este tablero.
+    existente = None
+    for candidato in homonimos:
+        ds_candidato = candidato.get("datasource_id")
+        if ds_candidato is None:
+            detalle_c = _request("GET", f"/api/v1/chart/{candidato['id']}", token=token).get("result", {})
+            ds_candidato = detalle_c.get("datasource_id")
+        if ds_candidato == ds_id:
+            existente = candidato
+            break
 
     body = {
         "slice_name": nombre,
@@ -677,6 +693,9 @@ def ensure_chart(token: str, csrf: str, chart_cfg: dict, datasets_by_name: dict[
         })
         print(f"    ✔ Chart '{nombre}' actualizado (id={chart_id})")
     else:
+        if homonimos:
+            print(f"    ⚠ '{nombre}': existe con ese nombre en otro dataset; "
+                  f"se crea copia para este tablero (el chart ajeno no se toca)")
         creado = _request("POST", "/api/v1/chart/", token=token, csrf_token=csrf, body=body)
         chart_id = creado.get("id")
         print(f"    ✔ Chart '{nombre}' creado (id={chart_id})")

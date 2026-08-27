@@ -247,14 +247,20 @@ solo las precalcula, no las redefine.
 | `matricula_por_escuela` | `SUM(matricula_total) / NULLIF(SUM(escuelas), 0)` | 1 decimal |
 | `indice_riesgo_promedio` | `SUM(suma_indice_riesgo) / NULLIF(SUM(escuelas_con_prediccion), 0)` | 0.00 |
 | `escuelas_en_riesgo` | `SUM(escuelas_en_riesgo)` | entero |
-| `pct_escuelas_en_riesgo` | `SUM(escuelas_en_riesgo) * 100.0 / NULLIF(SUM(escuelas_con_prediccion), 0)` | % 1 decimal |
+| `pct_escuelas_en_riesgo` | `SUM(escuelas_en_riesgo) / NULLIF(SUM(escuelas_con_prediccion), 0)` | % 1 decimal |
 | `completitud_promedio` | `SUM(suma_completitud) / NULLIF(SUM(escuelas), 0)` | % 0 decimales |
 | `d1_promedio`…`d6_promedio` | `SUM(suma_d#) / NULLIF(SUM(escuelas_con_d#), 0)` | 0.00 |
-| `pct_escuelas_con_d1`…`d6` | `SUM(escuelas_con_d#) * 100.0 / NULLIF(SUM(escuelas), 0)` | % 0 decimales |
+| `pct_escuelas_con_d1`…`d6` | `SUM(escuelas_con_d#) / NULLIF(SUM(escuelas), 0)` | % 0 decimales |
 
 > `pct_escuelas_en_riesgo` divide entre **escuelas con predicción**, no entre el total: decir "10% en
 > riesgo" cuando solo el 30% de las escuelas fue puntuada sería inventar una cobertura que no existe.
 > Todo gráfico que use esta métrica muestra al lado `escuelas_con_prediccion` como denominador visible.
+
+> ⚠️ **Las razones porcentuales se guardan como fracción, nunca multiplicadas por 100.** El campo
+> `formato: porcentaje_0|1` se mapea al formato d3 `,.0%` / `,.1%`, que **ya multiplica por 100 al
+> renderizar**. Una expresión con `* 100.0` y formato de porcentaje pinta el número cien veces más
+> grande: `0.318` se vería como `3,180.0%`. Este error ya apareció tres veces en el proyecto
+> (US-203, US-211b y US-212), así que `tests/test_semantic_db03_db04.py` lo hace cumplir en CI.
 
 ### 4.5 Jerarquías y drill-down
 

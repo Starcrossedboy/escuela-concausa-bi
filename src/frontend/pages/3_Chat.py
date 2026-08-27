@@ -12,6 +12,7 @@ API_BASE_URL = os.environ.get("FARO_API_BASE_URL", "http://localhost:8000")
 st.title("Agente FARO")
 st.caption("Pregunta en lenguaje natural sobre los datos del proyecto.")
 
+access_token = st.session_state.get("access_token")
 mensajes = st.session_state.setdefault("mensajes_agente", [])
 for mensaje in mensajes:
 	with st.chat_message(mensaje["rol"]):
@@ -29,7 +30,11 @@ if pregunta:
 	with st.chat_message("assistant"):
 		try:
 			with st.spinner("Consultando FARO..."):
-				respuesta = consultar_agente(API_BASE_URL, pregunta)
+				respuesta = consultar_agente(
+					API_BASE_URL,
+					pregunta,
+					access_token=access_token,
+				)
 		except (ValueError, OSError) as exc:
 			st.error(f"No se pudo consultar el agente: {exc}")
 		else:

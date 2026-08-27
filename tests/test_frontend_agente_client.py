@@ -23,6 +23,7 @@ def test_consulta_el_endpoint_con_el_contrato_canonico() -> None:
     def post(url: str, **kwargs) -> RespuestaHTTPFake:
         assert url == "http://api:8000/api/v1/agente/consulta"
         assert kwargs["json"] == {"pregunta": "Cuantas escuelas hay?"}
+        assert kwargs["headers"] is None
         assert kwargs["timeout"] == 15.0
         return RespuestaHTTPFake(
             {
@@ -41,6 +42,27 @@ def test_consulta_el_endpoint_con_el_contrato_canonico() -> None:
     assert respuesta.respuesta == "Hay cuatro escuelas."
     assert respuesta.sql_generado == "SELECT count(*) FROM gold.dim_escuela"
     assert not respuesta.fuera_de_alcance
+
+
+def test_propaga_access_token_como_bearer() -> None:
+    def post(url: str, **kwargs) -> RespuestaHTTPFake:
+        assert kwargs["headers"] == {"Authorization": "Bearer jwt-prueba"}
+        return RespuestaHTTPFake(
+            {
+                "respuesta": "Respuesta autenticada.",
+                "sql_generado": None,
+                "fuera_de_alcance": False,
+            }
+        )
+
+    respuesta = consultar_agente(
+        "http://api:8000",
+        "Pregunta autenticada",
+        post=post,
+        access_token="jwt-prueba",
+    )
+
+    assert respuesta.respuesta == "Respuesta autenticada."
 
 
 @pytest.mark.parametrize("pregunta", ["x", "x" * 501])

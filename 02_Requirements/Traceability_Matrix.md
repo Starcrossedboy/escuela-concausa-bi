@@ -46,6 +46,12 @@ tags: [requirements, traceability, matrix]
 | `REQ-003` | `US-302`, `US-303` | ML-02/MLflow/Gold/guardarraíles: 71 pruebas enfocadas ✅ · Registry local MLflow 3.15.1: `ML02_DriverClasificador` v1 ✅ | [[_DevLog/2026-08-26-andres-gonzalez-plan-registry-guardrails]] | 🟡 En progreso |
 | `REQ-006` | `US-304a`, `US-305` | Guardarraíles y prompt ✅ · cliente HTTP: 8 pruebas ✅ · flujo Streamlit persistente: historial, SQL y rechazo ✅ · Ruff ✅ | [[_DevLog/2026-08-26-andres-gonzalez-plan-registry-guardrails]] · [[_DevLog/2026-08-26-andres-gonzalez-us305-apptest]] | 🟡 En progreso |
 
+## Evidencia incremental — 2026-08-27
+
+| REQ | Historias | Evidencia de prueba | DevLog | Estado |
+|---|---|---|---|---|
+| `REQ-006` | `US-305` | Cliente y widget preparados para propagar `Authorization: Bearer` desde la sesión: 9 pruebas enfocadas ✅ · Ruff ✅ | [[_DevLog/2026-08-27-andres-gonzalez-us305-jwt-client]] | 🟡 En progreso |
+
 ---
 
 ## Leyenda de estado

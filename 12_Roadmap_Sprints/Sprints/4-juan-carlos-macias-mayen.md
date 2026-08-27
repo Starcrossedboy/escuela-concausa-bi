@@ -6,7 +6,7 @@ status: approved
 version: "1.0"
 traces_up: ["01_Product/PRD", "02_Requirements/User_Stories"]
 traces_down: ["US-412", "US-415", "US-416"]
-last_reviewed: "2026-07-31"
+last_reviewed: "2026-08-26"
 tags: [sprint, plan, celula-4, nivel-medio]
 ---
 
@@ -278,8 +278,8 @@ Actualiza esta tabla **antes de cada standup**. El PM la revisa para el tablero 
 
 | ID | Historia | Estado | % | Bloqueado por | Fecha compromiso |
 |---|---|---|---|---|---|
-| `US-412` | Implementar los endpoints de inferencia ML | ⬜ Por iniciar | 0% | — | Dom 30 ago |
-| `US-415` | Implementar el contrato de datos entre API | ⬜ Por iniciar | 0% | — | Dom 30 ago |
+| `US-412` | Implementar los endpoints de inferencia ML | 🔵 En revisión (PR pendiente de abrir) | 90% | — | Dom 30 ago |
+| `US-415` | Implementar el contrato de datos entre API | 🔵 En revisión (PR pendiente de abrir) | 100% | — | Dom 30 ago |
 | `US-416` | Implementar cache y manejo de errores de i | ⬜ Por iniciar | 0% | — | Dom 6 sep |
 
 **Estados válidos:** ⬜ Por iniciar · 🟡 En curso · 🔵 En revisión (PR abierto) · ✅ Terminado · 🔴 Bloqueado

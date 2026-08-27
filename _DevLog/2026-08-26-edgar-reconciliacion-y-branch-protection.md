@@ -134,6 +134,35 @@ verificación #4 del ensayo de forma engañosa.
 **Lo que este PR no toca:** la tabla §9 de su plan. La actualiza el dueño antes de cada standup; el
 PM corrige el alcance que el PM redactó mal, no reporta el avance ajeno.
 
+## Una historia asignada a alguien que no tenía nada que escribir
+
+**US-421** ("esqueleto de FastAPI y healthcheck", Eloisa González Rubio, S3) **ya estaba entregada
+antes de que ella arrancara**, y por dos personas distintas:
+
+| Mitad | Quién | Evidencia |
+|---|---|---|
+| Esqueleto FastAPI | **Luis Téllez** | `src/api/main.py` · `0bfeb2e` · 09-ago · US-501 día 1 |
+| Healthcheck + contrato navegable | **Christian Ruiz** | `src/api/v1/health.py` + `src/api/app.py` · `1648259` · PR #19 · 11-ago · US-401 |
+
+`/health`, `/version` y `/api/v1/docs` —o sea AC-004.1— existen y están cubiertos por `test_health_ok`
+y `test_version_ok` en `tests/test_api_contract.py`, ambas en verde. Eloisa lo verificó de punta a
+punta, incluido un proxy corporativo que interceptaba `localhost`, y lo dejó en dos DevLogs (PR #91).
+**Sin código propio, porque no quedaba código por escribir.**
+
+Se registra `done` **con la autoría explícita en la evidencia**. Que la historia esté cumplida no
+autoriza a acreditársela a quien no la escribió: la columna nombra a Luis y a Christian con su commit.
+Es la contraparte de la regla que ya rige este registro —un PR mergeado que cita una historia no la
+cierra— aplicada al revés: una historia cerrada no acredita a su dueña nominal.
+
+**El error es del PM**, y conviene dejarlo escrito: se asignó una historia de S3 sin verificar que dos
+historias de S1 y S2 ya la cubrían. Eloisa se reasigna a **US-422** (pruebas de la API, ya suya),
+arrancando por la prueba que detecta **BUG-008** — hoy **ninguna prueba verifica qué aplicación
+arranca el contenedor**, que es exactamente por lo que ese bug sobrevivió hasta bloquear el ensayo
+E2E del 28–29.
+
+Alimenta **RISK-003**: durante dos semanas el tablero mostró como pendiente una historia entregada, y
+a una integrante como sin avance mientras verificaba trabajo ajeno.
+
 ## Uso de IA
 
 - **Archivos modificados:** `05_Engineering/Branch_Protection.md`,

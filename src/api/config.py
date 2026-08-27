@@ -43,6 +43,14 @@ class Settings(BaseSettings):
     # Allowlist de correos con rol `analista`. Mínimo privilegio: vacío => todos ciudadano.
     analista_emails: str = ""
 
+    # ---- RBAC de lectura (US-403) ----
+    # Interruptor híbrido: mientras el login Google no esté operativo (credenciales pendientes de
+    # Célula 5), la LECTURA de datos (gold, predicciones, agente) queda pública para no bloquear la
+    # URL viva de la demo. La escritura/admin SIEMPRE exige `analista`, sin importar este flag.
+    # Cuando C5 entregue credenciales, se pone AUTH_LECTURA_PUBLICA=false y la lectura pasa a exigir
+    # sesión `ciudadano` sin re-tocar código. Ver ADR-004 §RBAC.
+    auth_lectura_publica: bool = True
+
     # ---- Postgres / Gold (US-411) ----
     # Nombres alineados a las vars POSTGRES_* que ya usan Airflow/MLflow/dbt en el .env
     # del equipo (ver .env.example) — una sola fuente de verdad para la conexión local.

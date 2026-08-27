@@ -242,7 +242,16 @@ def test_auth_me_requiere_token(client: TestClient) -> None:
 
 
 def test_admin_pipeline_run_202(client: TestClient) -> None:
-    r = client.post(f"{API_PREFIX}/admin/pipeline/run", json={"dag": "bronze", "ciclo": "2024-2025"})
+    # Desde US-403 /admin/* exige rol `analista`. La matriz completa (401/403) vive en test_rbac.py.
+    from src.api.schemas import Rol
+    from src.api.security.jwt import create_access_token
+
+    token = create_access_token(sub="a1", role=Rol.analista, email="ana@faro.mx")
+    r = client.post(
+        f"{API_PREFIX}/admin/pipeline/run",
+        json={"dag": "bronze", "ciclo": "2024-2025"},
+        headers={"Authorization": f"Bearer {token}"},
+    )
     assert r.status_code == 202
     assert r.json()["estado"] == "accepted"
 

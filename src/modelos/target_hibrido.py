@@ -51,7 +51,7 @@ import pandas as pd
 
 from src.modelos.contrato import DRIVERS, columna_cobertura
 from src.modelos.entrenar_ml01 import COLUMNA_TARGET
-from src.modelos.particion_temporal import COLUMNA_CICLO
+from src.modelos.particion_temporal import COLUMNA_CICLO, _anio_inicial
 
 DIM_POR_DEFECTO = Path("tests/fixtures/dim_escuela_mock.csv")
 
@@ -188,3 +188,73 @@ def unir_target(agregado: pd.DataFrame, serie_target: pd.DataFrame) -> pd.DataFr
             "Revisa que use las mismas claves INEGI y el mismo formato de ciclo."
         )
     return unido
+
+
+#: Columnas de `gold.matricula_municipio_nivel` (US-104 / DEC-007, Diana Alvarez).
+COLUMNAS_SERIE: tuple[str, ...] = ("cve_mun", "nivel", COLUMNA_CICLO, "matricula_total")
+
+
+def variacion_desde_serie(serie: pd.DataFrame) -> pd.DataFrame:
+    """Convierte la serie histórica de matrícula en el objetivo que consume `unir_target()`.
+
+    `gold.matricula_municipio_nivel` publica **matrícula absoluta** por `municipio × nivel × ciclo`.
+    El objetivo de ML-01 es la **variación proporcional** contra el ciclo anterior, así que hay que
+    derivarla — es la última pieza de DEC-007.
+
+    ## Dos reglas que evitan un objetivo contaminado
+
+    **Sólo se compara contra el ciclo inmediatamente anterior.** Si un grupo aparece en 2019-2020 y
+    en 2021-2022 pero no en 2020-2021, calcular la variación entre los dos extremos compararía dos
+    años de distancia como si fuera uno. Esa fila **no se emite**.
+
+    **Un grupo que aparece o desaparece no genera variación.** Un `municipio × nivel` sin ciclo
+    previo no tiene contra qué compararse; uno que deja de existir no cayó −100 %, dejó de
+    reportarse. Ambos casos quedan fuera en vez de inventar una caída total, que es justo el tipo de
+    dato que el modelo aprendería a predecir por la razón equivocada.
+
+    Args:
+        serie: `cve_mun`, `nivel`, `id_ciclo`, `matricula_total`.
+
+    Returns:
+        `cve_mun`, `nivel`, `id_ciclo` y `target_variacion_matricula`, sólo para los grupos con
+        ciclo previo consecutivo. Listo para `unir_target()`.
+
+    Raises:
+        ValueError: si faltan columnas, si hay filas duplicadas por grupo y ciclo, o si alguna
+            matrícula base es cero (la variación proporcional no está definida).
+    """
+    faltantes = set(COLUMNAS_SERIE) - set(serie.columns)
+    if faltantes:
+        raise ValueError(
+            f"La serie no trae {sorted(faltantes)}. Se espera el contrato de "
+            "`gold.matricula_municipio_nivel`."
+        )
+
+    llave_grupo = ["cve_mun", "nivel"]
+    if serie.duplicated(subset=[*llave_grupo, COLUMNA_CICLO]).any():
+        raise ValueError(
+            "La serie trae más de una fila por `municipio × nivel × ciclo`; el grano debe ser único."
+        )
+
+    orden = serie.copy()
+    orden["_anio"] = orden[COLUMNA_CICLO].map(_anio_inicial)
+    orden = orden.sort_values([*llave_grupo, "_anio"])
+
+    previa = orden.groupby(llave_grupo, sort=False)
+    orden["_matricula_previa"] = previa["matricula_total"].shift(1)
+    orden["_anio_previo"] = previa["_anio"].shift(1)
+
+    # Consecutivo de verdad: el ciclo previo debe ser el año inmediatamente anterior.
+    consecutivo = orden["_anio_previo"] == orden["_anio"] - 1
+    comparables = orden[consecutivo & orden["_matricula_previa"].notna()].copy()
+
+    if (comparables["_matricula_previa"] == 0).any():
+        raise ValueError(
+            "Hay grupos con matrícula previa 0: la variación proporcional no está definida. "
+            "Revisa el filtro de alcance de la serie."
+        )
+
+    comparables[COLUMNA_TARGET] = (
+        comparables["matricula_total"] / comparables["_matricula_previa"] - 1.0
+    )
+    return comparables[[*llave_grupo, COLUMNA_CICLO, COLUMNA_TARGET]].reset_index(drop=True)

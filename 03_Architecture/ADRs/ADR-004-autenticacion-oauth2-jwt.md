@@ -66,6 +66,39 @@ del PRD, por lo que entra bajo la **regla 7 del vault** (revisión humana explí
 - **Fuga de detalles internos** → todos los fallos de auth devuelven un 401 uniforme (`ErrorOut`) sin
   causa; los NotImplemented/Config del servidor devuelven 500 genérico.
 
+## RBAC — enforcement por rol (US-403)
+
+Sobre `get_current_user` (US-402) se añaden **dos dependencias reutilizables** en
+`src/api/security/rbac.py`:
+
+- **`require_role(*roles)`** — exige que el usuario autenticado tenga alguno de los roles; si no,
+  **403** con la forma uniforme `ErrorOut`. Sin sesión → **401** (lo emite `get_current_user` antes).
+- **`require_lectura`** — protege la lectura según un **interruptor híbrido** `AUTH_LECTURA_PUBLICA`.
+
+**Dónde se aplica:** a nivel de `include_router` en `src/api/v1/__init__.py`, **no** dentro de los
+routers de otras células (gold/predicciones son de US-411/US-412). Así el RBAC queda centralizado en
+artefactos de Célula 4 sin invadir código ajeno, y se refleja como `security: bearerAuth` por path en
+el OpenAPI publicado.
+
+**Matriz de acceso:**
+
+| Endpoints | Rol exigido |
+|---|---|
+| `GET /health`, `/version`, `/auth/*` | público (probes de Cloud Run y flujo de login) |
+| `GET /escuelas*`, `/municipios*`, `/kpis`, `/predicciones/*`, `POST /agente/consulta` | **lectura** (`require_lectura`) |
+| `POST /admin/pipeline/run`, `GET /admin/export`, `GET /admin/metrics` | **`analista`** siempre |
+
+**Interruptor híbrido `AUTH_LECTURA_PUBLICA` (decisión con el PO, 2026-08-26):**
+
+- `true` (default) → la lectura es **pública**: la URL viva de la demo (crítica en la rúbrica) no
+  depende del login Google, que hoy está **bloqueado** por credenciales pendientes de Célula 5.
+- `false` → la lectura exige sesión de **cualquier** rol (mínimo `ciudadano`; `analista` también pasa).
+- **El admin nunca se relaja:** siempre `analista`, independiente del flag.
+- Al aterrizar credenciales de Google (C5), se pone `AUTH_LECTURA_PUBLICA=false` y la lectura pasa a
+  exigir `ciudadano` **sin re-tocar código** — solo variable de entorno.
+
+Pruebas: `tests/test_rbac.py` (matriz 401/403/200 en admin y ambas ramas del flag en lectura).
+
 ## Consecuencias
 
 - US-403 construye `require_role(...)` sobre `get_current_user` de este ADR.

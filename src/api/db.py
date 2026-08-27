@@ -13,7 +13,16 @@ from __future__ import annotations
 
 from functools import lru_cache
 
-from sqlalchemy import Column, Float, Integer, MetaData, Numeric, String, Table, create_engine
+from sqlalchemy import (
+    Column,
+    Float,
+    Integer,
+    MetaData,
+    Numeric,
+    String,
+    Table,
+    create_engine,
+)
 from sqlalchemy.engine import Engine
 
 from src.api.config import get_settings
@@ -88,12 +97,15 @@ def _metadatos() -> tuple[MetaData, Table, Table, Table, Table]:
 
     # gold.predicciones (Data_Model.md §4.5) — salida de ML-01. Se consulta por JOIN, nunca
     # se duplica en fact_escuela_ciclo (regla ratificada, ver Screen_Specs.md KPI-03/04).
+    # `grano` (DEC-010, 2026-08-23): discriminador `escuela` | `municipio_nivel` -- las lecturas
+    # a nivel escuela (US-412) siempre filtran `grano == "escuela"`, ver BUG-010 §Nota.
     predicciones = Table(
         "predicciones",
         metadata,
         Column("cct", String(10), primary_key=True),
         Column("id_ciclo", String, primary_key=True),
         Column("modelo", String, primary_key=True),
+        Column("grano", String),
         Column("valor", Float),
         Column("indice_riesgo", Float),
         Column("probabilidad", Float, nullable=True),

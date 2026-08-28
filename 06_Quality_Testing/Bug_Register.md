@@ -28,6 +28,8 @@ tags: [qa, bugs]
 | BUG-012 | No existe runbook para levantar el pipeline local: `dbt/README.md` es el scaffold por defecto de dbt, no hay `profiles.yml` ni se documenta dónde ponerlo, y **cargar solo `bronze_formato911_sample.csv` deja `gold.fact_escuela_ciclo` en 0 filas** — hay que cargar también `bronze_formato911_ciclo_anterior_sample.csv` en la MISMA tabla para que `lag()` encuentre pares. Nada de esto está escrito. | high | open | US-112 / US-113 / REQ-001 | pendiente (**C1**) — pasos verificados en `_DevLog/2026-08-27-marina-garcia-pipeline-local-us212.md` | — |
 | BUG-013 | `publicar_gold.py` usa por defecto el fixture sintético `tests/fixtures/features_escuela_mock.csv`, no `gold.features_escuela`: publica 80 filas de **ciclo 2023-2024** mientras el hecho real tiene 25 de **2024-2025**. El JOIN por `(cct, id_ciclo)` da cero, así que DB-03 muestra `cobertura_prediccion = SIN_DATO` en el 100% de las escuelas y los bloques de predicción y recomendación (AC-002.4) quedan vacíos. Apuntarlo al Gold real tampoco basta hoy: `features_escuela` tiene un solo ciclo y ML exige partición temporal. | high | open | US-313 / US-113 / REQ-003 | pendiente (**C3** + **C1**) | — |
 | BUG-014 | `quality_gate.yml` busca el token de casilla sin marcar en **todo el cuerpo del PR** con `grep -q "\[ \]"`, no solo en ítems de lista: basta con **mencionar** esa sintaxis dentro de una explicación —aunque vaya en backticks— para que el check falle. Sumado a que la plantilla oficial trae la casilla de aprobación del PM sin marcar (le toca marcarla a él al revisar), **la plantilla del repo no puede pasar su propio gate** y empuja a los autores a borrar el registro de aprobación o a marcarlo ellos mismos. | medium | open | US-503 / REQ-007 | pendiente (**C5**, Luis Téllez) — acotar el patrón a `grep -qE '^\s*-\s*\[ \]'` para que solo detecte casillas reales al inicio de un ítem | — |
+| BUG-015 | `gold.dim_driver` materializado con esquema viejo (mock) vs. seed canónico: bloquea sync de DB-05/DB-08 | medium | open | US-213 / US-211b / REQ-002 | pendiente (**C1**, Diana Álvarez — fix validado: `dbt seed --select dim_driver --full-refresh`) | — |
+| BUG-016 | `dbt run` con threads>1 (default) da condición de carrera: `gold.dim_escuela`/`dim_municipio`/`dim_tiempo` truenan "relation does not exist" porque arrancan antes de que su silver de origen (`silver.escuela`/`poblacion_municipio`/`matricula`) termine de crearse | high | open | US-113 / REQ-001 | pendiente (**C1**) — con `--threads 1` corre limpio; sugiere que esos 3 modelos no usan `{{ ref() }}` hacia su fuente silver, rompiendo el grafo de dependencias de dbt | — |
 
 ## Convención
 
@@ -489,3 +491,89 @@ y `_read_sql()` (1).
 ### Test de regresión
 Pendiente de validar en Windows (el fallo es específico de ese SO; en Linux/macOS el default ya
 era UTF-8 y un test no distinguiría). Quien tenga Windows corre el sync sin `PYTHONUTF8=1`.
+
+---
+
+## BUG-015 — gold.dim_driver materializado con esquema viejo vs. seed canónico
+
+- **Owner:** Diana Aracely Alvarez Varela
+- **Severidad:** medium
+- **Estado:** open
+- **traces_up:** US-213, US-211b
+- **found_on:** 2026-08-27
+
+### Descripción
+`gold.dim_driver` en Postgres local quedó materializado con nombres largos de un mock, en vez de
+los nombres cortos del seed canónico (`dbt/seeds/dim_driver.csv`, que sí trae `fuente`,
+`cobertura` y `nivel_geografico`). Los SQL de referencia de US-211b
+(`superset/semantic/db05_cubo_driver.sql:105`, `db08_cubo_pivot.sql:86`) hacen JOIN contra esas
+columnas, así que al sincronizar el layer semántico de DB-05/DB-08 contra la tabla real, Superset
+responde `HTTP 500` en `POST /api/v1/dataset/`.
+
+### Pasos para reproducir
+1. Levantar Postgres local con el `gold.dim_driver` actual (sembrado por el mock, no por el seed).
+2. Correr `superset/sync_semantic_layer.py` sobre `db05_cubo_driver.sql` o `db08_cubo_pivot.sql`.
+3. La llamada a `POST /api/v1/dataset/` responde `HTTP 500`.
+
+### Resultado actual vs esperado
+- **Actual:** `gold.dim_driver` no trae `fuente`/`cobertura`/`nivel_geografico`; el sync truena.
+- **Esperado:** `gold.dim_driver` coincide con `dbt/seeds/dim_driver.csv`; el sync corre limpio.
+
+### Entorno
+- Postgres local de cada desarrollador (mock sembrado antes del fix del seed canónico); no
+  confirmado si afecta al ambiente compartido/CI.
+
+### Causa raíz
+Catálogo local sembrado por el mock de desarrollo, no por el seed real de dbt.
+
+### Fix
+- Validado por Diana Álvarez (`_DevLog/2026-08-28-diana-alvarez-formato911-real-validacion-us113.md`,
+  §6): `dbt seed --select dim_driver --full-refresh` corrige el esquema y coincide con el seed
+  canónico.
+- Pendiente: comunicar formalmente a Manuel Serranía y Monserrat Miranda, y decidir si se
+  re-materializa de forma compartida (no solo local por cada quien) — **no forma parte de este
+  bug**, es un fix inmediato por dev.
+- PR: pendiente
+- Test de regresión: pendiente (**C1**)
+
+---
+
+## BUG-016 — dbt run con threads>1 truena por condición de carrera en 3 modelos Gold
+
+- **Owner:** Diana Aracely Alvarez Varela
+- **Severidad:** high
+- **Estado:** open
+- **traces_up:** US-113
+- **found_on:** 2026-08-27
+
+### Descripción
+`dbt run --full-refresh` con el default de 4 threads falla en `gold.dim_escuela`, `gold.dim_municipio`
+y `gold.dim_tiempo` con `relation "silver.<tabla>" does not exist`, aunque esa tabla silver se crea
+exitosamente casi al mismo instante (verificado por timestamps del log: el `START` del modelo Gold y
+el `OK created` de su silver de origen ocurren en el mismo segundo). Con `--threads 1` (secuencial)
+el mismo `dbt run --full-refresh` corre limpio de punta a punta (22 PASS, 1 ERROR esperado por
+`agua_region`/DS-06 no ingerida, 1 SKIP de `cubo_pipeline`).
+
+### Pasos para reproducir
+1. Cargar los 9 fixtures de bronze (`src/ingesta/cargar_bronze_fixture.py`, ver runbook de BUG-012).
+2. `dbt seed` (siembra `gold.dim_driver`).
+3. `dbt run --full-refresh` (con el default de threads).
+4. `dim_escuela`, `dim_municipio` y `dim_tiempo` truenan; `dbt run --full-refresh --threads 1` corre
+   sin ese error.
+
+### Resultado actual vs esperado
+- **Actual:** con concurrencia, 3 modelos Gold arrancan antes de que su fuente silver exista.
+- **Esperado:** el grafo de dependencias de dbt (`{{ ref() }}`) debe bloquear un modelo hasta que
+  todos sus upstreams terminen, sin importar el número de threads.
+
+### Causa raíz (hipótesis, sin confirmar contra el código de los 3 modelos)
+`dim_escuela.sql`, `dim_municipio.sql` y `dim_tiempo.sql` probablemente referencian sus tablas silver
+por nombre de esquema/tabla directo en vez de `{{ ref('escuela') }}` / `{{ ref('poblacion_municipio') }}`
+/ `{{ ref('matricula') }}`, así que dbt no los reconoce como dependencias y no espera a que terminen.
+
+### Fix
+- Workaround inmediato (no arregla el proyecto, solo evita el síntoma): correr `dbt run` con
+  `--threads 1`.
+- Fix real pendiente (**C1**): revisar los 3 modelos y reemplazar la referencia directa por `{{ ref() }}`.
+- PR: pendiente
+- Test de regresión: pendiente (**C1**) — idealmente un `dbt run --full-refresh` con threads>1 en CI.

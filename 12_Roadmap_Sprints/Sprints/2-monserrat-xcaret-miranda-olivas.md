@@ -288,8 +288,8 @@ Actualiza esta tabla **antes de cada standup**. El PM la revisa para el tablero 
 
 | ID | Historia | Estado | % | Bloqueado por | Fecha compromiso |
 |---|---|---|---|---|---|
-| `US-211b` | Cubos y metricas de DB-05 y DB-08 | 🔵 En revisión (PR abierto) | 95% | — | Dom 23 ago |
-| `US-213` | Construir DB-05 Analisis por driver y DB-0 | ⬜ Por iniciar | 0% | — | Dom 30 ago |
+| `US-211b` | Cubos y metricas de DB-05 y DB-08 | ✅ Terminado | 100% | — | Dom 23 ago |
+| `US-213` | Construir DB-05 Analisis por driver y DB-0 | 🔵 En revisión (PR abierto) | 90% | Revisión de Edgar (PM) — Manuel revisa pero no bloquea | Dom 30 ago |
 | `US-214b` | Filtros y drill-down en DB-05 y DB-08 | ⬜ Por iniciar | 0% | — | Dom 6 sep |
 | `US-215b` | Usabilidad/accesibilidad DB-05 y DB-08 | ⬜ Por iniciar | 0% | — | Dom 6 sep |
 

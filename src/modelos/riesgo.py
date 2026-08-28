@@ -60,6 +60,11 @@ VARIACION_EN_RIESGO = -0.05
 #: Umbral con el que los tableros cuentan escuelas en riesgo (`Screen_Specs.md`).
 RIESGO_UMBRAL = 0.60
 
+#: Cota para la mediana de |variación| si el target viene como **fracción**, que es lo que la
+#: sigmoide supone. Una escuela no puede perder más del 100 % de su matrícula y la mediana real
+#: ronda 0.05–0.15, así que 1.0 es holgadísimo: sólo se dispara si las unidades no son fracción.
+MEDIANA_MAXIMA_FRACCION = 1.0
+
 T = TypeVar("T", float, np.ndarray)
 
 
@@ -161,3 +166,54 @@ def variacion_equivalente(riesgo: T, calibracion: CalibracionRiesgo = CALIBRACIO
     if np.any((arr <= 0.0) | (arr >= 1.0)):
         raise ValueError("riesgo debe estar en (0,1) abierto; 0 y 1 no son alcanzables.")
     return calibracion.centro - calibracion.escala * logit(riesgo)
+
+
+def verificar_escala_variacion(
+    variacion: np.ndarray | list[float],
+    origen: str = "target_variacion_matricula",
+    calibracion: CalibracionRiesgo = CALIBRACION,
+) -> None:
+    """Falla si la variación no parece venir expresada como fracción.
+
+    La sigmoide está anclada en fracciones: `-0.05` significa "pierde 5 % de su matrícula". Si el
+    dato llega en puntos porcentuales (`-5.0`) o como diferencia absoluta de alumnos, la conversión
+    no da error —da `indice_riesgo` **saturado en 0 o en 1 para casi todas las filas**. Eso es peor
+    que fallar: el tablero se ve lleno y cuenta como "en riesgo" a todo el universo.
+
+    Se mira la **mediana** de `|variación|`, no el máximo, para no confundir unidades equivocadas
+    con unos cuantos valores extremos legítimos.
+
+    Args:
+        variacion: variaciones predichas u observadas.
+        origen: nombre de la columna, para que el mensaje diga dónde mirar.
+        calibracion: anclas contra las que se compara.
+
+    Raises:
+        ValueError: si la mediana de `|variación|` excede `MEDIANA_MAXIMA_FRACCION`.
+
+    Examples:
+        >>> verificar_escala_variacion([-0.03, 0.01, -0.12])   # fracciones: pasa
+        >>> verificar_escala_variacion([-3.0, 1.0, -12.0])
+        Traceback (most recent call last):
+        ValueError: target_variacion_matricula no parece venir en fracción...
+    """
+    arr = np.asarray(variacion, dtype=float)
+    arr = arr[np.isfinite(arr)]
+    if arr.size == 0:
+        return
+    mediana = float(np.median(np.abs(arr)))
+    if mediana <= MEDIANA_MAXIMA_FRACCION:
+        return
+    saturadas = float(
+        np.mean((indice_riesgo(arr, calibracion) <= 0.01) | (indice_riesgo(arr, calibracion) >= 0.99))
+    )
+    raise ValueError(
+        f"{origen} no parece venir en fracción: la mediana de |variación| es {mediana:.4g}, "
+        f"pero la sigmoide está calibrada con {calibracion.variacion_alta} = "
+        f"'pierde 5 % de la matrícula'. Con esta escala, {saturadas:.1%} de las filas quedarían "
+        "con indice_riesgo saturado en 0 o en 1, y el tablero contaría como en riesgo a todo el "
+        "universo. Causa conocida (BUG-017): `features_escuela.sql` produce esta columna como "
+        "`matricula_total - matricula_ciclo_anterior`, es decir **alumnos absolutos**, mientras que "
+        "`target_hibrido.variacion_desde_serie` la produce como fracción. La unidad se decide en "
+        "ADR-007; hasta que se ratifique, publicar aquí saturaría el índice en silencio."
+    )

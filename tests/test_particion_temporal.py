@@ -17,6 +17,7 @@ from src.modelos.particion_temporal import (
     ciclos_ordenados,
     dividir_por_ciclo,
     generar_backtesting,
+    ventanas_posibles,
     verificar_sin_fuga,
 )
 
@@ -135,3 +136,16 @@ def test_division_falla_sin_ciclos_suficientes(features: pd.DataFrame) -> None:
     un_ciclo = features[features["id_ciclo"] == CICLOS[0]]
     with pytest.raises(ValueError, match="Se necesitan al menos"):
         dividir_por_ciclo(un_ciclo, n_ciclos_prueba=1)
+
+
+def test_ventanas_posibles_se_ajusta_a_los_ciclos_disponibles(features: pd.DataFrame) -> None:
+    """Un default fijo no sirve: el fixture admite 3 ventanas y el Gold real sólo 1."""
+    assert ventanas_posibles(features) == 3
+
+    tres_ciclos = pd.DataFrame({"id_ciclo": ["2022-2023", "2023-2024", "2024-2025"]})
+    assert ventanas_posibles(tres_ciclos) == 1
+
+
+def test_ventanas_posibles_falla_sin_ciclos_suficientes() -> None:
+    with pytest.raises(ValueError, match="no se puede hacer backtesting"):
+        ventanas_posibles(pd.DataFrame({"id_ciclo": ["2023-2024", "2024-2025"]}))

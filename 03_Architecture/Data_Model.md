@@ -253,9 +253,22 @@ class FeaturesEscuela(BaseModel):
     d4_cobertura: Cobertura
     d5_cobertura: Cobertura
     d6_cobertura: Cobertura
+    driver_dominante: DriverDominante | None                # etiqueta OPERATIVA, ver nota abajo
     indice_completitud_drivers: StrictFloat = Field(ge=0, le=1)
     target_variacion_matricula: StrictFloat                 # etiqueta (partición temporal)
 ```
+
+> **`driver_dominante` (US-302, acordado con Andrés González Habib/C3 el 2026-08-28):** etiqueta
+> **operativa** derivada por argmax entre los drivers con `*_cobertura = 'OK'` — **no** es una
+> observación independiente ni evidencia causal. Desempate determinista `D1 > D2 > D3 > D4 > D5 >
+> D6`; `NULL` cuando ninguna fila tiene un driver elegible. Es la misma regla que ya vivía como
+> `generar_driver_dominante_proxy()` en `src/modelos/entrenar_ml02.py` (C3), centralizada aquí para
+> que Gold y Python no puedan divergir — hay una prueba de paridad entre ambos en
+> `tests/test_entrenar_ml02.py::test_paridad_driver_dominante_real_contra_proxy`. **No confundir**
+> con el `driver_dominante` de `gold.recomendaciones` (§4.1, nota de `gold.fact_escuela_ciclo`
+> arriba): ese es la *predicción* del clasificador ML-02 ya entrenado, servida por inferencia; este
+> es la *etiqueta de entrenamiento* que hace posible entrenarlo. Son la misma regla de argmax
+> aplicada en dos momentos distintos del pipeline, no el mismo dato.
 
 ### 5.4 Configuración con `pydantic-settings`
 Los parámetros del pipeline se leen de variables de entorno (`.env` nunca se sube), no se hardcodean:

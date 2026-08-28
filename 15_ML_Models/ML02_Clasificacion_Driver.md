@@ -3,7 +3,7 @@ id: DOC-ML02-CLASIFICACION-DRIVER
 title: "ML-02 — Clasificación de driver dominante"
 owner: "Andrés González Habib"
 status: in_review
-version: "0.2"
+version: "0.3"
 traces_up: ["US-302", "REQ-003", "15_ML_Models/ML_Strategy"]
 traces_down: ["src/modelos/entrenar_ml02.py", "tests/test_entrenar_ml02.py"]
 tags: [ml, ml-02, clasificacion, shap, celula-3]
@@ -32,6 +32,8 @@ El scaffold ejecutable vive en `src/modelos/entrenar_ml02.py` y ya permite avanz
 	`contribuciones` (`D1`…`D6`);
 - puede registrar el modelo de producción en MLflow con el nombre canónico `ML02_DriverClasificador`
 	y exige confirmación de la versión creada en el Registry.
+- valida antes de entrenar que el target real o proxy no tenga nulos, use solo `D1`…`D6` y contenga
+	al menos dos clases.
 
 ## Target provisional
 
@@ -69,6 +71,7 @@ Pruebas agregadas en `tests/test_entrenar_ml02.py`:
 - publicación de una recomendación por escuela y ciclo en Gold;
 - dos escuelas con igual riesgo y distinto driver reciben recomendaciones distintas;
 - nombre MLflow canónico de ML-02.
+- preferencia del target real y rechazo temprano de etiquetas nulas, desconocidas o monoclase.
 
 ## Pendientes para cerrar US-302
 

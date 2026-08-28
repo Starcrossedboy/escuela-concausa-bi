@@ -1,8 +1,12 @@
 """Job idempotente para indexar el esquema de Gold en ChromaDB (US-304b)."""
 
 import os
-import chromadb
-from sentence_transformers import SentenceTransformer
+try:
+    import chromadb
+    from sentence_transformers import SentenceTransformer
+except ImportError:
+    chromadb = None
+    SentenceTransformer = None
 
 # Definiciones estáticas basadas en la capa Gold (repositorio y schemas.py)
 # Estas definiciones se vectorizan para que el agente recupere solo lo relevante.
@@ -21,11 +25,11 @@ ESQUEMA_GOLD = [
     },
     {
         "id": "predicciones",
-        "texto": "Tabla predicciones (Salida de ML-01). Contiene el riesgo de pérdida de matrícula estimado. Columnas: cct, id_ciclo, indice_riesgo (flotante entre 0 y 1, donde 1 es máximo riesgo), tiene_prediccion (booleano), es_estimado_por_grupo (booleano). Sólo lectura."
+        "texto": "Tabla predicciones (Salida de ML-01). Contiene el riesgo de pérdida de matrícula estimado. Columnas: cct, id_ciclo, modelo, grano, valor, indice_riesgo, probabilidad, mlflow_run_id, generado_at. Toda consulta a nivel escuela debe filtrar grano = 'escuela' y modelo = 'ML-01'. Sólo lectura."
     },
     {
         "id": "recomendaciones",
-        "texto": "Tabla recomendaciones (Salida de ML-02). Contiene el driver dominante que explica el riesgo. Columnas: cct, id_ciclo, driver_dominante (puede ser D1 pobreza, D2 inseguridad, D3 infraestructura, D4 conectividad, D5 agua, D6 aire). Sólo lectura."
+        "texto": "Tabla recomendaciones (Salida de ML-02). Contiene el driver dominante que explica el riesgo. Columnas: cct, id_ciclo, driver_dominante, recomendacion, prioridad. El campo recomendacion es el diferenciador prescriptivo. Sólo lectura."
     },
     {
         "id": "features_escuela",

@@ -10,7 +10,7 @@ def test_recuperar_contexto_sin_modelo():
         res = recuperar_contexto("prueba")
         assert "no disponible" in res
 
-@patch("src.agente.recuperacion.chromadb.HttpClient")
+@patch("src.agente.recuperacion.chromadb")
 @patch("src.agente.recuperacion._modelo")
 def test_recuperar_contexto_exito(mock_modelo, mock_client):
     """Verifica el formateo exitoso de documentos recuperados."""
@@ -22,7 +22,7 @@ def test_recuperar_contexto_exito(mock_modelo, mock_client):
     mock_collection.query.return_value = {
         "documents": [["Tabla dim_escuela (Dimensión)", "Tabla fact_escuela_ciclo (Hecho)"]]
     }
-    mock_client.return_value.get_collection.return_value = mock_collection
+    mock_client.HttpClient.return_value.get_collection.return_value = mock_collection
     
     res = recuperar_contexto("háblame de escuelas y alumnos")
     
@@ -32,11 +32,11 @@ def test_recuperar_contexto_exito(mock_modelo, mock_client):
     assert "fact_escuela_ciclo" in res
     mock_collection.query.assert_called_once()
 
-@patch("src.agente.recuperacion.chromadb.HttpClient")
+@patch("src.agente.recuperacion.chromadb")
 @patch("src.agente.recuperacion._modelo")
 def test_recuperar_contexto_coleccion_faltante(mock_modelo, mock_client):
     """Verifica que atrape el error si la colección no ha sido indexada."""
-    mock_client.return_value.get_collection.side_effect = Exception("Collection not found")
+    mock_client.HttpClient.return_value.get_collection.side_effect = Exception("Collection not found")
     
     res = recuperar_contexto("pregunta")
     assert "ADVERTENCIA" in res

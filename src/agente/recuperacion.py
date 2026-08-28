@@ -1,8 +1,12 @@
 """Módulo de recuperación (RAG) para el agente FARO (US-304b)."""
 
 import os
-import chromadb
-from sentence_transformers import SentenceTransformer
+try:
+    import chromadb
+    from sentence_transformers import SentenceTransformer
+except ImportError:
+    chromadb = None
+    SentenceTransformer = None
 
 # Inicializar modelo de forma global para no recargarlo en cada consulta
 try:

@@ -138,6 +138,18 @@ def columna_target_disponible(df: pd.DataFrame) -> str:
     raise ValueError("Falta driver_dominante o driver_dominante_proxy para entrenar ML-02.")
 
 
+def validar_target_ml02(df: pd.DataFrame, columna_target: str) -> None:
+    """Valida que el target esté completo y use exclusivamente las clases D1..D6."""
+    if bool(df[columna_target].isna().any()):
+        raise ValueError(f"{columna_target} contiene etiquetas nulas.")
+    clases = set(df[columna_target].astype(str))
+    invalidas = clases - set(CLASES_DRIVER)
+    if invalidas:
+        raise ValueError(f"{columna_target} contiene clases inválidas: {sorted(invalidas)}")
+    if len(clases) < 2:
+        raise ValueError(f"{columna_target} necesita al menos dos clases para entrenar ML-02.")
+
+
 def _matriz(df: pd.DataFrame) -> pd.DataFrame:
     """Extrae drivers para el clasificador; los ausentes quedan como NaN."""
     return df[list(DRIVERS)]
@@ -150,6 +162,7 @@ def entrenar_y_evaluar(
 ) -> ResultadoML02:
     """Ejecuta backtesting temporal de ML-02."""
     target = columna_target_disponible(df)
+    validar_target_ml02(df, target)
     params = {**HIPERPARAMETROS, **(hiperparametros or {})}
     ventanas: list[MetricasClasificacionVentana] = []
     modelo: HistGradientBoostingClassifier | None = None

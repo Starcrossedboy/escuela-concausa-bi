@@ -52,6 +52,13 @@ tags: [requirements, traceability, matrix]
 |---|---|---|---|---|
 | `REQ-006` | `US-305` | Cliente y widget preparados para propagar `Authorization: Bearer` desde la sesión: 9 pruebas enfocadas ✅ · Ruff ✅ | [[_DevLog/2026-08-27-andres-gonzalez-us305-jwt-client]] | 🟡 En progreso |
 
+## Evidencia incremental — 2026-08-27 · avance independiente C3
+
+| REQ | Historias | Evidencia de prueba | DevLog | Estado |
+|---|---|---|---|---|
+| `REQ-003` | `US-302`, `US-303` | Target ML-02 validado antes de entrenar: 13 pruebas ✅ · verificación y CLI del Registry: 14 pruebas ✅ | [[_DevLog/2026-08-27-andres-gonzalez-avance-independiente-c3]] | 🟡 En progreso |
+| `REQ-006` | `US-304a`, `US-305` | Orquestación segura inyectable: 19 pruebas con guardarraíles ✅ · cliente JWT distingue 401/403: 11 pruebas y 1 omitida ✅ | [[_DevLog/2026-08-27-andres-gonzalez-avance-independiente-c3]] | 🟡 En progreso |
+
 ---
 
 ## Leyenda de estado

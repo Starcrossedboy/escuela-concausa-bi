@@ -2,7 +2,7 @@
 id: DOC-ML03-CARD
 title: "Ficha de Modelo: ML-03 (Clustering de Escuelas)"
 owner: "Carlos Guillermo Mayorga Tapia"
-status: active
+status: in_review
 source_of_truth: false
 traces_up: ["US-324"]
 tags: [ml, ml-03, clustering, no-supervisado, model-card]
@@ -13,15 +13,16 @@ tags: [ml, ml-03, clustering, no-supervisado, model-card]
 > → [[15_ML_Models/_index|Volver a _index]]
 
 ## 1. Propósito
-El objetivo de **ML-03** es un agrupamiento no supervisado (clustering) para encontrar perfiles similares de escuelas en función de sus indicadores sociodemográficos, de infraestructura y académicos. Se utiliza para identificar bolsas de escuelas con problemáticas comunes independientemente de su región geográfica o su índice de riesgo directo de ML-01.
+El objetivo de **ML-03** es un agrupamiento no supervisado (clustering) para encontrar perfiles similares de escuelas. Se utiliza para identificar bolsas de escuelas con problemáticas comunes independientemente de su región geográfica o su índice de riesgo directo de ML-01. (Ver: [[15_ML_Models/ML_Strategy]]).
 
 ## 2. Features de Entrada
-- Subconjunto robusto de características de `gold.features_escuela` excluyendo columnas fuertemente esparsas.
+- **Features Propuestas:** Múltiples indicadores sociodemográficos, de infraestructura y académicos.
+- **Features Efectivamente Implementadas:** Subconjunto robusto de características de `gold.features_escuela` excluyendo columnas fuertemente esparsas.
 - Variables normalizadas/estandarizadas para evitar sesgos por escalas (ej. matrícula absoluta vs. índices porcentuales).
 
 ## 3. Métrica Obtenida
 - **Métrica principal**: Coeficiente de **Silhouette** (Silhouette Score).
-- **Umbral requerido**: `Silhouette >= 0.30` según `ML_Strategy.md` para garantizar agrupaciones internamente consistentes y externamente separables.
+- **Resultados actuales**: **Pendiente de entrenamiento; todavía no hay Silhouette obtenido** (ya que la historia US-321 sigue pendiente de implementación).
 
 ## 4. Limitaciones Conocidas
 - Carece de una "verdad absoluta" al ser no supervisado; los clústeres resultantes requieren interpretación y etiquetado de negocio (ej. "Escuelas rurales sin conectividad", "Escuelas urbanas saturadas").

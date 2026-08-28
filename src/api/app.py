@@ -38,6 +38,7 @@ _ERROR_POR_STATUS: dict[int, str] = {
     status.HTTP_404_NOT_FOUND: "not_found",
     422: "validation_error",  # literal para portabilidad entre versiones de Starlette
     status.HTTP_429_TOO_MANY_REQUESTS: "rate_limited",
+    status.HTTP_503_SERVICE_UNAVAILABLE: "service_unavailable",  # timeout de Postgres, US-416
 }
 
 # Mensajes seguros para el cliente (sin detalle interno) por código de error.
@@ -47,6 +48,7 @@ _MENSAJE_SEGURO: dict[str, str] = {
     "not_found": "El recurso solicitado no existe o está fuera de alcance.",
     "validation_error": "La entrada no cumple el formato esperado.",
     "rate_limited": "Demasiadas peticiones. Intenta más tarde.",
+    "service_unavailable": "El servicio de predicciones no respondió a tiempo. Intenta más tarde.",
     "internal_error": "Ocurrió un error interno. El equipo fue notificado.",
 }
 

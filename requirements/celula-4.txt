@@ -7,6 +7,8 @@
 #
 # US-401 (contrato/stub) solo usa fastapi + uvicorn + httpx + pytest (ya en la base).
 # python-jose y passlib se usan en US-402 (OAuth2/JWT) y US-403 (RBAC).
+# cachetools se usa en US-416 (cache TTL de predicciones) -- ya es dependencia probada del
+# proyecto en requirements/celula-1.txt y celula-3.txt.
 
 fastapi>=0.111.0
 uvicorn[standard]>=0.30.0
@@ -19,3 +21,4 @@ pydantic-settings>=2.3
 python-dotenv>=1.0
 httpx>=0.27
 pytest>=8.0
+cachetools>=5.3

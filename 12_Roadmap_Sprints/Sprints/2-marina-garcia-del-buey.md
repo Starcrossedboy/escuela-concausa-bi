@@ -298,7 +298,7 @@ Actualiza esta tabla **antes de cada standup**. El PM la revisa para el tablero 
 | ID | Historia | Estado | % | Bloqueado por | Fecha compromiso |
 |---|---|---|---|---|---|
 | `US-211a` | Cubos y metricas de DB-03 y DB-04 | ✅ Terminado | 100% | — | Dom 23 ago |
-| `US-212` | Construir DB-03 Ficha de escuela y DB-04 C | 🟡 En curso | 70% | **US-113** (cubos de C1, vencida el 23 ago) | Dom 30 ago |
+| `US-212` | Construir DB-03 Ficha de escuela y DB-04 C | 🟡 En curso | 90% | **BUG-013** (predicciones en otro ciclo que el hecho) | Dom 30 ago |
 | `US-214a` | Filtros y drill-down en DB-03 y DB-04 | ⬜ Por iniciar | 0% | — | Dom 6 sep |
 | `US-215a` | Usabilidad/accesibilidad DB-03 y DB-04 | ⬜ Por iniciar | 0% | — | Dom 6 sep |
 | `US-207` | FARO Web: panel de ML interactivo | ⬜ Por iniciar | 0% | API de inferencia (US-412/US-415) | Dom 6 sep |
@@ -308,9 +308,14 @@ Actualiza esta tabla **antes de cada standup**. El PM la revisa para el tablero 
 > que faltaban ya llegaron: Diana aceptó el cambio de grano a `municipio × nivel × ciclo` (Data_Model §4.3)
 > y Manuel publicó KPI-15…KPI-18 y ratificó el `LEFT JOIN` (Screen_Specs §4).
 >
-> **US-212 espera solo a US-113.** Ya existen la estrella Gold (US-103), Silver (US-111), Superset conectado
-> (US-202) y `gold.predicciones` / `gold.recomendaciones` (US-313). Falta que la Célula 1 materialice
-> `gold.cubo_escuela_360` y `gold.cubo_comparador_municipio`; el SQL de referencia lo tienen desde el 14 ago.
+> **US-212 al 90% (2026-08-27).** US-113 entregó los cubos y resultaron idénticos al contrato de
+> US-211a. DB-03 y DB-04 ya corren sobre el **pipeline real** (bronze→silver→gold), sin mock: los
+> **24 charts devuelven datos** y D5 sale `SIN_DATO` —no cero— porque CONAGUA no está ingerida.
+>
+> **Falta el 10% por BUG-013**, que no es trabajo mío: `publicar_gold.py` publica predicciones para el
+> ciclo 2023-2024 mientras el hecho tiene 2024-2025, así que el JOIN da cero y los bloques de
+> predicción y recomendación de DB-03 (AC-002.4) quedan vacíos. También se levantó BUG-012 por la
+> falta de runbook del pipeline local.
 
 **Estados válidos:** ⬜ Por iniciar · 🟡 En curso · 🔵 En revisión (PR abierto) · ✅ Terminado · 🔴 Bloqueado
 

@@ -5,7 +5,7 @@ author_human: "Marina García del Buey"
 agent: "Claude Code"
 model: "claude-opus-5"
 session_duration: "sesión única: pipeline local real para US-212, sin datos mock"
-touches: ["US-212", "REQ-002", "BUG-012", "BUG-013", "BUG-011", "US-113", "US-313"]
+touches: ["US-212", "REQ-002", "BUG-012", "BUG-013", "BUG-014", "BUG-011", "US-113", "US-313"]
 tags: [devlog, bi, dbt, pipeline-local, celula-2]
 ---
 
@@ -68,6 +68,11 @@ proyecto funciona de punta a punta: la fuente no existe y el tablero lo dice, no
   `cobertura_prediccion = SIN_DATO` en el 100% de las escuelas: los bloques de predicción y
   recomendación de **AC-002.4 quedan vacíos**. Apuntarlo al Gold real tampoco basta: `features_escuela`
   tiene un solo ciclo y ML exige partición temporal.
+- **BUG-014 (medium)** — `quality_gate.yml` busca el token de casilla sin marcar en todo el cuerpo del
+  PR, no solo en ítems de lista: **mencionar esa sintaxis en una explicación, aunque sea dentro de
+  backticks, tumba el check**. Detectado al documentar por qué la casilla de aprobación del PM va como
+  cita y no como casilla. Junto con que la plantilla oficial trae esa casilla sin marcar, la plantilla
+  del repo no puede pasar su propio gate.
 - **Residuo de BUG-011** — el fix de Manuel arregló la **lectura** (`read_text(encoding="utf-8")`), pero
   al script le falta el `sys.stdout.reconfigure()` que Edgar sí le puso a `vault_lint.py`: sigue
   tronando al **imprimir** en consola Windows. Verificado aislando las dos variables:

@@ -114,3 +114,9 @@ tags: [requirements, traceability, matrix]
 |---|---|---|---|---|
 | `REQ-003` | `US-302`, `US-313` | Filtro de ML-02 usa `driver_dominante` real como autoridad cuando existe: cierra el hueco de inferir cobertura por valor (BUG-016) ✅ · cadena ML-01 → filtro → ML-02 verificada con target real, F1 0.633 ✅ · 2 pruebas nuevas · suite 500 ✅ | [[_DevLog/2026-08-28-hector-morales-filtro-etiqueta-real]] | 🟡 En progreso |
 | `REQ-004` | `US-401`, `US-411` | **BUG-020**: en la URL pública toda ruta con base de datos responde HTTP 500 (`/predicciones`, `/predicciones/batch`, `/escuelas`); `/health` responde 200 y nunca se devuelve 401, así que el fallo precede a la validación de auth ⬜ | [[_DevLog/2026-08-28-hector-morales-filtro-etiqueta-real]] | 🔴 Bloqueante |
+
+## Evidencia incremental — 2026-08-28 · drivers en el artefacto publicado
+
+| REQ | Historias | Evidencia de prueba | DevLog | Estado |
+|---|---|---|---|---|
+| `REQ-003` | `US-311`, `US-312` | Drivers usados/excluidos publicados en `Evaluacion_Modelos.md` §5 y §5.1 y registrados en MLflow (`cobertura_drivers`, `drivers_sin_datos` por ventana) ✅ · **BUG-023**: el reporte no podía generarse con un driver excluido porque predecía con los 6 ✅ · §5 acota la tabla a la corrida que la generó y declara el estado real de D5 en Gold ✅ · registro MLflow con pruebas (doble inyectado, corre sin `mlflow` en CI) ✅ · 9 pruebas nuevas · suite 510 ✅ | [[_DevLog/2026-08-28-hector-morales-drivers-en-evaluacion]] | 🟡 En progreso |

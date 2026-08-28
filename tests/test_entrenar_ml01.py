@@ -6,7 +6,9 @@ tracking ni escribir artefactos. El registro se valida a mano y queda evidenciad
 
 from __future__ import annotations
 
+import sys
 from pathlib import Path
+from types import SimpleNamespace
 
 import numpy as np
 import pandas as pd
@@ -20,6 +22,7 @@ from src.modelos.entrenar_ml01 import (
     cargar_features,
     cargar_features_desde_gold,
     entrenar_y_evaluar,
+    registrar_en_mlflow,
 )
 from src.modelos.generar_fixture import SCOPE_ENTIDADES
 from src.modelos.particion_temporal import ParticionTemporal, _anio_inicial
@@ -308,3 +311,114 @@ def test_reporta_que_driver_quedo_fuera_en_cada_ventana(features: pd.DataFrame) 
     ventana, fuera = next(iter(resultado.excluidos_por_ventana.items()))
     assert "2021-2022" in ventana, "la llave nombra la ventana, para poder ubicarla"
     assert "d6_aire" in fuera
+
+
+# ------------------------------------------------- registro de drivers en MLflow
+
+
+class _CorridaFalsa:
+    """Contexto de `mlflow.start_run` que sólo necesita existir."""
+
+    info = SimpleNamespace(run_id="run-falso")
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *_):
+        return False
+
+
+class _MlflowFalso:
+    """Doble de `mlflow` que apunta lo registrado.
+
+    Se inyecta en `sys.modules` en vez de depender del paquete real: el CI instala sólo
+    `requirements.txt`, donde `mlflow` no está, así que una prueba que lo importara se **omitiría**
+    en silencio — y una prueba omitida no es una prueba verde.
+    """
+
+    def __init__(self) -> None:
+        self.params: dict[str, object] = {}
+        self.tags: dict[str, object] = {}
+        self.params_hijas: list[dict[str, object]] = []
+        self._en_hija = False
+
+    #: `registrar_en_mlflow` guarda el artefacto del modelo; el doble sólo necesita devolver algo
+    #: con `model_uri`, porque lo que se prueba aquí es qué parámetros se registran.
+    sklearn = SimpleNamespace(
+        log_model=lambda modelo, name=None: SimpleNamespace(model_uri="modelo://falso")
+    )
+
+    def set_tracking_uri(self, uri): ...
+    def set_experiment(self, nombre): ...
+    def log_metrics(self, metricas): ...
+    def log_metric(self, clave, valor): ...
+
+    def start_run(self, run_name=None, nested=False):
+        self._en_hija = nested
+        if nested:
+            self.params_hijas.append({})
+        return _CorridaFalsa()
+
+    def log_param(self, clave, valor):
+        destino = self.params_hijas[-1] if self._en_hija else self.params
+        destino[clave] = valor
+
+    def log_params(self, params):
+        for k, v in params.items():
+            self.log_param(k, v)
+
+    def set_tag(self, clave, valor):
+        self.tags[clave] = valor
+
+    def register_model(self, uri, nombre): ...
+
+
+@pytest.fixture
+def mlflow_falso(monkeypatch):
+    doble = _MlflowFalso()
+    monkeypatch.setitem(sys.modules, "mlflow", doble)
+    monkeypatch.setattr(
+        "src.modelos.mlflow_utils.verificar_compatibilidad", lambda *a, **k: None
+    )
+    return doble
+
+
+def test_registra_los_drivers_usados_y_excluidos(features: pd.DataFrame, mlflow_falso) -> None:
+    """Que un driver quede fuera es un hallazgo del proyecto: tiene que sobrevivir a la corrida."""
+    sin_agua = features.copy()
+    sin_agua["d5_agua"] = np.nan
+    resultado = entrenar_y_evaluar(sin_agua, n_ventanas=2)
+
+    registrar_en_mlflow(resultado, tracking_uri="sqlite:///no-se-usa.db")
+
+    assert mlflow_falso.params["drivers_excluidos"] == ["d5_agua"]
+    assert "d5_agua" not in mlflow_falso.params["drivers_usados"]
+    assert mlflow_falso.params["n_drivers_usados"] == len(DRIVERS) - 1
+    assert mlflow_falso.tags["cobertura_drivers"] == f"{len(DRIVERS) - 1} de {len(DRIVERS)}"
+
+
+def test_cada_ventana_registra_sus_propios_drivers_sin_datos(
+    features: pd.DataFrame, mlflow_falso
+) -> None:
+    """La exclusión es por ventana: el agregado del padre no sustituye el detalle de cada tramo."""
+    solo_reciente = features.copy()
+    ciclo = solo_reciente["id_ciclo"].max()
+    solo_reciente.loc[solo_reciente["id_ciclo"] != ciclo, "d6_aire"] = np.nan
+    resultado = entrenar_y_evaluar(solo_reciente, n_ventanas=2)
+
+    registrar_en_mlflow(resultado, tracking_uri="sqlite:///no-se-usa.db")
+
+    assert len(mlflow_falso.params_hijas) == len(resultado.ventanas)
+    assert any("d6_aire" in h["drivers_sin_datos"] for h in mlflow_falso.params_hijas)
+
+
+def test_sin_exclusiones_lo_registra_vacio_y_no_lo_omite(
+    features: pd.DataFrame, mlflow_falso
+) -> None:
+    """Un parámetro ausente no se distingue de uno no medido; la lista vacía sí afirma algo."""
+    resultado = entrenar_y_evaluar(features, n_ventanas=2)
+
+    registrar_en_mlflow(resultado, tracking_uri="sqlite:///no-se-usa.db")
+
+    assert mlflow_falso.params["drivers_excluidos"] == []
+    assert mlflow_falso.tags["cobertura_drivers"] == f"{len(DRIVERS)} de {len(DRIVERS)}"

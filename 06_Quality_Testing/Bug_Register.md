@@ -35,6 +35,7 @@ tags: [qa, bugs]
 | BUG-019 | `target_variacion_matricula` se produce en **dos unidades distintas** bajo el mismo nombre: `features_escuela.sql` (C1, grano escuela) da **alumnos absolutos** y `target_hibrido.variacion_desde_serie` (C3, grano municipio×nivel) da **fracción**. Ambas llegan a `gold.predicciones.valor`, distinguidas sólo por `grano` (DEC-010), así que esa columna hoy mezcla alumnos con fracciones. El contrato nunca declaró la unidad | high | open | US-104 / US-311 / US-313 / REQ-003 | — | pendiente ADR-007 (Andrés · Christian · Diana) | ver detalle |
 | BUG-020 | En la URL pública **toda ruta que toca base de datos responde HTTP 500**: `/api/v1/predicciones/{cct}`, `/predicciones/batch` y `/escuelas`. `/api/v1/health` responde 200, así que el contenedor corre y el despliegue de BUG-008 sirvió. Con token válido, inválido o sin token el resultado es el mismo 500 —nunca 401—, así que el fallo ocurre **antes** de validar auth. Sin esto no hay demo end-to-end ni el punto de rúbrica de URL pública | **critical** | open | US-401 / US-411 / US-501 / REQ-004 / REQ-005 | — | Christian Ruiz (C4) · Luis Téllez (C5) | ver detalle |
 | BUG-021 | `dbt run` con el número de hilos por defecto (`threads>1`) truena en `gold.dim_escuela`, `dim_municipio` y `dim_tiempo` con *relation does not exist*, aunque su silver de origen se cree casi en el mismo instante. Con `--threads 1` corre limpio de punta a punta. Causa: esos modelos leían su origen con `source('silver', …)` en vez de `ref()`. `silver.*` son modelos **de este mismo proyecto**, no datos externos, así que dbt no tenía cómo saber que debía construirlos antes y los agendaba en paralelo. Con `threads=1` el orden accidental funcionaba y el defecto quedaba escondido | high | **fixed** | US-213 / US-113 / REQ-001 | **Reportado por Monserrat Miranda** (2026-08-28, validando DB-05/DB-08 contra Gold real) · **corregido por Diana Alvarez** en `fix/diana-varela-bug016-source-vs-ref`: los siete modelos Gold pasan a `ref()`; `_gold__sources.yml` queda sólo como documentación de columnas | `dbt run` completo con hilos por defecto ✅ · [[_DevLog/2026-08-29-diana-alvarez-bug021-source-vs-ref]] |
+| BUG-023 | Tercera aparición del defecto de BUG-015/BUG-018, ahora en `evaluar.py`: `error_por_entidad()` y `cobertura_y_error()` predecían con los **seis** drivers aunque el modelo se hubiera entrenado con menos, así que `construir_reporte()` **no podía generar el reporte** en el único escenario que el PM necesita documentar para la demo — el de 5 de 6 drivers. `ValueError: The feature names should match those that were passed during fit` | high | **fixed** | US-312 / REQ-003 / AC-003.2 | `feat/hector-marban-drivers-en-evaluacion` | — | ver detalle |
 
 ## BUG-016 — Filas sin ningún driver rompían la publicación de ML-02
 
@@ -177,6 +178,35 @@ base de producción** —sólo contra el Gold local de Diana—. Pero `/escuelas
 depende de ese job, así que el problema parece más amplio que la tabla de C3.
 
 Lo que hace falta para cerrarlo es mirar los logs de Cloud Run, que son de C4/C5.
+
+## BUG-023 — El reporte de evaluación no se podía generar con un driver excluido
+
+Tercera aparición de la misma causa que BUG-015 (ML-01) y BUG-018 (ML-02): **predecir con columnas
+distintas a las del entrenamiento**. Encontrada el 2026-08-28 al implementar la petición del PM de
+publicar los drivers excluidos en un artefacto.
+
+```
+❌ error_por_entidad:  ValueError: The feature names should match those that were passed during fit.
+                       Feature names unseen at fit time: - d5_agua
+❌ cobertura_y_error:  (idéntico)
+```
+
+Ambas funciones hacían `modelo.predict(_matriz(prueba))`, y `_matriz` toma los seis `DRIVERS` por
+omisión. Cuando un driver queda fuera del entrenamiento, sklearn rechaza la forma.
+
+La ironía operativa: el reporte fallaba **exactamente** en el escenario que existe para documentar.
+Con los seis drivers presentes —el caso del fixture— nunca se disparaba.
+
+Arreglo: las dos usan `getattr(modelo, "feature_names_in_", DRIVERS)`, igual que
+`construir_predicciones` y que el `predecir_driver` de ML-02.
+
+### Por qué se escapó tres veces
+
+El fixture sintético trae los seis drivers poblados. **El escenario que rompe es justamente el que
+el fixture no representa**, así que ninguna suite lo veía: ni la mía, ni la de ML-02. La lección no
+es "faltaba una prueba" —es que un fixture construido para validar la forma no valida la realidad, y
+que los casos degradados hay que construirlos a propósito.
+
 ## Convención
 
 - Severidad: critical / high / medium / low

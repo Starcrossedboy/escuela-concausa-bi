@@ -2,8 +2,14 @@
 id: DS-06
 title: "DS-06 · CONAGUA SINA"
 owner: "Emilio Galnares Ruiz"
-status: draft
-traces_up: ["01_Product/PRD", "12_Roadmap_Sprints/PLAN_MAESTRO"]
+status: in_review
+traces_up:
+  - 02_Requirements/User_Stories
+traces_down:
+  - US-121a
+  - US-122a
+  - US-123a
+  - US-124a
 tags: [data-source, bronze, driver-d5, ingesta-continua]
 ---
 

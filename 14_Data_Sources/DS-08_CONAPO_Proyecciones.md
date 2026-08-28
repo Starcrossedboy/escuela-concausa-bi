@@ -2,9 +2,15 @@
 id: DS-08
 title: "DS-08 · CONAPO Proyecciones de Población"
 owner: "Emilio Galnares Ruiz"
-status: draft
-traces_up: ["01_Product/PRD", "12_Roadmap_Sprints/PLAN_MAESTRO"]
-tags: [data-source, bronze, denominador]
+status: in_review
+traces_up:
+  - 02_Requirements/User_Stories
+traces_down:
+  - US-121a
+  - US-122a
+  - US-123a
+  - US-124a
+tags: [data-source, bronze, conapo, proyecciones]
 ---
 
 # DS-08 · CONAPO Proyecciones de Población

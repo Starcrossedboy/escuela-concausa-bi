@@ -46,3 +46,6 @@ reciban recomendaciones distintas.
 | [[15_ML_Models/PR_Draft_Trabajo_Independiente_C3]] | Borrador de PR listo para pegar en GitHub con pruebas, alcance y bloqueantes |
 | [[15_ML_Models/Publicacion_Gold]] | Job batch que publica `gold.predicciones` y `gold.recomendaciones` con upsert idempotente (US-313) |
 | [[15_ML_Models/Target_Hibrido]] | Target híbrido de dos niveles: agregación a `municipio × nivel` para el objetivo, driver dominante a nivel escuela (DEC-007, mitiga RISK-007) |
+| [[15_ML_Models/ML01_Model_Card]] | Ficha de Modelo de ML-01: propósito, features de entrada, métricas obtenidas (MAE/RMSE), limitaciones y contexto de NO uso (US-324) |
+| [[15_ML_Models/ML02_Model_Card]] | Ficha de Modelo de ML-02: clasificación multiclase, driver dominante, F1/SHAP, coberturas y contexto de NO uso (US-324) |
+| [[15_ML_Models/ML03_Model_Card]] | Ficha de Modelo de ML-03: agrupamiento no supervisado (clustering), características usadas, silhouette score y fronteras (US-324) |

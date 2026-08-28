@@ -63,6 +63,12 @@ tags: [requirements, traceability, matrix]
 | `REQ-003` | `US-302`, `US-303` | Target ML-02 validado antes de entrenar: 13 pruebas ✅ · verificación y CLI del Registry: 14 pruebas ✅ | [[_DevLog/2026-08-27-andres-gonzalez-avance-independiente-c3]] | 🟡 En progreso |
 | `REQ-006` | `US-304a`, `US-305` | Orquestación segura inyectable: 19 pruebas con guardarraíles ✅ · cliente JWT distingue 401/403: 11 pruebas y 1 omitida ✅ | [[_DevLog/2026-08-27-andres-gonzalez-avance-independiente-c3]] | 🟡 En progreso |
 
+## Evidencia incremental — 2026-08-28
+
+| REQ | Historias | Evidencia de prueba | DevLog | Estado |
+|---|---|---|---|---|
+| `REQ-003` | `US-302` | `driver_dominante` real en `gold.features_escuela` (Célula 1): CTE argmax + desempate D1>D2>D3>D4>D5>D6 · 5 pruebas dbt nuevas ✅ · prueba de paridad SQL vs proxy Python ✅ · contrato y fixture actualizados · `dbt build --target dev` 173 pass · `pytest tests/ -q` 467 pass | [[_DevLog/2026-08-28-diana-alvarez-driver-dominante-us302]] | 🟡 En progreso |
+
 ---
 
 ## Leyenda de estado

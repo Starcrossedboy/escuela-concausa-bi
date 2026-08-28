@@ -37,10 +37,37 @@ def test_falla_si_no_hay_ningun_driver_observado() -> None:
         generar_driver_dominante_proxy(fila)
 
 
-def test_carga_fixture_y_agrega_target_proxy() -> None:
-    df = cargar_features_ml02()
+def test_carga_fixture_y_agrega_target_proxy(tmp_path, features: pd.DataFrame) -> None:
+    """Cuando la tabla NO trae `driver_dominante` real, se agrega el proxy (comportamiento
+    histórico de esta función). El fixture por defecto (`features_escuela_mock.csv`) ya trae
+    `driver_dominante` real desde que Gold lo publica (US-302, 2026-08-28, ver
+    `dbt/models/gold/features_escuela.sql`) -- por eso aquí se prueba contra una copia sin esa
+    columna, para seguir cubriendo la rama de "todavía no hay etiqueta real"."""
+    sin_columna_real = features.drop(columns=["driver_dominante"])
+    ruta = tmp_path / "features_sin_driver_dominante_real.csv"
+    sin_columna_real.to_csv(ruta, index=False)
+
+    df = cargar_features_ml02(ruta=ruta)
     assert COLUMNA_TARGET_PROXY in df.columns
     assert columna_target_disponible(df) == COLUMNA_TARGET_PROXY
+
+
+def test_paridad_driver_dominante_real_contra_proxy(features: pd.DataFrame) -> None:
+    """Prueba de paridad pedida por Andrés González Habib/C3 (2026-08-28, US-302): la etiqueta
+    REAL que ahora publica Gold (`dbt/models/gold/features_escuela.sql`, CTE
+    `con_driver_dominante`) debe coincidir con `generar_driver_dominante_proxy()` en las filas
+    donde el proxy sí puede calcularse (al menos un driver observado). Ambas implementan la
+    misma regla de argmax con el mismo desempate (primer driver en orden D1..D6) -- una en SQL,
+    otra en Python. Si llegaran a divergir, Gold y ML-02 estarían entrenando/reportando sobre
+    etiquetas distintas sin que nadie se diera cuenta."""
+    con_al_menos_un_driver = features[features[list(DRIVERS)].notna().any(axis=1)]
+    proxy = generar_driver_dominante_proxy(con_al_menos_un_driver).reset_index(drop=True)
+    real = con_al_menos_un_driver["driver_dominante"].reset_index(drop=True)
+
+    assert (real == proxy).all(), (
+        "driver_dominante (Gold) diverge de generar_driver_dominante_proxy() (Python) en al "
+        f"menos una fila: {int((real != proxy).sum())} de {len(real)} no coinciden."
+    )
 
 
 def test_prefiere_target_real_cuando_esta_disponible(features: pd.DataFrame) -> None:

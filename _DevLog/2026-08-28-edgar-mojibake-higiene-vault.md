@@ -70,8 +70,22 @@ Tres cambios:
 3. Se agrega `edited` a los disparadores.
 
 **La lógica se extrajo del YAML a `.github/scripts/verificar_plantilla_pr.sh`** para poder probarla.
-`probar_verificar_plantilla.sh` la ejercita con cinco casos —incluida la plantilla oficial— contra el
-script real, no contra una copia que se desincronice. Los cinco pasan.
+`probar_verificar_plantilla.sh` la ejercita contra el script real, no contra una copia que se
+desincronice.
+
+**Corrección durante la revisión del PR #110.** La primera versión de este arreglo seguía
+reprobando PRs bien llenados: la plantilla tiene dos casillas que un autor honesto **no puede
+marcar** —`(Alternativa) No usé IA` y `Si toqué esquema, seguridad o CI/CD`—, y el gate las contaba.
+Era la misma familia del defecto que este PR dice cerrar, en versión más suave. Se descubrió porque
+el PR #110 de Carlos Mayorga las traía sin marcar y el check las señaló.
+
+La prueba no lo detectó porque usaba una **copia sintética** de la plantilla, sin esas dos líneas.
+Ahora lee `.github/PULL_REQUEST_TEMPLATE.md` **del archivo real** y la llena como lo haría un autor,
+así que no puede volver a desviarse de la plantilla que sí se usa. Siete casos, los siete pasan.
+
+Las casillas opcionales se marcan con `<!-- opcional -->` —invisible al renderizar— y el gate las
+omite. Cualquier autor puede usar el marcador donde una casilla genuinamente no aplique, en vez de
+borrarla o marcarla en falso.
 
 ## 3 · Dos artefactos generados que ensuciaban los diffs
 
@@ -94,13 +108,14 @@ reglas del vault, junto con cómo detectarlo (`git diff -w`) y cómo descartarlo
 
 - **Archivos modificados:** `_Meta/scripts/vault_lint.py`, `_Meta/Vault_Rules.md`,
   `.github/workflows/quality_gate.yml`, `.github/scripts/verificar_plantilla_pr.sh` (nuevo),
-  `.github/scripts/probar_verificar_plantilla.sh` (nuevo), `.gitignore`,
+  `.github/scripts/probar_verificar_plantilla.sh` (nuevo), `.github/PULL_REQUEST_TEMPLATE.md`,
+  `.gitignore`,
   `06_Quality_Testing/Bug_Register.md`, `_DevLog/_index.md`, este archivo.
 - **Decisiones autónomas del agente:** ninguna de fondo. El agente propuso primero
   `.gitattributes` para el problema de codificación y `.gitignore` para `graphify-out/`;
   **ambas propuestas resultaron equivocadas al verificarlas** y se corrigieron antes de escribir
   código (ver más abajo).
-- **Correcciones manuales:** tres, todas del agente sobre sí mismo tras verificar contra el
+- **Correcciones manuales:** cuatro, todas del agente sobre sí mismo tras verificar contra el
   repositorio.
   1. `.gitattributes` **no puede** prevenir el mojibake: los bytes ya son UTF-8 válido cuando el
      editor los escribe. Se movió a detección en el linter.
@@ -108,6 +123,9 @@ reglas del vault, junto con cómo detectarlo (`git diff -w`) y cómo descartarlo
      y `update-project-graph.yml` lo commitea. Se cambió por documentación.
   3. La evidencia de BUG-014 apuntaba primero a un script fuera del repositorio. Se extrajo la
      lógica a `.github/scripts/` para que la prueba sea reproducible por cualquiera.
+  4. El arreglo de BUG-014 estaba **incompleto**: no contemplaba las dos casillas opcionales de la
+     plantilla, y la prueba no lo vio porque usaba una copia sintética. Se corrigió antes de abrir
+     el PR, leyendo la plantilla real en la prueba (ver arriba).
 
 ## Seguridad / calidad
 
@@ -115,7 +133,7 @@ reglas del vault, junto con cómo detectarlo (`git diff -w`) y cómo descartarlo
 - [x] `python _Meta/scripts/generate_pm_dashboard.py .` — 91 US, 21 personas, 8 fuentes
 - [x] `python _Meta/scripts/validate_pm_dashboard.py .` — TEST-002 válido
 - [x] `pytest tests/ -q` — **467 pasan**, 5 omitidas
-- [x] `bash .github/scripts/probar_verificar_plantilla.sh` — 5 de 5
+- [x] `bash .github/scripts/probar_verificar_plantilla.sh` — 7 de 7
 - [x] `ruff` sobre `vault_lint.py`: los 2 hallazgos son **preexistentes**, verificado con `git stash`
 - [x] Ninguna credencial ni dato real en el diff
 
@@ -130,5 +148,14 @@ PM bajo DEC-003.
 
 - **`vault_lint.py` solo cubre `.md`.** Los `.txt` de `requirements/` y los `.yaml` de la capa
   semántica quedan fuera; si aparece un caso ahí, ampliar `find_md`.
+- **La guardia no cubre el mojibake de comillas tipográficas** cuando arrastra bytes que cp1252
+  deja sin definir (`0x81`, `0x8D`, `0x8F`, `0x90`, `0x9D`): la codificación falla y la línea
+  pasa. Se probó y se dejó así a propósito — cubrirlo exige una tabla de traducción propia, ese
+  caso no se ha presentado, y en un check **requerido** un falso positivo bloquea a todo el
+  equipo. Si aparece, se amplía entonces.
+- **El marcador `<!-- opcional -->` es una escotilla real:** cualquiera puede ponerlo en una
+  casilla para que el gate la ignore, y no se ve al renderizar. Se aceptó porque el gate no es
+  check requerido y porque la alternativa —obligar a marcar casillas que no aplican— es peor:
+  enseña a marcar en falso. Si algún día el gate pasa a requerido, hay que revisar esto.
 - **Cinco ramas locales `pr-*`** de resoluciones de conflictos pasadas no son ancestros de `main`.
   Revisarlas una por una antes de borrarlas.

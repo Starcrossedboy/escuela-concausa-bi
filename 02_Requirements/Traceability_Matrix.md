@@ -59,6 +59,12 @@ tags: [requirements, traceability, matrix]
 | `REQ-003` | `US-302`, `US-303` | Target ML-02 validado antes de entrenar: 13 pruebas ✅ · verificación y CLI del Registry: 14 pruebas ✅ | [[_DevLog/2026-08-27-andres-gonzalez-avance-independiente-c3]] | 🟡 En progreso |
 | `REQ-006` | `US-304a`, `US-305` | Orquestación segura inyectable: 19 pruebas con guardarraíles ✅ · cliente JWT distingue 401/403: 11 pruebas y 1 omitida ✅ | [[_DevLog/2026-08-27-andres-gonzalez-avance-independiente-c3]] | 🟡 En progreso |
 
+## Evidencia incremental — 2026-08-28 · higiene del vault y CI
+
+| REQ | Historias | Evidencia de prueba | DevLog | Estado |
+|---|---|---|---|---|
+| `REQ-007` | `US-503`, `US-004` | Guardia anti-mojibake en `vault_lint.py`, dentro del check requerido: 11 casos de validación ✅ · **BUG-014** cerrado con regresión versionada, `.github/scripts/probar_verificar_plantilla.sh` — 7 casos contra la plantilla real ✅ · `pytest tests/ -q` 467 ✅ | [[_DevLog/2026-08-28-edgar-mojibake-higiene-vault]] | 🟡 En progreso |
+
 ---
 
 ## Leyenda de estado

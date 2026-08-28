@@ -34,18 +34,25 @@
 - [ ] `pytest tests/ -q` en verde
 - [ ] Commits en Conventional Commits con el ID
 
+<!--
+  Las casillas que terminan con un comentario HTML "opcional" (se ven abajo, en el archivo
+  fuente) NO las exige el check de plantilla: son alternativas excluyentes y condicionales que
+  no aplican a todo PR. Si agregas una casilla que un autor honesto pueda tener que dejar
+  vacía, márcala igual. Ver .github/scripts/verificar_plantilla_pr.sh (BUG-014).
+-->
+
 ## Uso de IA
 
 - [ ] Usé IA — enlace al DevLog: `_DevLog/____`
 - [ ] **Revisé línea por línea** el código generado
 - [ ] No pegué datos reales ni credenciales en prompts
-- [ ] (Alternativa) No usé IA en este cambio
+- [ ] (Alternativa) No usé IA en este cambio <!-- opcional -->
 
 ## Seguridad
 
 - [ ] No subo `.env`, credenciales ni llaves
 - [ ] No subo datos reales pesados (>5 MB)
-- [ ] Si toqué esquema, seguridad o CI/CD, pedí revisión del dueño del área
+- [ ] Si toqué esquema, seguridad o CI/CD, pedí revisión del dueño del área <!-- opcional -->
 
 ---
 

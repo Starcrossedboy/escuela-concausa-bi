@@ -21,8 +21,8 @@ jobs:
         env:
           PR_BODY: ${{ github.event.pull_request.body }}
         # La lógica vive en un script para poder probarla (BUG-014). Su regresión es
-        # .github/scripts/probar_verificar_plantilla.sh — 5 casos, incluida la plantilla
-        # oficial, que con el patrón anterior no podía pasar su propio gate.
+        # .github/scripts/probar_verificar_plantilla.sh — 7 casos, que leen la plantilla real
+        # del repositorio: con el patrón anterior no podía pasar su propio gate.
         run: bash .github/scripts/verificar_plantilla_pr.sh
 
       - name: 🐍 Configurar Python

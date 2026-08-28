@@ -84,6 +84,12 @@ def es_mojibake(linea):
     Origen: el PR #102 reescribió las 227 líneas de `_DevLog/_index.md` así. Es la misma
     familia de BUG-005 (CRLF de Windows) y BUG-011 (`read_text()` sin `encoding`): el
     locale del sistema filtrándose a un archivo del vault.
+
+    **Alcance conocido.** Cubre la familia de letras acentuadas, que es la que nos ha
+    pegado. No cubre el mojibake de comillas tipográficas cuando arrastra bytes que cp1252
+    deja sin definir (0x81, 0x8D, 0x8F, 0x90, 0x9D): ahí la codificación falla y la línea
+    pasa. Ampliarlo exigiría una tabla de traducción propia; no se hizo porque ese caso no
+    se ha presentado y el costo de un falso positivo en un check requerido es alto.
     """
     try:
         reparada = linea.encode("cp1252").decode("utf-8")

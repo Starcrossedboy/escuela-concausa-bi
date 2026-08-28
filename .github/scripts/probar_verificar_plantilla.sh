@@ -26,10 +26,20 @@ verificar() {
   fi
 }
 
-# La plantilla oficial, con las casillas del PM sin marcar. Antes de BUG-014 no podía
-# pasar su propio gate, lo que empujaba a los autores a borrar el bloque de aprobación.
-verificar "plantilla oficial (solo faltan las del PM)" "PASA" \
-"$(printf '## Calidad\n- [x] vault limpio\n- [x] pytest verde\n\n## Aprobación — compuerta única (PM)\n- [ ] CI verde\n- [ ] Solicité revisión\n')"
+# La plantilla REAL del repositorio, no una copia. Una copia sintética fue justo lo que dejó
+# pasar la segunda mitad de BUG-014: no tenía las casillas opcionales, así que la prueba daba
+# verde mientras el gate reprobaba PRs bien llenados. Leyéndola del archivo no puede desviarse.
+PLANTILLA="$(cd "$AQUI/.." && pwd)/PULL_REQUEST_TEMPLATE.md"
+
+# Como la llena un autor: marca lo suyo y deja las opcionales sin marcar.
+llenada_por_autor() {
+  sed '/<!-- opcional -->/!s/^\([[:space:]]*\)- \[ \]/\1- [x]/' "$PLANTILLA"
+}
+
+verificar "plantilla real, llenada por el autor" "PASA" "$(llenada_por_autor)"
+verificar "plantilla real sin llenar" "REPRUEBA" "$(cat "$PLANTILLA")"
+verificar "casilla opcional sin marcar" "PASA" \
+"$(printf '## Uso de IA\n- [x] Usé IA\n- [ ] (Alternativa) No usé IA <!-- opcional -->\n')"
 
 verificar "el autor dejó casillas sin marcar" "REPRUEBA" \
 "$(printf '## Calidad\n- [x] vault limpio\n- [ ] pytest verde\n')"

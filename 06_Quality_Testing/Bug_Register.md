@@ -27,13 +27,15 @@ tags: [qa, bugs]
 | BUG-011 | `sync_semantic_layer.py` lee YAML/SQL con la codificación del sistema (`read_text()` sin `encoding`): en Windows usa cp1252 y truena con los acentos de cualquier `metrics_*.yaml`; el script solo corre con `PYTHONUTF8=1`. Misma familia que BUG-005 (locale de Windows) | medium | fixed | US-203 / US-212 | `fix/manuel-serrania-bug010-sync-charts-utf8` — `encoding="utf-8"` explícito en las 3 lecturas (`_read_yaml`, `_read_sql`) | pendiente (validar en Windows) |
 | BUG-012 | No existe runbook para levantar el pipeline local: `dbt/README.md` es el scaffold por defecto de dbt, no hay `profiles.yml` ni se documenta dónde ponerlo, y **cargar solo `bronze_formato911_sample.csv` deja `gold.fact_escuela_ciclo` en 0 filas** — hay que cargar también `bronze_formato911_ciclo_anterior_sample.csv` en la MISMA tabla para que `lag()` encuentre pares. Nada de esto está escrito. | high | open | US-112 / US-113 / REQ-001 | pendiente (**C1**) — pasos verificados en `_DevLog/2026-08-27-marina-garcia-pipeline-local-us212.md` | — |
 | BUG-013 | `publicar_gold.py` usa por defecto el fixture sintético `tests/fixtures/features_escuela_mock.csv`, no `gold.features_escuela`: publica 80 filas de **ciclo 2023-2024** mientras el hecho real tiene 25 de **2024-2025**. El JOIN por `(cct, id_ciclo)` da cero, así que DB-03 muestra `cobertura_prediccion = SIN_DATO` en el 100% de las escuelas y los bloques de predicción y recomendación (AC-002.4) quedan vacíos. Apuntarlo al Gold real tampoco basta hoy: `features_escuela` tiene un solo ciclo y ML exige partición temporal. | high | open | US-313 / US-113 / REQ-003 | pendiente (**C3** + **C1**) | — |
-| BUG-014 | `quality_gate.yml` busca el token de casilla sin marcar en **todo el cuerpo del PR** con `grep -q "\[ \]"`, no solo en ítems de lista: basta con **mencionar** esa sintaxis dentro de una explicación —aunque vaya en backticks— para que el check falle. Sumado a que la plantilla oficial trae la casilla de aprobación del PM sin marcar (le toca marcarla a él al revisar), **la plantilla del repo no puede pasar su propio gate** y empuja a los autores a borrar el registro de aprobación o a marcarlo ellos mismos. | medium | open | US-503 / REQ-007 | pendiente (**C5**, Luis Téllez) — acotar el patrón a `grep -qE '^\s*-\s*\[ \]'` para que solo detecte casillas reales al inicio de un ítem | — |
+| BUG-014 | `quality_gate.yml` busca el token de casilla sin marcar en **todo el cuerpo del PR** con `grep -q "\[ \]"`, no solo en ítems de lista: basta con **mencionar** esa sintaxis dentro de una explicación —aunque vaya en backticks— para que el check falle. Sumado a que la plantilla oficial trae la casilla de aprobación del PM sin marcar (le toca marcarla a él al revisar), **la plantilla del repo no puede pasar su propio gate** y empuja a los autores a borrar el registro de aprobación o a marcarlo ellos mismos. | medium | **fixed** | US-503 / REQ-007 | `fix/edgar-navarrete-mojibake-higiene-vault` (Edgar Coronel, PM — **revisión de C5 solicitada a Luis Téllez por regla 7**). Tres cambios: el patrón se acota a `grep -qE '^[[:space:]]*-[[:space:]]*\[ \]'`; la sección `## Aprobación` se recorta antes de evaluar, porque es del PM y se marca al revisar; y se agrega el evento **`edited`**, sin el cual un cuerpo corregido después del push se quedaba en rojo para siempre; además, las dos casillas que un autor honesto no puede marcar —`(Alternativa) No usé IA` y `Si toqué esquema…`— se marcan `<!-- opcional -->` en la plantilla y el gate las omite (hallado al revisar el PR #110) | `.github/scripts/probar_verificar_plantilla.sh` — 7 casos contra el script real, leyendo `.github/PULL_REQUEST_TEMPLATE.md` del archivo (no una copia): la plantilla llenada por el autor pasa, sin llenar reprueba, las casillas opcionales marcadas con `<!-- opcional -->` no cuentan, y mencionar la sintaxis en prosa ya no reprueba |
 | BUG-015 | ML-01 no podía entrenar sobre `gold.features_escuela` real: un driver **100 % `SIN_DATO`** (D5 agua, DS-06 sin descarga) rompe el binning de `HistGradientBoostingRegressor` con `window shape cannot be larger than input array shape`, un error que no delata la causa. Además el default `--ventanas 3` pedía 5 ciclos y el Gold real sólo tiene 3 utilizables | high | **fixed** | US-311 / US-313 / REQ-003 | `fix/hector-marban-driver-sin-datos` | — | ver detalle |
 | BUG-016 | La publicación a Gold tronaba en ML-02 con datos reales: hay filas con los **6 drivers en NULL a la vez**, y `generar_driver_dominante_proxy` falla ahí por diseño. La `driver_dominante` real de C1 (US-302, PR #113) ya adoptó la convención de dejarlas en NULL; faltaba apartarlas antes de entrenar, porque `validar_target_ml02` rechaza nulos. Conservan su predicción de ML-01 y no reciben recomendación (`SIN_DATO`, nunca un driver inventado) | high | **fixed** | US-313 / REQ-003 | `fix/hector-marban-driver-sin-datos` | — | ver detalle |
 | BUG-017 | `indice_riesgo` se publicó **saturado**: la corrida real de ML-01 dio MAE 10.90, pero la sigmoide está calibrada sobre **fracción** (`-0.05` = pierde 5 % de matrícula). Con esa escala el 100 % de las 45 249 filas queda en riesgo ≈ 1.00 y el tablero cuenta como "en riesgo" a todo el universo. **Confirmado por Diana el 2026-08-28**: `target_variacion_matricula = matricula_total - matricula_ciclo_anterior`, diferencia absoluta de alumnos. El MAE 10.90 son ~11 alumnos, no un modelo malo; lo que está mal es publicar eso a través de una sigmoide calibrada sobre fracción. Añadida guarda que detiene la publicación en vez de saturar en silencio; **falta confirmar las unidades en Gold con C1** | high | open | US-311 / US-313 / REQ-003 / US-104 | — | Diana Alvarez (C1) | ver detalle |
 | BUG-018 | ML-02 arrastra el **mismo defecto por ventana** que BUG-015: `entrenar_ml02._matriz()` toma siempre los 6 drivers sin comprobar cobertura dentro de la ventana de entrenamiento, así que un driver vacío en ese tramo (D6 aire, IDW de US-105) rompe el binning de `HistGradientBoostingClassifier` con el mismo error. Reproducido; el arreglo es el mismo que ya se aplicó en ML-01 | high | open | US-302 / REQ-003 | — | Andrés González Habib (C3) | ver detalle |
 | BUG-019 | `target_variacion_matricula` se produce en **dos unidades distintas** bajo el mismo nombre: `features_escuela.sql` (C1, grano escuela) da **alumnos absolutos** y `target_hibrido.variacion_desde_serie` (C3, grano municipio×nivel) da **fracción**. Ambas llegan a `gold.predicciones.valor`, distinguidas sólo por `grano` (DEC-010), así que esa columna hoy mezcla alumnos con fracciones. El contrato nunca declaró la unidad | high | open | US-104 / US-311 / US-313 / REQ-003 | — | pendiente ADR-007 (Andrés · Christian · Diana) | ver detalle |
+| BUG-020 | En la URL pública **toda ruta que toca base de datos responde HTTP 500**: `/api/v1/predicciones/{cct}`, `/predicciones/batch` y `/escuelas`. `/api/v1/health` responde 200, así que el contenedor corre y el despliegue de BUG-008 sirvió. Con token válido, inválido o sin token el resultado es el mismo 500 —nunca 401—, así que el fallo ocurre **antes** de validar auth. Sin esto no hay demo end-to-end ni el punto de rúbrica de URL pública | **critical** | open | US-401 / US-411 / US-501 / REQ-004 / REQ-005 | — | Christian Ruiz (C4) · Luis Téllez (C5) | ver detalle |
 | BUG-021 | `dbt run` con el número de hilos por defecto (`threads>1`) truena en `gold.dim_escuela`, `dim_municipio` y `dim_tiempo` con *relation does not exist*, aunque su silver de origen se cree casi en el mismo instante. Con `--threads 1` corre limpio de punta a punta. Causa: esos modelos leían su origen con `source('silver', …)` en vez de `ref()`. `silver.*` son modelos **de este mismo proyecto**, no datos externos, así que dbt no tenía cómo saber que debía construirlos antes y los agendaba en paralelo. Con `threads=1` el orden accidental funcionaba y el defecto quedaba escondido | high | **fixed** | US-213 / US-113 / REQ-001 | **Reportado por Monserrat Miranda** (2026-08-28, validando DB-05/DB-08 contra Gold real) · **corregido por Diana Alvarez** en `fix/diana-varela-bug016-source-vs-ref`: los siete modelos Gold pasan a `ref()`; `_gold__sources.yml` queda sólo como documentación de columnas | `dbt run` completo con hilos por defecto ✅ · [[_DevLog/2026-08-29-diana-alvarez-bug021-source-vs-ref]] |
+| BUG-023 | Tercera aparición del defecto de BUG-015/BUG-018, ahora en `evaluar.py`: `error_por_entidad()` y `cobertura_y_error()` predecían con los **seis** drivers aunque el modelo se hubiera entrenado con menos, así que `construir_reporte()` **no podía generar el reporte** en el único escenario que el PM necesita documentar para la demo — el de 5 de 6 drivers. `ValueError: The feature names should match those that were passed during fit` | high | **fixed** | US-312 / REQ-003 / AC-003.2 | `feat/hector-marban-drivers-en-evaluacion` | — | ver detalle |
 
 ## BUG-016 — Filas sin ningún driver rompían la publicación de ML-02
 
@@ -53,7 +55,7 @@ Lo que faltaba era **apartarlas antes**. La Célula 1 ya adoptó esa convención
 real de US-302 (PR #113): esas filas quedan en `NULL`. Y `validar_target_ml02` —con razón— rechaza un
 target con nulos, así que el filtrado tiene que ocurrir en el sitio de llamada, que es mío.
 
-`filtrar_con_driver_observado()` las aparta y dice cuántas. **Conservan su predicción de ML-01** —la
+`filtrar_con_driver_observado()` las aparta y dice cuántas. **Endurecido el 2026-08-28**, cuando US-302 (#113) publicó la `driver_dominante` real: el filtro miraba sólo si el valor del driver era no nulo, pero C1 exige además `dN_cobertura = 'OK'`. Una fila con dato y cobertura `SIN_DATO` tiene la etiqueta en NULL y habría sobrevivido al filtro para morir en `validar_target_ml02`. Ahora, cuando la columna real existe, **ella es la autoridad** y el filtro mira dónde quedó NULL en vez de inferirlo. **Conservan su predicción de ML-01** —la
 variación de matrícula no necesita drivers— y no reciben recomendación. Eso es exactamente la regla de
 cobertura parcial: `SIN_DATO` explícito, nunca un driver inventado.
 
@@ -141,6 +143,69 @@ que el proyecto existe para hacer visibles.
 
 Mientras tanto `verificar_escala_variacion()` impide publicar el grano escuela, que es el
 comportamiento correcto.
+## BUG-020 — Todas las rutas con base de datos responden 500 en producción
+
+Encontrado el 2026-08-28 al reanudar la verificación E2E de la Célula 3, que llevaba semanas
+bloqueada por BUG-008. Ese sí quedó arreglado: la API pública levanta y expone las 18 rutas del
+contrato v1. Lo que no funciona es todo lo que consulta datos.
+
+```
+/api/v1/health                    HTTP 200  {"status":"ok"}
+/api/v1/predicciones/{cct}        HTTP 500
+/api/v1/predicciones/batch        HTTP 500
+/api/v1/escuelas                  HTTP 500
+```
+
+Reproducir:
+
+```bash
+curl -i https://faro-api-eanzfglvyq-uc.a.run.app/api/v1/predicciones/09DPR0001A
+```
+
+Repetir la misma petición añadiendo una cabecera de autorización con un token inventado da
+**exactamente el mismo 500** (no se pega el comando literal aquí porque el escáner de secretos del
+CI marca esa cabecera, y con razón).
+
+**Ninguna de las dos da 401.** El spec declara `bearerAuth` en esas rutas, así que una petición sin
+token debería rebotar con 401 antes de tocar nada. Que no lo haga significa que el fallo ocurre antes
+de la validación —probablemente una dependencia de sesión de base de datos que revienta al construir
+la petición—. No es que la autenticación esté mal implementada; es que hoy **no se puede comprobar en
+producción**, y eso toca US-402.
+
+**Hipótesis, sin confirmar:** el Gold de producción está vacío o inalcanzable. `gold.predicciones` se
+crea con `metadata.create_all` dentro del job de publicación de C3, que **nunca ha corrido contra la
+base de producción** —sólo contra el Gold local de Diana—. Pero `/escuelas` lee `dim_escuela`, que no
+depende de ese job, así que el problema parece más amplio que la tabla de C3.
+
+Lo que hace falta para cerrarlo es mirar los logs de Cloud Run, que son de C4/C5.
+
+## BUG-023 — El reporte de evaluación no se podía generar con un driver excluido
+
+Tercera aparición de la misma causa que BUG-015 (ML-01) y BUG-018 (ML-02): **predecir con columnas
+distintas a las del entrenamiento**. Encontrada el 2026-08-28 al implementar la petición del PM de
+publicar los drivers excluidos en un artefacto.
+
+```
+❌ error_por_entidad:  ValueError: The feature names should match those that were passed during fit.
+                       Feature names unseen at fit time: - d5_agua
+❌ cobertura_y_error:  (idéntico)
+```
+
+Ambas funciones hacían `modelo.predict(_matriz(prueba))`, y `_matriz` toma los seis `DRIVERS` por
+omisión. Cuando un driver queda fuera del entrenamiento, sklearn rechaza la forma.
+
+La ironía operativa: el reporte fallaba **exactamente** en el escenario que existe para documentar.
+Con los seis drivers presentes —el caso del fixture— nunca se disparaba.
+
+Arreglo: las dos usan `getattr(modelo, "feature_names_in_", DRIVERS)`, igual que
+`construir_predicciones` y que el `predecir_driver` de ML-02.
+
+### Por qué se escapó tres veces
+
+El fixture sintético trae los seis drivers poblados. **El escenario que rompe es justamente el que
+el fixture no representa**, así que ninguna suite lo veía: ni la mía, ni la de ML-02. La lección no
+es "faltaba una prueba" —es que un fixture construido para validar la forma no valida la realidad, y
+que los casos degradados hay que construirlos a propósito.
 
 ## Convención
 

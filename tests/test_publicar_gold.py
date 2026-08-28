@@ -16,8 +16,11 @@ from sqlalchemy import create_engine, select
 
 from src.modelos.contrato import DRIVERS
 from src.modelos.entrenar_ml01 import entrenar_y_evaluar
+from src.modelos.entrenar_ml02 import (
+    COLUMNA_TARGET_REAL,
+    generar_driver_dominante_proxy,
+)
 from src.modelos.entrenar_ml02 import entrenar_y_evaluar as entrenar_ml02
-from src.modelos.entrenar_ml02 import generar_driver_dominante_proxy
 from src.modelos.publicar_gold import (
     CODIGOS_DRIVER,
     RECOMENDACION_POR_DRIVER,
@@ -438,6 +441,7 @@ def test_aparta_las_filas_sin_ningun_driver_observado(features: pd.DataFrame) ->
     """El fallo que reportó Diana con Gold real: filas con los 6 drivers en NULL a la vez."""
     con_hueco = features.copy()
     con_hueco.loc[con_hueco.index[:7], list(DRIVERS)] = np.nan
+    con_hueco.loc[con_hueco.index[:7], COLUMNA_TARGET_REAL] = None
 
     quedan, apartadas = filtrar_con_driver_observado(con_hueco)
 
@@ -451,6 +455,7 @@ def test_una_sola_observacion_basta_para_quedarse(features: pd.DataFrame) -> Non
     apenas = features.copy()
     apenas.loc[apenas.index[:5], list(DRIVERS)] = np.nan
     apenas.loc[apenas.index[:5], "d1_pobreza"] = 0.4
+    apenas.loc[apenas.index[:5], COLUMNA_TARGET_REAL] = "D1"
 
     _, apartadas = filtrar_con_driver_observado(apenas)
 
@@ -461,6 +466,7 @@ def test_el_proxy_ya_no_truena_tras_filtrar(features: pd.DataFrame) -> None:
     """Regresión directa del traceback: el proxy falla por diseño, así que se filtra antes."""
     con_hueco = features.copy()
     con_hueco.loc[con_hueco.index[:7], list(DRIVERS)] = np.nan
+    con_hueco.loc[con_hueco.index[:7], COLUMNA_TARGET_REAL] = None
 
     with pytest.raises(ValueError, match="sin ningun driver"):
         generar_driver_dominante_proxy(con_hueco)
@@ -478,6 +484,7 @@ def test_las_filas_apartadas_conservan_su_prediccion_de_ml01(
     """Quedan fuera de la recomendación, no de la predicción: ML-01 no necesita drivers."""
     con_hueco = features.copy()
     con_hueco.loc[con_hueco.index[:7], list(DRIVERS)] = np.nan
+    con_hueco.loc[con_hueco.index[:7], COLUMNA_TARGET_REAL] = None
 
     predicciones = construir_predicciones(con_hueco, modelo, "run-sin-drivers")
     quedan, apartadas = filtrar_con_driver_observado(con_hueco)
@@ -504,3 +511,32 @@ def test_la_verificacion_de_sincronia_sigue_viva_tras_el_filtro(
 
     with pytest.raises(ValueError, match="Faltan features de ML-02"):
         construir_recomendaciones_ml02(predicciones, incompletas, modelo_ml02)
+
+
+def test_la_etiqueta_real_manda_sobre_lo_que_inferimos(features: pd.DataFrame) -> None:
+    """El hueco que abre inferir la cobertura por nuestra cuenta.
+
+    C1 exige `dN_cobertura = 'OK'` **además** de valor no nulo para elegir driver dominante. Una
+    fila con valores pero cobertura `SIN_DATO` tiene `driver_dominante` en NULL, y si aquí sólo
+    miráramos los valores sobreviviría al filtro para morir después en `validar_target_ml02`.
+    """
+    divergente = features.copy()
+    divergente.loc[divergente.index[:6], COLUMNA_TARGET_REAL] = None
+    # los valores de los drivers siguen ahí, intactos
+    assert divergente.loc[divergente.index[:6], list(DRIVERS)].notna().any(axis=1).all()
+
+    quedan, apartadas = filtrar_con_driver_observado(divergente)
+
+    assert apartadas == 6
+    assert quedan[COLUMNA_TARGET_REAL].notna().all(), "no sobrevive ninguna etiqueta nula"
+
+
+def test_sin_la_columna_real_se_cae_al_criterio_del_proxy(features: pd.DataFrame) -> None:
+    """Fixtures y Gold anterior a US-302 siguen funcionando con la regla de siempre."""
+    sin_columna = features.drop(columns=[COLUMNA_TARGET_REAL])
+    sin_columna.loc[sin_columna.index[:4], list(DRIVERS)] = np.nan
+
+    quedan, apartadas = filtrar_con_driver_observado(sin_columna)
+
+    assert apartadas == 4
+    assert quedan[list(DRIVERS)].notna().any(axis=1).all()

@@ -105,6 +105,8 @@ class ResultadoEntrenamiento:
     ventanas: tuple[MetricasVentana, ...]
     modelo: HistGradientBoostingRegressor
     error_por_entidad: pd.DataFrame
+    drivers_usados: tuple[str, ...] = DRIVERS
+    drivers_excluidos: tuple[str, ...] = ()
 
     @property
     def mae_promedio(self) -> float:
@@ -190,9 +192,28 @@ def cargar_features_desde_gold(
     return _validar_contrato(df, f"`{esquema}.{tabla}`")
 
 
-def _matriz(df: pd.DataFrame) -> pd.DataFrame:
-    """Extrae los 6 drivers. Los `SIN_DATO` quedan como `NaN`, sin imputar."""
-    return df[list(DRIVERS)]
+def _matriz(df: pd.DataFrame, columnas: list[str] | None = None) -> pd.DataFrame:
+    """Extrae los drivers utilizables. Los `SIN_DATO` quedan como `NaN`, sin imputar."""
+    return df[list(columnas if columnas is not None else DRIVERS)]
+
+
+def drivers_utilizables(df: pd.DataFrame) -> list[str]:
+    """Drivers con al menos un valor observado en este conjunto.
+
+    Un driver **100 % `SIN_DATO`** —cero valores en todo el conjunto— rompe el binning de
+    `HistGradientBoostingRegressor`: al no haber ningún valor distinto, sklearn falla con
+    `window shape cannot be larger than input array shape`, un error que no dice nada sobre la
+    causa real.
+
+    Ese caso no es hipotético: en `gold.features_escuela` real, **D5 (agua) está completo en
+    `SIN_DATO`** porque DS-06 (CONAGUA) sigue sin descarga verificada. Un driver así no aporta
+    información y **se excluye**, pero **nunca en silencio**: la exclusión se reporta, porque
+    "este driver no aportó nada" es un hallazgo del proyecto, no un detalle de implementación.
+
+    Una columna **constante** sí es utilizable: sklearn la maneja, y su ausencia de varianza es
+    información legítima que el modelo puede ignorar por su cuenta.
+    """
+    return [d for d in DRIVERS if df[d].notna().any()]
 
 
 def _entidades_de(df: pd.DataFrame) -> list[str]:
@@ -257,6 +278,20 @@ def entrenar_y_evaluar(
         de producción y el desglose de error por entidad.
     """
     params = {**HIPERPARAMETROS, **(hiperparametros or {})}
+
+    usables = drivers_utilizables(df)
+    excluidos = [d for d in DRIVERS if d not in usables]
+    if not usables:
+        raise ValueError(
+            "Ningún driver tiene datos: los seis están en `SIN_DATO`. No hay con qué entrenar. "
+            "Revisa la cobertura de `gold.features_escuela` antes de publicar."
+        )
+    if excluidos:
+        print(
+            f"⚠️  Drivers sin ningún dato, excluidos del entrenamiento: {excluidos}. "
+            f"Se entrena con {len(usables)} de {len(DRIVERS)}."
+        )
+
     ventanas: list[MetricasVentana] = []
     modelo: HistGradientBoostingRegressor | None = None
     error_entidad = pd.DataFrame()
@@ -265,8 +300,8 @@ def entrenar_y_evaluar(
         entrena, prueba = particion.aplicar(df)
         verificar_sin_fuga(entrena, prueba)  # garantía ejecutable de AC-003.3
 
-        x_entrena, y_entrena = _matriz(entrena), entrena[COLUMNA_TARGET]
-        x_prueba, y_prueba = _matriz(prueba), prueba[COLUMNA_TARGET]
+        x_entrena, y_entrena = _matriz(entrena, usables), entrena[COLUMNA_TARGET]
+        x_prueba, y_prueba = _matriz(prueba, usables), prueba[COLUMNA_TARGET]
 
         modelo = HistGradientBoostingRegressor(**params).fit(x_entrena, y_entrena)
         predicho = modelo.predict(x_prueba)
@@ -288,7 +323,11 @@ def entrenar_y_evaluar(
         raise RuntimeError("El backtesting no produjo ninguna ventana.")
 
     return ResultadoEntrenamiento(
-        ventanas=tuple(ventanas), modelo=modelo, error_por_entidad=error_entidad
+        ventanas=tuple(ventanas),
+        modelo=modelo,
+        error_por_entidad=error_entidad,
+        drivers_usados=tuple(usables),
+        drivers_excluidos=tuple(excluidos),
     )
 
 

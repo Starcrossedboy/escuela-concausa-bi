@@ -63,7 +63,11 @@ from src.modelos.entrenar_ml02 import (
     predecir_driver,
 )
 from src.modelos.entrenar_ml02 import entrenar_y_evaluar as entrenar_ml02
-from src.modelos.particion_temporal import COLUMNA_CICLO, ciclos_ordenados
+from src.modelos.particion_temporal import (
+    COLUMNA_CICLO,
+    ciclos_ordenados,
+    ventanas_posibles,
+)
 from src.modelos.recomendaciones import CODIGOS_DRIVER, RECOMENDACION_POR_DRIVER
 from src.modelos.riesgo import RIESGO_ESTABLE, RIESGO_UMBRAL, indice_riesgo
 
@@ -253,7 +257,10 @@ def construir_predicciones(
         raise ValueError(f"El ciclo {objetivo!r} no está en las features. Disponibles: {ciclos}.")
 
     corte = features[features[COLUMNA_CICLO] == objetivo]
-    variacion = modelo.predict(corte[list(DRIVERS)])
+    # Las columnas de predicción deben ser las mismas con las que se entrenó: si un driver quedó
+    # 100% SIN_DATO y se excluyó, pasarlo aquí haría fallar el predict por desajuste de forma.
+    columnas = list(getattr(modelo, "feature_names_in_", DRIVERS))
+    variacion = modelo.predict(corte[columnas])
 
     filas = pd.DataFrame(
         {
@@ -317,7 +324,8 @@ def construir_predicciones_municipio_nivel(
         raise ValueError(f"El ciclo {objetivo!r} no está en el agregado. Disponibles: {ciclos}.")
 
     corte = agregado[agregado[COLUMNA_CICLO] == objetivo]
-    variacion = modelo.predict(corte[list(DRIVERS)])
+    columnas = list(getattr(modelo, "feature_names_in_", DRIVERS))
+    variacion = modelo.predict(corte[columnas])
 
     filas = pd.DataFrame(
         {
@@ -524,7 +532,12 @@ def main() -> int:
     parser.add_argument("--url", default=None, help="URL SQLAlchemy; por defecto DATABASE_URL")
     parser.add_argument("--run-id", default="local-sin-mlflow", help="mlflow_run_id a registrar")
     parser.add_argument("--esquema", default=ESQUEMA_GOLD)
-    parser.add_argument("--ventanas", type=int, default=3)
+    parser.add_argument(
+        "--ventanas",
+        type=int,
+        default=None,
+        help="ventanas de backtesting; por defecto, el máximo que permitan los ciclos disponibles",
+    )
     parser.add_argument(
         "--solo-predicciones",
         action="store_true",
@@ -542,7 +555,10 @@ def main() -> int:
     else:
         features = cargar_features(args.features)
         print(f"Features desde el fixture {args.features} — DATOS SINTÉTICOS")
-    resultado = entrenar_y_evaluar(features, n_ventanas=args.ventanas)
+    ventanas = args.ventanas or ventanas_posibles(features)
+    if args.ventanas is None:
+        print(f"Ventanas de backtesting: {ventanas} (máximo que permiten los ciclos disponibles)")
+    resultado = entrenar_y_evaluar(features, n_ventanas=ventanas)
     print(f"ML-01 entrenado — MAE {resultado.mae_promedio:.4f} ± {resultado.mae_desviacion:.4f}")
 
     predicciones = construir_predicciones(features, resultado.modelo, args.run_id)
@@ -559,7 +575,7 @@ def main() -> int:
     features_ml02 = features.copy()
     if COLUMNA_TARGET_REAL not in features_ml02.columns:
         features_ml02[COLUMNA_TARGET_PROXY] = generar_driver_dominante_proxy(features_ml02)
-    resultado_ml02 = entrenar_ml02(features_ml02, n_ventanas=args.ventanas)
+    resultado_ml02 = entrenar_ml02(features_ml02, n_ventanas=ventanas)
     recomendaciones = construir_recomendaciones_ml02(
         predicciones,
         features_ml02,

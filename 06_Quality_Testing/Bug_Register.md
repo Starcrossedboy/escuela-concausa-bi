@@ -28,6 +28,7 @@ tags: [qa, bugs]
 | BUG-012 | No existe runbook para levantar el pipeline local: `dbt/README.md` es el scaffold por defecto de dbt, no hay `profiles.yml` ni se documenta dónde ponerlo, y **cargar solo `bronze_formato911_sample.csv` deja `gold.fact_escuela_ciclo` en 0 filas** — hay que cargar también `bronze_formato911_ciclo_anterior_sample.csv` en la MISMA tabla para que `lag()` encuentre pares. Nada de esto está escrito. | high | open | US-112 / US-113 / REQ-001 | pendiente (**C1**) — pasos verificados en `_DevLog/2026-08-27-marina-garcia-pipeline-local-us212.md` | — |
 | BUG-013 | `publicar_gold.py` usa por defecto el fixture sintético `tests/fixtures/features_escuela_mock.csv`, no `gold.features_escuela`: publica 80 filas de **ciclo 2023-2024** mientras el hecho real tiene 25 de **2024-2025**. El JOIN por `(cct, id_ciclo)` da cero, así que DB-03 muestra `cobertura_prediccion = SIN_DATO` en el 100% de las escuelas y los bloques de predicción y recomendación (AC-002.4) quedan vacíos. Apuntarlo al Gold real tampoco basta hoy: `features_escuela` tiene un solo ciclo y ML exige partición temporal. | high | open | US-313 / US-113 / REQ-003 | pendiente (**C3** + **C1**) | — |
 | BUG-014 | `quality_gate.yml` busca el token de casilla sin marcar en **todo el cuerpo del PR** con `grep -q "\[ \]"`, no solo en ítems de lista: basta con **mencionar** esa sintaxis dentro de una explicación —aunque vaya en backticks— para que el check falle. Sumado a que la plantilla oficial trae la casilla de aprobación del PM sin marcar (le toca marcarla a él al revisar), **la plantilla del repo no puede pasar su propio gate** y empuja a los autores a borrar el registro de aprobación o a marcarlo ellos mismos. | medium | open | US-503 / REQ-007 | pendiente (**C5**, Luis Téllez) — acotar el patrón a `grep -qE '^\s*-\s*\[ \]'` para que solo detecte casillas reales al inicio de un ítem | — |
+| BUG-015 | ML-01 no podía entrenar sobre `gold.features_escuela` real: un driver **100 % `SIN_DATO`** (D5 agua, DS-06 sin descarga) rompe el binning de `HistGradientBoostingRegressor` con `window shape cannot be larger than input array shape`, un error que no delata la causa. Además el default `--ventanas 3` pedía 5 ciclos y el Gold real sólo tiene 3 utilizables | high | **fixed** | US-311 / US-313 / REQ-003 | `fix/hector-marban-driver-sin-datos` | — | ver detalle |
 
 ## Convención
 
@@ -277,6 +278,67 @@ respalda el endpoint en vivo; se queda solo como referencia para un mock server 
 
 **Pendiente de avisar a C2 (Manuel) y C3 (Andrés/Héctor)** por la regla de oro del contrato
 (cambio de forma en `PrediccionOut`) — parte de la descripción del PR.
+
+## BUG-015 — Un driver sin ningún dato impedía entrenar ML-01 sobre el Gold real
+
+| | |
+|---|---|
+| **Severidad** | high |
+| **Estado** | `fixed` |
+| **Detectado** | 2026-08-27 por Diana Alvarez, al correr `publicar_gold --desde-gold` sobre `gold.features_escuela` real |
+| **Corregido por** | Héctor Morales (C3) |
+
+### Síntoma
+
+```
+Features desde gold.features_escuela: 135 932 filas · 46 515 escuelas · ciclos
+  ['2022-2023', '2023-2024', '2024-2025']
+...
+ValueError: window shape cannot be larger than input array shape
+  en sklearn/ensemble/_hist_gradient_boosting/binning.py::_find_binning_thresholds
+```
+
+La carga funcionaba; el entrenamiento tronaba antes de escribir nada a Gold.
+
+### Causa
+
+Un driver con **cero valores observados** en todo el conjunto. `HistGradientBoostingRegressor`
+calcula sus cortes con `sliding_window_view(distinct_values, 2)`; sin ningún valor distinto, la
+ventana de tamaño 2 no cabe y numpy falla con un mensaje que **no menciona la causa real**.
+
+Reproducido de forma aislada: una columna **toda `NaN`** falla; una columna **constante** entrena
+sin problema.
+
+En el Gold real el driver afectado es **D5 (agua)**, que sigue completo en `SIN_DATO` porque DS-06
+(CONAGUA) no tiene descarga verificada. El fixture sintético nunca lo ejercitó porque su generador
+siempre da algún valor a los seis drivers.
+
+### Corrección
+
+`drivers_utilizables()` detecta los drivers con al menos un valor observado y los excluye del
+entrenamiento **reportándolo**, nunca en silencio:
+
+```
+⚠️  Drivers sin ningún dato, excluidos del entrenamiento: ['d5_agua'].
+    Se entrena con 5 de 6.
+```
+
+Que un driver no aporte nada es **un hallazgo del proyecto**, no un detalle de implementación:
+`ResultadoEntrenamiento` expone `drivers_usados` y `drivers_excluidos` para que quede en el reporte
+de US-312 y en el registro de MLflow.
+
+Si **ningún** driver tiene datos, falla con un mensaje explícito en vez de un error de numpy.
+
+### Segundo hallazgo: `--ventanas` fijo
+
+El default de 3 ventanas exigía 5 ciclos; el Gold real tiene 3 utilizables (2021-2022 se consume
+como referencia del target). `--ventanas` pasa a ser **automático**: `ventanas_posibles()` calcula
+el máximo que permiten los ciclos disponibles y lo reporta. Señalado por Diana en el mismo reporte.
+
+### Verificación
+
+Simulado el escenario exacto —3 ciclos y D5 en `SIN_DATO`— el circuito completo corre: entrena con
+5 drivers, reporta la exclusión y construye las 80 filas de predicción del ciclo más reciente.
 
 ## BUG-004 — Imagen `apache/superset:latest` no incluye `psycopg2`
 

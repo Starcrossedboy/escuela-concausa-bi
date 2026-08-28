@@ -206,3 +206,64 @@ def test_falla_si_gold_no_cumple_el_contrato(features: pd.DataFrame, tmp_path) -
 
     with pytest.raises(ValueError, match="d1_pobreza"):
         cargar_features_desde_gold(engine, esquema=None)
+
+
+# ------------------------------- driver sin ningún dato (caso real de gold.features_escuela)
+
+
+def test_un_driver_sin_ningun_dato_no_rompe_el_entrenamiento(features: pd.DataFrame) -> None:
+    """Reproduce el fallo del Gold real: D5 (agua) está 100% en SIN_DATO porque DS-06 no llega.
+
+    Sin este manejo, `HistGradientBoostingRegressor` falla dentro del binning con
+    `window shape cannot be larger than input array shape`, un error que no dice nada de la causa.
+    """
+    sin_agua = features.copy()
+    sin_agua["d5_agua"] = np.nan
+    sin_agua["d5_cobertura"] = "SIN_DATO"
+
+    resultado = entrenar_y_evaluar(sin_agua, n_ventanas=2)
+
+    assert "d5_agua" in resultado.drivers_excluidos
+    assert "d5_agua" not in resultado.drivers_usados
+    assert len(resultado.drivers_usados) == 5
+    assert all(np.isfinite(v.mae) for v in resultado.ventanas)
+
+
+def test_la_exclusion_de_drivers_queda_registrada(features: pd.DataFrame) -> None:
+    """Excluir un driver nunca es silencioso: es un hallazgo del proyecto, no un detalle."""
+    resultado = entrenar_y_evaluar(features, n_ventanas=2)
+    assert resultado.drivers_excluidos == ()
+    assert len(resultado.drivers_usados) == 6
+
+
+def test_una_columna_constante_si_es_utilizable(features: pd.DataFrame) -> None:
+    """Sin varianza no es lo mismo que sin datos: el modelo puede ignorarla por su cuenta."""
+    constante = features.copy()
+    constante["d6_aire"] = 0.5
+
+    resultado = entrenar_y_evaluar(constante, n_ventanas=2)
+
+    assert "d6_aire" in resultado.drivers_usados
+
+
+def test_falla_con_mensaje_claro_si_ningun_driver_tiene_datos(features: pd.DataFrame) -> None:
+    vacio = features.copy()
+    for driver in DRIVERS:
+        vacio[driver] = np.nan
+
+    with pytest.raises(ValueError, match="Ningún driver tiene datos"):
+        entrenar_y_evaluar(vacio, n_ventanas=2)
+
+
+def test_se_puede_publicar_aunque_falte_un_driver(features: pd.DataFrame) -> None:
+    """El circuito completo con un driver ausente: entrenar y construir las filas de Gold."""
+    from src.modelos.publicar_gold import construir_predicciones
+
+    sin_agua = features.copy()
+    sin_agua["d5_agua"] = np.nan
+
+    resultado = entrenar_y_evaluar(sin_agua, n_ventanas=2)
+    filas = construir_predicciones(sin_agua, resultado.modelo, "run-sin-d5")
+
+    assert len(filas) == sin_agua["cct"].nunique()
+    assert filas["indice_riesgo"].between(0, 1).all()

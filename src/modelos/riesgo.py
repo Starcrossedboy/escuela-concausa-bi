@@ -212,7 +212,8 @@ def verificar_escala_variacion(
         f"pero la sigmoide está calibrada con {calibracion.variacion_alta} = "
         f"'pierde 5 % de la matrícula'. Con esta escala, {saturadas:.1%} de las filas quedarían "
         "con indice_riesgo saturado en 0 o en 1, y el tablero contaría como en riesgo a todo el "
-        "universo. Revisa las unidades en Gold: ¿puntos porcentuales (-5.0) o diferencia absoluta "
-        "de alumnos en vez de fracción (-0.05)? Si la escala es correcta y el dato es así de "
-        "extremo, hay que recalibrar las anclas en 15_ML_Models/Indice_Riesgo_ML01.md."
+        "universo. Causa conocida (BUG-017): `features_escuela.sql` produce esta columna como "
+        "`matricula_total - matricula_ciclo_anterior`, es decir **alumnos absolutos**, mientras que "
+        "`target_hibrido.variacion_desde_serie` la produce como fracción. La unidad se decide en "
+        "ADR-007; hasta que se ratifique, publicar aquí saturaría el índice en silencio."
     )

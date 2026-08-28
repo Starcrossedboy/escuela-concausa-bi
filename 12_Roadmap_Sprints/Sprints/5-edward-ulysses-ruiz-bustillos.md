@@ -6,7 +6,7 @@ status: approved
 version: "1.0"
 traces_up: ["01_Product/PRD", "02_Requirements/User_Stories"]
 traces_down: ["US-521c", "US-522c", "US-523c", "US-524c", "US-525c"]
-last_reviewed: "2026-07-31"
+last_reviewed: "2026-08-28"
 tags: [sprint, plan, celula-5, nivel-bajo]
 ---
 
@@ -302,9 +302,9 @@ Actualiza esta tabla **antes de cada standup**. El PM la revisa para el tablero 
 
 | ID | Historia | Estado | % | Bloqueado por | Fecha compromiso |
 |---|---|---|---|---|---|
-| `US-521c` | Guia ambiente local: Superset y agente | ⬜ Por iniciar | 0% | — | Dom 9 ago |
-| `US-522c` | Contenerizar Superset y agente | ⬜ Por iniciar | 0% | — | Dom 23 ago |
-| `US-523c` | Quality gate vault_lint y PR | ⬜ Por iniciar | 0% | — | Dom 23 ago |
+| `US-521c` | Guia ambiente local: Superset y agente | 🔵 En revisión | 90% | DevLog válido `.md` + repetir guía | Junta de cierre |
+| `US-522c` | Contenerizar Superset y agente | 🔵 En revisión | 95% | Verificación final Postgres + DevLog + cerrar BUG-004 | Junta de cierre |
+| `US-523c` | Quality gate vault_lint y PR | ✅ Terminado | 100% | — | Cerrada 25 ago |
 | `US-524c` | Monitoreo de Superset y agente | ⬜ Por iniciar | 0% | — | Dom 6 sep |
 | `US-525c` | Runbook rollback Superset y agente | ⬜ Por iniciar | 0% | — | Mar 8 sep |
 

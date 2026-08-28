@@ -6,7 +6,7 @@ status: in_review
 version: "1.0"
 source_of_truth: true
 traces_up: ["02_Requirements/Requirements_Detailed", "02_Requirements/User_Stories"]
-last_reviewed: "2026-08-03"
+last_reviewed: "2026-08-28"
 tags: [requirements, traceability, matrix]
 ---
 
@@ -121,3 +121,17 @@ tags: [requirements, traceability, matrix]
 | REQ | Historias | Evidencia de prueba | DevLog | Estado |
 |---|---|---|---|---|
 | `REQ-003` | `US-311`, `US-312` | Drivers usados/excluidos publicados en `Evaluacion_Modelos.md` §5 y §5.1 y registrados en MLflow (`cobertura_drivers`, `drivers_sin_datos` por ventana) ✅ · **BUG-023**: el reporte no podía generarse con un driver excluido porque predecía con los 6 ✅ · §5 acota la tabla a la corrida que la generó y declara el estado real de D5 en Gold ✅ · registro MLflow con pruebas (doble inyectado, corre sin `mlflow` en CI) ✅ · 9 pruebas nuevas · suite 510 ✅ | [[_DevLog/2026-08-28-hector-morales-drivers-en-evaluacion]] | 🟡 En progreso |
+
+## Evidencia incremental — 2026-08-28 · reconciliación integral de estatus
+
+| REQ | Historias | Evidencia / decisión de estado | Próxima validación | Estado |
+|---|---|---|---|---|
+| `REQ-001` | `US-113`, `US-121a`–`US-124a` | US-113: PR #81 + PR #105, estrella y 8 cubos sobre 4 ciclos reales, 149/149 ✅ · BUG-021/PR #115 corrige orden dbt ✅ · PR #107 abierto para DS-06/DS-08 | Deni/Diana validan DB-10 o el PM aprueba excepción; Diana revisa PR #107 | 🟡 En revisión |
+| `REQ-002` | `US-204`, `US-213`, `US-221` | PR #100 mergeado: DB-06/DB-09, 50 pruebas y 15/15 charts ✅ · PR #114 DB-05/08 abierto · PR #106 gráficos KPI abierto | Manuel valida datos ML reales y revisa #106/#114 | 🟡 En revisión |
+| `REQ-003` | `US-302`, `US-313`, `US-323`, `US-324` | PR #113/#116/#117 estabilizan ML-02 ✅ · US-323 pasa a `done` con PR #108 y documento `approved` ✅ · US-324 en revisión por fichas PR #110 | Andrés valida Gold/Registry/SHAP; Héctor/Diana ejecutan publicación real; dueños de modelos revisan fichas | 🟡 En revisión |
+| `REQ-004` | `US-403`, `US-411`, `US-412`, `US-415`, `US-416` | US-415 pasa a `done` con PR #95 ✅ (contrato Pydantic, sin superficie desplegada) · US-403 PR #97 y US-416 PR #101 pasan a revisión · **BUG-020 mantiene abiertas US-411 y US-412**: ambas entregan rutas HTTP que responden 500 en producción, y el criterio adoptado el 28-ago las trata igual · autenticación verificada viva (`/auth/login` 302, `/auth/me` 401), así que US-402 no queda tocada por BUG-020 | Christian ratifica seguridad/cache; Christian+Luis corrigen BUG-020; Karla valida endpoints | 🔴 Bloqueante |
+| `REQ-005` | `US-522a/b/c`, `US-524a` | BUG-008 corregido por PR #99 ✅ · PR #87 Airflow y PR #102 monitoreo abiertos · Superset ya instala `psycopg2` en su venv | C5 ejecuta E2E Compose, cierra BUG-004 y revisa #87/#102 | 🟡 En revisión |
+| `REQ-006` | `US-304a`, `US-304b`, `US-305`, `US-323` | RAG y evaluación PR #108 ✅ · US-323 `done` · guardarraíles/widget/JWT mergeados · rama de integración RAG aún sin merge | Andrés/Carlos integran y ejecutan E2E; Christian entrega login y corrige BUG-020 | 🟡 En revisión |
+| `REQ-007` | `US-004`, `US-521c`, `US-523a` | Reconciliación de 91 US ejecutada · US-523a pasa a `done` por PR #93/documento `approved` ✅ · US-521c conserva DevLog no filed | Edward regulariza DevLog; Edgar cierra acuerdos del reporte y regenera tablero | 🟡 En revisión |
+
+→ Seguimiento de junta: [[13_Reports/US_Validation_Followup_2026-08-28]]

@@ -5,7 +5,7 @@ from __future__ import annotations
 import httpx
 import pytest
 
-from src.frontend.agente_client import consultar_agente
+from src.frontend.agente_client import ErrorAutorizacionAgente, consultar_agente
 
 
 class RespuestaHTTPFake:
@@ -94,4 +94,21 @@ def test_convierte_un_error_http_en_error_de_conexion() -> None:
         raise httpx.ConnectError("sin conexión", request=request)
 
     with pytest.raises(ConnectionError, match="API del agente no está disponible"):
+        consultar_agente("http://api:8000", "Pregunta valida", post=post)
+
+
+@pytest.mark.parametrize(
+    ("status_code", "mensaje"),
+    [
+        (401, "sesión no es válida o expiró"),
+        (403, "rol no tiene permiso"),
+    ],
+)
+def test_distingue_errores_de_autorizacion(status_code: int, mensaje: str) -> None:
+    def post(*args, **kwargs) -> RespuestaHTTPFake:
+        request = httpx.Request("POST", "http://api:8000/api/v1/agente/consulta")
+        response = httpx.Response(status_code, request=request)
+        raise httpx.HTTPStatusError("rechazada", request=request, response=response)
+
+    with pytest.raises(ErrorAutorizacionAgente, match=mensaje):
         consultar_agente("http://api:8000", "Pregunta valida", post=post)

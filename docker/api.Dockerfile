@@ -21,7 +21,7 @@ EXPOSE 8080
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
-  CMD python3 -c "import urllib.request; urllib.request.urlopen('http://localhost:8080/health').read()" || exit 1
+  CMD python3 -c "import urllib.request; urllib.request.urlopen('http://localhost:${PORT}/api/v1/health').read()" || exit 1
 
 # Comando de inicio
-CMD uvicorn src.api.main:app --host 0.0.0.0 --port ${PORT}
+CMD uvicorn src.api.app:app --host 0.0.0.0 --port ${PORT}

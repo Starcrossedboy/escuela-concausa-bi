@@ -8,7 +8,11 @@ from typing import Any
 
 from src.agente.guardrails import pregunta_en_alcance, preparar_sql_seguro
 from src.agente.prompt import construir_prompt_sistema
-from src.agente.recuperacion import ErrorRecuperacion, recuperar_contexto
+from src.agente.recuperacion import (
+    ContextoNoEncontrado,
+    ErrorRecuperacion,
+    recuperar_contexto,
+)
 
 RecuperarContexto = Callable[[str], str]
 GenerarSQL = Callable[[str, str], str]
@@ -43,6 +47,12 @@ def procesar_consulta(
 
     try:
         contexto = recuperar_contexto(pregunta)
+    except ContextoNoEncontrado:
+        return ResultadoConsulta(
+            respuesta="No encontré contexto de Gold para responder esa pregunta.",
+            sql_generado=None,
+            fuera_de_alcance=False,
+        )
     except ErrorRecuperacion:
         return ResultadoConsulta(
             respuesta="El contexto de FARO no está disponible temporalmente.",

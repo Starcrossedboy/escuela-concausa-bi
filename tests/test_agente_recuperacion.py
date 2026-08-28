@@ -1,43 +1,48 @@
 """Pruebas del módulo de recuperación (RAG) (US-304b)."""
 
+from unittest.mock import MagicMock
+
 import pytest
-from unittest.mock import patch, MagicMock
-from src.agente.recuperacion import recuperar_contexto
 
-def test_recuperar_contexto_sin_modelo():
-    """Valida el manejo de error si el modelo local no puede cargarse."""
-    with patch("src.agente.recuperacion._modelo", None):
-        res = recuperar_contexto("prueba")
-        assert "no disponible" in res
+from src.agente.recuperacion import ErrorRecuperacion, recuperar_contexto
 
-@patch("src.agente.recuperacion.chromadb")
-@patch("src.agente.recuperacion._modelo")
-def test_recuperar_contexto_exito(mock_modelo, mock_client):
-    """Verifica el formateo exitoso de documentos recuperados."""
-    # Mock del embedding
-    mock_modelo.encode.return_value = MagicMock(tolist=lambda: [0.1, 0.2])
-    
-    # Mock de ChromaDB
+
+def test_recuperar_contexto_exito():
+    """Verifica el formateo con dependencias inyectadas, sin red ni descargas."""
+    modelo = MagicMock()
+    modelo.encode.return_value = MagicMock(tolist=lambda: [0.1, 0.2])
+    cliente = MagicMock()
     mock_collection = MagicMock()
     mock_collection.query.return_value = {
         "documents": [["Tabla dim_escuela (Dimensión)", "Tabla fact_escuela_ciclo (Hecho)"]]
     }
-    mock_client.HttpClient.return_value.get_collection.return_value = mock_collection
-    
-    res = recuperar_contexto("háblame de escuelas y alumnos")
-    
-    # Assertions
+    cliente.get_collection.return_value = mock_collection
+
+    res = recuperar_contexto(
+        "háblame de escuelas y alumnos",
+        modelo=modelo,
+        cliente=cliente,
+    )
+
     assert "Tablas relevantes" in res
     assert "dim_escuela" in res
     assert "fact_escuela_ciclo" in res
     mock_collection.query.assert_called_once()
 
-@patch("src.agente.recuperacion.chromadb")
-@patch("src.agente.recuperacion._modelo")
-def test_recuperar_contexto_coleccion_faltante(mock_modelo, mock_client):
-    """Verifica que atrape el error si la colección no ha sido indexada."""
-    mock_client.HttpClient.return_value.get_collection.side_effect = Exception("Collection not found")
-    
-    res = recuperar_contexto("pregunta")
-    assert "ADVERTENCIA" in res
-    assert "no existe" in res
+
+def test_recuperar_contexto_coleccion_faltante():
+    cliente = MagicMock()
+    cliente.get_collection.side_effect = Exception("Collection not found")
+
+    with pytest.raises(ErrorRecuperacion, match="ejecuta indexar_esquema.py"):
+        recuperar_contexto("pregunta", modelo=MagicMock(), cliente=cliente)
+
+
+def test_recuperar_contexto_vacio_falla_explicito():
+    cliente = MagicMock()
+    cliente.get_collection.return_value.query.return_value = {"documents": [[]]}
+    modelo = MagicMock()
+    modelo.encode.return_value = MagicMock(tolist=lambda: [0.1])
+
+    with pytest.raises(ErrorRecuperacion, match="no devolvió contexto"):
+        recuperar_contexto("pregunta", modelo=modelo, cliente=cliente)

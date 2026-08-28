@@ -1,6 +1,10 @@
 """Módulo de recuperación (RAG) para el agente FARO (US-304b)."""
 
+from __future__ import annotations
+
 import os
+from typing import Any
+
 try:
     import chromadb
     from sentence_transformers import SentenceTransformer
@@ -8,57 +12,69 @@ except ImportError:
     chromadb = None
     SentenceTransformer = None
 
-# Inicializar modelo de forma global para no recargarlo en cada consulta
-try:
-    _modelo = SentenceTransformer("all-MiniLM-L6-v2")
-except Exception:
-    _modelo = None
+NOMBRE_COLECCION = "faro_gold_schema"
+NOMBRE_MODELO_EMBEDDINGS = "all-MiniLM-L6-v2"
 
-def recuperar_contexto(pregunta: str, top_k: int = 3, host: str = "localhost", port: int = 8001) -> str:
-    """
-    Vectoriza la pregunta, busca en ChromaDB los fragmentos del esquema más relevantes
-    y los devuelve formateados en texto claro.
-    
-    Args:
-        pregunta: La pregunta en lenguaje natural del usuario.
-        top_k: Número de tablas/documentos a recuperar.
-        host: Host de ChromaDB.
-        port: Puerto de ChromaDB.
-        
-    Returns:
-        Un string con las descripciones de las tablas relevantes, o un aviso si falla.
-    """
-    if not _modelo:
-        return "ADVERTENCIA: Modelo de embeddings (sentence-transformers) no disponible."
-        
+
+class ErrorRecuperacion(RuntimeError):
+    """La capa RAG no está disponible o no tiene contexto utilizable."""
+
+
+def _cargar_modelo() -> Any:
+    if SentenceTransformer is None:
+        raise ErrorRecuperacion("sentence-transformers no está instalado.")
     try:
-        host = os.getenv("CHROMA_HOST", host)
-        port = int(os.getenv("CHROMA_PORT", port))
-        
-        client = chromadb.HttpClient(host=host, port=port)
-        
+        return SentenceTransformer(NOMBRE_MODELO_EMBEDDINGS)
+    except Exception as exc:
+        raise ErrorRecuperacion("No se pudo cargar el modelo de embeddings.") from exc
+
+
+def recuperar_contexto(
+    pregunta: str,
+    top_k: int = 3,
+    host: str = "localhost",
+    port: int = 8001,
+    *,
+    modelo: Any | None = None,
+    cliente: Any | None = None,
+) -> str:
+    """Recupera descripciones del esquema Gold relevantes para una pregunta."""
+    if not pregunta.strip():
+        raise ValueError("La pregunta no puede estar vacía.")
+    if top_k < 1:
+        raise ValueError("top_k debe ser mayor que cero.")
+
+    modelo = modelo or _cargar_modelo()
+    if cliente is None:
+        if chromadb is None:
+            raise ErrorRecuperacion("chromadb no está instalado.")
         try:
-            coleccion = client.get_collection(name="faro_gold_schema")
-        except Exception:
-            # Colección no existe aún
-            return "ADVERTENCIA: La colección 'faro_gold_schema' no existe. ¿Ejecutaste indexar_esquema.py?"
-        
-        vector_pregunta = _modelo.encode(pregunta).tolist()
-        
+            cliente = chromadb.HttpClient(
+                host=os.getenv("CHROMA_HOST", host),
+                port=int(os.getenv("CHROMA_PORT", port)),
+            )
+        except Exception as exc:
+            raise ErrorRecuperacion("No se pudo conectar con ChromaDB.") from exc
+
+    try:
+        coleccion = cliente.get_collection(name=NOMBRE_COLECCION)
+    except Exception as exc:
+        raise ErrorRecuperacion(
+            f"La colección {NOMBRE_COLECCION!r} no existe; ejecuta indexar_esquema.py."
+        ) from exc
+
+    try:
+        vector_pregunta = modelo.encode(pregunta).tolist()
         resultados = coleccion.query(
             query_embeddings=[vector_pregunta],
-            n_results=top_k
+            n_results=top_k,
         )
-        
-        documentos = resultados.get("documents", [[]])[0]
-        if not documentos:
-            return ""
-            
-        contexto = "Tablas relevantes del esquema Gold:\n"
-        for doc in documentos:
-            contexto += f"- {doc}\n"
-            
-        return contexto
-        
-    except Exception as e:
-        return f"ADVERTENCIA: No se pudo recuperar el contexto desde ChromaDB ({str(e)})."
+    except Exception as exc:
+        raise ErrorRecuperacion("Falló la consulta de contexto en ChromaDB.") from exc
+
+    documentos = resultados.get("documents", [[]])[0]
+    if not documentos:
+        raise ErrorRecuperacion("ChromaDB no devolvió contexto para la pregunta.")
+    return "Tablas relevantes del esquema Gold:\n" + "".join(
+        f"- {documento}\n" for documento in documentos
+    )

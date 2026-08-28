@@ -3,9 +3,9 @@ id: DOC-AGENTE-RAG-US304B
 title: "Agente FARO — Recuperación de Contexto (RAG)"
 owner: "Carlos Guillermo Mayorga Tapia"
 status: approved
-version: "1.0"
+version: "1.1"
 traces_up: ["US-304b", "REQ-006"]
-traces_down: ["src/agente/recuperacion.py", "src/agente/indexar_esquema.py", "tests/test_agente_recuperacion.py"]
+traces_down: ["src/agente/recuperacion.py", "src/agente/indexar_esquema.py", "tests/test_agente_recuperacion.py", "tests/test_agente_indexacion.py"]
 tags: [agente, rag, embeddings, chromadb, celula-3]
 ---
 
@@ -29,15 +29,20 @@ US-304b establece la capa de recuperación (RAG) para el agente conversacional. 
    - Script independiente e idempotente.
    - Crea la colección `faro_gold_schema` con espacio de distancia `cosine`.
    - Genera embeddings para las descripciones estáticas y las guarda (upsert).
+   - Usa IDs deterministas, devuelve el total indexado y falla explícitamente si Chroma no responde.
 
 2. **Módulo de Recuperación (`src/agente/recuperacion.py`)**:
    - Expone la función `recuperar_contexto(pregunta: str) -> str`.
    - Conecta a ChromaDB, vectoriza la pregunta y recupera los fragmentos de tabla más relevantes (top-k).
    - Formatea el resultado para su inyección en `construir_prompt_sistema`.
+   - Carga el modelo de forma diferida y permite inyectar cliente/modelo en pruebas sin red.
+   - Devuelve errores tipados cuando falta la colección, ChromaDB o contexto recuperado.
 
 ## Pruebas
 
 Cubierto en `tests/test_agente_recuperacion.py`:
-- Manejo seguro ante la ausencia del modelo local.
 - Manejo seguro si la colección de ChromaDB no ha sido inicializada.
 - Validación de que los resultados devueltos por el motor se integren correctamente en un string legible.
+
+`tests/test_agente_indexacion.py` cubre upsert con IDs deterministas, catálogo actualizado con
+`driver_dominante` y fallo visible ante errores de ChromaDB.

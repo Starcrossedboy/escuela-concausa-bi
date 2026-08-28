@@ -8,6 +8,7 @@ from typing import Any
 
 from src.agente.guardrails import pregunta_en_alcance, preparar_sql_seguro
 from src.agente.prompt import construir_prompt_sistema
+from src.agente.recuperacion import ErrorRecuperacion, recuperar_contexto
 
 RecuperarContexto = Callable[[str], str]
 GenerarSQL = Callable[[str, str], str]
@@ -40,7 +41,14 @@ def procesar_consulta(
             fuera_de_alcance=True,
         )
 
-    contexto = recuperar_contexto(pregunta)
+    try:
+        contexto = recuperar_contexto(pregunta)
+    except ErrorRecuperacion:
+        return ResultadoConsulta(
+            respuesta="El contexto de FARO no está disponible temporalmente.",
+            sql_generado=None,
+            fuera_de_alcance=False,
+        )
     prompt = construir_prompt_sistema(contexto)
     try:
         sql_seguro = preparar_sql_seguro(generar_sql(prompt, pregunta))
@@ -56,4 +64,20 @@ def procesar_consulta(
         respuesta=redactar_respuesta(pregunta, filas),
         sql_generado=sql_seguro,
         fuera_de_alcance=False,
+    )
+
+
+def procesar_consulta_con_rag(
+    pregunta: str,
+    generar_sql: GenerarSQL,
+    ejecutar_sql: EjecutarSQL,
+    redactar_respuesta: RedactarRespuesta,
+) -> ResultadoConsulta:
+    """Procesa una pregunta usando la recuperación ChromaDB de US-304b."""
+    return procesar_consulta(
+        pregunta,
+        recuperar_contexto=recuperar_contexto,
+        generar_sql=generar_sql,
+        ejecutar_sql=ejecutar_sql,
+        redactar_respuesta=redactar_respuesta,
     )

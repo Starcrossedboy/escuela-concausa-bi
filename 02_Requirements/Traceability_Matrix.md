@@ -72,6 +72,7 @@ tags: [requirements, traceability, matrix]
 | REQ | Historias | Evidencia de prueba | DevLog | Estado |
 |---|---|---|---|---|
 | `REQ-003` | `US-302` | `driver_dominante` real en `gold.features_escuela` (Célula 1): CTE argmax + desempate D1>D2>D3>D4>D5>D6 · 5 pruebas dbt nuevas ✅ · prueba de paridad SQL vs proxy Python ✅ · contrato y fixture actualizados · `dbt build --target dev` 173 pass · `pytest tests/ -q` 467 pass | [[_DevLog/2026-08-28-diana-alvarez-driver-dominante-us302]] | 🟡 En progreso |
+| `REQ-006` | `US-304a`, `US-304b`, `US-305`, `US-323` | RAG endurecido e integrado con guardarraíles ✅ · indexación idempotente y observable ✅ · 20 casos recorren el flujo completo simulado ✅ · 32 pruebas enfocadas | [[_DevLog/2026-08-28-andres-gonzalez-integracion-rag-evaluacion]] | 🟡 En progreso |
 
 ## Evidencia incremental — 2026-08-28 · higiene del vault y CI
 

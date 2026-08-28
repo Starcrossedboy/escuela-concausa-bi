@@ -1,6 +1,10 @@
 """Job idempotente para indexar el esquema de Gold en ChromaDB (US-304b)."""
 
+from __future__ import annotations
+
 import os
+from typing import Any
+
 try:
     import chromadb
     from sentence_transformers import SentenceTransformer
@@ -82,7 +86,9 @@ ESQUEMA_GOLD = [
             "Tabla features_escuela (Contrato de ML). Drivers calculados que alimentan a ML-01. "
             "Columnas: cct, id_ciclo, los seis puntajes con NOMBRE LARGO d1_pobreza, "
             "d2_inseguridad, d3_infraestructura, d4_conectividad, d5_agua, d6_aire, sus banderas "
-            "d1_cobertura … d6_cobertura, indice_completitud_drivers y target_variacion_matricula. "
+            "d1_cobertura … d6_cobertura, indice_completitud_drivers, target_variacion_matricula "
+            "y driver_dominante. driver_dominante es la etiqueta operativa D1…D6 derivada por "
+            "argmax entre drivers con cobertura OK; no es una observación causal independiente. "
             "Cuidado: aquí los drivers llevan nombre largo, a diferencia de fact_escuela_ciclo, "
             "donde son d1 … d6."
         )
@@ -101,40 +107,46 @@ ESQUEMA_GOLD = [
     }
 ]
 
-def indexar_esquema(host: str = "localhost", port: int = 8001):
-    """Genera embeddings del esquema y los guarda en ChromaDB."""
+
+class ErrorIndexacion(RuntimeError):
+    """El esquema no pudo indexarse en ChromaDB."""
+
+
+def indexar_esquema(
+    host: str = "localhost",
+    port: int = 8001,
+    *,
+    cliente: Any | None = None,
+    modelo: Any | None = None,
+) -> int:
+    """Genera embeddings y hace upsert idempotente del catálogo Gold."""
     try:
-        # Usa variables de entorno si están presentes (ej. dentro de Docker)
-        host = os.getenv("CHROMA_HOST", host)
-        port = int(os.getenv("CHROMA_PORT", port))
-        
-        client = chromadb.HttpClient(host=host, port=port)
-        
-        # distance = cosine suele ser mejor para sentence transformers ligeros
-        coleccion = client.get_or_create_collection(
+        if cliente is None:
+            if chromadb is None:
+                raise ErrorIndexacion("chromadb no está instalado.")
+            cliente = chromadb.HttpClient(
+                host=os.getenv("CHROMA_HOST", host),
+                port=int(os.getenv("CHROMA_PORT", port)),
+            )
+        if modelo is None:
+            if SentenceTransformer is None:
+                raise ErrorIndexacion("sentence-transformers no está instalado.")
+            modelo = SentenceTransformer("all-MiniLM-L6-v2")
+
+        coleccion = cliente.get_or_create_collection(
             name="faro_gold_schema",
-            metadata={"hnsw:space": "cosine"}
+            metadata={"hnsw:space": "cosine"},
         )
-        
-        print("Cargando modelo de embeddings (all-MiniLM-L6-v2)...")
-        modelo = SentenceTransformer("all-MiniLM-L6-v2")
-        
         textos = [doc["texto"] for doc in ESQUEMA_GOLD]
         ids = [doc["id"] for doc in ESQUEMA_GOLD]
-        
-        print("Generando embeddings...")
         embeddings = modelo.encode(textos).tolist()
-        
-        print("Guardando en ChromaDB...")
-        coleccion.upsert(
-            ids=ids,
-            documents=textos,
-            embeddings=embeddings
-        )
-        print("Esquema indexado correctamente en ChromaDB (colección: faro_gold_schema).")
-        
-    except Exception as e:
-        print(f"Error al indexar el esquema: {e}")
+        coleccion.upsert(ids=ids, documents=textos, embeddings=embeddings)
+        return len(ids)
+    except ErrorIndexacion:
+        raise
+    except Exception as exc:
+        raise ErrorIndexacion("No se pudo indexar el esquema Gold en ChromaDB.") from exc
 
 if __name__ == "__main__":
-    indexar_esquema()
+    total = indexar_esquema()
+    print(f"{total} documentos indexados en faro_gold_schema.")

@@ -300,8 +300,8 @@ Actualiza esta tabla **antes de cada standup**. El PM la revisa para el tablero 
 | `US-301` | Diseñar la estrategia de modelado y validación | ✅ Terminado | 100% | — | Cerrada 9 ago |
 | `US-302` | Entrenar ML-02: clasificación de driver | 🔵 En revisión | 95% | Métricas E2E sobre Gold real · endpoint SHAP real de C4 | Dom 30 ago |
 | `US-303` | Registrar los 3 modelos en MLflow y exponerlos vía API | 🟡 En curso | 75% | ML-03 de Estefany · integración final de inferencia C4 · E2E local requiere `.env` | Dom 30 ago |
-| `US-304a` | Diseñar prompt y guardarraíles del agente | 🔵 En revisión | 95% | Integración con RAG y set de evaluación de Carlos | Dom 6 sep |
-| `US-305` | Integrar el widget de chat RAG en FARO Web | 🔵 En revisión | 70% | RAG de Carlos · login US-405 de Christian · prueba end-to-end integrada | Dom 6 sep |
+| `US-304a` | Diseñar prompt y guardarraíles del agente | 🔵 En revisión | 98% | Endpoint real de C4 · E2E con Chroma/Gold | Dom 6 sep |
+| `US-305` | Integrar el widget de chat RAG en FARO Web | 🔵 En revisión | 80% | Endpoint real de C4 · login US-405 de Christian · E2E integrado | Dom 6 sep |
 
 **Estados válidos:** ⬜ Por iniciar · 🟡 En curso · 🔵 En revisión (PR abierto) · ✅ Terminado · 🔴 Bloqueado
 

@@ -35,3 +35,9 @@ tags: [agente, rag, embeddings, chromadb, evaluacion, qa, us-304b, us-323]
 
 - Consolidar `construir_prompt_sistema()` en `prompt.py` para que, en conjunto con `recuperar_contexto()`, pase los filtros al modelo generativo real.
 - Iniciar las pruebas de integración del LLM (Text-to-SQL) con estos guardarraíles y contexto ya ensamblados.
+
+## 5. Correcciones (Feedback PR 108)
+
+Se aplicaron ajustes sobre la marcha para asegurar la integración continua:
+- Envoltura de importaciones pesadas (`chromadb`, `sentence_transformers`) en bloques `try...except` para evitar errores `ModuleNotFoundError` en GitHub Actions. Modificación correspondientes de los Mocks en las pruebas.
+- Refinamiento de la definición de `predicciones` (se incluyeron las columnas reales y se indicó filtrar por `grano='escuela'`) y `recomendaciones` (inclusión explícita de `recomendacion` prescriptiva).

@@ -114,6 +114,7 @@ de otro proyecto) + `faro-superset` healthy. Se cargó `superset/mock/gold_ml_ou
   datasets (json_metadata del metadato SQLite de Superset).
 - URLs: http://127.0.0.1:8088/superset/dashboard/db06-predicciones/ y
   http://127.0.0.1:8088/superset/dashboard/db09-recomendaciones/
+- **PR:** [#100 feat(bi): DB-06 Predicciones y DB-09 Recomendaciones prescriptivas (US-204)](https://github.com/edgarcoroneln/escuela-concausa-bi/pull/100) — 4 commits en Conventional Commits.
 
 #### Hallazgo preexistente (NO de esta historia) — bloquea el sync serial de DB-05/08
 `superset/semantic/db05_cubo_driver.sql:105` y `db08_cubo_pivot.sql:86` referencian
@@ -140,7 +141,7 @@ desbloquear DB-05/08 **antes de US-213**.
 
 ## Próximo paso recomendado
 1. ✔ Validación en vivo completa (Docker + mock + sync + AC-002.2 end-to-end).
-2. PR `feat/manuel-reinada-us204-db06-db09` → plantilla → revisión del PM.
+2. ✔ PR #100 abierto ([enlace](https://github.com/edgarcoroneln/escuela-concausa-bi/pull/100)) — revisión del PM.
 3. Borrar `PLAN_US204_DB06_DB09_TMP.md` antes del merge (ya borrado en sesión).
 4. Al consolidar el PM: fila REQ-002 con `test_semantic_db06_db09` ✅ (50 casos) y lienzo MOC-04.
 5. **Acción transversal:** reportar a C1/PM el hallazgo preexistente de `dim_driver` (seed vs

@@ -5,13 +5,13 @@ import great_expectations as gx
 df = pd.read_parquet("data/bronze/ds08_conapo.parquet")
 
 # 2. Contexto y fuente de datos
-context = gx.get_context(mode="file")
+context = gx.get_context(context_root_dir="great_expectations")
 data_source = context.data_sources.add_pandas("pandas_ds08")
 data_asset = data_source.add_dataframe_asset(name="ds08_poblacion")
 batch_definition = data_asset.add_batch_definition_whole_dataframe("batch_ds08")
 
 # 3. Suite de reglas para DS-08
-suite = context.suites.add(gx.ExpectationSuite(name="ds08_suite"))
+suite = context.suites.add(gx.ExpectationSuite(name="suite_ds08_conapo"))
 
 # --- Nulos: campos clave que nunca deben venir vacíos ---
 suite.add_expectation(gx.expectations.ExpectColumnValuesToNotBeNull(column="cve_mun"))

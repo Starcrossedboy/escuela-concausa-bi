@@ -12,7 +12,7 @@ df["alt_cort"] = pd.to_numeric(df["alt_cort"], errors="coerce")
 
 # 3. Creamos un "contexto" de Great Expectations que guarda resultados en disco
 #    (esto es lo que nos va a permitir generar el Data Docs al final)
-context = gx.get_context(mode="file")
+context = gx.get_context(context_root_dir="great_expectations")
 
 # 4. Le decimos a GE que nuestra fuente de datos es un DataFrame de pandas
 data_source = context.data_sources.add_pandas("pandas_ds06")
@@ -20,7 +20,7 @@ data_asset = data_source.add_dataframe_asset(name="ds06_presas")
 batch_definition = data_asset.add_batch_definition_whole_dataframe("batch_ds06")
 
 # 5. Armamos la "suite": el conjunto de reglas de calidad para DS-06
-suite = context.suites.add(gx.ExpectationSuite(name="ds06_suite"))
+suite = context.suites.add(gx.ExpectationSuite(name="suite_ds06_conagua"))
 
 # --- Nulos: estos campos nunca deben venir vacíos ---
 suite.add_expectation(gx.expectations.ExpectColumnValuesToNotBeNull(column="nombre_oficial"))

@@ -1,4 +1,4 @@
-﻿---
+---
 title: Alertas y Monitoreo de API y Postgres
 owner: Alejandro VelÃ¡zquez Mendoza
 traces_up: [US-524a, REQ-005]

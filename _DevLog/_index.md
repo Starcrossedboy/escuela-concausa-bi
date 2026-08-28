@@ -1,4 +1,4 @@
-﻿---
+---
 id: MOC-DEVLOG
 title: "DevLog Index"
 owner: "Edgar Edmundo Coronel Navarrete"

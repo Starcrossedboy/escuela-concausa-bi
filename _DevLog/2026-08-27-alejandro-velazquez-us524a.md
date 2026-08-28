@@ -1,4 +1,4 @@
-﻿---
+---
 title: "InstrumentaciÃ³n de Logs y Monitoreo (US-524a)"
 author: Alejandro VelÃ¡zquez Mendoza
 date: 2026-08-27

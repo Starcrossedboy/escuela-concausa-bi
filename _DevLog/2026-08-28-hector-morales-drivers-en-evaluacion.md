@@ -5,7 +5,7 @@ author_human: "Héctor Rafael Morales Marbán"
 agent: "Claude Code"
 model: "claude-opus-5"
 session_duration: "1h"
-touches: ["US-312", "US-311", "REQ-003", "TEST-007", "BUG-015"]
+touches: ["US-312", "US-311", "REQ-003", "TEST-007", "BUG-015", "BUG-023"]
 tags: [devlog, celula-3, ml, evaluacion]
 ---
 
@@ -60,10 +60,38 @@ params.drivers_sin_datos   ['d5_agua']        ← en cada corrida hija, por vent
 Así la pregunta "¿con qué datos se entrenó esto?" tiene respuesta meses después, cuando el print de
 la consola ya no exista.
 
+## Segunda pasada, tras la revisión del PM
+
+Edgar señaló tres cosas y las tres eran ciertas:
+
+**1. El artefacto publicaba lo contrario de lo pedido.** El reporte se genera contra el fixture, que
+trae los seis drivers, así que §5 decía "ningún driver quedó fuera". La maquinaria estaba bien pero
+la afirmación publicada era la negación de la que iba a citarse en la demo. El `[!warning]` de
+arriba acota *las cifras*, y §5 no es una cifra: es una afirmación de hecho sobre cobertura de
+fuentes. Ahora §5 lleva un bloque que acota la tabla a la corrida que la generó y dice el estado
+real: `features_escuela.sql` fija `d5_agua = NULL` y nadie consume `silver.agua_region`, así que
+contra Gold real serán 5 de 6 y D5 será el que falte.
+
+**2. §5.1 publicaba exactamente la tabla vacía que yo declaro ilegible tres párrafos antes.** Apliqué
+mi propio criterio en §5 y no en §5.1. Es el mismo `if` vacío, y no lo vi porque el fixture tampoco
+produce exclusiones. Ahora hay `_md_o_prosa()` y lo dice con palabras.
+
+**3. El defecto de `evaluar.py` no estaba en el registro.** BUG-015 y BUG-018 sí; éste no —y es el
+que sostiene la lección que le estoy predicando al equipo. Queda como **BUG-023**; el 022 se deja
+libre a propósito para Monserrat Miranda, porque un hueco de numeración es barato y una colisión ya
+nos mordió dos veces.
+
+De las dos menores que marcó como no bloqueantes atendí las dos: corregí el título del PR —"y a
+MLflow" prometía ML-01 y ML-02 cuando sólo es ML-01— y **le puse pruebas a las 14 líneas de MLflow**,
+que era literalmente el hueco que denuncia mi propio párrafo final. Se prueban con un doble inyectado
+en `sys.modules`, no con el paquete real: el CI instala sólo `requirements.txt`, donde `mlflow` no
+está, así que una prueba que lo importara se omitiría en silencio. Verifiqué que no fueran vacuas
+quitando el `log_param` y viéndolas fallar.
+
 ## Verificación
 
-Suite **507 passed, 5 skipped**. **6 pruebas nuevas**, una es la regresión del reporte que no podía
-construirse. Ruff limpio en `src/modelos/`, `vault_lint` limpio. Reporte regenerado.
+Suite **510 passed, 5 skipped**. **9 pruebas nuevas**: la regresión del reporte que no podía
+construirse, las tres de registro en MLflow y las de prosa cuando no hay exclusiones. Ruff limpio en `src/modelos/`, `vault_lint` limpio. Reporte regenerado.
 
 ## 🤖 Sesión de IA
 

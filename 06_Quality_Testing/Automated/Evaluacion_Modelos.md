@@ -92,6 +92,17 @@ zonas con cobertura parcial —y eso debe declararse junto a la predicción, no 
 
 Los seis drivers tienen datos suficientes: **ningún driver quedó fuera**.
 
+> [!important] Esta tabla describe **la corrida que generó este reporte**, no el estado de las
+> fuentes en producción
+> Hoy se genera contra `tests/fixtures/features_escuela_mock.csv`, que trae los seis drivers
+> poblados a propósito. Que aquí digan "entró" **no significa que la fuente esté llegando**.
+>
+> Contra el Gold real la tabla será distinta, y ya se sabe en qué: `features_escuela.sql` fija
+> `d5_agua = NULL` y `d5_cobertura = 'SIN_DATO'` de forma explícita, y ningún modelo Gold consume
+> `silver.agua_region`. **Mientras ese enlace no se conecte, ML-01 entrenará con 5 de 6 drivers y
+> D5 (agua) será el que quede fuera.** Regenerar este reporte contra `gold.features_escuela` (US-104)
+> es lo que convierte esa afirmación en cifra publicada.
+
 Un driver excluido **no es un ajuste técnico**: es una fuente que no está llegando. Aparece aquí, y
 no sólo en la consola de quien entrena, porque es una cifra que el proyecto tiene que poder citar —
 decir "el modelo entrena con 5 de 6 drivers" obliga a decir también cuál falta y por qué.
@@ -102,8 +113,7 @@ no tiene **ningún** valor con el que aprender.
 
 ### 5.1 Exclusiones por ventana
 
-| modelo | ventana | sin_datos |
-|---|---|---|
+Ninguna ventana de entrenamiento se quedó sin un driver: **todos tuvieron datos en todos los tramos** de esta corrida.
 
 La cobertura se evalúa dentro de cada ventana de entrenamiento, no sobre el conjunto completo. La
 distinción importa y tiene dueños distintos: un driver ausente en **todas** las ventanas es un hueco

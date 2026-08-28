@@ -6,7 +6,7 @@ status: approved
 version: "1.0"
 traces_up: ["01_Product/PRD", "02_Requirements/User_Stories"]
 traces_down: ["US-221", "US-222", "US-223", "US-224"]
-last_reviewed: "2026-07-31"
+last_reviewed: "2026-08-28"
 tags: [sprint, plan, celula-2, nivel-bajo]
 ---
 
@@ -292,7 +292,7 @@ Actualiza esta tabla **antes de cada standup**. El PM la revisa para el tablero 
 
 | ID | Historia | Estado | % | Bloqueado por | Fecha compromiso |
 |---|---|---|---|---|---|
-| `US-221` | Construir los graficos base de KPIs | ⬜ Por iniciar | 0% | — | Dom 23 ago |
+| `US-221` | Construir los graficos base de KPIs | 🔵 En revisión (PR #106) | 90% | Revisión de Manuel, checks y merge | Junta de cierre |
 | `US-222` | Construir DB-07 Calidad y cobertura de dat | ⬜ Por iniciar | 0% | — | Dom 30 ago |
 | `US-223` | Construir DB-10 Monitor del pipeline | ⬜ Por iniciar | 0% | — | Dom 6 sep |
 | `US-224` | Documentar el manual de usuario de los das | ⬜ Por iniciar | 0% | — | Dom 6 sep |

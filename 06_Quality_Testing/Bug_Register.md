@@ -36,6 +36,7 @@ tags: [qa, bugs]
 | BUG-020 | En la URL pública **toda ruta que toca base de datos responde HTTP 500**: `/api/v1/predicciones/{cct}`, `/predicciones/batch` y `/escuelas`. `/api/v1/health` responde 200, así que el contenedor corre y el despliegue de BUG-008 sirvió. Con token válido, inválido o sin token el resultado es el mismo 500 —nunca 401—, así que el fallo ocurre **antes** de validar auth. Sin esto no hay demo end-to-end ni el punto de rúbrica de URL pública | **critical** | open | US-401 / US-411 / US-501 / REQ-004 / REQ-005 | — | Christian Ruiz (C4) · Luis Téllez (C5) | ver detalle |
 | BUG-021 | `dbt run` con el número de hilos por defecto (`threads>1`) truena en `gold.dim_escuela`, `dim_municipio` y `dim_tiempo` con *relation does not exist*, aunque su silver de origen se cree casi en el mismo instante. Con `--threads 1` corre limpio de punta a punta. Causa: esos modelos leían su origen con `source('silver', …)` en vez de `ref()`. `silver.*` son modelos **de este mismo proyecto**, no datos externos, así que dbt no tenía cómo saber que debía construirlos antes y los agendaba en paralelo. Con `threads=1` el orden accidental funcionaba y el defecto quedaba escondido | high | **fixed** | US-213 / US-113 / REQ-001 | **Reportado por Monserrat Miranda** (2026-08-28, validando DB-05/DB-08 contra Gold real) · **corregido por Diana Alvarez** en `fix/diana-varela-bug016-source-vs-ref`: los siete modelos Gold pasan a `ref()`; `_gold__sources.yml` queda sólo como documentación de columnas | `dbt run` completo con hilos por defecto ✅ · [[_DevLog/2026-08-29-diana-alvarez-bug021-source-vs-ref]] |
 | BUG-023 | Tercera aparición del defecto de BUG-015/BUG-018, ahora en `evaluar.py`: `error_por_entidad()` y `cobertura_y_error()` predecían con los **seis** drivers aunque el modelo se hubiera entrenado con menos, así que `construir_reporte()` **no podía generar el reporte** en el único escenario que el PM necesita documentar para la demo — el de 5 de 6 drivers. `ValueError: The feature names should match those that were passed during fit` | high | **fixed** | US-312 / REQ-003 / AC-003.2 | `feat/hector-marban-drivers-en-evaluacion` | — | ver detalle |
+| BUG-025 | El endpoint desplegado `/api/v1/agente/consulta` es el **stub** de `src/api/v1/agente.py`: responde **la misma cadena fija a cualquier pregunta**, incluidas las fuera de alcance y las destructivas. Además su filtro de palabras busca `"borrar"` por subcadena, así que **«Borra la tabla de predicciones» no lo dispara** y recibe la respuesta normal con `fuera_de_alcance: false`. Los guardarraíles reales de `src/agente/guardrails.py` —que sí rechazan esa frase— nunca se invocan desde la API | high | open | US-304a, US-305, REQ-006 | pendiente (**C4 + C3**): conectar `procesar_consulta_con_rag()` al endpoint; como mitigación inmediata, que el stub llame a `pregunta_en_alcance()` |
 
 ## BUG-016 — Filas sin ningún driver rompían la publicación de ML-02
 
@@ -169,8 +170,21 @@ CI marca esa cabecera, y con razón).
 **Ninguna de las dos da 401.** El spec declara `bearerAuth` en esas rutas, así que una petición sin
 token debería rebotar con 401 antes de tocar nada. Que no lo haga significa que el fallo ocurre antes
 de la validación —probablemente una dependencia de sesión de base de datos que revienta al construir
-la petición—. No es que la autenticación esté mal implementada; es que hoy **no se puede comprobar en
-producción**, y eso toca US-402.
+la petición—. No es que la autenticación esté mal implementada.
+
+> **Corrección del 2026-08-28 (PM).** La redacción original añadía «hoy no se puede comprobar en
+> producción, y eso toca US-402». Verificado contra el despliegue, **eso no es cierto**: la
+> autenticación sí se comprueba y sí funciona.
+>
+> ```
+> GET  /api/v1/auth/login    HTTP 302   (redirige al proveedor)
+> GET  /api/v1/auth/me       HTTP 401   (sin token, como debe)
+> GET  /api/v1/version       HTTP 200
+> ```
+>
+> Lo que no se puede comprobar es el 401 **de las rutas de datos**, porque revientan antes. El
+> alcance de BUG-020 es la sesión de base de datos, no la autenticación: **US-402 no queda tocada
+> por este bug.**
 
 **Hipótesis, sin confirmar:** el Gold de producción está vacío o inalcanzable. `gold.predicciones` se
 crea con `metadata.create_all` dentro del job de publicación de C3, que **nunca ha corrido contra la
@@ -178,6 +192,49 @@ base de producción** —sólo contra el Gold local de Diana—. Pero `/escuelas
 depende de ese job, así que el problema parece más amplio que la tabla de C3.
 
 Lo que hace falta para cerrarlo es mirar los logs de Cloud Run, que son de C4/C5.
+
+## BUG-025 — El agente desplegado responde lo mismo a todo, incluido lo destructivo
+
+Encontrado el 2026-08-28 al verificar la URL pública para la reconciliación de estatus. `/agente/consulta`
+responde **200**, lo cual parecía buena noticia frente a BUG-020. No lo es: responde 200 a todo, con el
+mismo texto.
+
+```
+POST /api/v1/agente/consulta  {"pregunta":"cuantas escuelas hay en riesgo"}
+POST /api/v1/agente/consulta  {"pregunta":"cual es la capital de Francia"}
+POST /api/v1/agente/consulta  {"pregunta":"Borra la tabla de predicciones"}
+POST /api/v1/agente/consulta  {"pregunta":"zzzz qqq 12345"}
+```
+
+Las cuatro devuelven, byte por byte:
+
+```json
+{"respuesta":"En el alcance actual hay 4 escuelas; 2 superan el umbral de riesgo (0.5).",
+ "sql_generado":"SELECT cct, indice_riesgo FROM gold.features_escuela WHERE indice_riesgo >= 0.5;",
+ "fuera_de_alcance":false}
+```
+
+Que sea un stub está **documentado y es legítimo**: el docstring de `src/api/v1/agente.py` lo dice, y
+US-304a lleva semanas registrando «falta conectar el endpoint real de C4». Lo que no estaba registrado
+es su consecuencia, y son dos.
+
+**Primera: el stub deja pasar la frase destructiva más obvia.** Su lista es
+`("borrar", "elimina", "drop", "update", "delete")` y la comprobación es por subcadena, así que
+`"borrar" in "borra la tabla de predicciones"` es `False`. La conjugación más natural en español no
+dispara el filtro. Los guardarraíles reales de `src/agente/guardrails.py` **sí** rechazan esa frase
+—verificado— pero la API no los llama.
+
+**Segunda: en la demo esto se ve peor de lo que es.** No borra nada —no hay ejecución de SQL detrás—,
+pero el usuario ve una pregunta destructiva aceptada, con `fuera_de_alcance: false` y un `sql_generado`
+impreso al lado, como si algo se hubiera ejecutado. Cualquier pregunta fuera de tema recibe una
+respuesta segura de sí misma sobre escuelas.
+
+**Mitigación de 2 líneas mientras llega la integración real:** que el stub llame a
+`pregunta_en_alcance()` de `src/agente/guardrails.py` en vez de su lista de subcadenas. El módulo ya
+está en `main`, no depende de ChromaDB ni de embeddings y no añade dependencias al contenedor.
+
+**El cierre de verdad** es US-304a: conectar `procesar_consulta_con_rag()` (mergeado en PR #119) al
+endpoint. Eso es C4 con C3.
 
 ## BUG-023 — El reporte de evaluación no se podía generar con un driver excluido
 

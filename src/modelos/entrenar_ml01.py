@@ -387,6 +387,16 @@ def registrar_en_mlflow(
         mlflow.log_params({f"modelo__{k}": v for k, v in HIPERPARAMETROS.items()})
         mlflow.log_param("n_ventanas", len(resultado.ventanas))
         mlflow.log_param("particion", "temporal walk-forward (nunca aleatoria)")
+        # Un driver excluido es una fuente que no está llegando, no un ajuste técnico: queda como
+        # parámetro de la corrida para poder responder "¿con qué datos se entrenó esto?" meses
+        # después, cuando el print de la consola ya no exista.
+        mlflow.log_param("drivers_usados", list(resultado.drivers_usados))
+        mlflow.log_param("drivers_excluidos", list(resultado.drivers_excluidos))
+        mlflow.log_param("n_drivers_usados", len(resultado.drivers_usados))
+        mlflow.set_tag(
+            "cobertura_drivers",
+            f"{len(resultado.drivers_usados)} de {len(DRIVERS)}",
+        )
         mlflow.log_metrics(
             {
                 "mae_promedio": resultado.mae_promedio,
@@ -401,6 +411,10 @@ def registrar_en_mlflow(
         for i, ventana in enumerate(resultado.ventanas, start=1):
             with mlflow.start_run(run_name=f"ventana-{i}", nested=True):
                 mlflow.log_param("ciclos_entrenamiento", list(ventana.particion.ciclos_entrenamiento))
+                mlflow.log_param(
+                    "drivers_sin_datos",
+                    list(resultado.excluidos_por_ventana.get(str(ventana.particion), ())),
+                )
                 mlflow.log_param("ciclos_prueba", list(ventana.particion.ciclos_prueba))
                 mlflow.log_metrics(
                     {

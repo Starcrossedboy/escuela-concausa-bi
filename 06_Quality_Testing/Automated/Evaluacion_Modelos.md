@@ -79,7 +79,38 @@ Responde la pregunta que el proyecto se hace explícitamente: **¿predecimos peo
 datos?** Si el error crece al bajar la completitud, el sistema es menos confiable justo en las
 zonas con cobertura parcial —y eso debe declararse junto a la predicción, no esconderse.
 
-## 5. Umbrales de aceptación
+## 5. Drivers que entraron al modelo
+
+| driver | ML-01 | ML-02 |
+|---|---|---|
+| d1_pobreza | entró | entró |
+| d2_inseguridad | entró | entró |
+| d3_infraestructura | entró | entró |
+| d4_conectividad | entró | entró |
+| d5_agua | entró | entró |
+| d6_aire | entró | entró |
+
+Los seis drivers tienen datos suficientes: **ningún driver quedó fuera**.
+
+Un driver excluido **no es un ajuste técnico**: es una fuente que no está llegando. Aparece aquí, y
+no sólo en la consola de quien entrena, porque es una cifra que el proyecto tiene que poder citar —
+decir "el modelo entrena con 5 de 6 drivers" obliga a decir también cuál falta y por qué.
+
+Los `SIN_DATO` de un driver que sí entró no se imputan: llegan al modelo como ausencia real
+(`HistGradientBoosting` los maneja de forma nativa). Lo que se excluye es únicamente el driver que
+no tiene **ningún** valor con el que aprender.
+
+### 5.1 Exclusiones por ventana
+
+| modelo | ventana | sin_datos |
+|---|---|---|
+
+La cobertura se evalúa dentro de cada ventana de entrenamiento, no sobre el conjunto completo. La
+distinción importa y tiene dueños distintos: un driver ausente en **todas** las ventanas es un hueco
+de fuente que alguien debe ir a buscar; uno ausente sólo en las **más viejas** —porque su serie
+apenas empieza— se resuelve solo conforme se carguen más ciclos.
+
+## 6. Umbrales de aceptación
 
 `15_ML_Models/ML_Strategy` §5 fija: ML-01 MAE < 0.03 (3 puntos porcentuales) y
 RMSE < 0.05 (5 puntos porcentuales); ML-02 F1 macro ≥
@@ -90,7 +121,7 @@ error medio de 1.41 puntos porcentuales. No se convierte a alumnos porque el con
 no incluye la matrícula base necesaria para hacerlo de forma reproducible. Los umbrales son
 provisionales hasta ejecutar la evaluación contra los datos reales de US-104.
 
-## 6. Cobertura de la evaluación
+## 7. Cobertura de la evaluación
 
 | Modelo | Estado |
 |---|---|

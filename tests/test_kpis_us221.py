@@ -35,7 +35,9 @@ def load_sql(filename: str) -> str:
 
 @pytest.fixture(scope="module")
 def conn():
-    assert FIXTURES_DB.exists(), "Corre generate_fixtures.py antes de las pruebas"
+    if not FIXTURES_DB.exists():
+        from tests.fixtures.generate_fixtures import main as generar
+        generar()
     connection = sqlite3.connect(FIXTURES_DB)
     yield connection
     connection.close()

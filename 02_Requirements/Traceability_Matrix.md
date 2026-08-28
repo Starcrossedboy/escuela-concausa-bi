@@ -67,6 +67,10 @@ tags: [requirements, traceability, matrix]
 
 | REQ | Historias | Evidencia de prueba | DevLog | Estado |
 |---|---|---|---|---|
+| `REQ-003` | `US-302` | BUG-018 corregido: cobertura evaluada por ventana y predicción/SHAP alineados con `feature_names_in_` ✅ · ML-02 16 pruebas ✅ · Ruff ✅ | [[_DevLog/2026-08-28-andres-gonzalez-bug018-ml02-cobertura]] | 🟡 En progreso |
+
+| REQ | Historias | Evidencia de prueba | DevLog | Estado |
+|---|---|---|---|---|
 | `REQ-003` | `US-302` | `driver_dominante` real en `gold.features_escuela` (Célula 1): CTE argmax + desempate D1>D2>D3>D4>D5>D6 · 5 pruebas dbt nuevas ✅ · prueba de paridad SQL vs proxy Python ✅ · contrato y fixture actualizados · `dbt build --target dev` 173 pass · `pytest tests/ -q` 467 pass | [[_DevLog/2026-08-28-diana-alvarez-driver-dominante-us302]] | 🟡 En progreso |
 
 ## Evidencia incremental — 2026-08-28 · higiene del vault y CI
@@ -103,3 +107,10 @@ tags: [requirements, traceability, matrix]
 > **Lectura:** la **planeación** está prácticamente cerrada (6 de 7 REQ con cobertura completa); la
 > **ejecución** arrancó en REQ-007, pero aún hay 0 REQ Done. El único hueco es la **arquitectura de despliegue de
 > REQ-005**, que se resolverá al escribir `03_Architecture/System_Design.md`.
+
+## Evidencia incremental — 2026-08-28 · etiqueta real y verificación E2E
+
+| REQ | Historias | Evidencia de prueba | DevLog | Estado |
+|---|---|---|---|---|
+| `REQ-003` | `US-302`, `US-313` | Filtro de ML-02 usa `driver_dominante` real como autoridad cuando existe: cierra el hueco de inferir cobertura por valor (BUG-016) ✅ · cadena ML-01 → filtro → ML-02 verificada con target real, F1 0.633 ✅ · 2 pruebas nuevas · suite 500 ✅ | [[_DevLog/2026-08-28-hector-morales-filtro-etiqueta-real]] | 🟡 En progreso |
+| `REQ-004` | `US-401`, `US-411` | **BUG-020**: en la URL pública toda ruta con base de datos responde HTTP 500 (`/predicciones`, `/predicciones/batch`, `/escuelas`); `/health` responde 200 y nunca se devuelve 401, así que el fallo precede a la validación de auth ⬜ | [[_DevLog/2026-08-28-hector-morales-filtro-etiqueta-real]] | 🔴 Bloqueante |

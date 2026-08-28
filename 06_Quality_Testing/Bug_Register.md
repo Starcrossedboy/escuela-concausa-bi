@@ -33,6 +33,7 @@ tags: [qa, bugs]
 | BUG-017 | `indice_riesgo` se publicó **saturado**: la corrida real de ML-01 dio MAE 10.90, pero la sigmoide está calibrada sobre **fracción** (`-0.05` = pierde 5 % de matrícula). Con esa escala el 100 % de las 45 249 filas queda en riesgo ≈ 1.00 y el tablero cuenta como "en riesgo" a todo el universo. **Confirmado por Diana el 2026-08-28**: `target_variacion_matricula = matricula_total - matricula_ciclo_anterior`, diferencia absoluta de alumnos. El MAE 10.90 son ~11 alumnos, no un modelo malo; lo que está mal es publicar eso a través de una sigmoide calibrada sobre fracción. Añadida guarda que detiene la publicación en vez de saturar en silencio; **falta confirmar las unidades en Gold con C1** | high | open | US-311 / US-313 / REQ-003 / US-104 | — | Diana Alvarez (C1) | ver detalle |
 | BUG-018 | ML-02 arrastra el **mismo defecto por ventana** que BUG-015: `entrenar_ml02._matriz()` toma siempre los 6 drivers sin comprobar cobertura dentro de la ventana de entrenamiento, así que un driver vacío en ese tramo (D6 aire, IDW de US-105) rompe el binning de `HistGradientBoostingClassifier` con el mismo error. Reproducido; el arreglo es el mismo que ya se aplicó en ML-01 | high | open | US-302 / REQ-003 | — | Andrés González Habib (C3) | ver detalle |
 | BUG-019 | `target_variacion_matricula` se produce en **dos unidades distintas** bajo el mismo nombre: `features_escuela.sql` (C1, grano escuela) da **alumnos absolutos** y `target_hibrido.variacion_desde_serie` (C3, grano municipio×nivel) da **fracción**. Ambas llegan a `gold.predicciones.valor`, distinguidas sólo por `grano` (DEC-010), así que esa columna hoy mezcla alumnos con fracciones. El contrato nunca declaró la unidad | high | open | US-104 / US-311 / US-313 / REQ-003 | — | pendiente ADR-007 (Andrés · Christian · Diana) | ver detalle |
+| BUG-020 | En la URL pública **toda ruta que toca base de datos responde HTTP 500**: `/api/v1/predicciones/{cct}`, `/predicciones/batch` y `/escuelas`. `/api/v1/health` responde 200, así que el contenedor corre y el despliegue de BUG-008 sirvió. Con token válido, inválido o sin token el resultado es el mismo 500 —nunca 401—, así que el fallo ocurre **antes** de validar auth. Sin esto no hay demo end-to-end ni el punto de rúbrica de URL pública | **critical** | open | US-401 / US-411 / US-501 / REQ-004 / REQ-005 | — | Christian Ruiz (C4) · Luis Téllez (C5) | ver detalle |
 | BUG-021 | `dbt run` con el número de hilos por defecto (`threads>1`) truena en `gold.dim_escuela`, `dim_municipio` y `dim_tiempo` con *relation does not exist*, aunque su silver de origen se cree casi en el mismo instante. Con `--threads 1` corre limpio de punta a punta. Causa: esos modelos leían su origen con `source('silver', …)` en vez de `ref()`. `silver.*` son modelos **de este mismo proyecto**, no datos externos, así que dbt no tenía cómo saber que debía construirlos antes y los agendaba en paralelo. Con `threads=1` el orden accidental funcionaba y el defecto quedaba escondido | high | **fixed** | US-213 / US-113 / REQ-001 | **Reportado por Monserrat Miranda** (2026-08-28, validando DB-05/DB-08 contra Gold real) · **corregido por Diana Alvarez** en `fix/diana-varela-bug016-source-vs-ref`: los siete modelos Gold pasan a `ref()`; `_gold__sources.yml` queda sólo como documentación de columnas | `dbt run` completo con hilos por defecto ✅ · [[_DevLog/2026-08-29-diana-alvarez-bug021-source-vs-ref]] |
 
 ## BUG-016 — Filas sin ningún driver rompían la publicación de ML-02
@@ -53,7 +54,7 @@ Lo que faltaba era **apartarlas antes**. La Célula 1 ya adoptó esa convención
 real de US-302 (PR #113): esas filas quedan en `NULL`. Y `validar_target_ml02` —con razón— rechaza un
 target con nulos, así que el filtrado tiene que ocurrir en el sitio de llamada, que es mío.
 
-`filtrar_con_driver_observado()` las aparta y dice cuántas. **Conservan su predicción de ML-01** —la
+`filtrar_con_driver_observado()` las aparta y dice cuántas. **Endurecido el 2026-08-28**, cuando US-302 (#113) publicó la `driver_dominante` real: el filtro miraba sólo si el valor del driver era no nulo, pero C1 exige además `dN_cobertura = 'OK'`. Una fila con dato y cobertura `SIN_DATO` tiene la etiqueta en NULL y habría sobrevivido al filtro para morir en `validar_target_ml02`. Ahora, cuando la columna real existe, **ella es la autoridad** y el filtro mira dónde quedó NULL en vez de inferirlo. **Conservan su predicción de ML-01** —la
 variación de matrícula no necesita drivers— y no reciben recomendación. Eso es exactamente la regla de
 cobertura parcial: `SIN_DATO` explícito, nunca un driver inventado.
 
@@ -141,6 +142,41 @@ que el proyecto existe para hacer visibles.
 
 Mientras tanto `verificar_escala_variacion()` impide publicar el grano escuela, que es el
 comportamiento correcto.
+## BUG-020 — Todas las rutas con base de datos responden 500 en producción
+
+Encontrado el 2026-08-28 al reanudar la verificación E2E de la Célula 3, que llevaba semanas
+bloqueada por BUG-008. Ese sí quedó arreglado: la API pública levanta y expone las 18 rutas del
+contrato v1. Lo que no funciona es todo lo que consulta datos.
+
+```
+/api/v1/health                    HTTP 200  {"status":"ok"}
+/api/v1/predicciones/{cct}        HTTP 500
+/api/v1/predicciones/batch        HTTP 500
+/api/v1/escuelas                  HTTP 500
+```
+
+Reproducir:
+
+```bash
+curl -i https://faro-api-eanzfglvyq-uc.a.run.app/api/v1/predicciones/09DPR0001A
+```
+
+Repetir la misma petición añadiendo una cabecera de autorización con un token inventado da
+**exactamente el mismo 500** (no se pega el comando literal aquí porque el escáner de secretos del
+CI marca esa cabecera, y con razón).
+
+**Ninguna de las dos da 401.** El spec declara `bearerAuth` en esas rutas, así que una petición sin
+token debería rebotar con 401 antes de tocar nada. Que no lo haga significa que el fallo ocurre antes
+de la validación —probablemente una dependencia de sesión de base de datos que revienta al construir
+la petición—. No es que la autenticación esté mal implementada; es que hoy **no se puede comprobar en
+producción**, y eso toca US-402.
+
+**Hipótesis, sin confirmar:** el Gold de producción está vacío o inalcanzable. `gold.predicciones` se
+crea con `metadata.create_all` dentro del job de publicación de C3, que **nunca ha corrido contra la
+base de producción** —sólo contra el Gold local de Diana—. Pero `/escuelas` lee `dim_escuela`, que no
+depende de ese job, así que el problema parece más amplio que la tabla de C3.
+
+Lo que hace falta para cerrarlo es mirar los logs de Cloud Run, que son de C4/C5.
 ## Convención
 
 - Severidad: critical / high / medium / low

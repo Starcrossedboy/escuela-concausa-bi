@@ -4,9 +4,14 @@
     (`<schema_target>_<custom_schema>`, p.ej. `dbt_diana_silver`).
 
     Por qué: Data_Model.md §9 fija los esquemas por capa como `bronze.` / `silver.` / `gold.`
-    a secas. dbt/models/gold/_gold__sources.yml ya asume `schema: silver` como nombre literal
-    (dim_tiempo.sql hace `source('silver', 'matricula')`), así que sin este override los
-    modelos de dbt/models/silver/ escribirían en un esquema que Gold nunca podría encontrar.
+    a secas. Sin este override los modelos de dbt/models/silver/ y dbt/models/gold/ escribirían
+    en un esquema con prefijo (p.ej. `dbt_diana_silver`) en vez del literal que el resto del
+    proyecto espera.
+
+    Nota (BUG-016, 2026-08-28): los modelos Gold usan `ref()` hacia los modelos de
+    dbt/models/silver/, no `source()` -- `silver.*` son modelos de este mismo proyecto, no datos
+    externos. `dbt/models/gold/_gold__sources.yml` sigue existiendo solo para documentar las
+    columnas de esas tablas; no se usa para resolver dependencias.
 #}
 {% macro generate_schema_name(custom_schema_name, node) -%}
     {%- if custom_schema_name is none -%}

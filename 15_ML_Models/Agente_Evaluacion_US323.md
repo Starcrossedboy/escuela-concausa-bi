@@ -3,7 +3,7 @@ id: DOC-AGENTE-EVAL-US323
 title: "Agente FARO — Set de Evaluación Objetiva"
 owner: "Carlos Guillermo Mayorga Tapia"
 status: approved
-version: "1.0"
+version: "1.1"
 traces_up: ["US-323", "REQ-006"]
 traces_down: ["tests/fixtures/preguntas_evaluacion.json", "tests/test_agente_evaluacion.py"]
 tags: [agente, evaluacion, qa, pruebas, celula-3]
@@ -36,5 +36,7 @@ El dataset reside en `tests/fixtures/preguntas_evaluacion.json` e incluye al men
 ## Pruebas Automatizadas
 
 En `tests/test_agente_evaluacion.py`:
-- `test_evaluacion_dominio_agente`: Itera sobre el dataset afirmando que las fuera de alcance sean interceptadas.
-- `test_evaluacion_seguridad_sql`: Simula las consultas destructivas que podría generar el modelo y verifica que generen un error explícito.
+- valida que existan exactamente 20 casos y las tres categorías acordadas;
+- recorre las preguntas válidas por recuperación, generación y ejecución simuladas;
+- comprueba que las preguntas fuera de alcance no invoquen ninguna dependencia;
+- comprueba que los casos inseguros nunca lleguen al ejecutor SQL.

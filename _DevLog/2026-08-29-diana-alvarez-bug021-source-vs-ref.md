@@ -6,10 +6,10 @@ agent: "Claude"
 model: "claude-sonnet-5"
 session_duration: "~1h"
 touches: ["US-113", "REQ-001"]
-tags: [devlog, dbt, gold, bug016, source, ref]
+tags: [devlog, dbt, gold, bug021, source, ref]
 ---
 
-# BUG-016 — `source()` en vez de `ref()` rompía el orden de build de dbt con `threads > 1`
+# BUG-021 — `source()` en vez de `ref()` rompía el orden de build de dbt con `threads > 1`
 
 → [[_DevLog/_index|Volver al índice]]
 
@@ -65,15 +65,26 @@ python _Meta/scripts/vault_lint.py .                 # Vault limpio
 
 ## Avance entregado
 
-- Corrige lo que Monse registró como `BUG-016` en su rama
-  (`feat/monserrat-olivas-us213-db05-db08-dashboards`) — esa rama aún no está en `main`, así que
-  no toqué `Bug_Register.md` aquí para no chocar con su fila; falta que alguien la actualice a
-  `fixed` cuando ambas ramas converjan.
-- **Nota de colisión de IDs, ya escalada a Edgar:** la rama de Monse y la de Héctor
-  (`fix/hector-marban-driver-sin-datos`) reclamaron `BUG-015` para cosas distintas sin
-  coordinarse — se resuelve al mergear, no es parte de este fix.
-- Lo que aún falta: abrir PR, avisar a Monse/Manuel para que revaliden su sync de DB-05/08 con
-  esto arriba, y que alguien reconcilie `Bug_Register.md` entre las tres ramas al mergear.
+- Corrige el defecto que **Monserrat Miranda** encontró validando DB-05/DB-08 contra Gold real, y
+  que registró en su rama (`feat/monserrat-olivas-us213-db05-db08-dashboards`) como `BUG-016`.
+- Lo que aún falta: avisar a Monse y a Manuel para que revaliden su sync de DB-05/08 con esto
+  arriba.
+
+## Corrección del PM · 2026-08-29
+
+Resuelto por **Edgar Coronel (PM)** sobre esta rama. La colisión de IDs que dejaste señalada era
+real y ya se cerró, en el sentido contrario al que suponías: no se resolvía sola al mergear.
+
+**Héctor mergeó primero** (PR #111). En `main`, `BUG-015` a `BUG-019` son suyos —
+`BUG-016` es «filas con los 6 drivers en NULL», nada que ver con esto. Así que el registro decidió
+por nosotros: este defecto pasa a **`BUG-021`**, y el de `gold.dim_driver` de Monse pasa a
+`BUG-020`. Se renombró el DevLog y se actualizaron las referencias del macro y del índice.
+
+Hiciste bien en no tocar `Bug_Register.md` para no chocar con la fila de Monse — pero con los
+números ya separados, el lugar correcto de la fila es **este PR, no el suyo**: aquí es donde el
+bug queda `fixed`. Se registró como tal, con la autoría partida: reportado por Monserrat,
+corregido por ti. A Monse le queda solo `BUG-020`, y de paso se le evita un conflicto en el mismo
+archivo.
 
 ## Uso de IA
 

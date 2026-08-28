@@ -8,7 +8,7 @@
     en un esquema con prefijo (p.ej. `dbt_diana_silver`) en vez del literal que el resto del
     proyecto espera.
 
-    Nota (BUG-016, 2026-08-28): los modelos Gold usan `ref()` hacia los modelos de
+    Nota (BUG-021, 2026-08-28): los modelos Gold usan `ref()` hacia los modelos de
     dbt/models/silver/, no `source()` -- `silver.*` son modelos de este mismo proyecto, no datos
     externos. `dbt/models/gold/_gold__sources.yml` sigue existiendo solo para documentar las
     columnas de esas tablas; no se usa para resolver dependencias.

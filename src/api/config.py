@@ -60,6 +60,14 @@ class Settings(BaseSettings):
     postgres_user: str = "postgres"
     postgres_password: str = ""
 
+    # ---- Inferencia ML: cache y timeouts (US-416) ----
+    # `/predicciones/*` ya no invoca MLflow en vivo (US-412): lee `gold.predicciones` precalculada.
+    # Un timeout aquí es "Postgres no respondió a tiempo", no "MLflow tardó". Ver
+    # `src/api/repositorio_modelos.py` y `src/api/cache_predicciones.py`.
+    predicciones_timeout_ms: int = 3000
+    predicciones_cache_ttl_segundos: int = 30
+    predicciones_cache_max_entradas: int = 512
+
     @property
     def database_url(self) -> str:
         return (

@@ -298,10 +298,10 @@ Actualiza esta tabla **antes de cada standup**. El PM la revisa para el tablero 
 | ID | Historia | Estado | % | Bloqueado por | Fecha compromiso |
 |---|---|---|---|---|---|
 | `US-301` | Diseñar la estrategia de modelado y validación | ✅ Terminado | 100% | — | Cerrada 9 ago |
-| `US-302` | Entrenar ML-02: clasificación de driver | 🔵 En revisión | 85% | Etiqueta supervisada real de C1 · Registry MLflow E2E · endpoint SHAP de C4 | Dom 30 ago |
-| `US-303` | Registrar los 3 modelos en MLflow y exponerlos vía API | 🟡 En curso | 65% | ML-03 de Estefany · confirmar Registry en servidor Docker · integración de C4 | Dom 30 ago |
-| `US-304a` | Diseñar prompt y guardarraíles del agente | 🔵 En revisión | 90% | Integración con RAG de Carlos · set de evaluación | Dom 6 sep |
-| `US-305` | Integrar el widget de chat RAG en FARO Web | 🔵 En revisión | 60% | RAG de Carlos · JWT de C4 · prueba end-to-end contra API integrada | Dom 6 sep |
+| `US-302` | Entrenar ML-02: clasificación de driver | 🔵 En revisión | 90% | Etiqueta supervisada real de C1 · endpoint SHAP real de C4 | Dom 30 ago |
+| `US-303` | Registrar los 3 modelos en MLflow y exponerlos vía API | 🟡 En curso | 75% | ML-03 de Estefany · integración final de inferencia C4 · E2E local requiere `.env` | Dom 30 ago |
+| `US-304a` | Diseñar prompt y guardarraíles del agente | 🔵 En revisión | 95% | Integración con RAG y set de evaluación de Carlos | Dom 6 sep |
+| `US-305` | Integrar el widget de chat RAG en FARO Web | 🔵 En revisión | 70% | RAG de Carlos · login US-405 de Christian · prueba end-to-end integrada | Dom 6 sep |
 
 **Estados válidos:** ⬜ Por iniciar · 🟡 En curso · 🔵 En revisión (PR abierto) · ✅ Terminado · 🔴 Bloqueado
 

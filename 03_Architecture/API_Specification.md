@@ -3,11 +3,11 @@ id: DOC-APISPEC
 title: "API Specification — FARO"
 owner: "Karla Alejandra Monter Benitez"
 status: in_review
-version: "1.0"
+version: "1.1"
 source_of_truth: true
 traces_up: ["REQ-004", "03_Architecture/Data_Model"]
-traces_down: ["US-401", "US-402", "US-403", "US-411", "US-412", "US-415"]
-last_reviewed: "2026-08-26"
+traces_down: ["US-401", "US-402", "US-403", "US-411", "US-412", "US-415", "US-416"]
+last_reviewed: "2026-08-27"
 tags: [architecture, api, contract, fastapi, oauth2]
 ---
 
@@ -131,8 +131,8 @@ C2/C3), no se retoma como pendiente de US-411.
 ### 3.4 Predicciones (inferencia ML)
 | Método | Ruta | Rol | Request | Response | Códigos |
 |---|---|---|---|---|---|
-| GET | `/predicciones/{cct}` | ciudadano | path `cct`, `?ciclo` | `PrediccionOut` | 200, 401, 404 |
-| POST | `/predicciones/batch` | analista | `PrediccionBatchIn` | `Page[PrediccionOut]` | 200, 401, 403, 422 |
+| GET | `/predicciones/{cct}` | ciudadano | path `cct`, `?ciclo` | `PrediccionOut` | 200, 401, 404, 503 |
+| POST | `/predicciones/batch` | analista | `PrediccionBatchIn` | `Page[PrediccionOut]` | 200, 401, 403, 422, 503 |
 | GET | `/predicciones/{cct}/explicacion` | analista | path `cct` | `ExplicacionSHAPOut` | 200, 401, 403, 404 |
 
 - `PrediccionOut` combina **ML-01** (`indice_riesgo`), **ML-02** (`driver_dominante` + recomendación)
@@ -141,6 +141,11 @@ C2/C3), no se retoma como pendiente de US-411.
 - `/predicciones/{cct}` y `/predicciones/batch` leen `gold.predicciones` + `gold.recomendaciones`
   (US-412, cierra BUG-010) vía `RepositorioModelos`; un CCT sin fila en `gold.predicciones` es
   `404`, nunca un valor inventado. `mlflow_run_id` conserva el enlace auditable a la corrida.
+- **Cache y timeouts (US-416):** las lecturas pasan por un cache TTL en memoria por
+  `(cct, id_ciclo)`, compartido entre ambas rutas (`src/api/cache_predicciones.py`). Si Postgres no
+  responde dentro del timeout configurado, la respuesta es `503` `service_unavailable` (§5) —
+  nunca un `500` genérico ni una predicción a medias. El timeout de `/predicciones/batch` es
+  atómico: si falla, falla toda la petición, aunque parte de los CCT ya estuvieran en cache.
 
 ### 3.5 Agente conversacional `/agente/*`
 | Método | Ruta | Rol | Request | Response | Códigos |
@@ -296,6 +301,7 @@ class ErrorOut(BaseModel):
 | 404 | `not_found` | CCT/municipio inexistente o fuera de `SCOPE_ENTIDADES` |
 | 422 | `validation_error` | Falla la validación Pydantic (formato de entrada) |
 | 429 | `rate_limited` | Exceso de peticiones |
+| 503 | `service_unavailable` | Postgres no respondió a tiempo (timeout de inferencia, US-416) |
 | 500 | `internal_error` | Error interno (detalle solo en logs, nunca en la respuesta) |
 
 ---

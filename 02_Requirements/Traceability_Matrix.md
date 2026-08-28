@@ -102,3 +102,10 @@ tags: [requirements, traceability, matrix]
 > **Lectura:** la **planeación** está prácticamente cerrada (6 de 7 REQ con cobertura completa); la
 > **ejecución** arrancó en REQ-007, pero aún hay 0 REQ Done. El único hueco es la **arquitectura de despliegue de
 > REQ-005**, que se resolverá al escribir `03_Architecture/System_Design.md`.
+
+## Evidencia incremental — 2026-08-28 · etiqueta real y verificación E2E
+
+| REQ | Historias | Evidencia de prueba | DevLog | Estado |
+|---|---|---|---|---|
+| `REQ-003` | `US-302`, `US-313` | Filtro de ML-02 usa `driver_dominante` real como autoridad cuando existe: cierra el hueco de inferir cobertura por valor (BUG-016) ✅ · cadena ML-01 → filtro → ML-02 verificada con target real, F1 0.633 ✅ · 2 pruebas nuevas · suite 500 ✅ | [[_DevLog/2026-08-28-hector-morales-filtro-etiqueta-real]] | 🟡 En progreso |
+| `REQ-004` | `US-401`, `US-411` | **BUG-020**: en la URL pública toda ruta con base de datos responde HTTP 500 (`/predicciones`, `/predicciones/batch`, `/escuelas`); `/health` responde 200 y nunca se devuelve 401, así que el fallo precede a la validación de auth ⬜ | [[_DevLog/2026-08-28-hector-morales-filtro-etiqueta-real]] | 🔴 Bloqueante |

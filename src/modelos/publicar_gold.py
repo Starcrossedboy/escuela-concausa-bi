@@ -405,26 +405,35 @@ def construir_recomendaciones(
 
 
 def filtrar_con_driver_observado(features: pd.DataFrame) -> tuple[pd.DataFrame, int]:
-    """Aparta las filas que no pueden tener driver dominante: las que no observan **ningún** driver.
+    """Aparta las filas que no pueden tener driver dominante.
 
-    ML-02 responde "¿cuál de los seis drivers explica el riesgo?". Una escuela sin un solo driver
-    observado no tiene respuesta posible, y forzarla sería inventar el diferenciador del proyecto.
-    La Célula 1 adoptó la misma convención en la `driver_dominante` real de US-302: esas filas
-    quedan en NULL. Aquí se apartan antes de entrenar, porque `validar_target_ml02` —con razón—
-    rechaza un target con nulos.
+    ML-02 responde "¿cuál de los seis drivers explica el riesgo?". Una fila sin respuesta posible
+    no se fuerza: forzarla sería inventar el diferenciador del proyecto.
 
-    Estas escuelas **sí conservan su predicción de ML-01** en `gold.predicciones`: la variación de
-    matrícula no necesita drivers. Lo que no reciben es recomendación, que es el comportamiento
-    correcto bajo la regla de cobertura parcial: `SIN_DATO` explícito, nunca un driver inventado.
+    **Cuál es la fila sin respuesta depende de quién produce el target.** Si Gold ya trae la
+    `driver_dominante` real de US-302, ella es la autoridad y basta con mirar dónde quedó `NULL`;
+    inferirlo por nuestra cuenta abre un hueco, porque C1 exige `dN_cobertura = 'OK'` **además** de
+    valor no nulo y nosotros sólo veríamos el valor. Una fila con dato pero cobertura `SIN_DATO`
+    sobreviviría aquí y llegaría a `validar_target_ml02` con la etiqueta en nulo.
+
+    Sin esa columna —fixtures, o Gold anterior a US-302— se cae al criterio del proxy: al menos un
+    driver observado.
+
+    Las apartadas **conservan su predicción de ML-01**: la variación de matrícula no necesita
+    drivers. Lo que no reciben es recomendación, que es la regla de cobertura parcial: `SIN_DATO`
+    explícito, nunca un driver inventado.
 
     Args:
         features: tabla conforme al contrato `FeaturesEscuela`.
 
     Returns:
-        Las filas con al menos un driver observado, y cuántas se apartaron.
+        Las filas que sí admiten driver dominante, y cuántas se apartaron.
     """
-    con_dato = features[list(DRIVERS)].notna().any(axis=1)
-    return features[con_dato].copy(), int((~con_dato).sum())
+    if COLUMNA_TARGET_REAL in features.columns:
+        utiles = features[COLUMNA_TARGET_REAL].notna()
+    else:
+        utiles = features[list(DRIVERS)].notna().any(axis=1)
+    return features[utiles].copy(), int((~utiles).sum())
 
 
 def construir_recomendaciones_ml02(

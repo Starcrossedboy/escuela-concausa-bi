@@ -12,9 +12,12 @@ Uso:
     python -m src.modelos.generar_fixture
     python -m src.modelos.generar_fixture --escuelas 80 --salida tests/fixtures/otro.csv
 
-Lo que el fixture SÍ reproduce del contrato: el grano CCT × ciclo, las 16 columnas, el rango
-[0,1] de los drivers, la ausencia explícita `SIN_DATO` y su coherencia con el valor nulo, y una
-cobertura desigual entre drivers parecida a la real (D5 es regional, D6 cubre ~80 zonas urbanas).
+Lo que el fixture SÍ reproduce del contrato: el grano CCT × ciclo, las 17 columnas, el rango
+[0,1] de los drivers, la ausencia explícita `SIN_DATO` y su coherencia con el valor nulo, una
+cobertura desigual entre drivers parecida a la real (D5 es regional, D6 cubre ~80 zonas urbanas),
+y `driver_dominante` (US-302) calculado con la misma regla de argmax que
+`gold.features_escuela` publica de verdad (ver dbt/models/gold/features_escuela.sql): el driver
+con cobertura OK y mayor valor, desempate D1>D2>D3>D4>D5>D6, NULL si ninguno es elegible.
 
 Lo que NO reproduce: las distribuciones reales de cada driver. Sirve para validar la mecánica de
 la partición y el pipeline, **no para sacar conclusiones sustantivas ni métricas comparables**.
@@ -132,6 +135,18 @@ def generar(n_escuelas: int = 80, semilla: int = SEMILLA) -> pd.DataFrame:
                     fila[driver] = None
                     fila[f"d{j + 1}_cobertura"] = Cobertura.SIN_DATO.value
 
+            # driver_dominante (US-302): misma regla que gold.features_escuela -- argmax entre
+            # los drivers con cobertura OK, desempate por orden de DRIVERS (D1..D6) al conservar
+            # el primero en un empate (`>` estricto, no `>=`).
+            mejor_driver: str | None = None
+            mejor_valor: float | None = None
+            for j, driver in enumerate(DRIVERS):
+                valor_driver = fila[driver]
+                if valor_driver is not None and (mejor_valor is None or valor_driver > mejor_valor):
+                    mejor_valor = valor_driver
+                    mejor_driver = f"D{j + 1}"
+            fila["driver_dominante"] = mejor_driver
+
             # Sin redondear: debe cumplirse exactamente que completitud == observados / 6.
             fila["indice_completitud_drivers"] = observados / len(DRIVERS)
             fila["target_variacion_matricula"] = round(
@@ -143,7 +158,7 @@ def generar(n_escuelas: int = 80, semilla: int = SEMILLA) -> pd.DataFrame:
         ["cct", "id_ciclo"]
         + list(DRIVERS)
         + [f"d{k}_cobertura" for k in range(1, len(DRIVERS) + 1)]
-        + ["indice_completitud_drivers", "target_variacion_matricula"]
+        + ["driver_dominante", "indice_completitud_drivers", "target_variacion_matricula"]
     )
     return pd.DataFrame(filas, columns=columnas).sort_values(["cct", "id_ciclo"], ignore_index=True)
 

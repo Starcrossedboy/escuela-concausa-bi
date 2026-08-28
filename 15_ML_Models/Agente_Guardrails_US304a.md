@@ -3,9 +3,9 @@ id: DOC-AGENTE-GUARDRAILS-US304A
 title: "Agente FARO — Guardarraíles de seguridad"
 owner: "Andrés González Habib"
 status: in_review
-version: "0.2"
+version: "0.4"
 traces_up: ["US-304a", "REQ-006", "03_Architecture/API_Specification"]
-traces_down: ["src/agente/guardrails.py", "src/agente/prompt.py", "tests/test_agente_guardrails.py", "tests/test_agente_prompt.py"]
+traces_down: ["src/agente/guardrails.py", "src/agente/prompt.py", "src/agente/servicio.py", "tests/test_agente_guardrails.py", "tests/test_agente_prompt.py", "tests/test_agente_servicio.py"]
 tags: [agente, rag, seguridad, guardrails, celula-3]
 ---
 
@@ -21,6 +21,12 @@ Carlos (US-304b) o al endpoint `/agente/consulta` de Célula 4.
 Los módulos ejecutables viven en `src/agente/guardrails.py` y `src/agente/prompt.py`. No ejecutan SQL:
 solo definen instrucciones, validan y normalizan la pregunta o consulta generada para que una capa
 posterior pueda decidir si continúa.
+
+`src/agente/servicio.py` deja preparado ese flujo posterior mediante dependencias inyectables para
+recuperar contexto, generar SQL, ejecutarlo y redactar la respuesta. El servicio valida el alcance
+antes de recuperar contexto y valida el SQL antes de llamar al ejecutor. La entrada
+`procesar_consulta_con_rag()` conecta por defecto la recuperación ChromaDB de US-304b con este flujo,
+sin acoplar la generación SQL, ejecución ni redacción a una implementación concreta.
 
 ## Reglas implementadas
 
@@ -67,7 +73,11 @@ campo separado para la razón del rechazo. La explicación se devuelve en `respu
 - error explícito cuando `preparar_sql_seguro()` recibe un verbo prohibido.
 - presencia de reglas obligatorias en el prompt de sistema y composición con contexto recuperado.
 
+`tests/test_agente_servicio.py` verifica el orden del flujo y que una pregunta fuera de alcance o un
+SQL inseguro nunca lleguen al ejecutor. También verifica que un fallo de recuperación detenga la
+generación y que la entrada compuesta use el RAG real.
+
 ## Pendientes para cerrar US-304a
 
-- Integrar estos guardarraíles en el servicio del agente cuando exista la capa de recuperación US-304b.
-- Registrar ejemplos aceptados/rechazados en el set de evaluación del agente (US-323).
+- Conectar `procesar_consulta_con_rag()` al endpoint real del agente de Célula 4.
+- Ejecutar el E2E con ChromaDB, modelo de embeddings y base Gold levantados.

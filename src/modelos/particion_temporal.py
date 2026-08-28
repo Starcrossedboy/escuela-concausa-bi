@@ -113,6 +113,34 @@ def dividir_por_ciclo(
     return particion.aplicar(df, columna_ciclo)
 
 
+def ventanas_posibles(
+    df: pd.DataFrame,
+    min_ciclos_entrenamiento: int = 2,
+    columna_ciclo: str = COLUMNA_CICLO,
+) -> int:
+    """Cuántas ventanas de backtesting admiten los ciclos disponibles.
+
+    Un default fijo no sirve: el fixture tiene 5 ciclos y admite 3 ventanas, pero
+    `gold.features_escuela` real tiene 3 —uno se consume como referencia del target— y admite 1.
+    Pedir más de las posibles falla con un error correcto pero evitable.
+
+    Returns:
+        El máximo de ventanas, siempre al menos 1.
+
+    Raises:
+        ValueError: si no hay ciclos suficientes ni para una ventana.
+    """
+    ciclos = ciclos_ordenados(df, columna_ciclo)
+    posibles = len(ciclos) - min_ciclos_entrenamiento
+    if posibles < 1:
+        raise ValueError(
+            f"Con {len(ciclos)} ciclos no se puede hacer backtesting: se necesitan al menos "
+            f"{min_ciclos_entrenamiento + 1} (entrenar con {min_ciclos_entrenamiento} y evaluar "
+            f"con 1). Ciclos disponibles: {ciclos}."
+        )
+    return posibles
+
+
 def generar_backtesting(
     df: pd.DataFrame,
     n_ventanas: int = 2,

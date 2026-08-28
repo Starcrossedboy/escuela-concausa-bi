@@ -21,6 +21,7 @@ from src.modelos.riesgo import (
     CalibracionRiesgo,
     indice_riesgo,
     variacion_equivalente,
+    verificar_escala_variacion,
 )
 
 # --------------------------------------------------------------------------- anclas
@@ -139,3 +140,42 @@ def test_cumple_el_contrato_de_la_api() -> None:
             mlflow_run_id="0" * 32,
         )
         assert 0.0 <= salida.indice_riesgo <= 1.0
+
+
+# ------------------------------------------------------- escala de la variación (BUG-016)
+
+
+def test_acepta_variaciones_expresadas_como_fraccion() -> None:
+    """Lo normal: pérdidas y ganancias de unos pocos puntos porcentuales, en fracción."""
+    verificar_escala_variacion([-0.03, 0.01, -0.12, 0.0, -0.25])
+
+
+def test_rechaza_variaciones_en_puntos_porcentuales() -> None:
+    """El caso real: si Gold entrega -5.0 en vez de -0.05, la sigmoide satura en silencio."""
+    with pytest.raises(ValueError, match="no parece venir en fracción"):
+        verificar_escala_variacion([-3.0, 1.0, -12.0, -8.5])
+
+
+def test_el_mensaje_dice_cuanto_se_satura() -> None:
+    """Sin el porcentaje, el mensaje no transmite por qué esto no es un detalle menor."""
+    with pytest.raises(ValueError, match="100.0% de las filas"):
+        verificar_escala_variacion([-3.0, -12.0, -8.5, -20.0])
+
+
+def test_una_variacion_extrema_aislada_no_dispara_la_alarma() -> None:
+    """Se mira la mediana, no el máximo: una escuela que triplica matrícula no es un error."""
+    verificar_escala_variacion([-0.02, 0.03, -0.01, 0.04, 25.0])
+
+
+def test_ignora_nan_e_infinitos() -> None:
+    verificar_escala_variacion([np.nan, -0.05, np.inf, 0.02])
+    verificar_escala_variacion([np.nan, np.nan])
+
+
+def test_la_saturacion_que_denuncia_es_real() -> None:
+    """La prueba que le da sentido a la guarda: con esa escala el riesgo pierde toda resolución."""
+    en_puntos = np.array([-3.0, -8.0, -15.0, -0.5])
+    riesgos = indice_riesgo(en_puntos)
+
+    assert np.all(riesgos > 0.999), "todas saturan arriba: el tablero no distingue ninguna"
+    assert riesgos.max() - riesgos.min() < 1e-3, "el orden entre escuelas se vuelve ruido"

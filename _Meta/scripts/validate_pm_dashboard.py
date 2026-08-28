@@ -25,8 +25,8 @@ def main(root_value: str = ".") -> int:
         print("❌ Ejecuta primero generate_pm_dashboard.py")
         return 1
     data = json.loads(data_path.read_text(encoding="utf-8"))
-    if data.get("meta", {}).get("schema_version") != "2.3":
-        fail("Se esperaba schema 2.3 con bloques ejecutivos", failures)
+    if data.get("meta", {}).get("schema_version") != "2.4":
+        fail("Se esperaba schema 2.4 con bloques ejecutivos", failures)
     if not re.fullmatch(r"[0-9a-f]{12}", data.get("meta", {}).get("source_fingerprint", "")):
         fail("Fingerprint de fuentes ausente o inválido", failures)
     delivery = data.get("delivery", {})
@@ -94,6 +94,14 @@ def main(root_value: str = ".") -> int:
         fail("Bloque performance incompleto (21 personas × 6 sprints)", failures)
     if performance.get("current_sprint") not in {f"S{i}" for i in range(1, 7)}:
         fail("performance.current_sprint inválido", failures)
+    engagement = data.get("engagement", {})
+    eng_people = engagement.get("people", [])
+    if len(eng_people) != 21:
+        fail(f"Bloque engagement incompleto ({len(eng_people)} personas, se esperaban 21)", failures)
+    if not all("active" in p and "signal" in p for p in eng_people):
+        fail("engagement.people sin 'active'/'signal'", failures)
+    if engagement.get("active", 0) + engagement.get("inactive", 0) != len(eng_people):
+        fail("engagement: activos + inactivos no suman el total", failures)
     pending = data.get("pending", [])
     expected_pending = sum(story.get("status") != "done" for story in stories)
     if len(pending) != expected_pending:
@@ -118,7 +126,7 @@ def main(root_value: str = ".") -> int:
     for countdown_marker in ["updateDeliveryCountdown", "D.delivery.timezone", "setInterval"]:
         if countdown_marker not in html:
             fail(f"El contador no es dinámico: falta {countdown_marker}", failures)
-    for tab in ["exec", "roadmaplight", "performance", "prd", "summary", "flow", "cells", "team", "plans", "dependencies", "rubric", "sources", "risks", "governance", "explorer"]:
+    for tab in ["exec", "roadmaplight", "performance", "engagement", "prd", "summary", "flow", "cells", "team", "plans", "dependencies", "rubric", "sources", "risks", "governance", "explorer"]:
         if f'id="panel-{tab}"' not in html:
             fail(f"Falta panel {tab}", failures)
     if failures:

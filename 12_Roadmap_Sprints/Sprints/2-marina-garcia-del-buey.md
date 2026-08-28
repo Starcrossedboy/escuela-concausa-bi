@@ -297,15 +297,20 @@ Actualiza esta tabla **antes de cada standup**. El PM la revisa para el tablero 
 
 | ID | Historia | Estado | % | Bloqueado por | Fecha compromiso |
 |---|---|---|---|---|---|
-| `US-211a` | Cubos y metricas de DB-03 y DB-04 | 🔵 En revisión (PR abierto) | 90% | — | Dom 23 ago |
-| `US-212` | Construir DB-03 Ficha de escuela y DB-04 C | ⬜ Por iniciar | 0% | Gold de C1 (US-112/US-113) + Superset local | Dom 30 ago |
+| `US-211a` | Cubos y metricas de DB-03 y DB-04 | ✅ Terminado | 100% | — | Dom 23 ago |
+| `US-212` | Construir DB-03 Ficha de escuela y DB-04 C | 🟡 En curso | 70% | **US-113** (cubos de C1, vencida el 23 ago) | Dom 30 ago |
 | `US-214a` | Filtros y drill-down en DB-03 y DB-04 | ⬜ Por iniciar | 0% | — | Dom 6 sep |
 | `US-215a` | Usabilidad/accesibilidad DB-03 y DB-04 | ⬜ Por iniciar | 0% | — | Dom 6 sep |
 | `US-207` | FARO Web: panel de ML interactivo | ⬜ Por iniciar | 0% | API de inferencia (US-412/US-415) | Dom 6 sep |
 
-> **US-211a al 90%:** el contrato semántico, el SQL de referencia, la capa semántica y las pruebas están
-> entregados ([[04_UX_Design/Cube_Specs_DB03_DB04]]). El 10% restante son dos respuestas ajenas: el
-> cambio de grano de `cubo_comparador_municipio` (Diana, C1) y el alta de KPI-15…KPI-18 (Manuel, C2).
+> **US-211a cerrada al 100% (2026-08-21).** El contrato semántico, el SQL de referencia, la capa semántica
+> y las 28 pruebas se mergearon en el PR #32 ([[04_UX_Design/Cube_Specs_DB03_DB04]]). Las dos respuestas
+> que faltaban ya llegaron: Diana aceptó el cambio de grano a `municipio × nivel × ciclo` (Data_Model §4.3)
+> y Manuel publicó KPI-15…KPI-18 y ratificó el `LEFT JOIN` (Screen_Specs §4).
+>
+> **US-212 espera solo a US-113.** Ya existen la estrella Gold (US-103), Silver (US-111), Superset conectado
+> (US-202) y `gold.predicciones` / `gold.recomendaciones` (US-313). Falta que la Célula 1 materialice
+> `gold.cubo_escuela_360` y `gold.cubo_comparador_municipio`; el SQL de referencia lo tienen desde el 14 ago.
 
 **Estados válidos:** ⬜ Por iniciar · 🟡 En curso · 🔵 En revisión (PR abierto) · ✅ Terminado · 🔴 Bloqueado
 

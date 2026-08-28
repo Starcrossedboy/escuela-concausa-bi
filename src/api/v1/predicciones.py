@@ -1,14 +1,21 @@
 """Predicciones / inferencia ML: `/predicciones/*` (§3.4).
 
-`PrediccionOut` combina ML-01 (riesgo), ML-02 (driver + recomendación) y ML-03 (cluster).
-La explicación SHAP completa y el batch son **solo analista** (RBAC de US-403, no forzado aún
-en este stub). Los valores provienen de `mock_data`; al integrar MLflow (Célula 3) es un *swap*.
+`PrediccionOut` combina ML-01 (riesgo), ML-02 (driver + recomendación) y ML-03 (cluster, `None`
+hasta que exista -- ver BUG-010). La explicación SHAP completa y el batch son **solo analista**
+(RBAC de US-403, no forzado aún en este stub).
+
+`prediccion`/`prediccion_batch` leen `gold.predicciones` + `gold.recomendaciones` a través de
+`RepositorioModelos` (`src/api/repositorio_modelos.py`, US-412) -- cierra BUG-010, que detectó que
+seguían leyendo `src/api/mock_data.py` (un valor fabricado, no la salida de ningún modelo).
+`explicacion` sigue sobre `mock_data` (SHAP no tiene fuente en Gold todavía; fuera de alcance de
+BUG-010, que cubre solo `/predicciones` y `/predicciones/batch`).
 """
 from __future__ import annotations
 
-from fastapi import APIRouter, HTTPException, Query, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 
 from src.api import mock_data
+from src.api.repositorio_modelos import RepositorioModelos, get_repositorio_modelos
 from src.api.schemas import (
     ExplicacionSHAPOut,
     Page,
@@ -28,22 +35,32 @@ def _buscar_escuela(cct: str) -> dict:
 
 
 @router.get("/{cct}", response_model=PrediccionOut)
-def prediccion(cct: str, ciclo: str = Query(mock_data.CICLO_DEFAULT)) -> PrediccionOut:
+def prediccion(
+    cct: str,
+    ciclo: str = Query(mock_data.CICLO_DEFAULT),
+    repo: RepositorioModelos = Depends(get_repositorio_modelos),
+) -> PrediccionOut:
     """Riesgo y driver dominante de una escuela (rol mínimo: ciudadano)."""
-    escuela = _buscar_escuela(cct)
-    return PrediccionOut(**mock_data.prediccion_de_escuela(escuela, ciclo))
+    fila = repo.obtener_prediccion(cct, ciclo)
+    if fila is None:
+        raise HTTPException(
+            status.HTTP_404_NOT_FOUND, detail="CCT sin predicción o fuera de alcance."
+        )
+    return PrediccionOut(**fila)
 
 
 @router.post("/batch", response_model=Page[PrediccionOut])
-def prediccion_batch(body: PrediccionBatchIn) -> Page[PrediccionOut]:
-    """Inferencia en lote (rol mínimo: **analista** — se forzará en US-403)."""
-    items: list[PrediccionOut] = []
-    for cct in body.ccts:
-        for e in mock_data.ESCUELAS:
-            if e["cct"] == cct:
-                items.append(
-                    PrediccionOut(**mock_data.prediccion_de_escuela(e, body.id_ciclo))
-                )
+def prediccion_batch(
+    body: PrediccionBatchIn,
+    repo: RepositorioModelos = Depends(get_repositorio_modelos),
+) -> Page[PrediccionOut]:
+    """Inferencia en lote (rol mínimo: **analista** — se forzará en US-403).
+
+    Omite silenciosamente los CCT sin fila en `gold.predicciones` -- nunca inventa una
+    predicción para un CCT fuera de alcance o sin modelo corrido.
+    """
+    filas = repo.listar_predicciones(body.ccts, body.id_ciclo)
+    items = [PrediccionOut(**fila) for fila in filas]
     return paginate(items, page=1, size=100)
 
 

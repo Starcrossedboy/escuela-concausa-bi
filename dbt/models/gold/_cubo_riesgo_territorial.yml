@@ -1,0 +1,36 @@
+version: 2
+
+models:
+  - name: cubo_riesgo_territorial
+    description: >
+      US-113 / DB-02. Vista materializada a grano municipio × nivel × ciclo.
+      Conserva el universo observado, agrega ML-01 como componentes aditivos
+      y expone cobertura_riesgo explícita.
+    columns:
+      - name: cve_mun
+        data_tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_municipio')
+                field: cve_mun
+      - name: nivel
+        data_tests: [not_null]
+      - name: id_ciclo
+        data_tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_tiempo')
+                field: id_ciclo
+      - name: cve_ent
+        data_tests: [not_null]
+      - name: escuelas
+        data_tests: [not_null]
+      - name: escuelas_con_prediccion
+        data_tests: [not_null]
+      - name: cobertura_riesgo
+        data_tests:
+          - not_null
+          - accepted_values:
+              arguments: {values: ['OK', 'SIN_DATO']}

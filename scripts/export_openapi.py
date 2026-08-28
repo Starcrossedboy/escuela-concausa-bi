@@ -17,7 +17,7 @@ RAIZ = Path(__file__).resolve().parents[1]
 if str(RAIZ) not in sys.path:
     sys.path.insert(0, str(RAIZ))
 
-from src.api.app import app  # noqa: E402
+from src.api.app import app
 
 SALIDA = RAIZ / "api" / "openapi.v1.json"
 

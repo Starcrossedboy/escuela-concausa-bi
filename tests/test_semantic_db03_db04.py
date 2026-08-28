@@ -240,6 +240,26 @@ def test_toda_razon_protege_la_division(metricas: dict) -> None:
                 )
 
 
+def test_los_porcentajes_no_se_multiplican_dos_veces(metricas: dict) -> None:
+    """Una razón con formato de porcentaje NO lleva `* 100`: el d3 ya multiplica.
+
+    `formato: porcentaje_0|1` se mapea a los formatos d3 `,.0%` / `,.1%`, que multiplican
+    por 100 al renderizar. Si además la expresión multiplica, el tablero pinta el número
+    cien veces más grande — `0.318` se vería como `3,180.0%`. El error ya apareció tres
+    veces en el proyecto (US-203, US-211b y US-212), así que aquí se hace cumplir.
+    """
+    for dataset in metricas["datasets"]:
+        for metrica in dataset["metricas"]:
+            if not str(metrica.get("formato", "")).startswith("porcentaje"):
+                continue
+            expresion = metrica.get("expresion", "")
+            assert "100" not in expresion, (
+                f"{dataset['nombre']}.{metrica['nombre']}: expresión con `* 100` y "
+                f"formato '{metrica['formato']}'. El formato d3 ya multiplica por 100; "
+                "guarda la razón como fracción."
+            )
+
+
 def test_ninguna_metrica_rellena_con_cero(metricas: dict) -> None:
     for dataset in metricas["datasets"]:
         for metrica in dataset["metricas"]:

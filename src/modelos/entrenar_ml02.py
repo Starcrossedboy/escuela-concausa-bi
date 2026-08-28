@@ -22,7 +22,13 @@ from sklearn.metrics import accuracy_score, f1_score, precision_score
 from src.modelos.contrato import DRIVERS
 from src.modelos.entrenar_ml01 import FEATURES_POR_DEFECTO
 from src.modelos.mlflow_utils import RegistroModelo, registrar_sklearn
-from src.modelos.particion_temporal import ParticionTemporal, generar_backtesting, verificar_sin_fuga
+from src.modelos.particion_temporal import (
+    ParticionTemporal,
+    generar_backtesting,
+    verificar_sin_fuga,
+)
+from src.modelos.recomendaciones import CODIGOS_DRIVER as CLASES_DRIVER
+from src.modelos.recomendaciones import recomendacion_para_driver
 
 COLUMNA_TARGET_REAL = "driver_dominante"
 COLUMNA_TARGET_PROXY = "driver_dominante_proxy"
@@ -36,16 +42,6 @@ DRIVER_A_CLASE: dict[str, str] = {
     "d4_conectividad": "D4",
     "d5_agua": "D5",
     "d6_aire": "D6",
-}
-CLASES_DRIVER: tuple[str, ...] = tuple(DRIVER_A_CLASE.values())
-
-RECOMENDACION_POR_DRIVER: dict[str, str] = {
-    "D1": "Priorizar programas de becas y apoyo alimentario en la zona.",
-    "D2": "Coordinar con seguridad publica rutas escolares seguras y entornos protegidos.",
-    "D3": "Gestionar rehabilitacion de infraestructura escolar prioritaria.",
-    "D4": "Ampliar conectividad y dotacion de equipo de computo.",
-    "D5": "Asegurar suministro de agua y planes de contingencia hidrica.",
-    "D6": "Activar protocolos por contingencia de calidad del aire.",
 }
 
 HIPERPARAMETROS: dict[str, object] = {
@@ -145,14 +141,6 @@ def columna_target_disponible(df: pd.DataFrame) -> str:
 def _matriz(df: pd.DataFrame) -> pd.DataFrame:
     """Extrae drivers para el clasificador; los ausentes quedan como NaN."""
     return df[list(DRIVERS)]
-
-
-def recomendacion_para_driver(driver: str) -> str:
-    """Devuelve la recomendacion prescriptiva asociada al driver dominante."""
-    try:
-        return RECOMENDACION_POR_DRIVER[driver]
-    except KeyError as exc:
-        raise ValueError(f"Driver desconocido: {driver!r}. Esperado uno de {CLASES_DRIVER}.") from exc
 
 
 def entrenar_y_evaluar(
@@ -271,6 +259,40 @@ def calcular_shap_kernel(
             contribuciones = arr[indice_fila, :, indice_clase] if arr.ndim == 3 else arr[indice_fila]
         resultados.append(dict(zip(DRIVERS, contribuciones, strict=True)))
     return resultados
+
+
+def explicar_driver(
+    modelo: HistGradientBoostingClassifier,
+    referencia: pd.DataFrame,
+    filas: pd.DataFrame,
+    max_referencia: int = 50,
+) -> list[dict[str, object]]:
+    """Devuelve la explicación por escuela según `ExplicacionSHAPOut` de la API."""
+    predicciones = predecir_driver(modelo, filas)
+    valores_shap = calcular_shap_kernel(
+        modelo,
+        referencia,
+        filas,
+        max_referencia=max_referencia,
+    )
+
+    explicaciones: list[dict[str, object]] = []
+    for prediccion, contribuciones in zip(
+        predicciones.to_dict(orient="records"),
+        valores_shap,
+        strict=True,
+    ):
+        explicaciones.append(
+            {
+                "cct": prediccion["cct"],
+                "driver_dominante": prediccion["driver_dominante"],
+                "contribuciones": {
+                    DRIVER_A_CLASE[driver]: float(valor)
+                    for driver, valor in contribuciones.items()
+                },
+            }
+        )
+    return explicaciones
 
 
 def _imprimir_reporte(resultado: ResultadoML02) -> None:

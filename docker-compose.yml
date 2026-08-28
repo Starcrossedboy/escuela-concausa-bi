@@ -101,11 +101,8 @@ services:
     depends_on:
       db:
         condition: service_healthy
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:${API_PORT}/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 5
+    # Healthcheck heredado del Dockerfile (usa python, no curl - BUG-006)
+    # El Dockerfile ya define un healthcheck funcional con urllib.request
 
   # ═════════════════════════════════════════════════════════════════════
   # AIRFLOW INIT (Setup inicial, corre 1 sola vez)
@@ -210,7 +207,7 @@ services:
     build:
       context: .
       dockerfile: docker/mlflow.Dockerfile
-    image: faro-mlflow:2.8.0
+    image: faro-mlflow:3.15.1
     container_name: faro-mlflow
     restart: unless-stopped
     environment:
@@ -236,7 +233,9 @@ services:
   # SUPERSET (Dashboards BI - puerto 8088)
   # ═════════════════════════════════════════════════════════════════════
   superset:
-    image: apache/superset:latest
+    build:
+      context: .
+      dockerfile: docker/superset.Dockerfile
     container_name: faro-superset
     restart: unless-stopped
     environment:
@@ -286,3 +285,9 @@ services:
       IS_PERSISTENT: 1
       ANONYMIZED_TELEMETRY: 0
       ENVIRONMENT: ${ENVIRONMENT:-local}
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/api/v2/heartbeat"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s

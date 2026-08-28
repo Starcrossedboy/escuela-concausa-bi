@@ -7,7 +7,7 @@ version: "1.0"
 source_of_truth: true
 traces_up: ["REQ-004", "03_Architecture/Data_Model"]
 traces_down: ["US-401", "US-402", "US-403", "US-411", "US-412", "US-415"]
-last_reviewed: "2026-08-03"
+last_reviewed: "2026-08-26"
 tags: [architecture, api, contract, fastapi, oauth2]
 ---
 
@@ -98,11 +98,35 @@ tags: [architecture, api, contract, fastapi, oauth2]
 ### 3.3 Lectura sobre Gold
 | Método | Ruta | Rol | Request | Response | Códigos |
 |---|---|---|---|---|---|
-| GET | `/escuelas` | ciudadano | `?cve_ent&cve_mun&nivel&ciclo&page&size` | `Page[EscuelaOut]` | 200, 401 |
+| GET | `/escuelas` | ciudadano | `?cve_ent&cve_mun&nivel&ciclo&order_by&order&page&size` | `Page[EscuelaOut]` | 200, 401, 422 |
 | GET | `/escuelas/{cct}` | ciudadano | path `cct` | `EscuelaDetalleOut` | 200, 401, 404 |
-| GET | `/municipios` | ciudadano | `?cve_ent&ciclo&page&size` | `Page[MunicipioOut]` | 200, 401 |
+| GET | `/municipios` | ciudadano | `?cve_ent&ciclo&order_by&order&page&size` | `Page[MunicipioOut]` | 200, 401, 422 |
 | GET | `/municipios/{cve_mun}` | ciudadano | path `cve_mun` | `MunicipioOut` | 200, 401, 404 |
 | GET | `/kpis` | ciudadano | `?cve_ent&cve_mun&ciclo` | `KpisOut` | 200, 401 |
+
+**Ordenamiento (Decisión 3 de US-411, Karla Monter, 2026-08-20 — avisado a C2/C3):**
+- `order_by` es opcional; si se omite, el orden es el natural de la consulta (no garantizado
+  entre llamadas). `order` es `asc` (por defecto) o `desc`. Un `order_by` fuera de la whitelist
+  responde `422` (Pydantic `Literal`, no se acepta texto libre → nunca hay SQL inyectado por este
+  parámetro).
+- `/escuelas` acepta `order_by ∈ {cct, nombre, matricula_total, indice_riesgo}`.
+- `/municipios` acepta `order_by ∈ {cve_mun, nombre_municipio, poblacion, indice_rezago_social,
+  pobreza_pct}`.
+- Los valores `SIN_DATO` (`indice_riesgo`/`indice_rezago_social`/`pobreza_pct` en `None`) siempre
+  quedan **al final**, sin importar `asc`/`desc` — nunca se ordenan como si fueran cero.
+
+**`/series` — declarado fuera de alcance de US-411 (Decisión 3, Karla Monter, 2026-08-20 — avisado
+a C2/C3):** el sprint plan de US-411 menciona "series" en su objetivo, pero:
+1. La única serie de tiempo documentada en el proyecto (matrícula por `cct × ciclo`, KPI-15 /
+   AC-002.5 de `12_Roadmap_Sprints/PLAN_MAESTRO.md`) pertenece a **US-212 (Célula 2, Ficha de
+   escuela)** y se consume como cubo de Superset (`gold.cubo_escuela_360`), no como endpoint REST.
+2. Hoy `gold.fact_escuela_ciclo` solo materializa 2 ciclos (actual + anterior, ver
+   `dbt/models/gold/fact_escuela_ciclo.sql`) — no hay una serie real que servir todavía.
+3. Ningún consumidor (mocks, dashboards, agente) referencia hoy un endpoint `/series`.
+
+Si en un ciclo futuro hay ≥3 ciclos materializados y un consumidor concreto lo necesita, se abre
+como historia nueva sobre `03_Architecture/API_Specification.md` (misma regla de oro: PR + aviso a
+C2/C3), no se retoma como pendiente de US-411.
 
 ### 3.4 Predicciones (inferencia ML)
 | Método | Ruta | Rol | Request | Response | Códigos |
@@ -112,7 +136,11 @@ tags: [architecture, api, contract, fastapi, oauth2]
 | GET | `/predicciones/{cct}/explicacion` | analista | path `cct` | `ExplicacionSHAPOut` | 200, 401, 403, 404 |
 
 - `PrediccionOut` combina **ML-01** (`indice_riesgo`), **ML-02** (`driver_dominante` + recomendación)
-  y **ML-03** (`cluster`). La explicación SHAP completa (ML-02) es solo `analista`.
+  y **ML-03** (`cluster`, `None` mientras ML-03 no exista -- US-321, BUG-010). La explicación SHAP
+  completa (ML-02) es solo `analista`.
+- `/predicciones/{cct}` y `/predicciones/batch` leen `gold.predicciones` + `gold.recomendaciones`
+  (US-412, cierra BUG-010) vía `RepositorioModelos`; un CCT sin fila en `gold.predicciones` es
+  `404`, nunca un valor inventado. `mlflow_run_id` conserva el enlace auditable a la corrida.
 
 ### 3.5 Agente conversacional `/agente/*`
 | Método | Ruta | Rol | Request | Response | Códigos |
@@ -172,14 +200,18 @@ class UserOut(BaseModel):
     role: Rol
 
 # ---- lectura sobre Gold ----
+# EscuelaOut/EscuelaDetalleOut actualizados 2026-08-20: indice_riesgo/driver_dominante pasan
+# a Optional (vienen por LEFT JOIN a gold.predicciones/gold.recomendaciones, Data_Model.md §4.1;
+# None => SIN_DATO, nunca inventado). Decisión de Christian Ruiz (Tech Lead C4), avisada a C2/C3.
 class EscuelaOut(BaseModel):
     cct: StrictStr = Field(min_length=10, max_length=10)
     nombre: StrictStr
     nivel: StrictStr
     cve_mun: StrictStr = Field(min_length=5, max_length=5)
     matricula_total: StrictInt = Field(ge=0)
-    indice_riesgo: StrictFloat = Field(ge=0, le=1)
-    driver_dominante: StrictStr           # "D1".."D6"
+    indice_riesgo: StrictFloat | None = Field(None, ge=0, le=1)
+    driver_dominante: StrictStr | None       # "D1".."D6"
+    tiene_prediccion: bool                    # True si hay fila en gold.predicciones (ML-01)
 
 class EscuelaDetalleOut(EscuelaOut):
     sostenimiento: StrictStr
@@ -188,6 +220,7 @@ class EscuelaDetalleOut(EscuelaOut):
     indice_completitud_drivers: StrictFloat = Field(ge=0, le=1)
     d1: float | None; d2: float | None; d3: float | None
     d4: float | None; d5: float | None; d6: float | None   # None => SIN_DATO
+    es_estimado_por_grupo: bool | None        # DEC-008: indice_riesgo repartido a nivel grupo
 
 class MunicipioOut(BaseModel):
     cve_mun: StrictStr = Field(min_length=5, max_length=5)
@@ -209,7 +242,7 @@ class PrediccionOut(BaseModel):
     indice_riesgo: StrictFloat = Field(ge=0, le=1)   # ML-01
     driver_dominante: StrictStr                       # ML-02
     recomendacion: StrictStr
-    cluster: StrictInt                                # ML-03
+    cluster: StrictInt | None = None                  # ML-03, None sin productor (BUG-010)
     mlflow_run_id: StrictStr
 class PrediccionBatchIn(BaseModel):
     ccts: list[StrictStr] = Field(min_length=1, max_length=1000)
@@ -287,3 +320,38 @@ El objetivo del contrato en Semana 1 es que **nadie espere a que la API exista**
 
 > **Definición de "desbloqueado":** C2 y C3 pueden construir y probar end-to-end contra el mock antes
 > de que exista una sola línea de la implementación de la API.
+
+---
+
+## 7. Contrato interno API ↔ modelos (US-415)
+
+> Este contrato es **interno**: no es parte de la superficie REST del §3 ni del `PrediccionOut`
+> público. Define cómo `src/api` traduce entre `gold.features_escuela` (entrada) y las 3 salidas
+> crudas de ML-01/02/03 (Célula 3) **antes** de que `/predicciones/*` (US-412) las combine en la
+> respuesta pública. Vive en código en `src/api/schemas_ml.py`.
+
+1. **Entrada — `FeaturesEscuela`:** se **reutiliza** el contrato canónico de
+   `src/modelos/contrato.py` (dueño Célula 1/3, `Data_Model.md` §5.3); `schemas_ml.py` lo
+   reexporta, nunca lo redefine. Evita la divergencia que `Publicacion_Gold.md` §9 ya señala como
+   riesgo para el catálogo de recomendaciones.
+2. **Salidas crudas por modelo:**
+   - `ML01Salida` — `variacion_predicha` (float con signo, sin cota; mismo dominio que
+     `target_variacion_matricula`). La conversión a `indice_riesgo` ∈ [0,1] es
+     `src/modelos/riesgo.py::indice_riesgo`, capa de presentación de la Célula 3 — este contrato
+     no la reimplementa.
+   - `ML02Salida` — `driver_dominante` restringido a `Literal["D1"…"D6"]` (nunca texto libre) y
+     `probabilidades` opcional por clase.
+   - `ML03Salida` — `cluster` (entero ≥ 0).
+   - Las 3 llevan `cct`, `id_ciclo` y `mlflow_run_id` propios de su corrida.
+3. **`PrediccionModelos`:** combina las 3 salidas de una escuela × ciclo; un `model_validator`
+   rechaza el conjunto si no comparten `cct`/`id_ciclo` — mismo principio que el `CHECK` de
+   `gold.predicciones` (`Publicacion_Gold.md` §2). Es el insumo directo de `PrediccionOut` (§4);
+   `recomendacion` no es salida de ningún modelo, se deriva del catálogo prescriptivo compartido
+   con `src/modelos/recomendaciones.py`.
+
+> **Estado de los modelos en MLflow (26-ago-2026):** en el ambiente local, el registry no tiene
+> ninguno de los 3 modelos publicados todavía (`ML03_ClusteringEscuelas` en particular no tiene
+> aún código de entrenamiento propio — ver `15_ML_Models/_index.md`, US-321 sin entregar). US-412
+> implementa el servicio de inferencia contra este contrato con un *fake* inyectable (mismo patrón
+> `Depends` que `RepositorioGold` en `repositorio_gold.py`, US-411) mientras los 3 registros no
+> estén disponibles, siguiendo la regla de "no bloqueo silencioso" del plan de sprint.

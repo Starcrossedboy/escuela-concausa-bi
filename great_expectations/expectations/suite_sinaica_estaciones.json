@@ -1,0 +1,95 @@
+{
+  "expectations": [
+    {
+      "id": "25222eae-8d86-4d96-b143-5f93eb49e1e2",
+      "kwargs": {
+        "column": "id"
+      },
+      "meta": {},
+      "severity": "critical",
+      "type": "expect_column_values_to_not_be_null"
+    },
+    {
+      "id": "a2e22d18-d6c3-4977-a1bc-06753f10d747",
+      "kwargs": {
+        "column": "id"
+      },
+      "meta": {},
+      "severity": "critical",
+      "type": "expect_column_values_to_be_unique"
+    },
+    {
+      "id": "3ff52786-a666-4e4c-b46f-5351892a3c42",
+      "kwargs": {
+        "column": "id",
+        "type_": "int64"
+      },
+      "meta": {},
+      "severity": "critical",
+      "type": "expect_column_values_to_be_of_type"
+    },
+    {
+      "id": "87e40eb4-70dd-428f-a661-9590201413b7",
+      "kwargs": {
+        "column": "nombre"
+      },
+      "meta": {},
+      "severity": "critical",
+      "type": "expect_column_values_to_not_be_null"
+    },
+    {
+      "id": "e0045b9e-7418-45c6-a56f-fadbb0efa272",
+      "kwargs": {
+        "column": "latitud"
+      },
+      "meta": {},
+      "severity": "critical",
+      "type": "expect_column_values_to_not_be_null"
+    },
+    {
+      "id": "3094e79e-e8ea-444e-8154-2323e478801f",
+      "kwargs": {
+        "column": "longitud"
+      },
+      "meta": {},
+      "severity": "critical",
+      "type": "expect_column_values_to_not_be_null"
+    },
+    {
+      "id": "92c03c08-0d83-4009-a176-ecb506820ce3",
+      "kwargs": {
+        "column": "latitud",
+        "value_set": [
+          "0.0",
+          "0",
+          "",
+          "0.0000000000"
+        ]
+      },
+      "meta": {},
+      "severity": "critical",
+      "type": "expect_column_values_to_not_be_in_set"
+    },
+    {
+      "id": "9e2d76f9-b6cf-4274-b44d-41c2a71661a3",
+      "kwargs": {
+        "column": "longitud",
+        "value_set": [
+          "0.0",
+          "0",
+          "",
+          "0.0000000000"
+        ]
+      },
+      "meta": {},
+      "severity": "critical",
+      "type": "expect_column_values_to_not_be_in_set"
+    }
+  ],
+  "id": "d42507d6-266d-4b94-8e93-d4a3dffb9054",
+  "meta": {
+    "great_expectations_version": "1.21.0"
+  },
+  "name": "suite_sinaica_estaciones",
+  "notes": null
+}

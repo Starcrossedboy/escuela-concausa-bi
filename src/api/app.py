@@ -18,12 +18,14 @@ trazas, SQL ni rutas internas.
 from __future__ import annotations
 
 import uuid
+from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, Request, status
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
+from src.api.config import get_settings
 from src.api.schemas import ErrorOut
 from src.api.v1 import api_v1_router
 
@@ -62,6 +64,13 @@ def _respuesta_error(status_code: int, error: str, request_id: str) -> JSONRespo
     return JSONResponse(status_code=status_code, content=cuerpo.model_dump())
 
 
+@asynccontextmanager
+async def _lifespan(app: FastAPI):
+    # Falla rápido si se arranca en producción con un secreto JWT inseguro (US-402).
+    get_settings().assert_production_ready()
+    yield
+
+
 def create_app() -> FastAPI:
     """Construye la app del contrato v1 con sus routers y manejadores de error uniformes."""
     app = FastAPI(
@@ -75,6 +84,7 @@ def create_app() -> FastAPI:
         docs_url=f"{API_PREFIX}/docs",
         redoc_url=f"{API_PREFIX}/redoc",
         openapi_url=f"{API_PREFIX}/openapi.json",
+        lifespan=_lifespan,
     )
 
     app.include_router(api_v1_router, prefix=API_PREFIX)

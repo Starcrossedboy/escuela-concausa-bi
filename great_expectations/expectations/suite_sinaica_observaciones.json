@@ -1,0 +1,254 @@
+{
+  "expectations": [
+    {
+      "id": "5b9529d1-a495-4f72-8caa-23ca79b9fef9",
+      "kwargs": {
+        "column": "id_estacion"
+      },
+      "meta": {},
+      "severity": "critical",
+      "type": "expect_column_values_to_not_be_null"
+    },
+    {
+      "id": "88cfbf40-56b4-445a-83c9-0532e388d4bb",
+      "kwargs": {
+        "column": "parametro"
+      },
+      "meta": {},
+      "severity": "critical",
+      "type": "expect_column_values_to_not_be_null"
+    },
+    {
+      "id": "72ca12cd-eb6a-4075-b71e-25f8f67d1abf",
+      "kwargs": {
+        "column": "fecha"
+      },
+      "meta": {},
+      "severity": "critical",
+      "type": "expect_column_values_to_not_be_null"
+    },
+    {
+      "id": "ff9c0b7e-8a2d-479a-b55a-8cd4ef51e93c",
+      "kwargs": {
+        "column": "hora"
+      },
+      "meta": {},
+      "severity": "critical",
+      "type": "expect_column_values_to_not_be_null"
+    },
+    {
+      "id": "e1ce13b3-6605-4ad4-bb0b-1d6e267a87df",
+      "kwargs": {
+        "column": "valor"
+      },
+      "meta": {},
+      "severity": "critical",
+      "type": "expect_column_values_to_not_be_null"
+    },
+    {
+      "id": "3361521f-b7a0-4b05-a383-8451cecd6b99",
+      "kwargs": {
+        "column": "hora",
+        "type_": "int64"
+      },
+      "meta": {},
+      "severity": "critical",
+      "type": "expect_column_values_to_be_of_type"
+    },
+    {
+      "id": "21c57da3-6eb2-48be-b966-4768f763b00e",
+      "kwargs": {
+        "column": "valor",
+        "type_": "float64"
+      },
+      "meta": {},
+      "severity": "critical",
+      "type": "expect_column_values_to_be_of_type"
+    },
+    {
+      "id": "9e19e750-8e7b-48cc-84d2-90bfce21105f",
+      "kwargs": {
+        "column": "hora",
+        "max_value": 23.0,
+        "min_value": 0.0
+      },
+      "meta": {},
+      "severity": "critical",
+      "type": "expect_column_values_to_be_between"
+    },
+    {
+      "id": "2e88446e-6226-4bb2-a56f-f442dbf6cb84",
+      "kwargs": {
+        "column": "valor",
+        "min_value": 0.0
+      },
+      "meta": {},
+      "severity": "critical",
+      "type": "expect_column_values_to_be_between"
+    },
+    {
+      "id": "247997e7-946f-4dac-9aee-ce8d5abe3cfa",
+      "kwargs": {
+        "column": "val",
+        "value_set": [
+          0,
+          1
+        ]
+      },
+      "meta": {},
+      "severity": "critical",
+      "type": "expect_column_values_to_be_in_set"
+    },
+    {
+      "id": "2dd11686-7150-4280-b54c-1d3a7bf5e8ab",
+      "kwargs": {
+        "column": "parametro",
+        "value_set": [
+          "O3",
+          "CO",
+          "NO2",
+          "SO2",
+          "PM2.5",
+          "PM10"
+        ]
+      },
+      "meta": {},
+      "severity": "critical",
+      "type": "expect_column_values_to_be_in_set"
+    },
+    {
+      "id": "6b2954dd-3a4d-43c7-9748-d87dbcbe9711",
+      "kwargs": {
+        "column_list": [
+          "id_estacion",
+          "parametro",
+          "fecha",
+          "hora"
+        ]
+      },
+      "meta": {},
+      "severity": "critical",
+      "type": "expect_compound_columns_to_be_unique"
+    },
+    {
+      "id": "6c3ce4d0-2306-4ae1-a27f-b4870ebb071b",
+      "kwargs": {
+        "column": "valor",
+        "max_value": 0.5,
+        "min_value": 0.0,
+        "row_condition": {
+          "column": {
+            "name": "parametro"
+          },
+          "operator": "==",
+          "parameter": "O3",
+          "type": "comparison"
+        }
+      },
+      "meta": {},
+      "severity": "critical",
+      "type": "expect_column_values_to_be_between"
+    },
+    {
+      "id": "d2e9c6ca-766c-4064-947f-42de5aea3003",
+      "kwargs": {
+        "column": "valor",
+        "max_value": 50.0,
+        "min_value": 0.0,
+        "row_condition": {
+          "column": {
+            "name": "parametro"
+          },
+          "operator": "==",
+          "parameter": "CO",
+          "type": "comparison"
+        }
+      },
+      "meta": {},
+      "severity": "critical",
+      "type": "expect_column_values_to_be_between"
+    },
+    {
+      "id": "90dc681d-bf21-4e0e-8cb7-da8664120835",
+      "kwargs": {
+        "column": "valor",
+        "max_value": 1.0,
+        "min_value": 0.0,
+        "row_condition": {
+          "column": {
+            "name": "parametro"
+          },
+          "operator": "==",
+          "parameter": "NO2",
+          "type": "comparison"
+        }
+      },
+      "meta": {},
+      "severity": "critical",
+      "type": "expect_column_values_to_be_between"
+    },
+    {
+      "id": "8730d426-5acf-44e0-b420-05c304ae9e7a",
+      "kwargs": {
+        "column": "valor",
+        "max_value": 1.0,
+        "min_value": 0.0,
+        "row_condition": {
+          "column": {
+            "name": "parametro"
+          },
+          "operator": "==",
+          "parameter": "SO2",
+          "type": "comparison"
+        }
+      },
+      "meta": {},
+      "severity": "critical",
+      "type": "expect_column_values_to_be_between"
+    },
+    {
+      "id": "33b1cb7b-2084-460c-93f9-92eaf73e0cf8",
+      "kwargs": {
+        "column": "valor",
+        "max_value": 1000.0,
+        "min_value": 0.0,
+        "row_condition": {
+          "column": {
+            "name": "parametro"
+          },
+          "operator": "==",
+          "parameter": "PM2.5",
+          "type": "comparison"
+        }
+      },
+      "meta": {},
+      "severity": "critical",
+      "type": "expect_column_values_to_be_between"
+    },
+    {
+      "id": "e832c885-7d27-406a-a885-ebf6fa8f9e0e",
+      "kwargs": {
+        "column": "valor",
+        "max_value": 1200.0,
+        "min_value": 0.0,
+        "row_condition": {
+          "column": {
+            "name": "parametro"
+          },
+          "operator": "==",
+          "parameter": "PM10",
+          "type": "comparison"
+        }
+      },
+      "meta": {},
+      "severity": "critical",
+      "type": "expect_column_values_to_be_between"
+    }
+  ],
+  "id": "af3e45ce-7cd6-4a13-92a7-78be196c0b6c",
+  "meta": {
+    "great_expectations_version": "1.21.0"
+  },
+  "name": "suite_sinaica_observaciones",
+  "notes": null
+}

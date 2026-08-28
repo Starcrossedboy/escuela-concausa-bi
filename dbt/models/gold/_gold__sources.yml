@@ -1,0 +1,101 @@
+version: 2
+
+sources:
+  - name: silver
+    schema: silver
+    tables:
+      - name: matricula
+        description: Matrícula por escuela y ciclo escolar, conformada en Silver (DS-01)
+        columns:
+          - name: cct
+            description: Llave de escuela (10 caracteres)
+          - name: ciclo
+            description: "Ciclo escolar canónico en Silver (AAAA-AAAA); Gold lo aliasea a id_ciclo."
+          - name: cve_ent
+            description: Clave INEGI de entidad (2 dígitos); usada para el filtro SCOPE_ENTIDADES
+      - name: matricula_historica
+        description: >
+          Matrícula histórica multi-ciclo por cct x ciclo, aislada de `matricula` (DS-01,
+          RISK-007/DEC-007), conformada en Silver.
+        columns:
+          - name: cct
+            description: Llave de escuela (10 caracteres)
+          - name: ciclo
+            description: "Ciclo escolar, formato AAAA-AAAA (ej. 2023-2024)"
+          - name: cve_ent
+            description: Clave INEGI de entidad (2 dígitos); usada para el filtro SCOPE_ENTIDADES
+          - name: cve_mun
+            description: Clave INEGI de municipio (5 dígitos)
+          - name: nivel
+            description: "Nivel educativo, normalizado a MAYÚSCULAS (match con dim_escuela.nivel)"
+          - name: matricula_total
+            description: "Matrícula total de la escuela en el ciclo (suma de turnos)"
+      - name: cemabe
+        description: >
+          Infraestructura escolar a nivel CCT, conformada en Silver (DS-03). Alimenta D3
+          (infraestructura) y D4 (conectividad) vía ADR-004.
+        columns:
+          - name: cct
+            description: Llave de escuela (10 caracteres)
+          - name: drenaje
+          - name: electricidad
+          - name: sanitarios
+          - name: internet
+          - name: computadoras
+
+      - name: rezago_municipio
+        description: >
+          Rezago social y pobreza municipal, conformada en Silver (DS-07). Alimenta D1
+          (pobreza y rezago social).
+        columns:
+          - name: cve_mun
+            description: Clave INEGI de municipio (5 dígitos)
+          - name: indice_rezago_social
+          - name: indice_rezago_social_cobertura
+          - name: periodo_medicion
+
+      - name: delitos_municipio
+        description: >
+          Incidencia delictiva municipal, conformada en Silver (DS-04). Alimenta D2
+          (inseguridad del entorno).
+        columns:
+          - name: cve_mun
+            description: Clave INEGI de municipio (5 dígitos)
+          - name: anio
+          - name: mes
+          - name: conteo
+
+      - name: escuela
+        description: >
+          Catálogo de escuelas (identidad y georreferencia), conformada en Silver (DS-02).
+          Llave primaria del proyecto: alimenta dim_escuela y el cve_mun de fact_escuela_ciclo.
+        columns:
+          - name: cct
+            description: Llave de escuela (10 caracteres)
+          - name: cve_ent
+          - name: cve_mun
+
+      - name: poblacion_municipio
+        description: >
+          Proyecciones de población por municipio y grupo de edad, conformada en Silver
+          (DS-08). Alimenta la población (denominador) de dim_municipio.
+        columns:
+          - name: cve_mun
+            description: Clave INEGI de municipio (5 dígitos)
+          - name: anio
+          - name: poblacion
+      
+      - name: aire_estacion
+        description: >
+          Lecturas horarias de calidad del aire por estación y parámetro, conformada en
+          Silver (DS-05, SINAICA). Alimenta D6 (calidad del aire) vía interpolación IDW
+          hacia cada escuela georreferenciada (ADR-006, US-105).
+        columns:
+          - name: id_estacion
+          - name: parametro
+            description: "Contaminante (PM2.5, PM10, O3, CO, NO2, SO2); el modelo usa solo PM2.5"
+          - name: valor
+          - name: dato_valido
+            description: "Bandera de validez de la lectura (1 = válida, propia de la API SINAICA)"
+          - name: latitud
+          - name: longitud

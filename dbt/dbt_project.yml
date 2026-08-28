@@ -1,19 +1,88 @@
+
+# Name your project! Project names should contain only lowercase characters
+# and underscores. A good package name should reflect your organization's
+# name or the intended use of these models
 name: 'faro'
 version: '1.0.0'
 config-version: 2
 
+# This setting configures which "profile" dbt uses for this project.
 profile: 'faro'
 
+# These configurations specify where dbt should look for different types of files.
 model-paths: ["models"]
+analysis-paths: ["analyses"]
 test-paths: ["tests"]
 seed-paths: ["seeds"]
 macro-paths: ["macros"]
+snapshot-paths: ["snapshots"]
 
-clean-targets:
+clean-targets:         # directories to be removed by `dbt clean`
   - "target"
   - "dbt_packages"
 
+# ═══════════════════════════════════════════════════════════════════
+# VARS DE MODELO — defaults permanentes (BUG-009, DEC-011)
+# ═══════════════════════════════════════════════════════════════════
+# Sin estos defaults, `dbt parse` / `dbt run` / `dbt test` fallan de entrada:
+# dbt renderiza TODO el proyecto antes de ejecutar cualquier selección, así que
+# una var sin valor rompe el build aunque el modelo elegido no la use.
+#
+# Reparto (DEC-011, ratificado por Diana Alvarez Varela, TL Célula 1):
+#   - Los `identifier` de fuentes Bronze llevan su default INLINE en
+#     `models/sources.yml`, siguiendo el patrón que ya usaban formato911,
+#     formato911_historico y cemabe — el nombre de la tabla y su default se
+#     auditan en el mismo lugar.
+#   - Estas 4 vars NO son identifiers y no tienen dónde vivir en `sources.yml`,
+#     así que viven aquí.
+#
+# Cualquiera se sobrescribe por ambiente con `--vars` sin tocar el repo.
+vars:
+  # Nombre real de la columna en `bronze.conapo` (DS-08 · Emilio Galnares Ruiz).
+  # Usada por models/silver/poblacion_municipio.sql.
+  bronze_conapo_age_column: "grupo_edad"
+
+  # Nombre real de la columna en `bronze.sesnsp` (DS-04 · Luis Enrique García Vázquez).
+  # Usada por models/silver/delitos_municipio.sql.
+  bronze_sesnsp_count_column: "conteo"
+
+  # Nombre esperado de la columna identificadora en `bronze.conagua` (DS-06 · Emilio
+  # Galnares Ruiz), según el esquema documentado en 14_Data_Sources/DS-06_CONAGUA_SINA.md
+  # y src/ingesta/extractor_conagua.py. NO verificado contra datos reales: la fuente
+  # todavía no se ingiere (ver el default falso `conagua_no_ingerido` en sources.yml).
+  # Usada por models/silver/agua_region.sql.
+  bronze_conagua_id_column: "id_estacion"
+
+  # ⚠️ DEUDA TÉCNICA ACEPTADA POR EDGAR CORONEL (PM) — BUG-009, 2026-08-23.
+  # `coneval_periodo_medicion` NO es una columna: ninguna de las tablas `coneval_*`
+  # trae año o período, así que es un entero fijo que hay que decidir a mano.
+  # `2020` es un PLACEHOLDER sin confirmar contra la fuente, heredado del ensayo E2E
+  # (PR #70). Si está mal, etiqueta mal el período de medición del rezago social en
+  # `silver.rezago_municipio` y todo lo que cuelga de ahí — no rompe el build, miente
+  # en silencio. Pendiente de confirmación por Deni Garrido Fragoso (dueña de DS-07)
+  # antes del freeze del 6-sep-2026. Usada por models/silver/rezago_municipio.sql.
+  coneval_periodo_medicion: 2020
+
+# Configuring models
+# Full documentation: https://docs.getdbt.com/docs/configuring-models
+#
+# NOTA (merge 2026-08-18, Diana): antes de este merge había DOS dbt_project.yml en
+# conflicto — el de Deni en main (name/profile 'faro', capa silver) y el mío en esta
+# rama (name/profile 'faro_gold', capa gold). Se consolidan aquí en un solo proyecto
+# 'faro' con ambas capas. Si tu ~/.dbt/profiles.yml todavía tiene un target 'faro_gold',
+# necesitas agregar/renombrar a un target 'faro' (ver _DevLog del merge).
 models:
   faro:
     silver:
       +materialized: table
+      +schema: silver
+    gold:
+      +materialized: table
+      +schema: gold
+
+# `dim_driver` es un catálogo estático, pero forma parte del esquema estrella Gold.
+# Se materializa explícitamente en `gold.dim_driver` para no depender de target.schema.
+seeds:
+  faro:
+    dim_driver:
+      +schema: gold

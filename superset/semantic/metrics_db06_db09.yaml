@@ -1,0 +1,236 @@
+# =============================================================================
+# Capa semantica de DB-06 y DB-09 - metricas, jerarquias y filtros
+# -----------------------------------------------------------------------------
+# Historia : US-204 (Manuel Alejandro Serrania Reinada, Celula 2 - Analytics & BI)
+# Contrato : 04_UX_Design/Cube_Specs_DB06_DB09.md (DOC-CUBESPEC-DB0609)
+# Uso      : declaracion de las metricas que se dan de alta en Superset al
+#            construir DB-06 Predicciones y DB-09 Recomendaciones prescriptivas.
+#            Formato propio del proyecto fijado en US-202.
+#
+# Regla transversal: toda razon se expresa como SUM(numerador)/SUM(denominador)
+# para que se pueda reagregar con cualquier combinacion de filtros globales.
+# Ninguna metrica usa COALESCE(<driver>, 0): SIN_DATO nunca se dibuja como cero.
+#
+# Grano dual de predicciones (DEC-010): los tres datasets leen SOLO el grano
+# `escuela` (los SQL filtran p.grano IS NULL OR p.grano = 'escuela' y unen por
+# cct). La cobertura se declara con `banderas_cobertura`, nunca rellenando 0.
+# =============================================================================
+
+version: "1.0"
+owner: "Manuel Alejandro Serranía Reinada"
+story: US-204
+traces_up: DOC-CUBESPEC-DB0609
+
+# -----------------------------------------------------------------------------
+# Filtros globales (AC-002.2) - aplican a los dos tableros
+# -----------------------------------------------------------------------------
+filtros_globales:
+  - nombre: ciclo
+    columna: id_ciclo
+    etiqueta: "Ciclo escolar"
+    default: ultimo_ciclo
+  - nombre: entidad
+    columna: nombre_entidad
+    etiqueta: "Entidad"
+    nota: >
+      Filtra por nombre legible ('Jalisco', 'Nuevo Leon', ...); `cve_ent` sigue
+      expuesta en todos los datasets como llave canónica del territorio.
+      Acotado a SCOPE_ENTIDADES (09, 15, 19, 14).
+  - nombre: nivel
+    columna: nivel
+    etiqueta: "Nivel educativo"
+
+datasets:
+  # ---------------------------------------------------------------------------
+  # DB-06 - Predicciones · cubo municipal (KPI-01/02/05/12 + contexto 03/04)
+  # ---------------------------------------------------------------------------
+  - nombre: db06_cubo_predicciones
+    dashboard: DB-06
+    sql: db06_cubo_predicciones.sql
+    grano: [cve_mun, nivel, id_ciclo]
+    llave_primaria: [cve_mun, nivel, id_ciclo]
+    cubo_canonico_futuro: gold.cubo_matricula
+    banderas_cobertura: [cobertura_prediccion]
+
+    jerarquias:
+      - nombre: territorio
+        niveles: [cve_ent, cve_mun]
+      - nombre: tiempo
+        niveles: [anio_inicio, id_ciclo]
+
+    metricas:
+      - nombre: escuelas
+        etiqueta: "Escuelas"
+        expresion: "SUM(escuelas)"
+        formato: entero
+      - nombre: matricula_total
+        etiqueta: "Matrícula total"
+        expresion: "SUM(matricula_total)"
+        formato: entero
+        kpi: KPI-01
+      - nombre: variacion_ponderada_pct
+        etiqueta: "Variación de matrícula (observada)"
+        expresion: "SUM(variacion_x_matricula) / NULLIF(SUM(matricula_total), 0)"
+        formato: porcentaje_1
+        kpi: KPI-02
+      - nombre: completitud_promedio
+        etiqueta: "Completitud de drivers"
+        expresion: "SUM(suma_completitud) / NULLIF(SUM(escuelas), 0)"
+        formato: porcentaje_0
+        kpi: KPI-05
+      - nombre: variacion_proyectada_promedio
+        etiqueta: "Variación proyectada (ML-01)"
+        expresion: "SUM(suma_variacion_proyectada) / NULLIF(SUM(escuelas_con_prediccion), 0)"
+        formato: porcentaje_1
+        kpi: KPI-12
+        cobertura: cobertura_prediccion
+        denominador_visible: escuelas_con_prediccion
+        nota: >
+          Divide entre escuelas con proyección ML-01, no entre el total:
+          promediar SIN_DATO como cero afirmaría que el modelo proyectó donde
+          no lo hizo (Screen_Specs §4, KPI-12).
+      - nombre: escuelas_con_prediccion
+        etiqueta: "Escuelas con predicción"
+        expresion: "SUM(escuelas_con_prediccion)"
+        formato: entero
+      - nombre: pct_escuelas_con_prediccion
+        etiqueta: "% escuelas con predicción"
+        expresion: "SUM(escuelas_con_prediccion) / NULLIF(SUM(escuelas), 0)"
+        formato: porcentaje_0
+      - nombre: indice_riesgo_promedio
+        etiqueta: "Índice de riesgo promedio"
+        expresion: "SUM(suma_indice_riesgo) / NULLIF(SUM(escuelas_con_prediccion), 0)"
+        formato: decimal_2
+        kpi: KPI-03
+        cobertura: cobertura_prediccion
+      - nombre: escuelas_en_riesgo
+        etiqueta: "Escuelas en riesgo"
+        expresion: "SUM(escuelas_en_riesgo)"
+        formato: entero
+        kpi: KPI-04
+        umbral: 0.6
+        cobertura: cobertura_prediccion
+        nota: "Solo cuenta escuelas puntuadas por ML-01 (cobertura_prediccion = 'OK')."
+      - nombre: pct_escuelas_en_riesgo
+        etiqueta: "% escuelas en riesgo"
+        expresion: "SUM(escuelas_en_riesgo) / NULLIF(SUM(escuelas_con_prediccion), 0)"
+        formato: porcentaje_1
+        denominador_visible: escuelas_con_prediccion
+
+  # ---------------------------------------------------------------------------
+  # DB-06 - Predicciones · grano de detalle (distribución y semáforo)
+  # ---------------------------------------------------------------------------
+  - nombre: db06_predicciones_escuela
+    dashboard: DB-06
+    sql: db06_predicciones_escuela.sql
+    grano: [cct, id_ciclo]
+    llave_primaria: [cct, id_ciclo]
+    banderas_cobertura: [cobertura_prediccion]
+
+    metricas:
+      - nombre: escuelas
+        etiqueta: "Escuelas"
+        expresion: "COUNT(DISTINCT cct)"
+        formato: entero
+      - nombre: matricula_total
+        etiqueta: "Matrícula total"
+        expresion: "SUM(matricula_total)"
+        formato: entero
+        kpi: KPI-01
+      - nombre: variacion_ponderada_pct
+        etiqueta: "Variación de matrícula (observada)"
+        expresion: "SUM(variacion_matricula * matricula_total) / NULLIF(SUM(matricula_total), 0)"
+        formato: porcentaje_1
+        kpi: KPI-02
+      - nombre: indice_riesgo
+        etiqueta: "Índice de riesgo"
+        expresion: "AVG(indice_riesgo)"
+        formato: decimal_2
+        kpi: KPI-03
+        cobertura: cobertura_prediccion
+        nota: "Grano de una sola fila por (cct, ciclo): AVG devuelve el valor de la fila."
+      - nombre: escuelas_en_riesgo
+        etiqueta: "Escuelas en riesgo"
+        expresion: "SUM(CASE WHEN en_riesgo THEN 1 END)"
+        formato: entero
+        kpi: KPI-04
+        umbral: 0.6
+        cobertura: cobertura_prediccion
+        nota: "en_riesgo es NULL sin predicción: solo suma los TRUE reales, nunca los desconocidos."
+      - nombre: variacion_proyectada
+        etiqueta: "Variación proyectada (ML-01)"
+        expresion: "AVG(variacion_proyectada)"
+        formato: porcentaje_1
+        kpi: KPI-12
+        cobertura: cobertura_prediccion
+      - nombre: probabilidad
+        etiqueta: "Probabilidad del modelo"
+        expresion: "AVG(probabilidad)"
+        formato: decimal_2
+
+  # ---------------------------------------------------------------------------
+  # DB-09 - Recomendaciones prescriptivas (KPI-11, KPI-07 + KPI-04 contexto)
+  # ---------------------------------------------------------------------------
+  - nombre: db09_cubo_recomendaciones
+    dashboard: DB-09
+    sql: db09_cubo_recomendaciones.sql
+    grano: [cct, id_ciclo]
+    llave_primaria: [cct, id_ciclo]
+    cubo_canonico_futuro: gold.cubo_recomendaciones
+    banderas_cobertura: [cobertura_recomendacion, cobertura_prediccion]
+
+    jerarquias:
+      - nombre: territorio
+        niveles: [cve_ent, cve_mun, cct]
+      - nombre: tiempo
+        niveles: [anio_inicio, id_ciclo]
+
+    metricas:
+      - nombre: escuelas
+        etiqueta: "Escuelas"
+        expresion: "COUNT(DISTINCT cct)"
+        formato: entero
+        kpi: KPI-07
+        nota: >
+          KPI-07 se dibuja agrupando por `nombre_driver`: la categoría 'SIN_DATO'
+          agrupa las escuelas que ML-02 todavía no ha explicado y se muestra como
+          tal, nunca se reparte entre drivers reales.
+      - nombre: matricula_total
+        etiqueta: "Matrícula total"
+        expresion: "SUM(matricula_total)"
+        formato: entero
+        kpi: KPI-01
+      - nombre: recomendaciones_emitidas
+        etiqueta: "Recomendaciones emitidas"
+        expresion: "SUM(recomendacion_emitida)"
+        formato: entero
+        kpi: KPI-11
+        nota: "
+          Componente aditivo de gold.cubo_recomendaciones (US-113): el único 0
+          permitido, con paridad validada contra gold.recomendaciones.
+        "
+      - nombre: recomendaciones_prioridad_alta
+        etiqueta: "Recomendaciones de prioridad ALTA"
+        expresion: "SUM(CASE WHEN prioridad = 'ALTA' THEN 1 END)"
+        formato: entero
+        cobertura: cobertura_recomendacion
+      - nombre: pct_escuelas_recomendadas
+        etiqueta: "% escuelas con recomendación"
+        expresion: "SUM(recomendacion_emitida) / NULLIF(COUNT(DISTINCT cct), 0)"
+        formato: porcentaje_0
+        denominador_visible: escuelas
+      - nombre: indice_riesgo
+        etiqueta: "Índice de riesgo"
+        expresion: "AVG(indice_riesgo)"
+        formato: decimal_2
+        kpi: KPI-03
+        cobertura: cobertura_prediccion
+        nota: "Columna de la tabla 'Escuelas a intervenir' (grano cct × ciclo: AVG devuelve el valor de la fila)."
+      - nombre: escuelas_en_riesgo
+        etiqueta: "Escuelas en riesgo"
+        expresion: "SUM(CASE WHEN en_riesgo THEN 1 END)"
+        formato: entero
+        kpi: KPI-04
+        umbral: 0.6
+        cobertura: cobertura_prediccion
+        nota: "Contexto global (AC-002.5): el riesgo llega por LEFT JOIN a predicciones (ML-01)."

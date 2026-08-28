@@ -308,7 +308,7 @@ Actualiza esta tabla **antes de cada standup**. El PM la revisa para el tablero 
 | `US-201` | Disenar el portafolio de 10 dashboards y e | ✅ Terminado | 100% | — | Dom 9 ago |
 | `US-202` | Configurar Superset: conexion, datasets y  | 🔵 En revisión | 100% | — | Dom 23 ago |
 | `US-203` | Construir DB-01 Ejecutivo y DB-02 Mapa de  | ⬜ Por iniciar | 0% | — | Dom 30 ago |
-| `US-204` | Construir DB-06 Predicciones y DB-09 Recom | ⬜ Por iniciar | 0% | — | Dom 30 ago |
+| `US-204` | Construir DB-06 Predicciones y DB-09 Recom | 🔵 En revisión | 100% | — | Dom 30 ago |
 | `US-205` | Integrar y armonizar los 10 dashboards | ⬜ Por iniciar | 0% | — | Dom 6 sep |
 
 **Estados válidos:** ⬜ Por iniciar · 🟡 En curso · 🔵 En revisión (PR abierto) · ✅ Terminado · 🔴 Bloqueado

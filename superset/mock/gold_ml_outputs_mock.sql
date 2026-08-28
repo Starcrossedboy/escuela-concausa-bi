@@ -17,12 +17,12 @@
 --     este archivo se descarta: TRUNCATE/DROP local y listo. Las filas llevan
 --     mlflow_run_id = 'MOCK-US203' para identificarlas.
 --   * Único cambio de esquema permitido: ADD COLUMN IF NOT EXISTS sobre
---     gold.predicciones para completar el contrato DEC-005 si la tabla local
---     quedó con el esquema mínimo. Nunca borra ni reescribe nada.
+--     gold.predicciones para completar el contrato DEC-005/DEC-010 si la tabla
+--     local quedó con el esquema mínimo. Nunca borra ni reescribe nada.
 --
--- Esquema conforme a Data_Model.md §4.5 y DEC-005:
+-- Esquema conforme a Data_Model.md §4.5, DEC-005 y DEC-010 (grano dual):
 --   gold.predicciones    : cct, id_ciclo, modelo, valor, indice_riesgo,
---                          probabilidad, mlflow_run_id, generado_at
+--                          probabilidad, mlflow_run_id, generado_at, grano
 --   gold.recomendaciones : cct, id_ciclo, driver_dominante, recomendacion, prioridad
 --
 -- Uso:
@@ -42,6 +42,7 @@ CREATE TABLE IF NOT EXISTS gold.predicciones (
     probabilidad  DOUBLE PRECISION,
     mlflow_run_id TEXT,
     generado_at   TIMESTAMPTZ DEFAULT now(),
+    grano         TEXT DEFAULT 'escuela',
     UNIQUE (cct, id_ciclo, modelo)
 );
 
@@ -58,6 +59,10 @@ CREATE TABLE IF NOT EXISTS gold.recomendaciones (
 -- trazabilidad), se completan las columnas del contrato de forma aditiva.
 ALTER TABLE gold.predicciones ADD COLUMN IF NOT EXISTS mlflow_run_id TEXT;
 ALTER TABLE gold.predicciones ADD COLUMN IF NOT EXISTS generado_at TIMESTAMPTZ DEFAULT now();
+-- DEC-010: grano dual. Plano 'escuela' (llave cct x id_ciclo) es el default
+-- legacy-safe; las filas existentes se rellenan con 'escuela' al ejecutar ADD
+-- COLUMN y las futuras filas municipio x nivel de C3 traen su grano explicito.
+ALTER TABLE gold.predicciones ADD COLUMN IF NOT EXISTS grano TEXT DEFAULT 'escuela';
 
 -- ---------------------------------------------------------------------------
 -- Mock de ML-01: riesgo deterministico por hash del CCT (0.10 – 0.89).

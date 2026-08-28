@@ -1,0 +1,105 @@
+# =============================================================================
+# DB-06 - Tablero Predicciones · definicion declarativa (US-204)
+# -----------------------------------------------------------------------------
+# Historia : US-204 (Manuel Alejandro Serrania Reinada, Celula 2 - Analytics & BI)
+# Contrato : 04_UX_Design/Cube_Specs_DB06_DB09.md §3-§4
+# Consumido por : superset/sync_semantic_layer.py (idempotente)
+#
+# Diferenciador: la proyeccion ML-01 (variacion proyectada) y el riesgo, ambos
+# con cobertura explicita. El desigualador lo hace el cubo, no el chart:
+# variacion_proyectada_promedio divide entre escuelas_con_prediccion y
+# pct_escuelas_con_prediccion informa el tamanio real de esa muestra (R2).
+# =============================================================================
+
+version: "1.0"
+owner: "Manuel Alejandro Serranía Reinada"
+story: US-204
+
+dashboards:
+  - titulo: "DB-06 · Predicciones"
+    slug: db06-predicciones
+    descripcion: >
+      Dónde está y hacia dónde va la matrícula del alcance: KPI-01/02 observados,
+      KPI-12 proyectado por ML-01, KPI-05 completitud de drivers y distribución
+      del índice de riesgo (KPI-03/04) por escuela y municipio.
+    filtros_globales:
+      - columna: id_ciclo
+        etiqueta: "Ciclo escolar"
+        datasets: [db06_cubo_predicciones, db06_predicciones_escuela]
+      - columna: nombre_entidad
+        etiqueta: "Entidad"
+        datasets: [db06_cubo_predicciones, db06_predicciones_escuela]
+      - columna: nivel
+        etiqueta: "Nivel educativo"
+        datasets: [db06_cubo_predicciones, db06_predicciones_escuela]
+
+    charts:
+      # ----- Fila 1: tiles KPI ------------------------------------------------
+      - nombre: "KPI-01 · Matrícula total"
+        dataset: db06_cubo_predicciones
+        metrica: matricula_total
+        viz: big_number_total
+        ancho: 3
+        alto: 38
+        subheader: "Alumnado inscrito en el ciclo seleccionado"
+
+      - nombre: "KPI-02 · Variación observada"
+        dataset: db06_cubo_predicciones
+        metrica: variacion_ponderada_pct
+        viz: big_number_total
+        ancho: 3
+        alto: 38
+        subheader: "Variación ponderada vs ciclo anterior"
+
+      - nombre: "KPI-12 · Variación proyectada (ML-01)"
+        dataset: db06_cubo_predicciones
+        metrica: variacion_proyectada_promedio
+        viz: big_number_total
+        ancho: 3
+        alto: 38
+        subheader: "Proyección por escuela AND cobertura de la muestra"
+
+      - nombre: "% escuelas con predicción"
+        dataset: db06_cubo_predicciones
+        metrica: pct_escuelas_con_prediccion
+        viz: big_number_total
+        ancho: 3
+        alto: 38
+        subheader: "Qué tan representativa es la proyección (R2: no inventa ceros)"
+
+      # ----- Fila 2: observada vs proyectada por ciclo -------------------------
+      - nombre: "Matrícula observada por ciclo"
+        dataset: db06_cubo_predicciones
+        metrica: matricula_total
+        viz: echarts_timeseries_line
+        ancho: 6
+        alto: 60
+        eje_x: ciclo
+        etiqueta_serie: "Matrícula total"
+
+      - nombre: "Variación proyectada (ML-01) por ciclo"
+        dataset: db06_cubo_predicciones
+        metrica: variacion_proyectada_promedio
+        viz: echarts_timeseries_line
+        ancho: 6
+        alto: 60
+        eje_x: ciclo
+        etiqueta_serie: "Variación proyectada promedio"
+
+      # ----- Fila 3: distribución del riesgo y ranking municipal ---------------
+      - nombre: "Distribución del riesgo proyectado"
+        dataset: db06_predicciones_escuela
+        metrica: escuelas
+        viz: pie
+        ancho: 4
+        alto: 55
+        dimensiones: [rango_riesgo]
+
+      - nombre: "Ranking municipal por riesgo"
+        dataset: db06_cubo_predicciones
+        metrica: escuelas_en_riesgo
+        viz: table
+        ancho: 8
+        alto: 55
+        dimensiones: [nombre_entidad, nombre_municipio]
+        row_limit: 50

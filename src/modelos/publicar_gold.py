@@ -51,8 +51,17 @@ from sqlalchemy import (
 from sqlalchemy.engine import Engine
 
 from src.modelos.contrato import DRIVERS
-from src.modelos.entrenar_ml01 import cargar_features, entrenar_y_evaluar
-from src.modelos.entrenar_ml02 import cargar_features_ml02, predecir_driver
+from src.modelos.entrenar_ml01 import (
+    cargar_features,
+    cargar_features_desde_gold,
+    entrenar_y_evaluar,
+)
+from src.modelos.entrenar_ml02 import (
+    COLUMNA_TARGET_PROXY,
+    COLUMNA_TARGET_REAL,
+    generar_driver_dominante_proxy,
+    predecir_driver,
+)
 from src.modelos.entrenar_ml02 import entrenar_y_evaluar as entrenar_ml02
 from src.modelos.particion_temporal import COLUMNA_CICLO, ciclos_ordenados
 from src.modelos.recomendaciones import CODIGOS_DRIVER, RECOMENDACION_POR_DRIVER
@@ -501,7 +510,17 @@ def _motor(url: str | None = None) -> Engine:
 def main() -> int:
     """Entrena ML-01, construye las filas de Gold y las publica."""
     parser = argparse.ArgumentParser(description="Publica predicciones y recomendaciones (US-313).")
-    parser.add_argument("--features", type=Path, default=Path("tests/fixtures/features_escuela_mock.csv"))
+    parser.add_argument(
+        "--features",
+        type=Path,
+        default=Path("tests/fixtures/features_escuela_mock.csv"),
+        help="ruta al fixture; se ignora con --desde-gold",
+    )
+    parser.add_argument(
+        "--desde-gold",
+        action="store_true",
+        help="lee `gold.features_escuela` de la base en vez del fixture (BUG-013)",
+    )
     parser.add_argument("--url", default=None, help="URL SQLAlchemy; por defecto DATABASE_URL")
     parser.add_argument("--run-id", default="local-sin-mlflow", help="mlflow_run_id a registrar")
     parser.add_argument("--esquema", default=ESQUEMA_GOLD)
@@ -513,7 +532,16 @@ def main() -> int:
     )
     args = parser.parse_args()
 
-    features = cargar_features(args.features)
+    engine = _motor(args.url)
+    if args.desde_gold:
+        features = cargar_features_desde_gold(engine, esquema=args.esquema)
+        print(
+            f"Features desde gold.features_escuela: {len(features)} filas · "
+            f"{features['cct'].nunique()} escuelas · ciclos {sorted(features['id_ciclo'].unique())}"
+        )
+    else:
+        features = cargar_features(args.features)
+        print(f"Features desde el fixture {args.features} — DATOS SINTÉTICOS")
     resultado = entrenar_y_evaluar(features, n_ventanas=args.ventanas)
     print(f"ML-01 entrenado — MAE {resultado.mae_promedio:.4f} ± {resultado.mae_desviacion:.4f}")
 
@@ -521,7 +549,6 @@ def main() -> int:
     print(f"Predicciones construidas: {len(predicciones)} filas (ciclo {predicciones['id_ciclo'].iloc[0]})")
 
     metadata, tabla_pred, tabla_rec = _metadatos(args.esquema)
-    engine = _motor(args.url)
     escritas = escribir(predicciones, tabla_pred, engine, metadata)
     print(f"gold.{TABLA_PREDICCIONES}: {escritas} filas publicadas (upsert idempotente)")
 
@@ -529,7 +556,9 @@ def main() -> int:
         print("gold.recomendaciones omitida por --solo-predicciones.")
         return 0
 
-    features_ml02 = cargar_features_ml02(args.features)
+    features_ml02 = features.copy()
+    if COLUMNA_TARGET_REAL not in features_ml02.columns:
+        features_ml02[COLUMNA_TARGET_PROXY] = generar_driver_dominante_proxy(features_ml02)
     resultado_ml02 = entrenar_ml02(features_ml02, n_ventanas=args.ventanas)
     recomendaciones = construir_recomendaciones_ml02(
         predicciones,

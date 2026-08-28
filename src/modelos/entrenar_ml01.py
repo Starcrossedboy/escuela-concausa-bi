@@ -140,11 +140,54 @@ def cargar_features(ruta: Path = FEATURES_POR_DEFECTO) -> pd.DataFrame:
             f"No existe {ruta}. Genera el fixture con: python -m src.modelos.generar_fixture"
         )
     df = pd.read_parquet(ruta) if ruta.suffix == ".parquet" else pd.read_csv(ruta)
+    return _validar_contrato(df, "La tabla de features")
 
+
+def _validar_contrato(df: pd.DataFrame, origen: str) -> pd.DataFrame:
+    """Comprueba que la tabla traiga las columnas del contrato `FeaturesEscuela` (§5.3)."""
     faltantes = ({COLUMNA_TARGET, COLUMNA_CICLO, "cct"} | set(DRIVERS)) - set(df.columns)
     if faltantes:
-        raise ValueError(f"La tabla de features no cumple el contrato; faltan: {sorted(faltantes)}")
+        raise ValueError(
+            f"{origen} no cumple el contrato de `gold.features_escuela`; faltan: {sorted(faltantes)}"
+        )
     return df
+
+
+def cargar_features_desde_gold(
+    engine,
+    esquema: str = "gold",
+    tabla: str = "features_escuela",
+) -> pd.DataFrame:
+    """Lee `gold.features_escuela` directamente de la base, en vez del fixture (cierra BUG-013).
+
+    `publicar_gold` nació apuntando al fixture sintético porque la Célula 1 aún no materializaba
+    Gold. Con la tabla real disponible, seguir leyendo el fixture publica predicciones de un ciclo
+    que el hecho real no tiene: el `JOIN` por `(cct, id_ciclo)` da cero y DB-03 muestra
+    `SIN_DATO` en el 100 % de las escuelas.
+
+    Args:
+        engine: motor SQLAlchemy apuntando al Postgres donde vive Gold.
+        esquema: esquema de la tabla.
+        tabla: nombre de la tabla de features.
+
+    Returns:
+        DataFrame con el contrato `FeaturesEscuela`.
+
+    Raises:
+        ValueError: si la tabla no existe, está vacía o no cumple el contrato.
+    """
+    from sqlalchemy import inspect as _inspect
+
+    if not _inspect(engine).has_table(tabla, schema=esquema):
+        raise ValueError(
+            f"No existe `{esquema}.{tabla}` en la base. Materialízala con `dbt run` antes de "
+            "publicar (US-104, Célula 1)."
+        )
+
+    df = pd.read_sql_table(tabla, engine, schema=esquema)
+    if df.empty:
+        raise ValueError(f"`{esquema}.{tabla}` existe pero está vacía; no hay nada que publicar.")
+    return _validar_contrato(df, f"`{esquema}.{tabla}`")
 
 
 def _matriz(df: pd.DataFrame) -> pd.DataFrame:

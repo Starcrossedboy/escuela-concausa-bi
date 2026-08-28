@@ -18,6 +18,7 @@ from src.modelos.entrenar_ml01 import (
     MetricasVentana,
     _matriz,
     cargar_features,
+    cargar_features_desde_gold,
     entrenar_y_evaluar,
 )
 from src.modelos.generar_fixture import SCOPE_ENTIDADES
@@ -161,3 +162,47 @@ def test_mejora_sobre_baseline_es_negativa_si_el_modelo_es_peor() -> None:
         n_prueba=5,
     )
     assert ventana.mejora_sobre_baseline < 0
+
+
+# ------------------------------------------------- lectura desde Gold (BUG-013)
+
+
+def _engine_tmp(tmp_path):
+    from sqlalchemy import create_engine
+
+    return create_engine(f"sqlite:///{tmp_path / 'gold.db'}")
+
+
+def test_lee_las_features_desde_la_tabla_de_gold(features: pd.DataFrame, tmp_path) -> None:
+    """El camino que cierra BUG-013: publicar desde `gold.features_escuela`, no del fixture."""
+    engine = _engine_tmp(tmp_path)
+    features.to_sql("features_escuela", engine, index=False)
+
+    leidas = cargar_features_desde_gold(engine, esquema=None)
+
+    assert len(leidas) == len(features)
+    assert set(leidas["id_ciclo"]) == set(features["id_ciclo"])
+
+
+def test_falla_con_mensaje_accionable_si_gold_no_esta_materializada(tmp_path) -> None:
+    """El error debe decir qué hacer, no sólo que algo no existe."""
+    with pytest.raises(ValueError, match="dbt run"):
+        cargar_features_desde_gold(_engine_tmp(tmp_path), esquema=None)
+
+
+def test_falla_si_la_tabla_de_gold_esta_vacia(features: pd.DataFrame, tmp_path) -> None:
+    """Una tabla vacía es distinto de una ausente, y se avisa distinto."""
+    engine = _engine_tmp(tmp_path)
+    features.head(0).to_sql("features_escuela", engine, index=False)
+
+    with pytest.raises(ValueError, match="está vacía"):
+        cargar_features_desde_gold(engine, esquema=None)
+
+
+def test_falla_si_gold_no_cumple_el_contrato(features: pd.DataFrame, tmp_path) -> None:
+    """Si la C1 publica la tabla sin una columna acordada, se detecta al leer."""
+    engine = _engine_tmp(tmp_path)
+    features.drop(columns=["d1_pobreza"]).to_sql("features_escuela", engine, index=False)
+
+    with pytest.raises(ValueError, match="d1_pobreza"):
+        cargar_features_desde_gold(engine, esquema=None)

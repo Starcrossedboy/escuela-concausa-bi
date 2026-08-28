@@ -73,6 +73,11 @@ tags: [requirements, traceability, matrix]
 |---|---|---|---|---|
 | `REQ-003` | `US-302` | `driver_dominante` real en `gold.features_escuela` (Célula 1): CTE argmax + desempate D1>D2>D3>D4>D5>D6 · 5 pruebas dbt nuevas ✅ · prueba de paridad SQL vs proxy Python ✅ · contrato y fixture actualizados · `dbt build --target dev` 173 pass · `pytest tests/ -q` 467 pass | [[_DevLog/2026-08-28-diana-alvarez-driver-dominante-us302]] | 🟡 En progreso |
 
+## Evidencia incremental — 2026-08-28 · higiene del vault y CI
+
+| REQ | Historias | Evidencia de prueba | DevLog | Estado |
+|---|---|---|---|---|
+| `REQ-007` | `US-503`, `US-004` | Guardia anti-mojibake en `vault_lint.py`, dentro del check requerido: 11 casos de validación ✅ · **BUG-014** cerrado con regresión versionada, `.github/scripts/probar_verificar_plantilla.sh` — 7 casos contra la plantilla real ✅ · `pytest tests/ -q` 467 ✅ | [[_DevLog/2026-08-28-edgar-mojibake-higiene-vault]] | 🟡 En progreso |
 ---
 
 ## Leyenda de estado

@@ -3,8 +3,9 @@ id: META-RULES
 title: "Vault Rules"
 owner: "Edgar Edmundo Coronel Navarrete"
 status: approved
-version: "1.0"
+version: "1.1"
 source_of_truth: true
+last_reviewed: "2026-08-28"
 tags: [meta, rules, governance]
 ---
 
@@ -59,3 +60,41 @@ tags: [meta, rules, governance]
   sobrescribe en cada corrida. **Sí se versiona a propósito** (`graph.json`, `GRAPH_REPORT.md`,
   `graph.html`): es el mapa que consultan los LLMs y que [[AGENTS]] referencia explícitamente; lo que
   no se versiona (`cache/`, `cost.json`, `*.tmp`) ya está en `.gitignore`.
+
+  > **No regeneres el grafo en local.** Lo mantiene el workflow `update-project-graph.yml`, que
+  > corre al empujar a `main` y commitea `graph.json` y `GRAPH_REPORT.md` con la cuenta del bot.
+  > Correr `graphify .` en tu máquina reescribe los ocho archivos y produce diffs de **decenas de
+  > miles de líneas** que chocan con el bot y bloquean merges ajenos. Si aparecen cambios de
+  > `graphify-out/` en tu `git status` sin que los buscaras, descártalos con
+  > `git restore graphify-out/`.
+
+## Codificación de los archivos del vault
+
+**Todo `.md` se guarda en UTF-8.** `vault_lint.py` lo verifica y **reprueba el PR** si encuentra
+texto de codificación rota — el patrón que convierte `Descripción` en su versión doble-codificada.
+
+La detección es una prueba de ida y vuelta: si una línea puede codificarse en cp1252 y ese
+resultado decodifica como UTF-8 válido dando algo distinto, los bytes ya eran UTF-8 y se
+escribieron dos veces. Los acentos correctos, los emoji, las flechas y las comillas angulares no la
+disparan.
+
+**Si te reprueba**, no intentes corregir a mano carácter por carácter: recupera el archivo con
+`git checkout origin/main -- <ruta>`, vuelve a aplicar tu cambio y guarda con el editor en UTF-8
+(en VS Code, el indicador de codificación está en la barra inferior derecha).
+
+Para documentar el defecto sin dispararlo, muestra el ejemplo dentro de un bloque de código
+—se omiten— o agrega el marcador `vault-lint: permitir-mojibake` en la línea.
+
+Es la misma familia de **BUG-005** (CRLF de Windows en los `.sh`) y **BUG-011** (`read_text()` sin
+`encoding` explícito): el locale del sistema filtrándose a un archivo del repositorio. La tercera
+aparición —el PR #102, con 227 líneas de `_DevLog/_index.md` reescritas— motivó esta regla.
+
+### Si editas el vault con Obsidian
+
+Apaga el **formateo automático de tablas** (lo traen plugins como *Advanced Tables*). Al abrir un
+documento reescribe cada fila para alinear las columnas: el contenido no cambia, pero el diff sí.
+`12_Roadmap_Sprints/Execution_Status.md` apareció una vez con **112 líneas modificadas** sin un solo
+cambio real, y eso basta para abortar un `git merge` y bloquear el PR de otra persona.
+
+Si ya te pasó, compruébalo con `git diff -w <archivo>`: si sale vacío o casi, era solo espaciado y
+puedes descartarlo con `git restore <archivo>`.

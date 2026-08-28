@@ -1,6 +1,6 @@
 ---
 project: "FARO"
-date: "2026-08-28"
+date: "2026-08-27"
 author_human: "Héctor Rafael Morales Marbán"
 agent: "Claude Code"
 model: "claude-opus-5"
@@ -9,7 +9,7 @@ touches: ["BUG-015", "BUG-013", "US-311", "US-313", "REQ-003", "TEST-005"]
 tags: [devlog, celula-3, ml, bug]
 ---
 
-# DevLog — 2026-08-28 — BUG-015, segunda vuelta: la cobertura se mira por ventana
+# DevLog — 2026-08-27 — BUG-015, segunda vuelta: la cobertura se mira por ventana
 
 → [[_DevLog/_index|Volver al índice]]
 
@@ -94,4 +94,4 @@ pero vacío en la ventana. Suite: **480 passed, 5 skipped**.
 
 1. **Que Diana repita la corrida.** Es el tercer intento; si vuelve a fallar, conviene que me
    comparta una muestra anonimizada de `gold.features_escuela` para dejar de trabajar a ciegas.
-2. **BUG-008** sigue `open`. El ensayo es hoy.
+2. **BUG-008** sigue `open`. El ensayo es mañana.

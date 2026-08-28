@@ -69,7 +69,12 @@ from src.modelos.particion_temporal import (
     ventanas_posibles,
 )
 from src.modelos.recomendaciones import CODIGOS_DRIVER, RECOMENDACION_POR_DRIVER
-from src.modelos.riesgo import RIESGO_ESTABLE, RIESGO_UMBRAL, indice_riesgo
+from src.modelos.riesgo import (
+    RIESGO_ESTABLE,
+    RIESGO_UMBRAL,
+    indice_riesgo,
+    verificar_escala_variacion,
+)
 
 ESQUEMA_GOLD = "gold"
 TABLA_PREDICCIONES = "predicciones"
@@ -261,6 +266,9 @@ def construir_predicciones(
     # 100% SIN_DATO y se excluyó, pasarlo aquí haría fallar el predict por desajuste de forma.
     columnas = list(getattr(modelo, "feature_names_in_", DRIVERS))
     variacion = modelo.predict(corte[columnas])
+    # Antes de traducir a indice_riesgo: si las unidades no son fracción la sigmoide no falla,
+    # satura. Un tablero lleno de riesgo 1.00 es peor que una corrida que se detiene.
+    verificar_escala_variacion(variacion, origen="variación predicha por ML-01")
 
     filas = pd.DataFrame(
         {
@@ -326,6 +334,9 @@ def construir_predicciones_municipio_nivel(
     corte = agregado[agregado[COLUMNA_CICLO] == objetivo]
     columnas = list(getattr(modelo, "feature_names_in_", DRIVERS))
     variacion = modelo.predict(corte[columnas])
+    # Antes de traducir a indice_riesgo: si las unidades no son fracción la sigmoide no falla,
+    # satura. Un tablero lleno de riesgo 1.00 es peor que una corrida que se detiene.
+    verificar_escala_variacion(variacion, origen="variación predicha por ML-01")
 
     filas = pd.DataFrame(
         {
@@ -391,6 +402,29 @@ def construir_recomendaciones(
     for fila in filas.to_dict(orient="records"):
         RecomendacionGold(**fila)
     return filas
+
+
+def filtrar_con_driver_observado(features: pd.DataFrame) -> tuple[pd.DataFrame, int]:
+    """Aparta las filas que no pueden tener driver dominante: las que no observan **ningún** driver.
+
+    ML-02 responde "¿cuál de los seis drivers explica el riesgo?". Una escuela sin un solo driver
+    observado no tiene respuesta posible, y forzarla sería inventar el diferenciador del proyecto.
+    La Célula 1 adoptó la misma convención en la `driver_dominante` real de US-302: esas filas
+    quedan en NULL. Aquí se apartan antes de entrenar, porque `validar_target_ml02` —con razón—
+    rechaza un target con nulos.
+
+    Estas escuelas **sí conservan su predicción de ML-01** en `gold.predicciones`: la variación de
+    matrícula no necesita drivers. Lo que no reciben es recomendación, que es el comportamiento
+    correcto bajo la regla de cobertura parcial: `SIN_DATO` explícito, nunca un driver inventado.
+
+    Args:
+        features: tabla conforme al contrato `FeaturesEscuela`.
+
+    Returns:
+        Las filas con al menos un driver observado, y cuántas se apartaron.
+    """
+    con_dato = features[list(DRIVERS)].notna().any(axis=1)
+    return features[con_dato].copy(), int((~con_dato).sum())
 
 
 def construir_recomendaciones_ml02(
@@ -572,12 +606,27 @@ def main() -> int:
         print("gold.recomendaciones omitida por --solo-predicciones.")
         return 0
 
-    features_ml02 = features.copy()
+    features_ml02, sin_driver = filtrar_con_driver_observado(features)
+    if sin_driver:
+        print(
+            f"⚠️  {sin_driver} filas sin ningún driver observado quedan fuera de ML-02: no puede "
+            "haber driver dominante donde no hay drivers. Conservan su predicción de ML-01; lo que "
+            "no reciben es recomendación (SIN_DATO explícito, nunca un driver inventado)."
+        )
+    if features_ml02.empty:
+        raise ValueError(
+            "Ninguna fila observa algún driver: no hay con qué entrenar ML-02. Revisa la cobertura "
+            "de drivers en `gold.features_escuela`."
+        )
     if COLUMNA_TARGET_REAL not in features_ml02.columns:
         features_ml02[COLUMNA_TARGET_PROXY] = generar_driver_dominante_proxy(features_ml02)
     resultado_ml02 = entrenar_ml02(features_ml02, n_ventanas=ventanas)
+    # Las escuelas apartadas conservan su predicción pero no reciben recomendación. Se excluyen
+    # aquí y no relajando la verificación de sincronía de `construir_recomendaciones_ml02`: esa
+    # verificación debe seguir cazando desajustes de verdad, no el hueco que abrimos a propósito.
+    con_recomendacion = predicciones[predicciones["cct"].isin(set(features_ml02["cct"]))]
     recomendaciones = construir_recomendaciones_ml02(
-        predicciones,
+        con_recomendacion,
         features_ml02,
         resultado_ml02.modelo,
     )

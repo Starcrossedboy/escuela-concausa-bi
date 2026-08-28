@@ -29,6 +29,93 @@ tags: [qa, bugs]
 | BUG-013 | `publicar_gold.py` usa por defecto el fixture sintético `tests/fixtures/features_escuela_mock.csv`, no `gold.features_escuela`: publica 80 filas de **ciclo 2023-2024** mientras el hecho real tiene 25 de **2024-2025**. El JOIN por `(cct, id_ciclo)` da cero, así que DB-03 muestra `cobertura_prediccion = SIN_DATO` en el 100% de las escuelas y los bloques de predicción y recomendación (AC-002.4) quedan vacíos. Apuntarlo al Gold real tampoco basta hoy: `features_escuela` tiene un solo ciclo y ML exige partición temporal. | high | open | US-313 / US-113 / REQ-003 | pendiente (**C3** + **C1**) | — |
 | BUG-014 | `quality_gate.yml` busca el token de casilla sin marcar en **todo el cuerpo del PR** con `grep -q "\[ \]"`, no solo en ítems de lista: basta con **mencionar** esa sintaxis dentro de una explicación —aunque vaya en backticks— para que el check falle. Sumado a que la plantilla oficial trae la casilla de aprobación del PM sin marcar (le toca marcarla a él al revisar), **la plantilla del repo no puede pasar su propio gate** y empuja a los autores a borrar el registro de aprobación o a marcarlo ellos mismos. | medium | open | US-503 / REQ-007 | pendiente (**C5**, Luis Téllez) — acotar el patrón a `grep -qE '^\s*-\s*\[ \]'` para que solo detecte casillas reales al inicio de un ítem | — |
 | BUG-015 | ML-01 no podía entrenar sobre `gold.features_escuela` real: un driver **100 % `SIN_DATO`** (D5 agua, DS-06 sin descarga) rompe el binning de `HistGradientBoostingRegressor` con `window shape cannot be larger than input array shape`, un error que no delata la causa. Además el default `--ventanas 3` pedía 5 ciclos y el Gold real sólo tiene 3 utilizables | high | **fixed** | US-311 / US-313 / REQ-003 | `fix/hector-marban-driver-sin-datos` | — | ver detalle |
+| BUG-016 | La publicación a Gold tronaba en ML-02 con datos reales: hay filas con los **6 drivers en NULL a la vez**, y `generar_driver_dominante_proxy` falla ahí por diseño. La `driver_dominante` real de C1 (US-302, PR #113) ya adoptó la convención de dejarlas en NULL; faltaba apartarlas antes de entrenar, porque `validar_target_ml02` rechaza nulos. Conservan su predicción de ML-01 y no reciben recomendación (`SIN_DATO`, nunca un driver inventado) | high | **fixed** | US-313 / REQ-003 | `fix/hector-marban-driver-sin-datos` | — | ver detalle |
+| BUG-017 | `indice_riesgo` se publicó **saturado**: la corrida real de ML-01 dio MAE 10.90, pero la sigmoide está calibrada sobre **fracción** (`-0.05` = pierde 5 % de matrícula). Con esa escala el 100 % de las 45 249 filas queda en riesgo ≈ 1.00 y el tablero cuenta como "en riesgo" a todo el universo. Sospecha: `target_variacion_matricula` viene en puntos porcentuales o como diferencia absoluta de alumnos. Añadida guarda que detiene la publicación en vez de saturar en silencio; **falta confirmar las unidades en Gold con C1** | high | open | US-311 / US-313 / REQ-003 / US-104 | — | Diana Alvarez (C1) | ver detalle |
+| BUG-018 | ML-02 arrastra el **mismo defecto por ventana** que BUG-015: `entrenar_ml02._matriz()` toma siempre los 6 drivers sin comprobar cobertura dentro de la ventana de entrenamiento, así que un driver vacío en ese tramo (D6 aire, IDW de US-105) rompe el binning de `HistGradientBoostingClassifier` con el mismo error. Reproducido; el arreglo es el mismo que ya se aplicó en ML-01 | high | open | US-302 / REQ-003 | — | Andrés González Habib (C3) | ver detalle |
+
+## BUG-016 — Filas sin ningún driver rompían la publicación de ML-02
+
+Reportado por Diana Alvarez el 2026-08-27, corriendo `publicar_gold.py --desde-gold` contra la Gold
+real. ML-01 ya entrenó y publicó bien (45 249 filas); el fallo estaba un paso después:
+
+```
+File "src/modelos/entrenar_ml02.py", line 114, in generar_driver_dominante_proxy
+    raise ValueError("No se puede derivar driver_dominante_proxy para filas sin ningun driver.")
+```
+
+En el Gold real hay escuelas con los **seis drivers en NULL a la vez**. `generar_driver_dominante_proxy`
+falla ahí **por diseño**, y hace bien: no se puede nombrar un driver dominante donde no se observó
+ninguno. Forzarlo sería inventar el diferenciador del proyecto.
+
+Lo que faltaba era **apartarlas antes**. La Célula 1 ya adoptó esa convención en la `driver_dominante`
+real de US-302 (PR #113): esas filas quedan en `NULL`. Y `validar_target_ml02` —con razón— rechaza un
+target con nulos, así que el filtrado tiene que ocurrir en el sitio de llamada, que es mío.
+
+`filtrar_con_driver_observado()` las aparta y dice cuántas. **Conservan su predicción de ML-01** —la
+variación de matrícula no necesita drivers— y no reciben recomendación. Eso es exactamente la regla de
+cobertura parcial: `SIN_DATO` explícito, nunca un driver inventado.
+
+### Lo que la simulación encontró y las pruebas unitarias no
+
+Al apartar filas de `features_ml02`, esas escuelas quedan con predicción pero sin features, y
+`construir_recomendaciones_ml02` lo rechaza con `Faltan features de ML-02 para los CCT`. La tentación
+era relajar esa verificación; se hizo lo contrario: se filtran las predicciones en el sitio de llamada
+y la verificación sigue intacta, porque debe seguir cazando desajustes **de verdad** y no el hueco que
+abrimos a propósito. Hay una prueba que lo fija.
+
+## BUG-017 — `indice_riesgo` publicado saturado por unidades del target
+
+La corrida real reportó **MAE 10.90**. La sigmoide de `indice_riesgo` está calibrada sobre
+**fracción**: `0.0` → riesgo 0.30, `-0.05` ("pierde 5 % de su matrícula") → riesgo 0.60.
+
+Un error medio de 10.90 es **218 veces** la banda completa de calibración. Verificado:
+
+| variación | indice_riesgo |
+|---|---|
+| 0.0 | 0.300000 |
+| -0.05 | 0.600000 |
+| -0.10 | 0.840000 |
+| -5.0 | 1.000000 |
+| -10.9 | 1.000000 |
+
+Con esa escala, **las 45 249 filas publicadas quedan en riesgo ≈ 1.00**. No es una degradación: es
+salida incorrecta que en un tablero se ve perfectamente normal, y `RIESGO_UMBRAL = 0.60` contaría como
+"escuela en riesgo" a todo el universo.
+
+La sospecha es que `target_variacion_matricula` en el Gold real viene en **puntos porcentuales**
+(`-5.0`) o como **diferencia absoluta de alumnos**, en vez de fracción.
+
+`verificar_escala_variacion()` detiene la publicación antes de convertir, mirando la **mediana** de
+`|variación|` —no el máximo, para no confundir unidades equivocadas con unos pocos valores extremos
+legítimos. Una escuela que triplica su matrícula no dispara la alarma; una columna entera en otra
+escala sí.
+
+> **Falta la parte que no me toca:** confirmar con C1 en qué unidades produce US-104 esa columna. Si
+> la escala es correcta y el dato es así de extremo, entonces hay que recalibrar las anclas en
+> `15_ML_Models/Indice_Riesgo_ML01.md` — pero eso es una decisión de negocio, no un arreglo de código.
+
+## BUG-018 — ML-02 repite el defecto por ventana de BUG-015
+
+Encontrado al simular la corrida completa de Diana, no reportado por ella: es el siguiente muro.
+
+`entrenar_ml02._matriz()` devuelve `df[list(DRIVERS)]` —los seis, siempre— y el bucle de backtesting
+no comprueba la cobertura dentro de la ventana de entrenamiento. Es **el mismo defecto** que BUG-015,
+en el clasificador:
+
+```
+ValueError: window shape cannot be larger than input array shape
+  ...
+  entrenar_ml02.py:177 in entrenar_y_evaluar
+    modelo = HistGradientBoostingClassifier(**params).fit(x_entrena, y_entrena)
+```
+
+Se dispara con D6 (aire), que tras la IDW de US-105 sólo cubre el ciclo más reciente y queda vacío en
+el tramo de entrenamiento.
+
+El arreglo es el mismo que ya se aplicó y probó en `entrenar_ml01`: evaluar `drivers_utilizables()`
+sobre la ventana de entrenamiento y entrenar sólo con esos. `entrenar_ml02.py` es de **Andrés González
+Habib**; queda el parche preparado y la reproducción, para que lo aplique quien corresponde.
+
 
 ## Convención
 

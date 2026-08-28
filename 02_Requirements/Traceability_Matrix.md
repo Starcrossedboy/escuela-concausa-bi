@@ -52,6 +52,7 @@ tags: [requirements, traceability, matrix]
 |---|---|---|---|---|
 | `REQ-006` | `US-305` | Cliente y widget preparados para propagar `Authorization: Bearer` desde la sesión: 9 pruebas enfocadas ✅ · Ruff ✅ | [[_DevLog/2026-08-27-andres-gonzalez-us305-jwt-client]] | 🟡 En progreso |
 | `REQ-003` | `US-311`, `US-313` | BUG-015: la cobertura de drivers se evalúa **por ventana** de entrenamiento, no global — un driver con datos sólo en el ciclo reciente (D6, IDW de US-105) quedaba vacío en el tramo de entrenamiento y rompía el binning ✅ · `--ventanas` se calcula desde los ciclos disponibles ✅ · 3 pruebas de regresión nuevas · suite 481 ✅ · Ruff y `vault_lint` ✅ | [[_DevLog/2026-08-27-hector-morales-bug015-segunda-vuelta]] | 🟡 En progreso |
+| `REQ-003` | `US-311`, `US-313` | Primera corrida real de ML-01 sobre `gold.features_escuela`: 45 249 predicciones ✅ · filas sin ningún driver apartadas de ML-02 conservando su predicción (BUG-016) ✅ · guarda de escala que detiene un `indice_riesgo` saturado (BUG-017) ✅ · BUG-018 reproducido en ML-02 y documentado ⬜ · 11 pruebas nuevas · suite 492 ✅ | [[_DevLog/2026-08-27-hector-morales-bug016-018-gold-real]] | 🟡 En progreso |
 
 ## Evidencia incremental — 2026-08-27 · avance independiente C3
 

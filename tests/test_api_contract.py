@@ -17,7 +17,10 @@ from src.api.app import API_PREFIX, app
 from src.api.repositorio_gold import get_repositorio_gold
 from src.api.repositorio_modelos import get_repositorio_modelos
 from tests.fixtures_gold import RepositorioGoldFake
-from tests.fixtures_modelos import RepositorioModelosFake, RepositorioModelosNoDisponibleFake
+from tests.fixtures_modelos import (
+    RepositorioModelosFake,
+    RepositorioModelosNoDisponibleFake,
+)
 
 RAIZ = Path(__file__).resolve().parents[1]
 

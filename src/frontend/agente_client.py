@@ -22,16 +22,20 @@ def consultar_agente(
     api_base_url: str,
     pregunta: str,
     post: Callable[..., Any] = httpx.post,
+    access_token: str | None = None,
 ) -> RespuestaAgente:
     """Consulta `/api/v1/agente/consulta` y valida su respuesta mínima."""
     texto = pregunta.strip()
     if not 3 <= len(texto) <= 500:
         raise ValueError("La pregunta debe tener entre 3 y 500 caracteres.")
 
+    headers = {"Authorization": f"Bearer {access_token}"} if access_token else None
+
     try:
         response = post(
             f"{api_base_url.rstrip('/')}/api/v1/agente/consulta",
             json={"pregunta": texto},
+            headers=headers,
             timeout=15.0,
         )
         response.raise_for_status()

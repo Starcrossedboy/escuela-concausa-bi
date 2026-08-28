@@ -279,9 +279,22 @@ Actualiza esta tabla **antes de cada standup**. El PM la revisa para el tablero 
 
 | ID | Historia | Estado | % | Bloqueado por | Fecha compromiso |
 |---|---|---|---|---|---|
-| `US-311` | Entrenar el Modelo 1 - Regresion de matric | ⬜ Por iniciar | 0% | — | Dom 30 ago |
-| `US-312` | Evaluar modelos y documentar metricas | ⬜ Por iniciar | 0% | — | Dom 6 sep |
-| `US-313` | Integrar predicciones y recomendaciones a  | ⬜ Por iniciar | 0% | — | Dom 6 sep |
+| `US-311` | Entrenar el Modelo 1 — Regresión de matrícula | 🟡 En curso | **85%** | AC-003.4: BLOCK-001 (C5) · datos reales (C1) | Dom 30 ago |
+| `US-312` | Evaluar modelos y documentar métricas | 🟡 En curso | **80%** | AC-003.2 exige ML-03 (US-321, Estefany) | Dom 6 sep |
+| `US-313` | Integrar predicciones y recomendaciones a Gold | 🔵 En revisión | **90%** | datos reales (C1) | Dom 6 sep |
+
+### Qué respalda cada porcentaje
+
+| ID | Entregado y mergeado | Lo que falta |
+|---|---|---|
+| `US-311` | Partición temporal + backtesting (PR #8) · índice de riesgo (#21) · ML-01 entrenado, MAE 0.0141 ± 0.0012 (#28) · target híbrido DEC-007 (#56) · grano dual DEC-010 (#83) | Correr contra datos reales · registrar el modelo en MLflow — **BLOCK-001**, fix probado y pendiente de la C5 |
+| `US-312` | Evaluación comparativa ML-01/ML-02, curvas por ventana, error por entidad y por cobertura, reporte autogenerado con guarda de sincronía (#42, #50) | **ML-03 no existe**: AC-003.2 no puede cerrar sin su Silhouette |
+| `US-313` | Job batch idempotente verificado contra Postgres (#41) · ML-02 conectado (#58, Andrés) · grano dual (#83) · guion del ensayo y BUG-010 (#86) | Correr contra datos reales |
+
+**7 suites propias, 115+ casos** (TEST-003 a TEST-009). **11 PRs mergeados.**
+
+> **Ninguna de las tres está bloqueada por trabajo propio.** Los tres bloqueos son externos: el
+> artifact root de MLflow (C5), ML-03 (Estefany) y los datos reales cargados (C1).
 
 **Estados válidos:** ⬜ Por iniciar · 🟡 En curso · 🔵 En revisión (PR abierto) · ✅ Terminado · 🔴 Bloqueado
 

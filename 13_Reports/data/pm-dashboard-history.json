@@ -177,11 +177,20 @@
   },
   {
     "date": "2026-08-27",
-    "remaining": 66,
-    "weighted_remaining": 56.1,
-    "done": 25,
+    "remaining": 63,
+    "weighted_remaining": 50.9,
+    "done": 28,
     "scope": 91,
-    "wip": 23,
+    "wip": 26,
+    "blocked": 0
+  },
+  {
+    "date": "2026-08-28",
+    "remaining": 63,
+    "weighted_remaining": 50.9,
+    "done": 28,
+    "scope": 91,
+    "wip": 26,
     "blocked": 0
   }
 ]

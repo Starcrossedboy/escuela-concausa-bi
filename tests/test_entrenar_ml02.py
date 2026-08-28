@@ -18,6 +18,7 @@ from src.modelos.entrenar_ml02 import (
     generar_driver_dominante_proxy,
     predecir_driver,
     recomendacion_para_driver,
+    validar_target_ml02,
 )
 from src.modelos.particion_temporal import _anio_inicial
 
@@ -40,6 +41,29 @@ def test_carga_fixture_y_agrega_target_proxy() -> None:
     df = cargar_features_ml02()
     assert COLUMNA_TARGET_PROXY in df.columns
     assert columna_target_disponible(df) == COLUMNA_TARGET_PROXY
+
+
+def test_prefiere_target_real_cuando_esta_disponible(features: pd.DataFrame) -> None:
+    df = features.copy()
+    df["driver_dominante"] = generar_driver_dominante_proxy(df)
+    df[COLUMNA_TARGET_PROXY] = "D6"
+
+    assert columna_target_disponible(df) == "driver_dominante"
+
+
+@pytest.mark.parametrize(
+    ("valores", "mensaje"),
+    [
+        (["D1", None], "etiquetas nulas"),
+        (["D1", "D9"], "clases inválidas"),
+        (["D1", "D1"], "al menos dos clases"),
+    ],
+)
+def test_rechaza_target_que_no_cumple_contrato(valores, mensaje) -> None:
+    df = pd.DataFrame({"driver_dominante": valores})
+
+    with pytest.raises(ValueError, match=mensaje):
+        validar_target_ml02(df, "driver_dominante")
 
 
 @pytest.fixture(scope="module")

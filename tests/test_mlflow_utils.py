@@ -13,6 +13,7 @@ from src.modelos.mlflow_utils import (
     RegistroModelo,
     registrar_sklearn,
     validar_nombre_modelo,
+    verificar_modelos_registrados,
 )
 
 
@@ -113,3 +114,41 @@ def test_registro_confirma_version_y_la_deja_como_tag(monkeypatch) -> None:
 
     assert run_id == "run-123"
     assert tags["registered_model_version"] == "7"
+
+
+def test_verifica_version_mas_reciente_de_modelos_solicitados(monkeypatch) -> None:
+    class ClienteFake:
+        def __init__(self, tracking_uri: str) -> None:
+            assert tracking_uri == "http://mlflow:5000"
+
+        def search_model_versions(self, filtro: str):
+            assert filtro == "name='ML02_DriverClasificador'"
+            return [SimpleNamespace(version="1"), SimpleNamespace(version="3")]
+
+    monkeypatch.setitem(sys.modules, "mlflow", SimpleNamespace(MlflowClient=ClienteFake))
+    monkeypatch.setattr(mlflow_utils, "verificar_compatibilidad", lambda uri: None)
+
+    versiones = verificar_modelos_registrados(
+        "http://mlflow:5000",
+        frozenset({"ML02_DriverClasificador"}),
+    )
+
+    assert versiones == {"ML02_DriverClasificador": "3"}
+
+
+def test_reporta_modelos_faltantes_en_registry(monkeypatch) -> None:
+    class ClienteFake:
+        def __init__(self, tracking_uri: str) -> None:
+            pass
+
+        def search_model_versions(self, filtro: str):
+            return []
+
+    monkeypatch.setitem(sys.modules, "mlflow", SimpleNamespace(MlflowClient=ClienteFake))
+    monkeypatch.setattr(mlflow_utils, "verificar_compatibilidad", lambda uri: None)
+
+    with pytest.raises(RuntimeError, match="ML03_ClusteringEscuelas"):
+        verificar_modelos_registrados(
+            "http://mlflow:5000",
+            frozenset({"ML03_ClusteringEscuelas"}),
+        )

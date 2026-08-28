@@ -18,6 +18,10 @@ class RespuestaAgente:
     fuera_de_alcance: bool
 
 
+class ErrorAutorizacionAgente(PermissionError):
+    """La API rechazó la sesión o el rol del usuario."""
+
+
 def consultar_agente(
     api_base_url: str,
     pregunta: str,
@@ -40,6 +44,16 @@ def consultar_agente(
         )
         response.raise_for_status()
         payload = response.json()
+    except httpx.HTTPStatusError as exc:
+        if exc.response.status_code == 401:
+            raise ErrorAutorizacionAgente(
+                "La sesión no es válida o expiró; inicia sesión nuevamente."
+            ) from exc
+        if exc.response.status_code == 403:
+            raise ErrorAutorizacionAgente(
+                "Tu rol no tiene permiso para consultar el agente."
+            ) from exc
+        raise ConnectionError("La API del agente rechazó la solicitud.") from exc
     except httpx.HTTPError as exc:
         raise ConnectionError("La API del agente no está disponible.") from exc
 

@@ -309,7 +309,7 @@ ensamblado as (
 -- independiente ni evidencia causal (ver advertencia en Evaluacion_Modelos.md). Misma regla
 -- que ya usa `generar_driver_dominante_proxy()` en entrenar_ml02.py -- se centraliza aquí para
 -- que ML-02 deje de recalcularla por su cuenta; hay una prueba de paridad contra esa función
--- en tests/test_driver_dominante_paridad.py.
+-- en tests/test_entrenar_ml02.py::test_paridad_driver_dominante_real_contra_proxy.
 --
 -- Reglas (especificación de Andrés, 2026-08-28):
 --   1. Solo entran drivers con valor no nulo y cobertura 'OK' (SIN_DATO queda excluido).

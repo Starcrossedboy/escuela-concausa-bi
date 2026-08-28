@@ -31,7 +31,7 @@ ML-01 y ML-02 optimizan cosas distintas —error absoluto contra F1—, así que
 comparan entre sí**. Lo comparable es `mejora`: cuánto aporta cada modelo sobre su propio baseline.
 Un modelo que no supera su baseline no aporta nada, sin importar qué tan buena se vea su métrica.
 
-ML-02 se entrena hoy contra `driver_dominante_proxy`. Si es el proxy determinista, su F1 mide la capacidad
+ML-02 se entrena hoy contra `driver_dominante`. Si es el proxy determinista, su F1 mide la capacidad
 de recuperar una etiqueta derivada de los propios drivers, **no de predecir un driver observado**;
 la cifra se vuelve significativa cuando Gold publique la etiqueta real.
 
@@ -95,7 +95,7 @@ provisionales hasta ejecutar la evaluación contra los datos reales de US-104.
 | Modelo | Estado |
 |---|---|
 | ML-01 · regresión | ✅ evaluado |
-| ML-02 · clasificación | ✅ evaluado (target `driver_dominante_proxy`) |
+| ML-02 · clasificación | ✅ evaluado (target `driver_dominante`) |
 | ML-03 · clustering | ⬜ **pendiente** — US-321 (Estefany Hernández), aún sin implementar |
 
 AC-003.2 no queda cerrado hasta que ML-03 reporte su Silhouette.

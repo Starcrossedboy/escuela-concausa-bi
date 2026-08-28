@@ -295,3 +295,16 @@ def test_falla_si_la_ventana_de_entrenamiento_queda_sin_drivers(features: pd.Dat
 
     with pytest.raises(ValueError, match="ventana de entrenamiento"):
         entrenar_y_evaluar(tres, n_ventanas=1)
+
+
+def test_reporta_que_driver_quedo_fuera_en_cada_ventana(features: pd.DataFrame) -> None:
+    """La cobertura varía entre ventanas; el resultado tiene que dejar ver cuál y dónde."""
+    tres = features[features["id_ciclo"].isin(["2021-2022", "2022-2023", "2023-2024"])].copy()
+    tres.loc[tres["id_ciclo"] != "2023-2024", "d6_aire"] = np.nan
+
+    resultado = entrenar_y_evaluar(tres, n_ventanas=1)
+
+    assert len(resultado.excluidos_por_ventana) == 1
+    ventana, fuera = next(iter(resultado.excluidos_por_ventana.items()))
+    assert "2021-2022" in ventana, "la llave nombra la ventana, para poder ubicarla"
+    assert "d6_aire" in fuera

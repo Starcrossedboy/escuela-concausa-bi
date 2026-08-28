@@ -62,6 +62,19 @@ La lección concreta: cuando alguien reporta un fallo con datos que no tengo, la
 imitar **la estructura de sus datos**, no la del defecto que yo imagino. La segunda vez simulé D6
 cubriendo sólo el ciclo reciente —como la IDW real— y el fallo apareció de inmediato.
 
+## De la revisión de Edgar
+
+Dos observaciones, las dos válidas:
+
+1. **Faltaba la fila de REQ-003 en la evidencia incremental** de la matriz de trazabilidad. Agregada.
+2. **`excluidos_por_ventana` se llenaba y nunca se leía.** Cierto, y era mío: lo escribí para el
+   mensaje en consola y dejé el diccionario colgando. De sus dos opciones —exponerlo o borrarlo—
+   elegí exponerlo, porque al hacerlo salió a la luz algo que yo había dejado ambiguo:
+   `drivers_usados` guarda el valor de la **última** ventana con apariencia de valor global. Es
+   correcto para lo que describe —el modelo que queda en `modelo` es el de esa última ventana— pero
+   no se leía así. Ahora el docstring lo dice y la variación entre ventanas vive en
+   `excluidos_por_ventana`, que es justo lo que hace falta para diagnosticar un caso como el de D6.
+
 ## Verificación
 
 ```
@@ -71,8 +84,8 @@ MAE 0.0187 · mejora sobre baseline 33.7%
 ✅ corre
 ```
 
-**2 pruebas nuevas**, una de ellas la regresión exacta de este caso: un driver con datos globales
-pero vacío en la ventana. Suite: **480 passed, 5 skipped**.
+**3 pruebas nuevas**, una de ellas la regresión exacta de este caso: un driver con datos globales
+pero vacío en la ventana. Suite: **481 passed, 5 skipped**.
 
 > **Sigue sin verificarse contra los datos reales.** Su ambiente es el único con Gold materializada.
 
@@ -80,7 +93,8 @@ pero vacío en la ventana. Suite: **480 passed, 5 skipped**.
 
 - **Agente / modelo:** Claude Code / claude-opus-5
 - **Archivos modificados:** `src/modelos/entrenar_ml01.py`, `tests/test_entrenar_ml01.py`,
-  `06_Quality_Testing/Bug_Register.md`
+  `06_Quality_Testing/Bug_Register.md`,
+  `02_Requirements/Traceability_Matrix.md`
 - **Decisiones autónomas del agente:**
   - Reproducir el escenario imitando la **estructura de los datos reales** (D6 sólo en el ciclo
     reciente) en vez de la forma del defecto supuesto.

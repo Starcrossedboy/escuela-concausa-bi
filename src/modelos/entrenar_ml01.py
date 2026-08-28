@@ -39,7 +39,7 @@ from __future__ import annotations
 
 import argparse
 import os
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 
 import numpy as np
@@ -100,13 +100,19 @@ class MetricasVentana:
 
 @dataclass(frozen=True)
 class ResultadoEntrenamiento:
-    """Resultado completo del backtesting más el modelo de producción."""
+    """Resultado completo del backtesting más el modelo de producción.
+
+    `drivers_usados` y `drivers_excluidos` describen el modelo que queda en `modelo` —el de la
+    última ventana—, no todas las ventanas. La cobertura se evalúa por ventana y puede variar
+    entre ellas: `excluidos_por_ventana` guarda ese detalle para poder diagnosticarlo.
+    """
 
     ventanas: tuple[MetricasVentana, ...]
     modelo: HistGradientBoostingRegressor
     error_por_entidad: pd.DataFrame
     drivers_usados: tuple[str, ...] = DRIVERS
     drivers_excluidos: tuple[str, ...] = ()
+    excluidos_por_ventana: dict[str, tuple[str, ...]] = field(default_factory=dict)
 
     @property
     def mae_promedio(self) -> float:
@@ -288,7 +294,7 @@ def entrenar_y_evaluar(
 
     ventanas: list[MetricasVentana] = []
     usables: list[str] = []
-    excluidos_por_ventana: dict[str, list[str]] = {}
+    excluidos_por_ventana: dict[str, tuple[str, ...]] = {}
     modelo: HistGradientBoostingRegressor | None = None
     error_entidad = pd.DataFrame()
 
@@ -308,7 +314,7 @@ def entrenar_y_evaluar(
             )
         fuera = [d for d in DRIVERS if d not in usables]
         if fuera:
-            excluidos_por_ventana[str(particion)] = fuera
+            excluidos_por_ventana[str(particion)] = tuple(fuera)
             print(
                 f"⚠️  {particion}: sin datos en el entrenamiento {fuera}; "
                 f"se entrena con {len(usables)} de {len(DRIVERS)} drivers."
@@ -342,6 +348,7 @@ def entrenar_y_evaluar(
         error_por_entidad=error_entidad,
         drivers_usados=tuple(usables),
         drivers_excluidos=tuple(d for d in DRIVERS if d not in usables),
+        excluidos_por_ventana=excluidos_por_ventana,
     )
 
 

@@ -115,6 +115,30 @@ def test_metricas_de_clasificacion_son_acotadas(resultado_ml02) -> None:
         assert 0 <= ventana.precision_macro <= 1
 
 
+def test_driver_vacio_en_entrenamiento_no_rompe_ml02(features: pd.DataFrame) -> None:
+    """Reproduce BUG-018: D6 solo tiene cobertura en el ciclo más reciente."""
+    df = features.copy()
+    ciclos = sorted(df["id_ciclo"].unique())
+    df.loc[df["id_ciclo"] != ciclos[-1], "d6_aire"] = np.nan
+
+    resultado = entrenar_y_evaluar(df, n_ventanas=2)
+
+    assert resultado.excluidos_por_ventana
+    assert any(
+        "d6_aire" in excluidos for excluidos in resultado.excluidos_por_ventana.values()
+    )
+    predicciones = predecir_driver(resultado.modelo, df[df["id_ciclo"] == ciclos[-1]])
+    assert len(predicciones) > 0
+
+
+def test_falla_claro_si_ningun_driver_tiene_datos(features: pd.DataFrame) -> None:
+    df = features.copy()
+    df[list(DRIVERS)] = np.nan
+
+    with pytest.raises(ValueError, match="Ningún driver tiene datos"):
+        entrenar_y_evaluar(df, n_ventanas=2)
+
+
 def test_prediccion_incluye_driver_y_recomendacion(resultado_ml02, features: pd.DataFrame) -> None:
     predicciones = predecir_driver(resultado_ml02.modelo, features.head(5))
     assert set(predicciones.columns) == {"cct", "id_ciclo", "driver_dominante", "recomendacion"}

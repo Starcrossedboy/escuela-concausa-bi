@@ -329,6 +329,28 @@ de US-312 y en el registro de MLflow.
 
 Si **ningún** driver tiene datos, falla con un mensaje explícito en vez de un error de numpy.
 
+### Segunda vuelta: la cobertura hay que mirarla POR VENTANA
+
+El primer arreglo excluía los drivers vacíos **en todo el conjunto**, y Diana reportó que seguía
+fallando. Tenía razón: la exclusión correcta es **dentro de la ventana de entrenamiento**.
+
+Un driver puede tener datos globalmente y estar **entero en `NaN` en el tramo con el que se
+entrena**. Es exactamente el caso de **D6 (aire)**: llega por la interpolación IDW de US-105 y sólo
+cubre el ciclo más reciente, que con 3 ciclos y 1 ventana cae del lado de **prueba**, no del de
+entrenamiento.
+
+Con la comprobación global, D6 pasaba el filtro y volvía a romper el binning. Ahora se evalúa por
+ventana y se reportan los dos casos por separado:
+
+```
+⚠️  Drivers sin ningún dato en todo el conjunto: ['d5_agua']. Quedan fuera del modelo.
+⚠️  entrena[2021-2022…2022-2023] -> prueba[2023-2024]: sin datos en el entrenamiento
+    ['d5_agua', 'd6_aire']; se entrena con 4 de 6 drivers.
+```
+
+Son dos situaciones distintas —un driver que no existe nunca y uno que aún no cubre el pasado— y
+merecen mensajes distintos.
+
 ### Segundo hallazgo: `--ventanas` fijo
 
 El default de 3 ventanas exigía 5 ciclos; el Gold real tiene 3 utilizables (2021-2022 se consume

@@ -267,3 +267,31 @@ def test_se_puede_publicar_aunque_falte_un_driver(features: pd.DataFrame) -> Non
 
     assert len(filas) == sin_agua["cct"].nunique()
     assert filas["indice_riesgo"].between(0, 1).all()
+
+
+def test_un_driver_vacio_solo_dentro_de_la_ventana_no_rompe(features: pd.DataFrame) -> None:
+    """El caso que sobrevivió al primer arreglo: cobertura global sí, cobertura por ventana no.
+
+    D6 (aire) llega por la interpolación IDW de US-105 y sólo cubre el ciclo más reciente. Mirado
+    sobre el conjunto completo el driver "tiene datos", pero el tramo con el que se entrena está
+    entero en `NaN` — y sklearn falla al binear con el mismo error que no dice por qué.
+    """
+    tres = features[features["id_ciclo"].isin(["2021-2022", "2022-2023", "2023-2024"])].copy()
+    tres.loc[tres["id_ciclo"] != "2023-2024", "d6_aire"] = np.nan
+
+    assert tres["d6_aire"].notna().any(), "globalmente el driver sí tiene datos"
+
+    resultado = entrenar_y_evaluar(tres, n_ventanas=1)
+
+    assert "d6_aire" in resultado.drivers_excluidos
+    assert all(np.isfinite(v.mae) for v in resultado.ventanas)
+
+
+def test_falla_si_la_ventana_de_entrenamiento_queda_sin_drivers(features: pd.DataFrame) -> None:
+    """El mensaje debe nombrar la ventana, no sólo decir que faltan datos."""
+    tres = features[features["id_ciclo"].isin(["2021-2022", "2022-2023", "2023-2024"])].copy()
+    for driver in DRIVERS:
+        tres.loc[tres["id_ciclo"] != "2023-2024", driver] = np.nan
+
+    with pytest.raises(ValueError, match="ventana de entrenamiento"):
+        entrenar_y_evaluar(tres, n_ventanas=1)

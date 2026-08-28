@@ -279,26 +279,40 @@ def entrenar_y_evaluar(
     """
     params = {**HIPERPARAMETROS, **(hiperparametros or {})}
 
-    usables = drivers_utilizables(df)
-    excluidos = [d for d in DRIVERS if d not in usables]
-    if not usables:
-        raise ValueError(
-            "Ningún driver tiene datos: los seis están en `SIN_DATO`. No hay con qué entrenar. "
-            "Revisa la cobertura de `gold.features_escuela` antes de publicar."
-        )
-    if excluidos:
+    sin_datos_global = [d for d in DRIVERS if d not in drivers_utilizables(df)]
+    if sin_datos_global:
         print(
-            f"⚠️  Drivers sin ningún dato, excluidos del entrenamiento: {excluidos}. "
-            f"Se entrena con {len(usables)} de {len(DRIVERS)}."
+            f"⚠️  Drivers sin ningún dato en todo el conjunto: {sin_datos_global}. "
+            "Quedan fuera del modelo."
         )
 
     ventanas: list[MetricasVentana] = []
+    usables: list[str] = []
+    excluidos_por_ventana: dict[str, list[str]] = {}
     modelo: HistGradientBoostingRegressor | None = None
     error_entidad = pd.DataFrame()
 
     for particion in generar_backtesting(df, n_ventanas=n_ventanas):
         entrena, prueba = particion.aplicar(df)
         verificar_sin_fuga(entrena, prueba)  # garantía ejecutable de AC-003.3
+
+        # La cobertura se evalúa DENTRO de la ventana, no sobre el conjunto completo: un driver
+        # puede tener datos sólo en el ciclo más reciente —como D6 tras la interpolación IDW de
+        # US-105— y quedar totalmente vacío en el tramo con el que se entrena. Comprobarlo global
+        # no lo detecta, y sklearn falla al binear con un error que no dice por qué.
+        usables = drivers_utilizables(entrena)
+        if not usables:
+            raise ValueError(
+                f"Ningún driver tiene datos en la ventana de entrenamiento {particion}. "
+                "No hay con qué entrenar; revisa la cobertura por ciclo de `gold.features_escuela`."
+            )
+        fuera = [d for d in DRIVERS if d not in usables]
+        if fuera:
+            excluidos_por_ventana[str(particion)] = fuera
+            print(
+                f"⚠️  {particion}: sin datos en el entrenamiento {fuera}; "
+                f"se entrena con {len(usables)} de {len(DRIVERS)} drivers."
+            )
 
         x_entrena, y_entrena = _matriz(entrena, usables), entrena[COLUMNA_TARGET]
         x_prueba, y_prueba = _matriz(prueba, usables), prueba[COLUMNA_TARGET]
@@ -327,7 +341,7 @@ def entrenar_y_evaluar(
         modelo=modelo,
         error_por_entidad=error_entidad,
         drivers_usados=tuple(usables),
-        drivers_excluidos=tuple(excluidos),
+        drivers_excluidos=tuple(d for d in DRIVERS if d not in usables),
     )
 
 

@@ -14,3 +14,4 @@ tags: [moc, ops]
 |---|---|
 | [[11_Operations/Runbooks]] | Procedimientos operativos |
 | [[11_Operations/Monitoring_SLOs]] | MÃ©tricas, alertas, SLOs |
+| [[11_Operations/Alertas_Monitoreo_US524a]] | Política de alertas y monitoreo estructurado GCP (US-524a) |

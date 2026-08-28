@@ -12,6 +12,9 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Copiar código fuente
 COPY src/ ./src/
 
+# Configuracion de logs (US-524a)
+COPY docker/log_config.json ./log_config.json
+
 # Puerto de Cloud Run
 ENV PORT=8080
 ENV ENVIRONMENT=production
@@ -24,4 +27,4 @@ HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
   CMD python3 -c "import urllib.request; urllib.request.urlopen('http://localhost:8080/api/v1/health').read()" || exit 1
 
 # Comando de inicio
-CMD uvicorn src.api.app:app --host 0.0.0.0 --port ${PORT}
+CMD uvicorn src.api.app:app --host 0.0.0.0 --port ${PORT} --log-config log_config.json

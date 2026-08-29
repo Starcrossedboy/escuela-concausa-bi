@@ -130,12 +130,12 @@
   <script>
   window.PM_DATA = {
   "meta": {
-    "generated_at": "2026-08-29T21:13:10+00:00",
+    "generated_at": "2026-08-29T21:19:24+00:00",
     "generated_date": "2026-08-29",
-    "commit": "7d825c1",
+    "commit": "6e51ef1",
     "branch": "main",
     "working_tree": "clean",
-    "source_fingerprint": "16cea7c3913d",
+    "source_fingerprint": "f30c029e5202",
     "source": "Fuentes canónicas del vault",
     "offline": true,
     "schema_version": "2.4"
@@ -2127,8 +2127,8 @@
         "US-124a"
       ],
       "pr_count": 1,
-      "pr_open": 1,
-      "pr_merged": 0,
+      "pr_open": 0,
+      "pr_merged": 1,
       "stories": 4,
       "done": 0,
       "wip": 4,
@@ -2656,12 +2656,12 @@
       "id": "DS-06",
       "name": "DS-06 · CONAGUA SINA",
       "owner": "Emilio Galnares Ruiz",
-      "document_status": "draft",
+      "document_status": "in_review",
       "frequency": "- Diaria. → satisface el requisito de ingesta continua.",
       "coverage": "Regional (por región hidrológica / presa, no por municipio directo).",
-      "proof": "pending",
-      "checks_done": 0,
-      "checks_total": 5,
+      "proof": "ok",
+      "checks_done": 8,
+      "checks_total": 8,
       "path": "14_Data_Sources/DS-06_CONAGUA_SINA.md"
     },
     {
@@ -2680,12 +2680,12 @@
       "id": "DS-08",
       "name": "DS-08 · CONAPO Proyecciones de Población",
       "owner": "Emilio Galnares Ruiz",
-      "document_status": "draft",
+      "document_status": "in_review",
       "frequency": "- Anual (proyección por año; la serie completa se republica al recalibrar).",
       "coverage": "Nacional, desagregado municipal (y por grupo de edad).",
-      "proof": "pending",
-      "checks_done": 0,
-      "checks_total": 5,
+      "proof": "ok",
+      "checks_done": 8,
+      "checks_total": 8,
       "path": "14_Data_Sources/DS-08_CONAPO_Proyecciones.md"
     }
   ],
@@ -3261,9 +3261,9 @@
         "name": "Emilio Galnares Ruiz",
         "cell": "Célula 1",
         "engagement": 65.0,
-        "commits": 0,
-        "prs_merged": 0,
-        "prs_open": 1,
+        "commits": 16,
+        "prs_merged": 1,
+        "prs_open": 0,
         "risk": "en_tiempo",
         "by_sprint": {
           "S1": {
@@ -3302,7 +3302,7 @@
         "name": "Edgar Edmundo Coronel Navarrete",
         "cell": "PO",
         "engagement": 60.8,
-        "commits": 250,
+        "commits": 253,
         "prs_merged": 23,
         "prs_open": 0,
         "risk": "retraso",
@@ -3845,6 +3845,17 @@
         "signal": "3 PR · 3 US activas"
       },
       {
+        "name": "Emilio Galnares Ruiz",
+        "cell": "Célula 1",
+        "cell_group": "Célula 1 · Data Engineering & Quality",
+        "active": true,
+        "prs_merged": 1,
+        "devlogs": 1,
+        "active_us": 4,
+        "activity": 6,
+        "signal": "1 PR · 1 DevLog · 4 US activas"
+      },
+      {
         "name": "Juan Carlos Macías Mayen",
         "cell": "Célula 4",
         "cell_group": "Célula 4 · Backend, API & Seguridad",
@@ -3887,17 +3898,6 @@
         "active_us": 2,
         "activity": 4,
         "signal": "1 PR · 1 DevLog · 2 US activas"
-      },
-      {
-        "name": "Emilio Galnares Ruiz",
-        "cell": "Célula 1",
-        "cell_group": "Célula 1 · Data Engineering & Quality",
-        "active": true,
-        "prs_merged": 0,
-        "devlogs": 0,
-        "active_us": 4,
-        "activity": 4,
-        "signal": "4 US activas"
       },
       {
         "name": "Estefany Lucero Hernández Loredo",
@@ -4710,9 +4710,24 @@
   "git_activity": {
     "available": true,
     "repository": "edgarcoroneln/escuela-concausa-bi",
-    "generated_at": "2026-08-29T21:13:10+00:00",
+    "generated_at": "2026-08-29T21:19:24+00:00",
     "scope": "Todos los PR del repositorio, hasta 2,000 por ejecución",
     "prs": [
+      {
+        "number": 107,
+        "title": "feat(bronze): DS-06 y DS-08 — prueba de descarga, extractores y validaciones (US-121a a US-124a)",
+        "state": "merged",
+        "author": "Starcrossedboy",
+        "created_at": "2026-08-28T03:36:19Z",
+        "merged_at": "2026-08-29T21:18:41Z",
+        "url": "https://github.com/edgarcoroneln/escuela-concausa-bi/pull/107",
+        "story_ids": [
+          "US-121a",
+          "US-122a",
+          "US-123a",
+          "US-124a"
+        ]
+      },
       {
         "number": 133,
         "title": "Feat/andres habib us303 registro ml03",
@@ -4894,21 +4909,6 @@
           "US-204",
           "US-221",
           "US-222"
-        ]
-      },
-      {
-        "number": 107,
-        "title": "feat(bronze): DS-06 y DS-08 — prueba de descarga, extractores y validaciones (US-121a a US-124a)",
-        "state": "open",
-        "author": "Starcrossedboy",
-        "created_at": "2026-08-28T03:36:19Z",
-        "merged_at": null,
-        "url": "https://github.com/edgarcoroneln/escuela-concausa-bi/pull/107",
-        "story_ids": [
-          "US-121a",
-          "US-122a",
-          "US-123a",
-          "US-124a"
         ]
       },
       {
@@ -6569,13 +6569,13 @@
     "commits": [
       {
         "author": "edgarcoroneln",
-        "count": 250,
-        "last_at": "2026-08-29T21:12:20Z"
+        "count": 253,
+        "last_at": "2026-08-29T21:18:41Z"
       },
       {
         "author": "github-actions[bot]",
-        "count": 102,
-        "last_at": "2026-08-29T21:07:24Z"
+        "count": 103,
+        "last_at": "2026-08-29T21:13:10Z"
       },
       {
         "author": "DianaVarela96",
@@ -6601,6 +6601,11 @@
         "author": "marina-gdb",
         "count": 17,
         "last_at": "2026-08-29T20:07:20Z"
+      },
+      {
+        "author": "Starcrossedboy",
+        "count": 16,
+        "last_at": "2026-08-29T02:38:25Z"
       },
       {
         "author": "mserraniaa-png",
@@ -6673,12 +6678,54 @@
         "name": "CI",
         "status": "in_progress",
         "conclusion": null,
-        "url": "https://github.com/edgarcoroneln/escuela-concausa-bi/actions/runs/33275463069"
+        "url": "https://github.com/edgarcoroneln/escuela-concausa-bi/actions/runs/33275742340"
+      },
+      {
+        "name": "Update Project Graph",
+        "status": "completed",
+        "conclusion": "failure",
+        "url": "https://github.com/edgarcoroneln/escuela-concausa-bi/actions/runs/33275742332"
+      },
+      {
+        "name": "PM Dashboard",
+        "status": "completed",
+        "conclusion": "success",
+        "url": "https://github.com/edgarcoroneln/escuela-concausa-bi/actions/runs/33275742329"
       },
       {
         "name": "Refresh PM Dashboard",
         "status": "in_progress",
         "conclusion": null,
+        "url": "https://github.com/edgarcoroneln/escuela-concausa-bi/actions/runs/33275742327"
+      },
+      {
+        "name": "PM Dashboard",
+        "status": "completed",
+        "conclusion": "success",
+        "url": "https://github.com/edgarcoroneln/escuela-concausa-bi/actions/runs/33275661537"
+      },
+      {
+        "name": "PR Quality Gate",
+        "status": "completed",
+        "conclusion": "success",
+        "url": "https://github.com/edgarcoroneln/escuela-concausa-bi/actions/runs/33275661523"
+      },
+      {
+        "name": "CI",
+        "status": "completed",
+        "conclusion": "success",
+        "url": "https://github.com/edgarcoroneln/escuela-concausa-bi/actions/runs/33275661509"
+      },
+      {
+        "name": "CI",
+        "status": "completed",
+        "conclusion": "success",
+        "url": "https://github.com/edgarcoroneln/escuela-concausa-bi/actions/runs/33275463069"
+      },
+      {
+        "name": "Refresh PM Dashboard",
+        "status": "completed",
+        "conclusion": "success",
         "url": "https://github.com/edgarcoroneln/escuela-concausa-bi/actions/runs/33275463061"
       },
       {
@@ -6746,48 +6793,6 @@
         "status": "completed",
         "conclusion": "success",
         "url": "https://github.com/edgarcoroneln/escuela-concausa-bi/actions/runs/33275152498"
-      },
-      {
-        "name": "PR Quality Gate",
-        "status": "completed",
-        "conclusion": "success",
-        "url": "https://github.com/edgarcoroneln/escuela-concausa-bi/actions/runs/33275152465"
-      },
-      {
-        "name": "Update Project Graph",
-        "status": "completed",
-        "conclusion": "failure",
-        "url": "https://github.com/edgarcoroneln/escuela-concausa-bi/actions/runs/33274736341"
-      },
-      {
-        "name": "CI",
-        "status": "completed",
-        "conclusion": "success",
-        "url": "https://github.com/edgarcoroneln/escuela-concausa-bi/actions/runs/33274736340"
-      },
-      {
-        "name": "Refresh PM Dashboard",
-        "status": "completed",
-        "conclusion": "success",
-        "url": "https://github.com/edgarcoroneln/escuela-concausa-bi/actions/runs/33274736314"
-      },
-      {
-        "name": "PM Dashboard",
-        "status": "completed",
-        "conclusion": "success",
-        "url": "https://github.com/edgarcoroneln/escuela-concausa-bi/actions/runs/33274736303"
-      },
-      {
-        "name": "CI",
-        "status": "completed",
-        "conclusion": "success",
-        "url": "https://github.com/edgarcoroneln/escuela-concausa-bi/actions/runs/33274648185"
-      },
-      {
-        "name": "PR Quality Gate",
-        "status": "completed",
-        "conclusion": "success",
-        "url": "https://github.com/edgarcoroneln/escuela-concausa-bi/actions/runs/33274648184"
       }
     ],
     "note": "Actividad agregada; no determina Done ni se usa como ranking individual."

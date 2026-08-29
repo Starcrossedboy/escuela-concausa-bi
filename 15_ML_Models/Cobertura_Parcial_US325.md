@@ -23,15 +23,24 @@ primeros caracteres del CCT.
 Una menor cobertura no equivale a un valor cero ni a menor riesgo. Cualquier diferencia sistemática
 entre entidades debe reportarse antes de interpretar clusters como perfiles de intervención.
 
-## Bloqueo explícito para análisis municipal
+## Diagnóstico municipal preparado
 
-El contrato actual de `gold.features_escuela` no incluye `cve_mun`. Por ello, el módulo falla de forma
-explícita cuando se solicita un análisis municipal: no infiere municipio desde el CCT ni sustituye el
-resultado municipal por uno estatal. Célula 1 debe confirmar esa llave antes de cerrar este criterio y
-antes de aplicar la mediana municipal definida por ADR-003.
+El módulo valida `cve_mun` como clave INEGI de cinco dígitos, conserva ceros iniciales y comprueba
+que pertenezca a la misma entidad que el CCT. No infiere el municipio desde la escuela. Produce
+cobertura y completitud por municipio, además de la brecha entre los municipios con menor y mayor
+porcentaje de `SIN_DATO` para cada entidad y driver.
+
+La implementación queda desacoplada del cambio de esquema de Célula 1: funciona cuando la columna
+está presente y falla con un mensaje explícito cuando todavía no ha sido publicada. La rama
+`feat/diana-varela-us325-cve-mun-features-escuela` entrega esa columna y su fixture sin que este PR
+copie cambios ajenos.
+
+No se asigna automáticamente una etiqueta de “sesgo”: todavía no existe un umbral aprobado. El
+reporte cuantifica la concentración para que la interpretación sea auditable.
 
 ## Criterio de salida
 
-Con `cve_mun` disponible, se agregará el desglose municipal y se evaluará si `SIN_DATO` se concentra
-en municipios específicos. Hasta entonces, el estado de US-325 es parcial y se limita al diagnóstico
-por entidad sobre datos sintéticos.
+La implementación queda lista para revisión con el fixture sintético. Para declarar US-325 `done`
+se requiere integrar el contrato de Célula 1, reconstruir `gold.features_escuela` y ejecutar el
+diagnóstico sobre Gold real. D5 seguirá identificado como cobertura parcial mientras falte el
+crosswalk `region_hidrologica → cve_mun`.

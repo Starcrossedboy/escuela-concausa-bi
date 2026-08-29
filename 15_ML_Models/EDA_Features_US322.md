@@ -18,7 +18,8 @@ El diagnóstico valida el contrato de `gold.features_escuela` sobre el fixture s
 
 - Nulos, cardinalidad y correlación de los seis drivers y `indice_completitud_drivers`.
 - Matriz de correlaciones de las features; el target no se mezcla con las variables de clustering.
-- Llaves y target excluidos del vector: `cct`, `id_ciclo` y `target_variacion_matricula`.
+- Llaves y target excluidos del vector: `cct`, `cve_mun`, `id_ciclo` y
+  `target_variacion_matricula`.
 - Coherencia obligatoria entre valores ausentes y la bandera `SIN_DATO`.
 
 ## Selección inicial para ML-03
@@ -27,6 +28,10 @@ Las candidatas son los seis drivers, `indice_completitud_drivers` y los indicado
 de D5/D6. La imputación se ajustará solamente con cada conjunto de entrenamiento; nunca se usará
 cero para cubrir una ausencia.
 
+`cve_mun` se conserva exclusivamente para auditar cobertura y perfilar resultados. No representa
+una característica socioeconómica y meterla como número en KMeans introduciría una distancia
+artificial entre claves administrativas.
+
 ## Limitación conocida
 
 El fixture tiene 400 observaciones sintéticas de 80 escuelas y 5 ciclos. Sirve para verificar el
@@ -34,5 +39,6 @@ pipeline, no para declarar perfiles de negocio o resultados sobre escuelas reale
 
 ## Criterio de salida
 
-US-321 puede consumir estas variables solo después de revisar correlaciones, cobertura y la decisión
-de Célula 1 sobre `cve_mun` para la imputación establecida en ADR-003.
+US-321 puede consumir estas variables después de revisar correlaciones y cobertura. La preparación
+del pipeline puede avanzar, pero la imputación definitiva permanece pendiente de ratificar el
+fallback para municipios sin suficientes observaciones.

@@ -136,3 +136,9 @@ tags: [requirements, traceability, matrix]
 | `REQ-007` | `US-004`, `US-521c`, `US-523a` | Reconciliación de 91 US ejecutada · US-523a pasa a `done` por PR #93/documento `approved` ✅ · US-521c conserva DevLog no filed | Edward regulariza DevLog; Edgar cierra acuerdos del reporte y regenera tablero | 🟡 En revisión |
 
 → Seguimiento de junta: [[13_Reports/US_Validation_Followup_2026-08-28]]
+
+## Evidencia incremental — 2026-08-29 · EDA y cobertura territorial ML-03
+
+| REQ | Historias | Evidencia de prueba | DevLog | Estado |
+|---|---|---|---|---|
+| `REQ-003` | `US-322`, `US-325` | EDA reproducible y auditoría de `SIN_DATO` por driver, entidad y municipio; `cve_mun` excluida del vector de clustering; validación de clave INEGI y cero inicial; 17 pruebas enfocadas ✅ · Ruff ✅ · Vault limpio ✅ | [[_DevLog/2026-08-29-estefany-hernandez-us322-us325-territorial]] | 🟡 En revisión; US-325 espera ejecución sobre Gold real |

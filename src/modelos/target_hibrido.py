@@ -113,7 +113,9 @@ def agregar_a_municipio_nivel(
 
     Args:
         features: tabla conforme al contrato `FeaturesEscuela`.
-        dimension: `gold.dim_escuela` con `cct`, `cve_mun` y `nivel`.
+        dimension: `gold.dim_escuela` con `cct`, `cve_mun` y `nivel`. De aquí sólo se toman las
+            columnas que `features` no traiga: si el contrato ya publica `cve_mun`, la dimensión
+            aporta únicamente `nivel`.
 
     Returns:
         El DataFrame agregado y un `ResumenAgregacion` con lo que se perdió en el camino.
@@ -121,12 +123,27 @@ def agregar_a_municipio_nivel(
     Raises:
         ValueError: si ninguna escuela encuentra su fila en la dimensión.
     """
-    unido = features.merge(dimension, on="cct", how="left", validate="many_to_one")
-    sin_dim = int(unido["cve_mun"].isna().sum())
+    # De la dimensión se toma sólo lo que las features NO traen. Desde que el contrato publica
+    # `cve_mun` (US-325), traer ambas haría que pandas las renombrara a `cve_mun_x`/`cve_mun_y` y
+    # la columna del agrupamiento dejaría de existir.
+    desde_dimension = [
+        col for col in LLAVE_AGREGADA if col != COLUMNA_CICLO and col not in features.columns
+    ]
+    unido = features.merge(
+        dimension[["cct", *desde_dimension]],
+        on="cct",
+        how="left",
+        validate="many_to_one",
+        indicator=True,
+    )
+    # El faltante se detecta con el indicador del merge y **no** con `cve_mun.isna()`: cuando
+    # `cve_mun` viene de las features, una escuela ausente de la dimensión la seguiría trayendo y
+    # el hueco pasaría inadvertido, con `nivel` en NaN colándose al `groupby`.
+    sin_dim = int((unido["_merge"] != "both").sum())
     if sin_dim == len(unido):
         raise ValueError("Ninguna escuela encontró municipio y nivel en `dim_escuela`.")
 
-    completas = unido[unido["cve_mun"].notna()].copy()
+    completas = unido[unido["_merge"] == "both"].drop(columns="_merge").copy()
     llave = list(LLAVE_AGREGADA)
 
     # Promedio sólo sobre las escuelas con dato: `mean()` de pandas ignora NaN por diseño, así que

@@ -12,7 +12,7 @@ Uso:
     python -m src.modelos.generar_fixture
     python -m src.modelos.generar_fixture --escuelas 80 --salida tests/fixtures/otro.csv
 
-Lo que el fixture SÍ reproduce del contrato: el grano CCT × ciclo, las 17 columnas, el rango
+Lo que el fixture SÍ reproduce del contrato: el grano CCT × ciclo, las 18 columnas, el rango
 [0,1] de los drivers, la ausencia explícita `SIN_DATO` y su coherencia con el valor nulo, una
 cobertura desigual entre drivers parecida a la real (D5 es regional, D6 cubre ~80 zonas urbanas),
 y `driver_dominante` (US-302) calculado con la misma regla de argmax que
@@ -82,6 +82,24 @@ def _generar_ccts(rng: np.random.Generator, n_escuelas: int) -> list[str]:
         ccts.append(f"{entidad}{nivel}{consecutivo}{verificador}")
     return ccts
 
+def _generar_municipios(ccts: list[str]) -> list[str]:
+    """Claves INEGI de municipio sintéticas (US-325): 2 dígitos de entidad + 3 de municipio.
+
+    La clave se deriva **de la entidad que ya codifica el CCT**, nunca de la posición en la
+    lista: así entidad y municipio no pueden contradecirse. Varias escuelas caen en el mismo
+    municipio (módulo 7) para que el análisis de concentración geográfica de US-325 tenga con
+    qué trabajar -- no una escuela por municipio.
+
+    `gold.dim_escuela` toma esta misma columna del fixture de features (ver
+    `generar_fixture_dim.py`), así que ambos artefactos comparten un único origen de la clave
+    municipal. Inventarla por separado en cada lado produce un desfase silencioso: la agregación
+    de DEC-007 parte los grupos según qué lado aporte `cve_mun` y nada falla.
+
+    >>> _generar_municipios(["09DPR0000X", "15DES0001Y"])
+    ['09001', '15002']
+    """
+    return [f"{cct[:2]}{(i % 7) + 1:03d}" for i, cct in enumerate(ccts)]
+
 
 def generar(n_escuelas: int = 80, semilla: int = SEMILLA) -> pd.DataFrame:
     """Construye el DataFrame simulado de features.
@@ -91,7 +109,7 @@ def generar(n_escuelas: int = 80, semilla: int = SEMILLA) -> pd.DataFrame:
         semilla: semilla del generador, para reproducibilidad.
 
     Returns:
-        DataFrame con las 16 columnas del contrato, ordenado por CCT y ciclo.
+        DataFrame con las 18 columnas del contrato, ordenado por CCT y ciclo.
 
     Raises:
         ValueError: si el total de filas excede el tope de 500 del plan de sprint §8.
@@ -105,6 +123,7 @@ def generar(n_escuelas: int = 80, semilla: int = SEMILLA) -> pd.DataFrame:
 
     rng = np.random.default_rng(semilla)
     ccts = _generar_ccts(rng, n_escuelas)
+    municipios = _generar_municipios(ccts)
 
     # Nivel base por escuela: una escuela pobre tiende a seguir siéndolo entre ciclos.
     base = {d: rng.beta(2, 3, size=n_escuelas) for d in DRIVERS}
@@ -114,7 +133,11 @@ def generar(n_escuelas: int = 80, semilla: int = SEMILLA) -> pd.DataFrame:
     filas: list[dict[str, object]] = []
     for i, cct in enumerate(ccts):
         for t, ciclo in enumerate(CICLOS):
-            fila: dict[str, object] = {"cct": cct, "id_ciclo": ciclo}
+            fila: dict[str, object] = {
+                "cct": cct,
+                "id_ciclo": ciclo,
+                "cve_mun": municipios[i],
+            }
             observados = 0
             presion = 0.0
 
@@ -155,7 +178,7 @@ def generar(n_escuelas: int = 80, semilla: int = SEMILLA) -> pd.DataFrame:
             filas.append(fila)
 
     columnas = (
-        ["cct", "id_ciclo"]
+        ["cct", "id_ciclo", "cve_mun"]
         + list(DRIVERS)
         + [f"d{k}_cobertura" for k in range(1, len(DRIVERS) + 1)]
         + ["driver_dominante", "indice_completitud_drivers", "target_variacion_matricula"]

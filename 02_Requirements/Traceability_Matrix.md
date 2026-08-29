@@ -151,3 +151,9 @@ tags: [requirements, traceability, matrix]
 | `REQ-002` · `REQ-003` | `US-212`, `US-104` | **BUG-017 / ADR-007** afectan directamente a DB-03/DB-04: con el target en alumnos absolutos y la sigmoide calibrada sobre fracción, `en_riesgo` (DEC-006, umbral 0.6) marcaría el 100 % de las escuelas y `pct_escuelas_en_riesgo` diría 100 % ⬜ · **incorporada como ratificadora** por PR #128 (Héctor Morales), junto con el costo asimétrico señalado ✅ · argumento que aporta Héctor y conviene registrar: **DEC-006 ya dice "`indice_riesgo` ≥ 0.6 ↔ pérdida de ~5 % de matrícula"**, y ese "~5 %" es una fracción — el umbral de DB-03/DB-04 ya presupone la unidad que ADR-007 propone, así que la alternativa A no es una opción nueva sino una reapertura de DEC-006 | [[_DevLog/2026-08-29-marina-garcia-correcciones-y-revision-pr129]] | ⬜ Mesa convocada por el PM |
 
 → Seguimiento de junta: [[13_Reports/US_Validation_Followup_2026-08-28]]
+
+## Evidencia incremental — 2026-08-29 · EDA y cobertura territorial ML-03
+
+| REQ | Historias | Evidencia de prueba | DevLog | Estado |
+|---|---|---|---|---|
+| `REQ-003` | `US-322`, `US-325` | EDA reproducible y auditoría de `SIN_DATO` por driver, entidad y municipio; `cve_mun` excluida del vector de clustering; validación de clave INEGI y cero inicial; 17 pruebas enfocadas ✅ · suite 544 ✅ · Ruff ✅ · Vault limpio ✅ | [[_DevLog/2026-08-29-estefany-hernandez-us322-us325-territorial]] | 🟡 En revisión; US-325 espera ejecución sobre Gold real |

@@ -1,63 +1,92 @@
+"""Validaciones de calidad de DS-06 CONAGUA (Bronze) con Great Expectations.
+
+Estructura pensada para ser probada sin depender de una corrida real contra
+Bronze: `limpiar_columnas_numericas` es una función pura sobre un DataFrame,
+y `construir_suite` arma las reglas sin necesitar datos todavía -- ambas se
+prueban de forma aislada en `tests/test_validacion_ds06.py`.
+"""
 import glob
 
-import pandas as pd
 import great_expectations as gx
+import pandas as pd
 
-# 1. Cargamos el archivo más reciente que el extractor guardó en Bronze
-archivos = sorted(glob.glob("data/bronze/conagua/conagua_*.parquet"))
-df = pd.read_parquet(archivos[-1])
+SOURCE_NAME = "DS-06_CONAGUA_SINA"
+BRONZE_GLOB = "data/bronze/conagua/conagua_*.parquet"
+SUITE_NAME = "suite_ds06_conagua"
 
-# 2. Las columnas numéricas vienen como texto (así las entregó la API de CONAGUA)
-#    Las convertimos a número de verdad para poder validar rangos
-df["cap_namo"] = pd.to_numeric(df["cap_namo"], errors="coerce")
-df["cap_name"] = pd.to_numeric(df["cap_name"], errors="coerce")
-df["alt_cort"] = pd.to_numeric(df["alt_cort"], errors="coerce")
 
-# 3. Creamos un "contexto" de Great Expectations que guarda resultados en disco
-#    (esto es lo que nos va a permitir generar el Data Docs al final)
-context = gx.get_context(context_root_dir="great_expectations")
+def limpiar_columnas_numericas(df: pd.DataFrame) -> pd.DataFrame:
+    """Convierte a numérico las columnas que CONAGUA entrega como texto.
 
-# 4. Le decimos a GE que nuestra fuente de datos es un DataFrame de pandas
-try:
-    data_source = context.data_sources.add_pandas("pandas_ds06")
-except gx.exceptions.DataContextError:
-    data_source = context.data_sources.get("pandas_ds06")
-try:
-    data_asset = data_source.add_dataframe_asset(name="ds06_presas")
-except ValueError:
-    data_asset = data_source.get_asset("ds06_presas")
-try:
-    batch_definition = data_asset.add_batch_definition_whole_dataframe("batch_ds06")
-except ValueError:
-    batch_definition = data_asset.get_batch_definition("batch_ds06")
+    Valores no convertibles quedan como NaN (errors="coerce") en vez de
+    tronar -- eso es justo lo que las expectativas de nulos deben atrapar.
+    """
+    df = df.copy()
+    for columna in ("cap_namo", "cap_name", "alt_cort"):
+        df[columna] = pd.to_numeric(df[columna], errors="coerce")
+    return df
 
-# 5. Armamos la "suite": el conjunto de reglas de calidad para DS-06
-suite = context.suites.add_or_update(gx.ExpectationSuite(name="suite_ds06_conagua"))
 
-# --- Nulos: estos campos nunca deben venir vacíos ---
-suite.add_expectation(gx.expectations.ExpectColumnValuesToNotBeNull(column="nombre_oficial"))
-suite.add_expectation(gx.expectations.ExpectColumnValuesToNotBeNull(column="estado"))
-suite.add_expectation(gx.expectations.ExpectColumnValuesToNotBeNull(column="cap_namo"))
+def construir_suite(context: gx.data_context.AbstractDataContext) -> gx.ExpectationSuite:
+    """Arma la suite de reglas de calidad de DS-06 (nulos, unicidad, rangos)."""
+    suite = context.suites.add_or_update(gx.ExpectationSuite(name=SUITE_NAME))
 
-# --- Llave: id_presa debe ser único (no duplicados) ---
-suite.add_expectation(gx.expectations.ExpectColumnValuesToBeUnique(column="id_presa"))
-suite.add_expectation(gx.expectations.ExpectColumnValuesToNotBeNull(column="id_presa"))
+    # --- Nulos: estos campos nunca deben venir vacíos ---
+    suite.add_expectation(gx.expectations.ExpectColumnValuesToNotBeNull(column="nombre_oficial"))
+    suite.add_expectation(gx.expectations.ExpectColumnValuesToNotBeNull(column="estado"))
+    suite.add_expectation(gx.expectations.ExpectColumnValuesToNotBeNull(column="cap_namo"))
 
-# --- Rangos físicos: valores absurdos serían un error de los datos ---
-suite.add_expectation(gx.expectations.ExpectColumnValuesToBeBetween(
-    column="cap_namo", min_value=0, max_value=100000
-))
-suite.add_expectation(gx.expectations.ExpectColumnValuesToBeBetween(
-    column="alt_cort", min_value=0, max_value=500
-))
+    # --- Llave: id_presa debe ser único (no duplicados) ---
+    suite.add_expectation(gx.expectations.ExpectColumnValuesToBeUnique(column="id_presa"))
+    suite.add_expectation(gx.expectations.ExpectColumnValuesToNotBeNull(column="id_presa"))
 
-# 6. Corremos la validación sobre nuestros datos reales
-batch = batch_definition.get_batch(batch_parameters={"dataframe": df})
-resultados = batch.validate(suite)
+    # --- Rangos físicos: valores absurdos serían un error de los datos ---
+    suite.add_expectation(gx.expectations.ExpectColumnValuesToBeBetween(
+        column="cap_namo", min_value=0, max_value=100000
+    ))
+    suite.add_expectation(gx.expectations.ExpectColumnValuesToBeBetween(
+        column="alt_cort", min_value=0, max_value=500
+    ))
+    return suite
 
-print("¿Pasó todo?", resultados.success)
-print(resultados)
 
-# 7. Generamos el reporte visual (Data Docs)
-context.build_data_docs()
-print("\nData Docs generado. Ábrelo con: context.open_data_docs()")
+def validar(df: pd.DataFrame, context: gx.data_context.AbstractDataContext):
+    """Registra el DataFrame como batch y corre la suite de DS-06 sobre él."""
+    try:
+        data_source = context.data_sources.add_pandas("pandas_ds06")
+    except gx.exceptions.DataContextError:
+        data_source = context.data_sources.get("pandas_ds06")
+    try:
+        data_asset = data_source.add_dataframe_asset(name="ds06_presas")
+    except ValueError:
+        data_asset = data_source.get_asset("ds06_presas")
+    try:
+        batch_definition = data_asset.add_batch_definition_whole_dataframe("batch_ds06")
+    except ValueError:
+        batch_definition = data_asset.get_batch_definition("batch_ds06")
+
+    suite = construir_suite(context)
+    batch = batch_definition.get_batch(batch_parameters={"dataframe": df})
+    return batch.validate(suite)
+
+
+def main() -> None:
+    archivos = sorted(glob.glob(BRONZE_GLOB))
+    if not archivos:
+        raise FileNotFoundError(
+            f"{SOURCE_NAME}: no hay archivos en {BRONZE_GLOB}. Corre el extractor primero."
+        )
+    df = limpiar_columnas_numericas(pd.read_parquet(archivos[-1]))
+
+    context = gx.get_context(context_root_dir="great_expectations")
+    resultados = validar(df, context)
+
+    print("¿Pasó todo?", resultados.success)
+    print(resultados)
+
+    context.build_data_docs()
+    print("\nData Docs generado. Ábrelo con: context.open_data_docs()")
+
+
+if __name__ == "__main__":
+    main()

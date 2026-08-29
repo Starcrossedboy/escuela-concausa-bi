@@ -1,7 +1,7 @@
 {
   "expectations": [
     {
-      "id": "574fca16-46c7-43a4-8f50-f8f0922dd29c",
+      "id": "5ec5f26a-dad4-4263-a475-f37cb14002cf",
       "kwargs": {
         "column": "nombre_oficial"
       },
@@ -10,7 +10,7 @@
       "type": "expect_column_values_to_not_be_null"
     },
     {
-      "id": "f688a115-4fa4-4ca5-ac50-eb74192d900f",
+      "id": "ad937889-11e8-4caa-be52-d963b5772756",
       "kwargs": {
         "column": "estado"
       },
@@ -19,7 +19,7 @@
       "type": "expect_column_values_to_not_be_null"
     },
     {
-      "id": "432ddc19-f912-4e22-b660-7efb8d3dc4bf",
+      "id": "baf949a9-1a94-4a3a-8262-36f25fe951bc",
       "kwargs": {
         "column": "cap_namo"
       },
@@ -28,7 +28,7 @@
       "type": "expect_column_values_to_not_be_null"
     },
     {
-      "id": "16e4b14e-b38e-4cfc-9998-1c54caa9cd2c",
+      "id": "ef0ef6d5-051c-4c81-bb1a-48506a86d761",
       "kwargs": {
         "column": "id_presa"
       },
@@ -37,7 +37,7 @@
       "type": "expect_column_values_to_be_unique"
     },
     {
-      "id": "c4d036d1-7dd9-4e59-90fd-449d79e4d813",
+      "id": "c6179271-291a-4cc7-9bdb-b09070c51cc6",
       "kwargs": {
         "column": "id_presa"
       },
@@ -46,7 +46,7 @@
       "type": "expect_column_values_to_not_be_null"
     },
     {
-      "id": "0e66a8d4-7cd7-4d0c-bbb8-a658de0ea971",
+      "id": "a12b2e0e-acdb-41f5-b762-e240276e97cf",
       "kwargs": {
         "column": "cap_namo",
         "max_value": 100000.0,
@@ -57,7 +57,7 @@
       "type": "expect_column_values_to_be_between"
     },
     {
-      "id": "2b48ff3d-0823-424a-a855-46d96ddc3fa6",
+      "id": "ca0fe514-00e9-47bd-9ec5-d445e35320ad",
       "kwargs": {
         "column": "alt_cort",
         "max_value": 500.0,

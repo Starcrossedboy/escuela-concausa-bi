@@ -67,6 +67,7 @@ tags: [requirements, traceability, matrix]
 
 | REQ | Historias | Evidencia de prueba | DevLog | Estado |
 |---|---|---|---|---|
+| `REQ-001` | `US-121a`, `US-122a`, `US-123a`, `US-124a` | DS-06 (CONAGUA) destrabado: endpoint POST real confirmado (`mapa.php`, 180 presas con volumen NAME/NAMO), reemplaza el placeholder `SOURCE_URL="PENDIENTE-CONFIRMAR"` en `extractor_conagua.py` · DS-08 (CONAPO) procesado desde archivo local (sin URL de descarga estable), clave municipal corregida a 5 dígitos en `extractor_conapo.py` · Great Expectations: `suite_ds06_conagua` 7/7 ✅ (180 filas) y `suite_ds08_conapo` 7/7 ✅ (252,450 filas) · Fixtures CI: `bronze_ds06_conagua_sample.csv` (180 filas) y `bronze_ds08_conapo_sample.csv` (500 filas) | [[_DevLog/2026-08-28-emilio-galnares-us121a-ds06-ds08]] | 🟡 En progreso |
 | `REQ-003` | `US-302` | BUG-018 corregido: cobertura evaluada por ventana y predicción/SHAP alineados con `feature_names_in_` ✅ · ML-02 16 pruebas ✅ · Ruff ✅ | [[_DevLog/2026-08-28-andres-gonzalez-bug018-ml02-cobertura]] | 🟡 En progreso |
 | `REQ-003` | `US-303` | Verificador del Registry rechaza versiones nulas o no numéricas con error accionable ✅ · suite enfocada 15 pruebas ✅ | [[_DevLog/2026-08-28-andres-gonzalez-us303-version-registry]] | 🟡 En progreso |
 
@@ -81,6 +82,8 @@ tags: [requirements, traceability, matrix]
 | REQ | Historias | Evidencia de prueba | DevLog | Estado |
 |---|---|---|---|---|
 | `REQ-007` | `US-503`, `US-004` | Guardia anti-mojibake en `vault_lint.py`, dentro del check requerido: 11 casos de validación ✅ · **BUG-014** cerrado con regresión versionada, `.github/scripts/probar_verificar_plantilla.sh` — 7 casos contra la plantilla real ✅ · `pytest tests/ -q` 467 ✅ | [[_DevLog/2026-08-28-edgar-mojibake-higiene-vault]] | 🟡 En progreso |
+
+---
 ---
 
 ## Leyenda de estado

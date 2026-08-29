@@ -19,6 +19,7 @@ from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import StandardScaler
 
 from src.modelos.contrato import DRIVERS, columna_cobertura
+from src.modelos.mlflow_utils import RegistroModelo, registrar_sklearn
 from src.modelos.particion_temporal import (
     generar_backtesting,
     ventanas_posibles,
@@ -32,6 +33,7 @@ COLUMNAS_PROHIBIDAS: frozenset[str] = frozenset(
     {"cct", "cve_mun", "id_ciclo", COLUMNA_TARGET}
 )
 POLITICA_AUSENCIA_VIGENTE = "casos_completos"
+NOMBRE_MODELO = "ML03_ClusteringEscuelas"
 
 NOMBRES_NEGOCIO = {
     "d1_pobreza": "pobreza y rezago",
@@ -250,26 +252,21 @@ def registrar_en_mlflow(
     tracking_uri: str,
     experimento: str = "ML-03-clustering-escuelas",
 ) -> str:
-    """Registra métricas y pipeline; no promueve el modelo mientras haya bloqueo."""
-    import mlflow
-    import mlflow.sklearn
-
-    mlflow.set_tracking_uri(tracking_uri)
-    mlflow.set_experiment(experimento)
-    with mlflow.start_run() as corrida:
-        mlflow.log_params(
-            {
-                "k": resultado.k_seleccionado,
-                "politica_ausencia": resultado.politica_ausencia,
-                "features": ",".join(FEATURES_ML03),
-            }
-        )
-        mlflow.log_metrics(
-            {
-                "silhouette_temporal_promedio": resultado.silhouette_promedio,
-                "filas_entrenadas": resultado.filas_entrenadas,
-                "filas_excluidas": resultado.filas_excluidas,
-            }
-        )
-        mlflow.sklearn.log_model(resultado.modelo, name="modelo")
-        return corrida.info.run_id
+    """Registra la corrida y crea una versión canónica de ML-03 en el Registry."""
+    config = RegistroModelo(
+        nombre_modelo=NOMBRE_MODELO,
+        experimento=experimento,
+        tracking_uri=tracking_uri,
+        registrar_modelo=True,
+        parametros={
+            "k": resultado.k_seleccionado,
+            "politica_ausencia": resultado.politica_ausencia,
+            "features": ",".join(FEATURES_ML03),
+        },
+        metricas={
+            "silhouette_temporal_promedio": resultado.silhouette_promedio,
+            "filas_entrenadas": resultado.filas_entrenadas,
+            "filas_excluidas": resultado.filas_excluidas,
+        },
+    )
+    return registrar_sklearn(resultado.modelo, config)

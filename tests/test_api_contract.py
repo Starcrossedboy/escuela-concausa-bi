@@ -17,7 +17,10 @@ from src.api.app import API_PREFIX, app
 from src.api.repositorio_gold import get_repositorio_gold
 from src.api.repositorio_modelos import get_repositorio_modelos
 from tests.fixtures_gold import RepositorioGoldFake
-from tests.fixtures_modelos import RepositorioModelosFake
+from tests.fixtures_modelos import (
+    RepositorioModelosFake,
+    RepositorioModelosNoDisponibleFake,
+)
 
 RAIZ = Path(__file__).resolve().parents[1]
 
@@ -198,6 +201,32 @@ def test_prediccion_batch_valida_entrada_422(client: TestClient) -> None:
     r = client.post(f"{API_PREFIX}/predicciones/batch", json={"ccts": [], "id_ciclo": "x"})
     assert r.status_code == 422
     assert r.json()["error"] == "validation_error"
+
+
+def test_prediccion_timeout_postgres_503(client: TestClient) -> None:
+    """Si Postgres no responde a tiempo (US-416), 503 uniforme -- nunca un valor inventado."""
+    app.dependency_overrides[get_repositorio_modelos] = RepositorioModelosNoDisponibleFake
+    try:
+        r = client.get(f"{API_PREFIX}/predicciones/09DPR0001A")
+    finally:
+        app.dependency_overrides[get_repositorio_modelos] = RepositorioModelosFake
+    assert r.status_code == 503
+    cuerpo = r.json()
+    assert cuerpo["error"] == "service_unavailable"
+    assert cuerpo["request_id"]
+
+
+def test_prediccion_batch_timeout_postgres_503(client: TestClient) -> None:
+    app.dependency_overrides[get_repositorio_modelos] = RepositorioModelosNoDisponibleFake
+    try:
+        r = client.post(
+            f"{API_PREFIX}/predicciones/batch",
+            json={"ccts": ["09DPR0001A"], "id_ciclo": "2024-2025"},
+        )
+    finally:
+        app.dependency_overrides[get_repositorio_modelos] = RepositorioModelosFake
+    assert r.status_code == 503
+    assert r.json()["error"] == "service_unavailable"
 
 
 # --------------------------------------------------------------------------- #

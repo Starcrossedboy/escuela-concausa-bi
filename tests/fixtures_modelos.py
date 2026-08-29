@@ -13,6 +13,8 @@ from __future__ import annotations
 
 from copy import deepcopy
 
+from src.api.repositorio_modelos import RepositorioModelosNoDisponible
+
 PREDICCIONES_FAKE: list[dict] = [
     {
         "cct": "09DPR0001A",
@@ -51,3 +53,17 @@ class RepositorioModelosFake:
         return [
             dict(p) for p in self._predicciones if p["cct"] in ccts and p["id_ciclo"] == id_ciclo
         ]
+
+
+class RepositorioModelosNoDisponibleFake:
+    """Simula un Postgres que nunca responde a tiempo (US-416).
+
+    Usado para probar el mapeo a 503 `service_unavailable` en `test_api_contract.py` sin tocar
+    Postgres real -- mismo espíritu que `RepositorioModelosFake`, pero para el camino de error.
+    """
+
+    def obtener_prediccion(self, cct: str, id_ciclo: str) -> dict | None:
+        raise RepositorioModelosNoDisponible("Postgres no respondió en 3000ms.")
+
+    def listar_predicciones(self, ccts: list[str], id_ciclo: str) -> list[dict]:
+        raise RepositorioModelosNoDisponible("Postgres no respondió en 3000ms.")

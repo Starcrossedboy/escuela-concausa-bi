@@ -9,13 +9,21 @@ hasta que exista -- ver BUG-010). La explicación SHAP completa y el batch son *
 seguían leyendo `src/api/mock_data.py` (un valor fabricado, no la salida de ningún modelo).
 `explicacion` sigue sobre `mock_data` (SHAP no tiene fuente en Gold todavía; fuera de alcance de
 BUG-010, que cubre solo `/predicciones` y `/predicciones/batch`).
+
+Si Postgres no responde a tiempo (`RepositorioModelosNoDisponible`, US-416), ambas rutas devuelven
+503 `service_unavailable` -- nunca dejan la excepción caer al handler genérico de `app.py` (que la
+convertiría en un 500 `internal_error` menos específico) ni inventan una predicción.
 """
 from __future__ import annotations
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 
 from src.api import mock_data
-from src.api.repositorio_modelos import RepositorioModelos, get_repositorio_modelos
+from src.api.repositorio_modelos import (
+    RepositorioModelos,
+    RepositorioModelosNoDisponible,
+    get_repositorio_modelos,
+)
 from src.api.schemas import (
     ExplicacionSHAPOut,
     Page,
@@ -41,7 +49,12 @@ def prediccion(
     repo: RepositorioModelos = Depends(get_repositorio_modelos),
 ) -> PrediccionOut:
     """Riesgo y driver dominante de una escuela (rol mínimo: ciudadano)."""
-    fila = repo.obtener_prediccion(cct, ciclo)
+    try:
+        fila = repo.obtener_prediccion(cct, ciclo)
+    except RepositorioModelosNoDisponible as exc:
+        raise HTTPException(
+            status.HTTP_503_SERVICE_UNAVAILABLE, detail="Servicio de predicciones no disponible."
+        ) from exc
     if fila is None:
         raise HTTPException(
             status.HTTP_404_NOT_FOUND, detail="CCT sin predicción o fuera de alcance."
@@ -59,7 +72,12 @@ def prediccion_batch(
     Omite silenciosamente los CCT sin fila en `gold.predicciones` -- nunca inventa una
     predicción para un CCT fuera de alcance o sin modelo corrido.
     """
-    filas = repo.listar_predicciones(body.ccts, body.id_ciclo)
+    try:
+        filas = repo.listar_predicciones(body.ccts, body.id_ciclo)
+    except RepositorioModelosNoDisponible as exc:
+        raise HTTPException(
+            status.HTTP_503_SERVICE_UNAVAILABLE, detail="Servicio de predicciones no disponible."
+        ) from exc
     items = [PrediccionOut(**fila) for fila in filas]
     return paginate(items, page=1, size=100)
 

@@ -54,7 +54,7 @@ Screen_Specs.md §2. El contrato de reutilización:
 - Mismas fórmulas SQL, sin variaciones.
 - Mismo grano y llaves de cruce (`cct`, `cve_mun`, `id_ciclo`).
 - Mismos filtros globales (`id_ciclo`, `cve_ent`, `nivel`) — ver
-  `superset_semantic/metrics_kpis_base_us221.yaml`.
+  `superset/semantic/metrics_kpis_base_us221.yaml`.
 
 Pendiente de confirmar con Manuel antes de cerrar: si DB-01 embebe estos
 componentes tal cual o los reconstruye — ver DevLog de la sesión.

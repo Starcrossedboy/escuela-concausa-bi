@@ -26,10 +26,10 @@ validando primero contra el catálogo canónico de Manuel Serranía (US-201,
 - `tests/test_kpis_us221.py`: 6 casos que leen el SQL de producción
   directamente (no una copia reescrita) y lo corren contra las fixtures,
   para que no se desincronice si el SQL cambia.
-- `superset_semantic/metrics_kpis_base_us221.yaml`: capa semántica exponiendo
+- `superset/semantic/metrics_kpis_base_us221.yaml`: capa semántica exponiendo
   los 5 KPIs como métricas reutilizables, con nota explícita del contrato de
   reutilización con DB-01 (US-203, Manuel).
-- `docs/US221_KPIs_Base.md`: documentación del artefacto con frontmatter.
+- `04_UX_Design/US221_KPIs_Base.md`: documentación del artefacto con frontmatter.
 
 ## Qué revisé yo
 
@@ -46,13 +46,23 @@ validando primero contra el catálogo canónico de Manuel Serranía (US-201,
 
 - **Confirmar con Manuel (Tech Lead C2):** si DB-01 Ejecutivo (US-203) va a
   embeber estas tarjetas tal cual o reconstruirlas — documentado como
-  pendiente en `docs/US221_KPIs_Base.md` §3.
+  pendiente en `04_UX_Design/US221_KPIs_Base.md` §3.
 - Correr `pytest`, `vault_lint.py` y el resto del checklist de la sección 7
   del plan de sprint en mi ambiente local antes de abrir el PR.
 - Pendiente resolver `faro-api` / `faro-chromadb` "unhealthy" en Docker (no
   bloquea este entregable, pero sigue abierto).
 - Actualizar mi fila en `02_Requirements/Traceability_Matrix.md` y el
   `_index.md` de `04_UX_Design/`.
+
+## Coordinación pendiente / fuera de alcance
+
+- Modifiqué `.gitignore` (raíz del repo) para excluir `tests/fixtures/fixtures.db`.
+  Este archivo está fuera de mi alcance 🟢 explícito según mi Agent Context
+  (`.github/**` y archivos raíz compartidos no me corresponden sin avisar).
+  El cambio en sí es correcto (excluir un binario generado no debe versionarse),
+  pero debí coordinarlo antes con el dueño del área en vez de aplicarlo
+  directamente. Documentado aquí de forma retroactiva a solicitud de la
+  revisión de Edgar/Manuel en el PR #106.
 
 ## IDs tocados
 

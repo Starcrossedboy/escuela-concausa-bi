@@ -1,0 +1,130 @@
+# =============================================================================
+# DB-08 - Tablero Explorador del cubo · definicion declarativa (US-213)
+# -----------------------------------------------------------------------------
+# Historia : US-213 (Monserrat Xcaret Miranda Olivas, Celula 2 - Analytics & BI)
+# Contrato : 04_UX_Design/Cube_Specs_DB05_DB08.md §4
+# Consumido por : superset/sync_semantic_layer.py (idempotente)
+#
+# Publico: analistas avanzados (Screen_Specs). El elemento central es la tabla
+# dinamica libre (pivot_table_v2) sobre gold.cubo_pivot, no tiles KPI
+# precocinados -- esos ya viven en DB-05/DB-01.
+#
+# TOTALES APAGADOS EN EL PIVOTE (revision de Manuel Serrania, PR #114): 'valor_driver'
+# es un promedio (AVG), no una suma -- un total de fila/columna sobre un promedio es
+# "suma de promedios" entre drivers, sin sentido aditivo. rowTotals/colTotals quedan
+# en false; revisitar si se agrega una metrica realmente aditiva al pivote.
+#
+# RIESGO DE DOBLE CONTEO (Cube_Specs §2.2/§4.3): 'matricula_total' e
+# 'indice_completitud_drivers' se repiten x6 (una vez por id_driver) para la
+# misma escuela x ciclo. Por eso 'matricula_total' NO esta preseleccionada en
+# el pivote por defecto -- solo 'valor_driver' (AVG, seguro a cualquier grano)
+# y 'escuelas' (COUNT DISTINCT, seguro). Si se agrega matricula_total despues,
+# 'id_driver' debe ir en groupbyRows o groupbyColumns de ese mismo chart.
+#
+# NOTA TECNICA (validar en Superset real, no solo por API): pivot_table_v2 no
+# esta en la lista de viz_type que arma _params_chart() explicitamente -- cae
+# al passthrough de params_extra (mismo mecanismo que adhoc_filters de DB-05).
+# La API de creacion de charts no valida el contenido de params contra el
+# schema del plugin, asi que "creado sin error" no es lo mismo que "se ve bien
+# en el Explore" -- confirmar abriendo el dashboard en el navegador.
+#
+# PENDIENTES DE UX, revisados en vivo contra Superset real (27/28-ago) --
+# candidatos a US-215b (usabilidad/accesibilidad de DB-05/DB-08, S5):
+#   1. `nombre_municipio`/`nombre_escuela` muestran placeholders literales
+#      ("Municipio 09002", "Escuela 09DJN0001A") -- vienen asi de los fixtures
+#      compartidos (tests/fixtures/bronze_coneval_sample.csv,
+#      bronze_cct_sample.csv), no de este SQL/YAML. Pendiente de que el equipo
+#      decida si se deja anonimizado o se mejora el fixture para todos.
+#   2. `cct` (Clave de Centro de Trabajo) no es autoexplicativo fuera del
+#      dominio -- candidato a verbose_name/tooltip mas claro.
+#   3. En el pivote, la columna D5 (agua) desaparece de la seccion
+#      'valor_driver' cuando es 100% SIN_DATO (Superset omite la columna en
+#      vez de mostrar 0 -- correcto segun R2, pero puede leerse como "el
+#      driver no existe" en vez de "existe sin dato"). La tabla de detalle SI
+#      lo muestra bien (N/A + SIN_DATO). Evaluar una señal visual mejor en el
+#      pivote mismo.
+# =============================================================================
+
+version: "1.0"
+owner: "Monserrat Xcaret Miranda Olivas"
+story: US-213
+
+dashboards:
+  - titulo: "DB-08 · Explorador del cubo"
+    slug: db08-explorador-cubo
+    descripcion: >
+      Exploración libre del driver observado por escuela: tabla dinámica con
+      filas/columnas configurables sobre gold.cubo_pivot. Contrato:
+      04_UX_Design/Cube_Specs_DB05_DB08.md §4.
+    filtros_globales:
+      - columna: id_ciclo
+        etiqueta: "Ciclo escolar"
+        datasets: [db08_cubo_pivot]
+      - columna: nombre_entidad
+        etiqueta: "Entidad"
+        datasets: [db08_cubo_pivot]
+      - columna: nivel
+        etiqueta: "Nivel educativo"
+        datasets: [db08_cubo_pivot]
+
+    charts:
+      # ----- Fila 1: tiles de contexto (seguros sin agrupar por id_driver) ------
+      - nombre: "Escuelas en el explorador"
+        dataset: db08_cubo_pivot
+        metrica: escuelas
+        viz: big_number_total
+        ancho: 4
+        alto: 38
+        subheader: "COUNT DISTINCT cct -- seguro bajo cualquier agrupación"
+
+      - nombre: "Valor promedio del driver (vista inicial · D1)"
+        dataset: db08_cubo_pivot
+        metrica: valor_driver
+        viz: big_number_total
+        ancho: 4
+        alto: 38
+        subheader: "Ejemplo inicial -- cambia el driver en la tabla dinámica de abajo"
+        params_extra:
+          adhoc_filters:
+            - {expressionType: SIMPLE, subject: id_driver, operator: "==", comparator: "D1", clause: WHERE}
+
+      - nombre: "Escuelas por cobertura del driver"
+        dataset: db08_cubo_pivot
+        metrica: escuelas
+        viz: pie
+        ancho: 4
+        alto: 48
+        dimensiones: [cobertura_driver]
+
+      # ----- Fila 2: tabla dinamica libre (elemento central) --------------------
+      - nombre: "Explorador libre · driver por escuela"
+        dataset: db08_cubo_pivot
+        metrica: valor_driver
+        viz: pivot_table_v2
+        ancho: 12
+        alto: 70
+        params_extra:
+          groupbyRows: [nombre_entidad, nombre_municipio, nivel]
+          groupbyColumns: [id_driver, nombre_driver]
+          metrics: [valor_driver, escuelas]
+          metricsLayout: COLUMNS
+          rowOrder: key_a_to_z
+          colOrder: key_a_to_z
+          aggregateFunction: Sum
+          valueFormat: SMART_NUMBER
+          rowTotals: false
+          colTotals: false
+          rowSubTotals: false
+          colSubTotals: false
+          transposePivot: false
+          combineMetric: false
+
+      # ----- Fila 3: detalle sin agregar, red de seguridad ------------------------
+      - nombre: "Detalle por escuela × driver"
+        dataset: db08_cubo_pivot
+        metrica: valor_driver
+        viz: table
+        ancho: 12
+        alto: 55
+        dimensiones: [cct, nombre_escuela, nivel, sostenimiento, nombre_municipio, nombre_entidad, id_driver, nombre_driver, valor_driver, cobertura_driver]
+        row_limit: 100

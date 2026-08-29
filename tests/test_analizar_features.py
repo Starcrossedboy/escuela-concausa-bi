@@ -99,8 +99,16 @@ def test_cobertura_y_completitud_por_entidad(features: pd.DataFrame) -> None:
 
 
 def test_analisis_municipal_no_infiere_clave_desde_cct(features: pd.DataFrame) -> None:
+    """Sin `cve_mun`, el análisis municipal se detiene en vez de inferirla del CCT.
+
+    La ausencia se construye aquí a propósito. Antes el test la heredaba del fixture
+    compartido, que no traía la columna; cuando US-325 la incorporó al contrato el
+    escenario dejó de existir y la prueba pasó a no comprobar nada.
+    """
+    sin_clave = features.drop(columns=["cve_mun"], errors="ignore")
+
     with pytest.raises(ValueError, match="requiere cve_mun"):
-        requerir_clave_municipio(features)
+        requerir_clave_municipio(sin_clave)
 
 
 def test_clave_municipal_conserva_cero_inicial(

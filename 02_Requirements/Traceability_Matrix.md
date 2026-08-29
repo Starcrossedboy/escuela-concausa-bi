@@ -68,6 +68,7 @@ tags: [requirements, traceability, matrix]
 | REQ | Historias | Evidencia de prueba | DevLog | Estado |
 |---|---|---|---|---|
 | `REQ-003` | `US-302` | BUG-018 corregido: cobertura evaluada por ventana y predicción/SHAP alineados con `feature_names_in_` ✅ · ML-02 16 pruebas ✅ · Ruff ✅ | [[_DevLog/2026-08-28-andres-gonzalez-bug018-ml02-cobertura]] | 🟡 En progreso |
+| `REQ-003` | `US-303` | Verificador del Registry rechaza versiones nulas o no numéricas con error accionable ✅ · suite enfocada 15 pruebas ✅ | [[_DevLog/2026-08-28-andres-gonzalez-us303-version-registry]] | 🟡 En progreso |
 
 | REQ | Historias | Evidencia de prueba | DevLog | Estado |
 |---|---|---|---|---|

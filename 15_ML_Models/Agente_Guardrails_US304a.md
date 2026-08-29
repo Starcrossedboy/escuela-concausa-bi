@@ -3,7 +3,7 @@ id: DOC-AGENTE-GUARDRAILS-US304A
 title: "Agente FARO — Guardarraíles de seguridad"
 owner: "Andrés González Habib"
 status: in_review
-version: "0.4"
+version: "0.5"
 traces_up: ["US-304a", "REQ-006", "03_Architecture/API_Specification"]
 traces_down: ["src/agente/guardrails.py", "src/agente/prompt.py", "src/agente/servicio.py", "tests/test_agente_guardrails.py", "tests/test_agente_prompt.py", "tests/test_agente_servicio.py"]
 tags: [agente, rag, seguridad, guardrails, celula-3]
@@ -34,7 +34,7 @@ sin acoplar la generación SQL, ejecución ni redacción a una implementación c
    drivers, municipios, CCT, agua, aire, pobreza, inseguridad, infraestructura o conectividad.
 2. **Solo lectura.** El SQL generado debe iniciar con `SELECT` o `WITH`.
 3. **Sin escritura ni DDL.** Se rechazan `DELETE`, `UPDATE`, `DROP`, `INSERT`, `ALTER`, `TRUNCATE`,
-   `CREATE`, `MERGE`, `REPLACE`, `UPSERT` y `VACUUM`.
+   `CREATE`, `MERGE`, `REPLACE`, `UPSERT`, `VACUUM` y `SELECT INTO` (BUG-024).
 4. **Una sentencia.** Se rechazan sentencias múltiples y comentarios SQL.
 5. **Solo esquema Gold.** Cada tabla de `FROM` o `JOIN` debe pertenecer a `gold.*`; se permiten CTE
     definidos en la misma consulta, pero no `public`, `information_schema`, `pg_catalog` ni tablas
@@ -71,11 +71,13 @@ campo separado para la razón del rechazo. La explicación se devuelve en `respu
 - rechazo de tablas fuera de Gold, sin esquema y `JOIN` mixtos;
 - inyección o reducción de `LIMIT 1000`;
 - error explícito cuando `preparar_sql_seguro()` recibe un verbo prohibido.
+- rechazo de `SELECT ... INTO`, que en PostgreSQL crea una tabla aunque comience con `SELECT`.
 - presencia de reglas obligatorias en el prompt de sistema y composición con contexto recuperado.
 
 `tests/test_agente_servicio.py` verifica el orden del flujo y que una pregunta fuera de alcance o un
 SQL inseguro nunca lleguen al ejecutor. También verifica que un fallo de recuperación detenga la
-generación y que la entrada compuesta use el RAG real.
+generación, que la ausencia de coincidencias no se reporte como una caída y que la entrada compuesta
+use el RAG real.
 
 ## Pendientes para cerrar US-304a
 

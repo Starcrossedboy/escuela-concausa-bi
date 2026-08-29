@@ -17,7 +17,11 @@ NOMBRE_MODELO_EMBEDDINGS = "all-MiniLM-L6-v2"
 
 
 class ErrorRecuperacion(RuntimeError):
-    """La capa RAG no está disponible o no tiene contexto utilizable."""
+    """La capa RAG no está disponible."""
+
+
+class ContextoNoEncontrado(ErrorRecuperacion):
+    """La capa RAG respondió, pero no encontró contexto para la pregunta."""
 
 
 def _cargar_modelo() -> Any:
@@ -74,7 +78,7 @@ def recuperar_contexto(
 
     documentos = resultados.get("documents", [[]])[0]
     if not documentos:
-        raise ErrorRecuperacion("ChromaDB no devolvió contexto para la pregunta.")
+        raise ContextoNoEncontrado("No se encontró contexto para la pregunta.")
     return "Tablas relevantes del esquema Gold:\n" + "".join(
         f"- {documento}\n" for documento in documentos
     )

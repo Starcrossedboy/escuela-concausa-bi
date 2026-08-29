@@ -18,4 +18,5 @@ tags: [moc, ux]
 | [[04_UX_Design/Cube_Specs_DB05_DB08]] | Contrato semántico de los cubos de DB-05 y DB-08: métricas, jerarquías, granos y SQL de referencia (US-211b) |
 | [[04_UX_Design/Cube_Specs_DB06_DB09]] | Contrato semántico de los cubos de DB-06 y DB-09: predicciones y recomendaciones prescriptivas, KPIs, reglas ML por JOIN y grano escuela (US-204) |
 | [[04_UX_Design/Superset_Setup_US202]] | Setup de Superset: conexión, datasets virtuales y capa semántica reutilizable (US-202) |
+| [[04_UX_Design/US221_KPIs_Base]] | Gráficos base de KPIs: series de matrícula, distribución por nivel y tarjetas reutilizables de contexto (US-221) |
 | [[04_UX_Design/Accessibility]] | Requisitos de accesibilidad (a11y) |

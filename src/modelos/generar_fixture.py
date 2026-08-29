@@ -82,19 +82,24 @@ def _generar_ccts(rng: np.random.Generator, n_escuelas: int) -> list[str]:
         ccts.append(f"{entidad}{nivel}{consecutivo}{verificador}")
     return ccts
 
-def _generar_municipios(rng: np.random.Generator, n_escuelas: int) -> list[str]:
+def _generar_municipios(ccts: list[str]) -> list[str]:
     """Claves INEGI de municipio sintéticas (US-325): 2 dígitos de entidad + 3 de municipio.
 
-    Varios municipios por entidad y varias escuelas por municipio (módulo 7), para que el
-    análisis de concentración geográfica de US-325 tenga con qué trabajar -- no una escuela
-    por municipio.
+    La clave se deriva **de la entidad que ya codifica el CCT**, nunca de la posición en la
+    lista: así entidad y municipio no pueden contradecirse. Varias escuelas caen en el mismo
+    municipio (módulo 7) para que el análisis de concentración geográfica de US-325 tenga con
+    qué trabajar -- no una escuela por municipio.
+
+    `gold.dim_escuela` toma esta misma columna del fixture de features (ver
+    `generar_fixture_dim.py`), así que ambos artefactos comparten un único origen de la clave
+    municipal. Inventarla por separado en cada lado produce un desfase silencioso: la agregación
+    de DEC-007 parte los grupos según qué lado aporte `cve_mun` y nada falla.
+
+    >>> _generar_municipios(["09DPR0000X", "15DES0001Y"])
+    ['09001', '15002']
     """
-    municipios: list[str] = []
-    for i in range(n_escuelas):
-        entidad = SCOPE_ENTIDADES[i % len(SCOPE_ENTIDADES)]
-        consecutivo = f"{(i % 7) + 1:03d}"
-        municipios.append(f"{entidad}{consecutivo}")
-    return municipios
+    return [f"{cct[:2]}{(i % 7) + 1:03d}" for i, cct in enumerate(ccts)]
+
 
 def generar(n_escuelas: int = 80, semilla: int = SEMILLA) -> pd.DataFrame:
     """Construye el DataFrame simulado de features.
@@ -118,6 +123,7 @@ def generar(n_escuelas: int = 80, semilla: int = SEMILLA) -> pd.DataFrame:
 
     rng = np.random.default_rng(semilla)
     ccts = _generar_ccts(rng, n_escuelas)
+    municipios = _generar_municipios(ccts)
 
     # Nivel base por escuela: una escuela pobre tiende a seguir siéndolo entre ciclos.
     base = {d: rng.beta(2, 3, size=n_escuelas) for d in DRIVERS}
@@ -127,7 +133,11 @@ def generar(n_escuelas: int = 80, semilla: int = SEMILLA) -> pd.DataFrame:
     filas: list[dict[str, object]] = []
     for i, cct in enumerate(ccts):
         for t, ciclo in enumerate(CICLOS):
-            fila: dict[str, object] = {"cct": cct, "id_ciclo": ciclo, "cve_mun": _generar_municipios(rng, n_escuelas)[i]}
+            fila: dict[str, object] = {
+                "cct": cct,
+                "id_ciclo": ciclo,
+                "cve_mun": municipios[i],
+            }
             observados = 0
             presion = 0.0
 

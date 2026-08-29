@@ -24,11 +24,15 @@ tags: [report, vault, governance, follow-up, deuda-tecnica]
 
 ## Por qué existe este documento
 
-Tres de los cinco hallazgos comparten el mismo patrón: **una regla del vault existe, está bien
+Dos de los cinco hallazgos comparten el mismo patrón: **una regla del vault existe, está bien
 escrita, y la herramienta que debía hacerla cumplir no la cubre**. El linter revisa mojibake pero no
-latin-1 crudo; el gate de IDs no detecta un ADR duplicado; `merge=union` protege el índice de
-DevLogs en `git` pero GitHub lo ignora. La regla sin verificación automática es una recomendación,
-y este equipo ya demostró que las recomendaciones se saltan bajo presión de entrega.
+latin-1 crudo, y `merge=union` protege el índice de DevLogs en `git` pero GitHub lo ignora. La regla
+sin verificación automática es una recomendación, y este equipo ya demostró que las recomendaciones
+se saltan bajo presión de entrega.
+
+El tercero (V-02) parecía del mismo tipo y **no lo es**: ahí la herramienta funciona y lo que falló
+fue dejar una rama tres días sin actualizar, de modo que su último check describe un repositorio que
+ya no existe. Se corrigió esta entrada al verificarlo, en vez de dejar el diagnóstico cómodo.
 
 ---
 
@@ -75,8 +79,15 @@ trazabilidad en la práctica: cualquier `traces_up: ["ADR-007"]` queda ambiguo.
    título del documento. Actualizar `03_Architecture/ADRs/_index.md`.
 2. **ADR-008 queda reservado** a su nombre desde hoy, anotado en el índice de ADRs, para que nadie
    lo tome mientras corrige.
-3. `vault_lint` debe reprobar IDs duplicados entre artefactos. Que esto llegara a un PR abierto
-   significa que hoy no lo hace.
+3. **El linter sí funciona; el check estaba viejo.** `vault_lint` detecta la colisión y la reporta
+   como bloqueante (`❌ IDs duplicados (1): ADR-007`). Lo verifiqué al mergear `main` en la rama del
+   PR #87. No saltó antes porque su última corrida de CI fue el **26-ago** y el ADR-007 de Héctor
+   nació el **28-ago**: la colisión no existía cuando el check se ejecutó, y la rama no se ha
+   tocado desde entonces.
+
+   Esto **no** es un hueco de herramienta como V-01 — es una consecuencia de dejar una rama sin
+   actualizar. Pero merece una regla: **un PR con checks de más de 24 horas no se mergea sin
+   revalidar**, porque el verde que muestra puede describir un mundo que ya no existe.
 
 ---
 
@@ -158,7 +169,7 @@ momento.
 | ID | Hallazgo | Sev. | Dueño | Fecha |
 |---|---|---|---|---|
 | V-01 | `vault_lint` no detecta latin-1 crudo | alta | Edgar Coronel | 30-ago |
-| V-02 | Colisión de ID en ADR-007 | alta | Edgar Ulises Jiménez | bloquea PR #87 |
+| V-02 | Colisión de ID en ADR-007 (el linter sí la detecta; el check estaba viejo) | alta | Edgar Ulises Jiménez | bloquea PR #87 |
 | V-03a | `Execution_Status` con filas desactualizadas | media | Edgar Coronel | 30-ago |
 | V-03b | Criterio de cierre por ruta HTTP ambiguo | media | Edgar Coronel | 30-ago |
 | V-04a | Fila duplicada en `_DevLog/_index.md` | baja | Edgar Coronel | 02-sep |

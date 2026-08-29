@@ -9,6 +9,11 @@
 # dinamica libre (pivot_table_v2) sobre gold.cubo_pivot, no tiles KPI
 # precocinados -- esos ya viven en DB-05/DB-01.
 #
+# TOTALES APAGADOS EN EL PIVOTE (revision de Manuel Serrania, PR #114): 'valor_driver'
+# es un promedio (AVG), no una suma -- un total de fila/columna sobre un promedio es
+# "suma de promedios" entre drivers, sin sentido aditivo. rowTotals/colTotals quedan
+# en false; revisitar si se agrega una metrica realmente aditiva al pivote.
+#
 # RIESGO DE DOBLE CONTEO (Cube_Specs §2.2/§4.3): 'matricula_total' e
 # 'indice_completitud_drivers' se repiten x6 (una vez por id_driver) para la
 # misma escuela x ciclo. Por eso 'matricula_total' NO esta preseleccionada en
@@ -107,8 +112,8 @@ dashboards:
           colOrder: key_a_to_z
           aggregateFunction: Sum
           valueFormat: SMART_NUMBER
-          rowTotals: true
-          colTotals: true
+          rowTotals: false
+          colTotals: false
           rowSubTotals: false
           colSubTotals: false
           transposePivot: false

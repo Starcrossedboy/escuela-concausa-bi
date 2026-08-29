@@ -123,7 +123,11 @@ erDiagram
   `poblacion`, `indice_rezago_social`, `grado_rezago`, `pobreza_pct`.
 - **`dim_tiempo`** — `id_ciclo` (PK), `ciclo` (`2023-2024`), `anio_inicio`, `anio_fin`.
 - **`dim_driver`** — `id_driver` (`D1`…`D6`), `nombre`, `descripcion`, `fuente`, `cobertura`,
-  `nivel_geografico`.
+  `nivel_geografico`. Catálogo canónico en `dbt/seeds/dim_driver.csv`; `nombre` es siempre uno de
+  `Pobreza` (D1), `Inseguridad` (D2), `Infraestructura` (D3), `Conectividad` (D4), `Agua` (D5),
+  `Aire` (D6) — nombres cortos, exigidos por `accepted_values` en `dbt/seeds/_gold__seeds.yml`
+  (BUG-022). Cualquier otro texto (p.ej. "Pobreza y rezago social") es de un mock desactualizado,
+  no del catálogo real.
 
 ### 4.3 Cubos materializados (para los 10 dashboards)
 Agregaciones precalculadas para que Superset responda rápido. Cada cubo expone su **bandera de

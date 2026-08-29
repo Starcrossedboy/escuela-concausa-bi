@@ -25,6 +25,7 @@ tags: [devlog, celula-3, ml-03, clustering, kmeans]
 ## Seguridad / calidad
 
 - [x] `pytest tests/test_entrenar_ml03.py -q`: 6 passed.
+- [x] `pytest tests/ -q`: 533 passed, 5 skipped.
 - [x] Ruff limpio en módulo y pruebas.
 - [x] `vault_lint.py`: Vault limpio.
 - [x] Fixtures 100% sintéticos; sin datos reales, credenciales ni archivos pesados.

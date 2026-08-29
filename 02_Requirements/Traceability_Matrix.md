@@ -141,4 +141,4 @@ tags: [requirements, traceability, matrix]
 
 | REQ | Historias | Evidencia de prueba | DevLog | Estado |
 |---|---|---|---|---|
-| `REQ-003` | `US-321` | Pipeline KMeans + StandardScaler; selección de `k` por Silhouette walk-forward; perfiles de negocio; target y llaves excluidos; política provisional `casos_completos` sin imputar cero | [[_DevLog/2026-08-29-estefany-hernandez-us321-clustering]] | 🟡 En revisión; espera fallback ratificado y corrida real |
+| `REQ-003` | `US-321` | Pipeline KMeans + StandardScaler; selección de `k` por Silhouette walk-forward; perfiles de negocio; target y llaves excluidos; política provisional `casos_completos` sin imputar cero · 6 pruebas enfocadas ✅ · suite 533 ✅ | [[_DevLog/2026-08-29-estefany-hernandez-us321-clustering]] | 🟡 En revisión; espera fallback ratificado y corrida real |

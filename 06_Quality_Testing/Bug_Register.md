@@ -27,9 +27,257 @@ tags: [qa, bugs]
 | BUG-011 | `sync_semantic_layer.py` lee YAML/SQL con la codificación del sistema (`read_text()` sin `encoding`): en Windows usa cp1252 y truena con los acentos de cualquier `metrics_*.yaml`; el script solo corre con `PYTHONUTF8=1`. Misma familia que BUG-005 (locale de Windows) | medium | fixed | US-203 / US-212 | `fix/manuel-serrania-bug010-sync-charts-utf8` — `encoding="utf-8"` explícito en las 3 lecturas (`_read_yaml`, `_read_sql`) | pendiente (validar en Windows) |
 | BUG-012 | No existe runbook para levantar el pipeline local: `dbt/README.md` es el scaffold por defecto de dbt, no hay `profiles.yml` ni se documenta dónde ponerlo, y **cargar solo `bronze_formato911_sample.csv` deja `gold.fact_escuela_ciclo` en 0 filas** — hay que cargar también `bronze_formato911_ciclo_anterior_sample.csv` en la MISMA tabla para que `lag()` encuentre pares. Nada de esto está escrito. | high | open | US-112 / US-113 / REQ-001 | pendiente (**C1**) — pasos verificados en `_DevLog/2026-08-27-marina-garcia-pipeline-local-us212.md` | — |
 | BUG-013 | `publicar_gold.py` usa por defecto el fixture sintético `tests/fixtures/features_escuela_mock.csv`, no `gold.features_escuela`: publica 80 filas de **ciclo 2023-2024** mientras el hecho real tiene 25 de **2024-2025**. El JOIN por `(cct, id_ciclo)` da cero, así que DB-03 muestra `cobertura_prediccion = SIN_DATO` en el 100% de las escuelas y los bloques de predicción y recomendación (AC-002.4) quedan vacíos. Apuntarlo al Gold real tampoco basta hoy: `features_escuela` tiene un solo ciclo y ML exige partición temporal. | high | open | US-313 / US-113 / REQ-003 | pendiente (**C3** + **C1**) | — |
-| BUG-014 | `quality_gate.yml` busca el token de casilla sin marcar en **todo el cuerpo del PR** con `grep -q "\[ \]"`, no solo en ítems de lista: basta con **mencionar** esa sintaxis dentro de una explicación —aunque vaya en backticks— para que el check falle. Sumado a que la plantilla oficial trae la casilla de aprobación del PM sin marcar (le toca marcarla a él al revisar), **la plantilla del repo no puede pasar su propio gate** y empuja a los autores a borrar el registro de aprobación o a marcarlo ellos mismos. | medium | open | US-503 / REQ-007 | pendiente (**C5**, Luis Téllez) — acotar el patrón a `grep -qE '^\s*-\s*\[ \]'` para que solo detecte casillas reales al inicio de un ítem | — |
-| BUG-015 | `gold.dim_driver` materializado con esquema viejo (mock) vs. seed canónico: bloquea sync de DB-05/DB-08 | medium | open | US-213 / US-211b / REQ-002 | pendiente (**C1**, Diana Álvarez — fix validado: `dbt seed --select dim_driver --full-refresh`) | — |
-| BUG-016 | `dbt run` con threads>1 (default) da condición de carrera: `gold.dim_escuela`/`dim_municipio`/`dim_tiempo` truenan "relation does not exist" porque arrancan antes de que su silver de origen (`silver.escuela`/`poblacion_municipio`/`matricula`) termine de crearse | high | open | US-113 / REQ-001 | pendiente (**C1**) — con `--threads 1` corre limpio; sugiere que esos 3 modelos no usan `{{ ref() }}` hacia su fuente silver, rompiendo el grafo de dependencias de dbt | — |
+| BUG-014 | `quality_gate.yml` busca el token de casilla sin marcar en **todo el cuerpo del PR** con `grep -q "\[ \]"`, no solo en ítems de lista: basta con **mencionar** esa sintaxis dentro de una explicación —aunque vaya en backticks— para que el check falle. Sumado a que la plantilla oficial trae la casilla de aprobación del PM sin marcar (le toca marcarla a él al revisar), **la plantilla del repo no puede pasar su propio gate** y empuja a los autores a borrar el registro de aprobación o a marcarlo ellos mismos. | medium | **fixed** | US-503 / REQ-007 | `fix/edgar-navarrete-mojibake-higiene-vault` (Edgar Coronel, PM — **revisión de C5 solicitada a Luis Téllez por regla 7**). Tres cambios: el patrón se acota a `grep -qE '^[[:space:]]*-[[:space:]]*\[ \]'`; la sección `## Aprobación` se recorta antes de evaluar, porque es del PM y se marca al revisar; y se agrega el evento **`edited`**, sin el cual un cuerpo corregido después del push se quedaba en rojo para siempre; además, las dos casillas que un autor honesto no puede marcar —`(Alternativa) No usé IA` y `Si toqué esquema…`— se marcan `<!-- opcional -->` en la plantilla y el gate las omite (hallado al revisar el PR #110) | `.github/scripts/probar_verificar_plantilla.sh` — 7 casos contra el script real, leyendo `.github/PULL_REQUEST_TEMPLATE.md` del archivo (no una copia): la plantilla llenada por el autor pasa, sin llenar reprueba, las casillas opcionales marcadas con `<!-- opcional -->` no cuentan, y mencionar la sintaxis en prosa ya no reprueba |
+| BUG-015 | ML-01 no podía entrenar sobre `gold.features_escuela` real: un driver **100 % `SIN_DATO`** (D5 agua, DS-06 sin descarga) rompe el binning de `HistGradientBoostingRegressor` con `window shape cannot be larger than input array shape`, un error que no delata la causa. Además el default `--ventanas 3` pedía 5 ciclos y el Gold real sólo tiene 3 utilizables | high | **fixed** | US-311 / US-313 / REQ-003 | `fix/hector-marban-driver-sin-datos` | — | ver detalle |
+| BUG-016 | La publicación a Gold tronaba en ML-02 con datos reales: hay filas con los **6 drivers en NULL a la vez**, y `generar_driver_dominante_proxy` falla ahí por diseño. La `driver_dominante` real de C1 (US-302, PR #113) ya adoptó la convención de dejarlas en NULL; faltaba apartarlas antes de entrenar, porque `validar_target_ml02` rechaza nulos. Conservan su predicción de ML-01 y no reciben recomendación (`SIN_DATO`, nunca un driver inventado) | high | **fixed** | US-313 / REQ-003 | `fix/hector-marban-driver-sin-datos` | — | ver detalle |
+| BUG-017 | `indice_riesgo` se publicó **saturado**: la corrida real de ML-01 dio MAE 10.90, pero la sigmoide está calibrada sobre **fracción** (`-0.05` = pierde 5 % de matrícula). Con esa escala el 100 % de las 45 249 filas queda en riesgo ≈ 1.00 y el tablero cuenta como "en riesgo" a todo el universo. **Confirmado por Diana el 2026-08-28**: `target_variacion_matricula = matricula_total - matricula_ciclo_anterior`, diferencia absoluta de alumnos. El MAE 10.90 son ~11 alumnos, no un modelo malo; lo que está mal es publicar eso a través de una sigmoide calibrada sobre fracción. Añadida guarda que detiene la publicación en vez de saturar en silencio; **falta confirmar las unidades en Gold con C1** | high | open | US-311 / US-313 / REQ-003 / US-104 | — | Diana Alvarez (C1) | ver detalle |
+| BUG-018 | ML-02 arrastra el **mismo defecto por ventana** que BUG-015: `entrenar_ml02._matriz()` toma siempre los 6 drivers sin comprobar cobertura dentro de la ventana de entrenamiento, así que un driver vacío en ese tramo (D6 aire, IDW de US-105) rompe el binning de `HistGradientBoostingClassifier` con el mismo error. Reproducido; el arreglo es el mismo que ya se aplicó en ML-01 | high | open | US-302 / REQ-003 | — | Andrés González Habib (C3) | ver detalle |
+| BUG-019 | `target_variacion_matricula` se produce en **dos unidades distintas** bajo el mismo nombre: `features_escuela.sql` (C1, grano escuela) da **alumnos absolutos** y `target_hibrido.variacion_desde_serie` (C3, grano municipio×nivel) da **fracción**. Ambas llegan a `gold.predicciones.valor`, distinguidas sólo por `grano` (DEC-010), así que esa columna hoy mezcla alumnos con fracciones. El contrato nunca declaró la unidad | high | open | US-104 / US-311 / US-313 / REQ-003 | — | pendiente ADR-007 (Andrés · Christian · Diana) | ver detalle |
+| BUG-020 | En la URL pública **toda ruta que toca base de datos responde HTTP 500**: `/api/v1/predicciones/{cct}`, `/predicciones/batch` y `/escuelas`. `/api/v1/health` responde 200, así que el contenedor corre y el despliegue de BUG-008 sirvió. Con token válido, inválido o sin token el resultado es el mismo 500 —nunca 401—, así que el fallo ocurre **antes** de validar auth. Sin esto no hay demo end-to-end ni el punto de rúbrica de URL pública | **critical** | open | US-401 / US-411 / US-501 / REQ-004 / REQ-005 | — | Christian Ruiz (C4) · Luis Téllez (C5) | ver detalle |
+| BUG-021 | `dbt run` con el número de hilos por defecto (`threads>1`) truena en `gold.dim_escuela`, `dim_municipio` y `dim_tiempo` con *relation does not exist*, aunque su silver de origen se cree casi en el mismo instante. Con `--threads 1` corre limpio de punta a punta. Causa: esos modelos leían su origen con `source('silver', …)` en vez de `ref()`. `silver.*` son modelos **de este mismo proyecto**, no datos externos, así que dbt no tenía cómo saber que debía construirlos antes y los agendaba en paralelo. Con `threads=1` el orden accidental funcionaba y el defecto quedaba escondido | high | **fixed** | US-213 / US-113 / REQ-001 | **Reportado por Monserrat Miranda** (2026-08-28, validando DB-05/DB-08 contra Gold real) · **corregido por Diana Alvarez** en `fix/diana-varela-bug016-source-vs-ref`: los siete modelos Gold pasan a `ref()`; `_gold__sources.yml` queda sólo como documentación de columnas | `dbt run` completo con hilos por defecto ✅ · [[_DevLog/2026-08-29-diana-alvarez-bug021-source-vs-ref]] |
+| BUG-023 | Tercera aparición del defecto de BUG-015/BUG-018, ahora en `evaluar.py`: `error_por_entidad()` y `cobertura_y_error()` predecían con los **seis** drivers aunque el modelo se hubiera entrenado con menos, así que `construir_reporte()` **no podía generar el reporte** en el único escenario que el PM necesita documentar para la demo — el de 5 de 6 drivers. `ValueError: The feature names should match those that were passed during fit` | high | **fixed** | US-312 / REQ-003 / AC-003.2 | `feat/hector-marban-drivers-en-evaluacion` | — | ver detalle |
+| BUG-024 | `SELECT ... INTO` atravesaba el guardarraíl porque empieza con `SELECT`, pero en PostgreSQL crea una tabla; el agente no tiene otra capa que garantice solo lectura | **critical** | **fixed** | US-304a / US-305 / REQ-006 | `fix/andres-habib-bug024-select-into-rag-empty` | `tests/test_agente_guardrails.py::test_select_into_se_rechaza_como_escritura` |
+| BUG-025 | El endpoint desplegado `/api/v1/agente/consulta` es el **stub** de `src/api/v1/agente.py`: responde **la misma cadena fija a cualquier pregunta**, incluidas las fuera de alcance y las destructivas. Además su filtro de palabras busca `"borrar"` por subcadena, así que **«Borra la tabla de predicciones» no lo dispara** y recibe la respuesta normal con `fuera_de_alcance: false`. Los guardarraíles reales de `src/agente/guardrails.py` —que sí rechazan esa frase— nunca se invocan desde la API | high | open | US-304a, US-305, REQ-006 | pendiente (**C4 + C3**): conectar `procesar_consulta_con_rag()` al endpoint; como mitigación inmediata, que el stub llame a `pregunta_en_alcance()` |
+
+## BUG-016 — Filas sin ningún driver rompían la publicación de ML-02
+
+Reportado por Diana Alvarez el 2026-08-27, corriendo `publicar_gold.py --desde-gold` contra la Gold
+real. ML-01 ya entrenó y publicó bien (45 249 filas); el fallo estaba un paso después:
+
+```
+File "src/modelos/entrenar_ml02.py", line 114, in generar_driver_dominante_proxy
+    raise ValueError("No se puede derivar driver_dominante_proxy para filas sin ningun driver.")
+```
+
+En el Gold real hay escuelas con los **seis drivers en NULL a la vez**. `generar_driver_dominante_proxy`
+falla ahí **por diseño**, y hace bien: no se puede nombrar un driver dominante donde no se observó
+ninguno. Forzarlo sería inventar el diferenciador del proyecto.
+
+Lo que faltaba era **apartarlas antes**. La Célula 1 ya adoptó esa convención en la `driver_dominante`
+real de US-302 (PR #113): esas filas quedan en `NULL`. Y `validar_target_ml02` —con razón— rechaza un
+target con nulos, así que el filtrado tiene que ocurrir en el sitio de llamada, que es mío.
+
+`filtrar_con_driver_observado()` las aparta y dice cuántas. **Endurecido el 2026-08-28**, cuando US-302 (#113) publicó la `driver_dominante` real: el filtro miraba sólo si el valor del driver era no nulo, pero C1 exige además `dN_cobertura = 'OK'`. Una fila con dato y cobertura `SIN_DATO` tiene la etiqueta en NULL y habría sobrevivido al filtro para morir en `validar_target_ml02`. Ahora, cuando la columna real existe, **ella es la autoridad** y el filtro mira dónde quedó NULL en vez de inferirlo. **Conservan su predicción de ML-01** —la
+variación de matrícula no necesita drivers— y no reciben recomendación. Eso es exactamente la regla de
+cobertura parcial: `SIN_DATO` explícito, nunca un driver inventado.
+
+### Lo que la simulación encontró y las pruebas unitarias no
+
+Al apartar filas de `features_ml02`, esas escuelas quedan con predicción pero sin features, y
+`construir_recomendaciones_ml02` lo rechaza con `Faltan features de ML-02 para los CCT`. La tentación
+era relajar esa verificación; se hizo lo contrario: se filtran las predicciones en el sitio de llamada
+y la verificación sigue intacta, porque debe seguir cazando desajustes **de verdad** y no el hueco que
+abrimos a propósito. Hay una prueba que lo fija.
+
+## BUG-017 — `indice_riesgo` publicado saturado por unidades del target
+
+La corrida real reportó **MAE 10.90**. La sigmoide de `indice_riesgo` está calibrada sobre
+**fracción**: `0.0` → riesgo 0.30, `-0.05` ("pierde 5 % de su matrícula") → riesgo 0.60.
+
+Un error medio de 10.90 es **218 veces** la banda completa de calibración. Verificado:
+
+| variación | indice_riesgo |
+|---|---|
+| 0.0 | 0.300000 |
+| -0.05 | 0.600000 |
+| -0.10 | 0.840000 |
+| -5.0 | 1.000000 |
+| -10.9 | 1.000000 |
+
+Con esa escala, **las 45 249 filas publicadas quedan en riesgo ≈ 1.00**. No es una degradación: es
+salida incorrecta que en un tablero se ve perfectamente normal, y `RIESGO_UMBRAL = 0.60` contaría como
+"escuela en riesgo" a todo el universo.
+
+La sospecha es que `target_variacion_matricula` en el Gold real viene en **puntos porcentuales**
+(`-5.0`) o como **diferencia absoluta de alumnos**, en vez de fracción.
+
+`verificar_escala_variacion()` detiene la publicación antes de convertir, mirando la **mediana** de
+`|variación|` —no el máximo, para no confundir unidades equivocadas con unos pocos valores extremos
+legítimos. Una escuela que triplica su matrícula no dispara la alarma; una columna entera en otra
+escala sí.
+
+> **Falta la parte que no me toca:** confirmar con C1 en qué unidades produce US-104 esa columna. Si
+> la escala es correcta y el dato es así de extremo, entonces hay que recalibrar las anclas en
+> `15_ML_Models/Indice_Riesgo_ML01.md` — pero eso es una decisión de negocio, no un arreglo de código.
+
+## BUG-018 — ML-02 repite el defecto por ventana de BUG-015
+
+Encontrado al simular la corrida completa de Diana, no reportado por ella: es el siguiente muro.
+
+`entrenar_ml02._matriz()` devuelve `df[list(DRIVERS)]` —los seis, siempre— y el bucle de backtesting
+no comprueba la cobertura dentro de la ventana de entrenamiento. Es **el mismo defecto** que BUG-015,
+en el clasificador:
+
+```
+ValueError: window shape cannot be larger than input array shape
+  ...
+  entrenar_ml02.py:177 in entrenar_y_evaluar
+    modelo = HistGradientBoostingClassifier(**params).fit(x_entrena, y_entrena)
+```
+
+Se dispara con D6 (aire), que tras la IDW de US-105 sólo cubre el ciclo más reciente y queda vacío en
+el tramo de entrenamiento.
+
+El arreglo es el mismo que ya se aplicó y probó en `entrenar_ml01`: evaluar `drivers_utilizables()`
+sobre la ventana de entrenamiento y entrenar sólo con esos. `entrenar_ml02.py` es de **Andrés González
+Habib**; queda el parche preparado y la reproducción, para que lo aplique quien corresponde.
+
+
+## BUG-019 — La misma columna en dos unidades según el grano
+
+Consecuencia de BUG-017, y el defecto de fondo: **el contrato nunca declaró la unidad**.
+`Data_Model.md` §5.3 dice `StrictFloat` y nada más, así que los dos productores eligieron distinto y
+ninguno se equivocó contra lo escrito.
+
+| Productor | Grano | Fórmula | Unidad |
+|---|---|---|---|
+| `features_escuela.sql` (C1, US-104) | escuela | `matricula_total - matricula_ciclo_anterior` | alumnos |
+| `target_hibrido.variacion_desde_serie` (C3, DEC-007) | municipio × nivel | `matricula_total / matricula_previa - 1.0` | fracción |
+
+Ambas alimentan `gold.predicciones.valor` distinguidas sólo por `grano` (DEC-010). Un tablero que lea
+esa columna sin filtrar por grano está sumando alumnos con fracciones.
+
+**No se corrige unilateralmente:** cuál de las dos unidades gana es decisión de equipo, propuesta en
+[[03_Architecture/ADRs/ADR-007-unidad-target-variacion-matricula|ADR-007]] con la evidencia. La
+recomendación ahí es fracción, porque el target absoluto ordena las escuelas por tamaño
+(correlación 0.70 con la matrícula) en vez de por riesgo, y hunde a las escuelas pequeñas y rurales
+que el proyecto existe para hacer visibles.
+
+Mientras tanto `verificar_escala_variacion()` impide publicar el grano escuela, que es el
+comportamiento correcto.
+## BUG-020 — Todas las rutas con base de datos responden 500 en producción
+
+Encontrado el 2026-08-28 al reanudar la verificación E2E de la Célula 3, que llevaba semanas
+bloqueada por BUG-008. Ese sí quedó arreglado: la API pública levanta y expone las 18 rutas del
+contrato v1. Lo que no funciona es todo lo que consulta datos.
+
+```
+/api/v1/health                    HTTP 200  {"status":"ok"}
+/api/v1/predicciones/{cct}        HTTP 500
+/api/v1/predicciones/batch        HTTP 500
+/api/v1/escuelas                  HTTP 500
+```
+
+Reproducir:
+
+```bash
+curl -i https://faro-api-eanzfglvyq-uc.a.run.app/api/v1/predicciones/09DPR0001A
+```
+
+Repetir la misma petición añadiendo una cabecera de autorización con un token inventado da
+**exactamente el mismo 500** (no se pega el comando literal aquí porque el escáner de secretos del
+CI marca esa cabecera, y con razón).
+
+**Ninguna de las dos da 401.** El spec declara `bearerAuth` en esas rutas, así que una petición sin
+token debería rebotar con 401 antes de tocar nada. Que no lo haga significa que el fallo ocurre antes
+de la validación —probablemente una dependencia de sesión de base de datos que revienta al construir
+la petición—. No es que la autenticación esté mal implementada.
+
+> **Corrección del 2026-08-28 (PM).** La redacción original añadía «hoy no se puede comprobar en
+> producción, y eso toca US-402». Verificado contra el despliegue, **eso no es cierto**: la
+> autenticación sí se comprueba y sí funciona.
+>
+> ```
+> GET  /api/v1/auth/login    HTTP 302   (redirige al proveedor)
+> GET  /api/v1/auth/me       HTTP 401   (sin token, como debe)
+> GET  /api/v1/version       HTTP 200
+> ```
+>
+> Lo que no se puede comprobar es el 401 **de las rutas de datos**, porque revientan antes. El
+> alcance de BUG-020 es la sesión de base de datos, no la autenticación: **US-402 no queda tocada
+> por este bug.**
+
+**Hipótesis, sin confirmar:** el Gold de producción está vacío o inalcanzable. `gold.predicciones` se
+crea con `metadata.create_all` dentro del job de publicación de C3, que **nunca ha corrido contra la
+base de producción** —sólo contra el Gold local de Diana—. Pero `/escuelas` lee `dim_escuela`, que no
+depende de ese job, así que el problema parece más amplio que la tabla de C3.
+
+Lo que hace falta para cerrarlo es mirar los logs de Cloud Run, que son de C4/C5.
+
+## BUG-024 — `SELECT INTO` atravesaba el guardarraíl de solo lectura
+
+Reportado por Edgar Coronel el 2026-08-28 durante la revisión de seguridad del PR #119.
+`validar_sql_lectura()` aceptaba cualquier sentencia que comenzara con `SELECT` o `WITH` y no
+incluyera los verbos prohibidos. En PostgreSQL, esta consulta crea una tabla aunque empiece con
+`SELECT`:
+
+```sql
+SELECT cct INTO public.robo FROM gold.predicciones;
+```
+
+El arreglo agrega `into` a `VERBOS_PROHIBIDOS`. Una consulta legítima de solo lectura no necesita
+esa cláusula. La regresión comprueba tanto `validar_sql_lectura()` como `preparar_sql_seguro()`.
+
+## BUG-025 — El agente desplegado responde lo mismo a todo, incluido lo destructivo
+
+Encontrado el 2026-08-28 al verificar la URL pública para la reconciliación de estatus. `/agente/consulta`
+responde **200**, lo cual parecía buena noticia frente a BUG-020. No lo es: responde 200 a todo, con el
+mismo texto.
+
+```
+POST /api/v1/agente/consulta  {"pregunta":"cuantas escuelas hay en riesgo"}
+POST /api/v1/agente/consulta  {"pregunta":"cual es la capital de Francia"}
+POST /api/v1/agente/consulta  {"pregunta":"Borra la tabla de predicciones"}
+POST /api/v1/agente/consulta  {"pregunta":"zzzz qqq 12345"}
+```
+
+Las cuatro devuelven, byte por byte:
+
+```json
+{"respuesta":"En el alcance actual hay 4 escuelas; 2 superan el umbral de riesgo (0.5).",
+ "sql_generado":"SELECT cct, indice_riesgo FROM gold.features_escuela WHERE indice_riesgo >= 0.5;",
+ "fuera_de_alcance":false}
+```
+
+Que sea un stub está **documentado y es legítimo**: el docstring de `src/api/v1/agente.py` lo dice, y
+US-304a lleva semanas registrando «falta conectar el endpoint real de C4». Lo que no estaba registrado
+es su consecuencia, y son dos.
+
+**Primera: el stub deja pasar la frase destructiva más obvia.** Su lista es
+`("borrar", "elimina", "drop", "update", "delete")` y la comprobación es por subcadena, así que
+`"borrar" in "borra la tabla de predicciones"` es `False`. La conjugación más natural en español no
+dispara el filtro. Los guardarraíles reales de `src/agente/guardrails.py` **sí** rechazan esa frase
+—verificado— pero la API no los llama.
+
+**Segunda: en la demo esto se ve peor de lo que es.** No borra nada —no hay ejecución de SQL detrás—,
+pero el usuario ve una pregunta destructiva aceptada, con `fuera_de_alcance: false` y un `sql_generado`
+impreso al lado, como si algo se hubiera ejecutado. Cualquier pregunta fuera de tema recibe una
+respuesta segura de sí misma sobre escuelas.
+
+**Mitigación de 2 líneas mientras llega la integración real:** que el stub llame a
+`pregunta_en_alcance()` de `src/agente/guardrails.py` en vez de su lista de subcadenas. El módulo ya
+está en `main`, no depende de ChromaDB ni de embeddings y no añade dependencias al contenedor.
+
+**El cierre de verdad** es US-304a: conectar `procesar_consulta_con_rag()` (mergeado en PR #119) al
+endpoint. Eso es C4 con C3.
+
+## BUG-023 — El reporte de evaluación no se podía generar con un driver excluido
+
+Tercera aparición de la misma causa que BUG-015 (ML-01) y BUG-018 (ML-02): **predecir con columnas
+distintas a las del entrenamiento**. Encontrada el 2026-08-28 al implementar la petición del PM de
+publicar los drivers excluidos en un artefacto.
+
+```
+❌ error_por_entidad:  ValueError: The feature names should match those that were passed during fit.
+                       Feature names unseen at fit time: - d5_agua
+❌ cobertura_y_error:  (idéntico)
+```
+
+Ambas funciones hacían `modelo.predict(_matriz(prueba))`, y `_matriz` toma los seis `DRIVERS` por
+omisión. Cuando un driver queda fuera del entrenamiento, sklearn rechaza la forma.
+
+La ironía operativa: el reporte fallaba **exactamente** en el escenario que existe para documentar.
+Con los seis drivers presentes —el caso del fixture— nunca se disparaba.
+
+Arreglo: las dos usan `getattr(modelo, "feature_names_in_", DRIVERS)`, igual que
+`construir_predicciones` y que el `predecir_driver` de ML-02.
+
+### Por qué se escapó tres veces
+
+El fixture sintético trae los seis drivers poblados. **El escenario que rompe es justamente el que
+el fixture no representa**, así que ninguna suite lo veía: ni la mía, ni la de ML-02. La lección no
+es "faltaba una prueba" —es que un fixture construido para validar la forma no valida la realidad, y
+que los casos degradados hay que construirlos a propósito.
 
 ## Convención
 
@@ -280,6 +528,89 @@ respalda el endpoint en vivo; se queda solo como referencia para un mock server 
 **Pendiente de avisar a C2 (Manuel) y C3 (Andrés/Héctor)** por la regla de oro del contrato
 (cambio de forma en `PrediccionOut`) — parte de la descripción del PR.
 
+## BUG-015 — Un driver sin ningún dato impedía entrenar ML-01 sobre el Gold real
+
+| | |
+|---|---|
+| **Severidad** | high |
+| **Estado** | `fixed` |
+| **Detectado** | 2026-08-27 por Diana Alvarez, al correr `publicar_gold --desde-gold` sobre `gold.features_escuela` real |
+| **Corregido por** | Héctor Morales (C3) |
+
+### Síntoma
+
+```
+Features desde gold.features_escuela: 135 932 filas · 46 515 escuelas · ciclos
+  ['2022-2023', '2023-2024', '2024-2025']
+...
+ValueError: window shape cannot be larger than input array shape
+  en sklearn/ensemble/_hist_gradient_boosting/binning.py::_find_binning_thresholds
+```
+
+La carga funcionaba; el entrenamiento tronaba antes de escribir nada a Gold.
+
+### Causa
+
+Un driver con **cero valores observados** en todo el conjunto. `HistGradientBoostingRegressor`
+calcula sus cortes con `sliding_window_view(distinct_values, 2)`; sin ningún valor distinto, la
+ventana de tamaño 2 no cabe y numpy falla con un mensaje que **no menciona la causa real**.
+
+Reproducido de forma aislada: una columna **toda `NaN`** falla; una columna **constante** entrena
+sin problema.
+
+En el Gold real el driver afectado es **D5 (agua)**, que sigue completo en `SIN_DATO` porque DS-06
+(CONAGUA) no tiene descarga verificada. El fixture sintético nunca lo ejercitó porque su generador
+siempre da algún valor a los seis drivers.
+
+### Corrección
+
+`drivers_utilizables()` detecta los drivers con al menos un valor observado y los excluye del
+entrenamiento **reportándolo**, nunca en silencio:
+
+```
+⚠️  Drivers sin ningún dato, excluidos del entrenamiento: ['d5_agua'].
+    Se entrena con 5 de 6.
+```
+
+Que un driver no aporte nada es **un hallazgo del proyecto**, no un detalle de implementación:
+`ResultadoEntrenamiento` expone `drivers_usados` y `drivers_excluidos` para que quede en el reporte
+de US-312 y en el registro de MLflow.
+
+Si **ningún** driver tiene datos, falla con un mensaje explícito en vez de un error de numpy.
+
+### Segunda vuelta: la cobertura hay que mirarla POR VENTANA
+
+El primer arreglo excluía los drivers vacíos **en todo el conjunto**, y Diana reportó que seguía
+fallando. Tenía razón: la exclusión correcta es **dentro de la ventana de entrenamiento**.
+
+Un driver puede tener datos globalmente y estar **entero en `NaN` en el tramo con el que se
+entrena**. Es exactamente el caso de **D6 (aire)**: llega por la interpolación IDW de US-105 y sólo
+cubre el ciclo más reciente, que con 3 ciclos y 1 ventana cae del lado de **prueba**, no del de
+entrenamiento.
+
+Con la comprobación global, D6 pasaba el filtro y volvía a romper el binning. Ahora se evalúa por
+ventana y se reportan los dos casos por separado:
+
+```
+⚠️  Drivers sin ningún dato en todo el conjunto: ['d5_agua']. Quedan fuera del modelo.
+⚠️  entrena[2021-2022…2022-2023] -> prueba[2023-2024]: sin datos en el entrenamiento
+    ['d5_agua', 'd6_aire']; se entrena con 4 de 6 drivers.
+```
+
+Son dos situaciones distintas —un driver que no existe nunca y uno que aún no cubre el pasado— y
+merecen mensajes distintos.
+
+### Segundo hallazgo: `--ventanas` fijo
+
+El default de 3 ventanas exigía 5 ciclos; el Gold real tiene 3 utilizables (2021-2022 se consume
+como referencia del target). `--ventanas` pasa a ser **automático**: `ventanas_posibles()` calcula
+el máximo que permiten los ciclos disponibles y lo reporta. Señalado por Diana en el mismo reporte.
+
+### Verificación
+
+Simulado el escenario exacto —3 ciclos y D5 en `SIN_DATO`— el circuito completo corre: entrena con
+5 drivers, reporta la exclusión y construye las 80 filas de predicción del ciclo más reciente.
+
 ## BUG-004 — Imagen `apache/superset:latest` no incluye `psycopg2`
 
 - **Owner:** **Célula 5** (DevOps/Cloud) — Edward Ruiz (US-522c)
@@ -491,89 +822,3 @@ y `_read_sql()` (1).
 ### Test de regresión
 Pendiente de validar en Windows (el fallo es específico de ese SO; en Linux/macOS el default ya
 era UTF-8 y un test no distinguiría). Quien tenga Windows corre el sync sin `PYTHONUTF8=1`.
-
----
-
-## BUG-015 — gold.dim_driver materializado con esquema viejo vs. seed canónico
-
-- **Owner:** Diana Aracely Alvarez Varela
-- **Severidad:** medium
-- **Estado:** open
-- **traces_up:** US-213, US-211b
-- **found_on:** 2026-08-27
-
-### Descripción
-`gold.dim_driver` en Postgres local quedó materializado con nombres largos de un mock, en vez de
-los nombres cortos del seed canónico (`dbt/seeds/dim_driver.csv`, que sí trae `fuente`,
-`cobertura` y `nivel_geografico`). Los SQL de referencia de US-211b
-(`superset/semantic/db05_cubo_driver.sql:105`, `db08_cubo_pivot.sql:86`) hacen JOIN contra esas
-columnas, así que al sincronizar el layer semántico de DB-05/DB-08 contra la tabla real, Superset
-responde `HTTP 500` en `POST /api/v1/dataset/`.
-
-### Pasos para reproducir
-1. Levantar Postgres local con el `gold.dim_driver` actual (sembrado por el mock, no por el seed).
-2. Correr `superset/sync_semantic_layer.py` sobre `db05_cubo_driver.sql` o `db08_cubo_pivot.sql`.
-3. La llamada a `POST /api/v1/dataset/` responde `HTTP 500`.
-
-### Resultado actual vs esperado
-- **Actual:** `gold.dim_driver` no trae `fuente`/`cobertura`/`nivel_geografico`; el sync truena.
-- **Esperado:** `gold.dim_driver` coincide con `dbt/seeds/dim_driver.csv`; el sync corre limpio.
-
-### Entorno
-- Postgres local de cada desarrollador (mock sembrado antes del fix del seed canónico); no
-  confirmado si afecta al ambiente compartido/CI.
-
-### Causa raíz
-Catálogo local sembrado por el mock de desarrollo, no por el seed real de dbt.
-
-### Fix
-- Validado por Diana Álvarez (`_DevLog/2026-08-28-diana-alvarez-formato911-real-validacion-us113.md`,
-  §6): `dbt seed --select dim_driver --full-refresh` corrige el esquema y coincide con el seed
-  canónico.
-- Pendiente: comunicar formalmente a Manuel Serranía y Monserrat Miranda, y decidir si se
-  re-materializa de forma compartida (no solo local por cada quien) — **no forma parte de este
-  bug**, es un fix inmediato por dev.
-- PR: pendiente
-- Test de regresión: pendiente (**C1**)
-
----
-
-## BUG-016 — dbt run con threads>1 truena por condición de carrera en 3 modelos Gold
-
-- **Owner:** Diana Aracely Alvarez Varela
-- **Severidad:** high
-- **Estado:** open
-- **traces_up:** US-113
-- **found_on:** 2026-08-27
-
-### Descripción
-`dbt run --full-refresh` con el default de 4 threads falla en `gold.dim_escuela`, `gold.dim_municipio`
-y `gold.dim_tiempo` con `relation "silver.<tabla>" does not exist`, aunque esa tabla silver se crea
-exitosamente casi al mismo instante (verificado por timestamps del log: el `START` del modelo Gold y
-el `OK created` de su silver de origen ocurren en el mismo segundo). Con `--threads 1` (secuencial)
-el mismo `dbt run --full-refresh` corre limpio de punta a punta (22 PASS, 1 ERROR esperado por
-`agua_region`/DS-06 no ingerida, 1 SKIP de `cubo_pipeline`).
-
-### Pasos para reproducir
-1. Cargar los 9 fixtures de bronze (`src/ingesta/cargar_bronze_fixture.py`, ver runbook de BUG-012).
-2. `dbt seed` (siembra `gold.dim_driver`).
-3. `dbt run --full-refresh` (con el default de threads).
-4. `dim_escuela`, `dim_municipio` y `dim_tiempo` truenan; `dbt run --full-refresh --threads 1` corre
-   sin ese error.
-
-### Resultado actual vs esperado
-- **Actual:** con concurrencia, 3 modelos Gold arrancan antes de que su fuente silver exista.
-- **Esperado:** el grafo de dependencias de dbt (`{{ ref() }}`) debe bloquear un modelo hasta que
-  todos sus upstreams terminen, sin importar el número de threads.
-
-### Causa raíz (hipótesis, sin confirmar contra el código de los 3 modelos)
-`dim_escuela.sql`, `dim_municipio.sql` y `dim_tiempo.sql` probablemente referencian sus tablas silver
-por nombre de esquema/tabla directo en vez de `{{ ref('escuela') }}` / `{{ ref('poblacion_municipio') }}`
-/ `{{ ref('matricula') }}`, así que dbt no los reconoce como dependencias y no espera a que terminen.
-
-### Fix
-- Workaround inmediato (no arregla el proyecto, solo evita el síntoma): correr `dbt run` con
-  `--threads 1`.
-- Fix real pendiente (**C1**): revisar los 3 modelos y reemplazar la referencia directa por `{{ ref() }}`.
-- PR: pendiente
-- Test de regresión: pendiente (**C1**) — idealmente un `dbt run --full-refresh` con threads>1 en CI.

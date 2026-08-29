@@ -51,12 +51,30 @@ from sqlalchemy import (
 from sqlalchemy.engine import Engine
 
 from src.modelos.contrato import DRIVERS
-from src.modelos.entrenar_ml01 import cargar_features, entrenar_y_evaluar
-from src.modelos.entrenar_ml02 import cargar_features_ml02, predecir_driver
+from src.modelos.entrenar_ml01 import (
+    cargar_features,
+    cargar_features_desde_gold,
+    entrenar_y_evaluar,
+)
+from src.modelos.entrenar_ml02 import (
+    COLUMNA_TARGET_PROXY,
+    COLUMNA_TARGET_REAL,
+    generar_driver_dominante_proxy,
+    predecir_driver,
+)
 from src.modelos.entrenar_ml02 import entrenar_y_evaluar as entrenar_ml02
-from src.modelos.particion_temporal import COLUMNA_CICLO, ciclos_ordenados
+from src.modelos.particion_temporal import (
+    COLUMNA_CICLO,
+    ciclos_ordenados,
+    ventanas_posibles,
+)
 from src.modelos.recomendaciones import CODIGOS_DRIVER, RECOMENDACION_POR_DRIVER
-from src.modelos.riesgo import RIESGO_ESTABLE, RIESGO_UMBRAL, indice_riesgo
+from src.modelos.riesgo import (
+    RIESGO_ESTABLE,
+    RIESGO_UMBRAL,
+    indice_riesgo,
+    verificar_escala_variacion,
+)
 
 ESQUEMA_GOLD = "gold"
 TABLA_PREDICCIONES = "predicciones"
@@ -244,7 +262,13 @@ def construir_predicciones(
         raise ValueError(f"El ciclo {objetivo!r} no está en las features. Disponibles: {ciclos}.")
 
     corte = features[features[COLUMNA_CICLO] == objetivo]
-    variacion = modelo.predict(corte[list(DRIVERS)])
+    # Las columnas de predicción deben ser las mismas con las que se entrenó: si un driver quedó
+    # 100% SIN_DATO y se excluyó, pasarlo aquí haría fallar el predict por desajuste de forma.
+    columnas = list(getattr(modelo, "feature_names_in_", DRIVERS))
+    variacion = modelo.predict(corte[columnas])
+    # Antes de traducir a indice_riesgo: si las unidades no son fracción la sigmoide no falla,
+    # satura. Un tablero lleno de riesgo 1.00 es peor que una corrida que se detiene.
+    verificar_escala_variacion(variacion, origen="variación predicha por ML-01")
 
     filas = pd.DataFrame(
         {
@@ -308,7 +332,11 @@ def construir_predicciones_municipio_nivel(
         raise ValueError(f"El ciclo {objetivo!r} no está en el agregado. Disponibles: {ciclos}.")
 
     corte = agregado[agregado[COLUMNA_CICLO] == objetivo]
-    variacion = modelo.predict(corte[list(DRIVERS)])
+    columnas = list(getattr(modelo, "feature_names_in_", DRIVERS))
+    variacion = modelo.predict(corte[columnas])
+    # Antes de traducir a indice_riesgo: si las unidades no son fracción la sigmoide no falla,
+    # satura. Un tablero lleno de riesgo 1.00 es peor que una corrida que se detiene.
+    verificar_escala_variacion(variacion, origen="variación predicha por ML-01")
 
     filas = pd.DataFrame(
         {
@@ -374,6 +402,38 @@ def construir_recomendaciones(
     for fila in filas.to_dict(orient="records"):
         RecomendacionGold(**fila)
     return filas
+
+
+def filtrar_con_driver_observado(features: pd.DataFrame) -> tuple[pd.DataFrame, int]:
+    """Aparta las filas que no pueden tener driver dominante.
+
+    ML-02 responde "¿cuál de los seis drivers explica el riesgo?". Una fila sin respuesta posible
+    no se fuerza: forzarla sería inventar el diferenciador del proyecto.
+
+    **Cuál es la fila sin respuesta depende de quién produce el target.** Si Gold ya trae la
+    `driver_dominante` real de US-302, ella es la autoridad y basta con mirar dónde quedó `NULL`;
+    inferirlo por nuestra cuenta abre un hueco, porque C1 exige `dN_cobertura = 'OK'` **además** de
+    valor no nulo y nosotros sólo veríamos el valor. Una fila con dato pero cobertura `SIN_DATO`
+    sobreviviría aquí y llegaría a `validar_target_ml02` con la etiqueta en nulo.
+
+    Sin esa columna —fixtures, o Gold anterior a US-302— se cae al criterio del proxy: al menos un
+    driver observado.
+
+    Las apartadas **conservan su predicción de ML-01**: la variación de matrícula no necesita
+    drivers. Lo que no reciben es recomendación, que es la regla de cobertura parcial: `SIN_DATO`
+    explícito, nunca un driver inventado.
+
+    Args:
+        features: tabla conforme al contrato `FeaturesEscuela`.
+
+    Returns:
+        Las filas que sí admiten driver dominante, y cuántas se apartaron.
+    """
+    if COLUMNA_TARGET_REAL in features.columns:
+        utiles = features[COLUMNA_TARGET_REAL].notna()
+    else:
+        utiles = features[list(DRIVERS)].notna().any(axis=1)
+    return features[utiles].copy(), int((~utiles).sum())
 
 
 def construir_recomendaciones_ml02(
@@ -501,11 +561,26 @@ def _motor(url: str | None = None) -> Engine:
 def main() -> int:
     """Entrena ML-01, construye las filas de Gold y las publica."""
     parser = argparse.ArgumentParser(description="Publica predicciones y recomendaciones (US-313).")
-    parser.add_argument("--features", type=Path, default=Path("tests/fixtures/features_escuela_mock.csv"))
+    parser.add_argument(
+        "--features",
+        type=Path,
+        default=Path("tests/fixtures/features_escuela_mock.csv"),
+        help="ruta al fixture; se ignora con --desde-gold",
+    )
+    parser.add_argument(
+        "--desde-gold",
+        action="store_true",
+        help="lee `gold.features_escuela` de la base en vez del fixture (BUG-013)",
+    )
     parser.add_argument("--url", default=None, help="URL SQLAlchemy; por defecto DATABASE_URL")
     parser.add_argument("--run-id", default="local-sin-mlflow", help="mlflow_run_id a registrar")
     parser.add_argument("--esquema", default=ESQUEMA_GOLD)
-    parser.add_argument("--ventanas", type=int, default=3)
+    parser.add_argument(
+        "--ventanas",
+        type=int,
+        default=None,
+        help="ventanas de backtesting; por defecto, el máximo que permitan los ciclos disponibles",
+    )
     parser.add_argument(
         "--solo-predicciones",
         action="store_true",
@@ -513,15 +588,26 @@ def main() -> int:
     )
     args = parser.parse_args()
 
-    features = cargar_features(args.features)
-    resultado = entrenar_y_evaluar(features, n_ventanas=args.ventanas)
+    engine = _motor(args.url)
+    if args.desde_gold:
+        features = cargar_features_desde_gold(engine, esquema=args.esquema)
+        print(
+            f"Features desde gold.features_escuela: {len(features)} filas · "
+            f"{features['cct'].nunique()} escuelas · ciclos {sorted(features['id_ciclo'].unique())}"
+        )
+    else:
+        features = cargar_features(args.features)
+        print(f"Features desde el fixture {args.features} — DATOS SINTÉTICOS")
+    ventanas = args.ventanas or ventanas_posibles(features)
+    if args.ventanas is None:
+        print(f"Ventanas de backtesting: {ventanas} (máximo que permiten los ciclos disponibles)")
+    resultado = entrenar_y_evaluar(features, n_ventanas=ventanas)
     print(f"ML-01 entrenado — MAE {resultado.mae_promedio:.4f} ± {resultado.mae_desviacion:.4f}")
 
     predicciones = construir_predicciones(features, resultado.modelo, args.run_id)
     print(f"Predicciones construidas: {len(predicciones)} filas (ciclo {predicciones['id_ciclo'].iloc[0]})")
 
     metadata, tabla_pred, tabla_rec = _metadatos(args.esquema)
-    engine = _motor(args.url)
     escritas = escribir(predicciones, tabla_pred, engine, metadata)
     print(f"gold.{TABLA_PREDICCIONES}: {escritas} filas publicadas (upsert idempotente)")
 
@@ -529,10 +615,27 @@ def main() -> int:
         print("gold.recomendaciones omitida por --solo-predicciones.")
         return 0
 
-    features_ml02 = cargar_features_ml02(args.features)
-    resultado_ml02 = entrenar_ml02(features_ml02, n_ventanas=args.ventanas)
+    features_ml02, sin_driver = filtrar_con_driver_observado(features)
+    if sin_driver:
+        print(
+            f"⚠️  {sin_driver} filas sin ningún driver observado quedan fuera de ML-02: no puede "
+            "haber driver dominante donde no hay drivers. Conservan su predicción de ML-01; lo que "
+            "no reciben es recomendación (SIN_DATO explícito, nunca un driver inventado)."
+        )
+    if features_ml02.empty:
+        raise ValueError(
+            "Ninguna fila observa algún driver: no hay con qué entrenar ML-02. Revisa la cobertura "
+            "de drivers en `gold.features_escuela`."
+        )
+    if COLUMNA_TARGET_REAL not in features_ml02.columns:
+        features_ml02[COLUMNA_TARGET_PROXY] = generar_driver_dominante_proxy(features_ml02)
+    resultado_ml02 = entrenar_ml02(features_ml02, n_ventanas=ventanas)
+    # Las escuelas apartadas conservan su predicción pero no reciben recomendación. Se excluyen
+    # aquí y no relajando la verificación de sincronía de `construir_recomendaciones_ml02`: esa
+    # verificación debe seguir cazando desajustes de verdad, no el hueco que abrimos a propósito.
+    con_recomendacion = predicciones[predicciones["cct"].isin(set(features_ml02["cct"]))]
     recomendaciones = construir_recomendaciones_ml02(
-        predicciones,
+        con_recomendacion,
         features_ml02,
         resultado_ml02.modelo,
     )

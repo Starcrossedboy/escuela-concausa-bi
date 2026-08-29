@@ -17,7 +17,7 @@ with poblacion_por_municipio as (
         max(anio) over (partition by cve_mun) as anio_max,
         anio,
         sum(poblacion) as poblacion_anio
-    from {{ source('silver', 'poblacion_municipio') }}
+    from {{ ref('poblacion_municipio') }}
     group by cve_mun, anio
 
 ),
@@ -43,7 +43,7 @@ rezago_ultimo as (
         row_number() over (
             partition by cve_mun order by periodo_medicion desc
         ) as _rn
-    from {{ source('silver', 'rezago_municipio') }}
+    from {{ ref('rezago_municipio') }}
 
 )
 

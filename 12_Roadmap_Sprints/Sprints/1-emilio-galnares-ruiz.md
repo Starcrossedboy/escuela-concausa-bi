@@ -6,7 +6,7 @@ status: approved
 version: "1.0"
 traces_up: ["01_Product/PRD", "02_Requirements/User_Stories"]
 traces_down: ["US-121a", "US-122a", "US-123a", "US-124a"]
-last_reviewed: "2026-07-31"
+last_reviewed: "2026-08-28"
 tags: [sprint, plan, celula-1, nivel-bajo]
 ---
 
@@ -293,10 +293,10 @@ Actualiza esta tabla **antes de cada standup**. El PM la revisa para el tablero 
 
 | ID | Historia | Estado | % | Bloqueado por | Fecha compromiso |
 |---|---|---|---|---|---|
-| `US-121a` | Prueba de descarga real DS-06 y DS-08 | ⬜ Por iniciar | 0% | — | Dom 9 ago |
-| `US-122a` | Extractores de DS-06 y DS-08 | ⬜ Por iniciar | 0% | — | Dom 16 ago |
-| `US-123a` | Great Expectations de DS-06 y DS-08 | ⬜ Por iniciar | 0% | — | Dom 23 ago |
-| `US-124a` | Fixtures de DS-06 y DS-08 | ⬜ Por iniciar | 0% | — | Dom 30 ago |
+| `US-121a` | Prueba de descarga real DS-06 y DS-08 | 🔵 En revisión (PR #107) | 90% | Revisión C1, checks y merge | Junta de cierre |
+| `US-122a` | Extractores de DS-06 y DS-08 | 🔵 En revisión (PR #107) | 90% | Ejecución contra fuentes reales | Junta de cierre |
+| `US-123a` | Great Expectations de DS-06 y DS-08 | 🔵 En revisión (PR #107) | 90% | Confirmar resultados reales y SIN_DATO | Junta de cierre |
+| `US-124a` | Fixtures de DS-06 y DS-08 | 🔵 En revisión (PR #107) | 90% | Revisión, checks y merge | Junta de cierre |
 
 **Estados válidos:** ⬜ Por iniciar · 🟡 En curso · 🔵 En revisión (PR abierto) · ✅ Terminado · 🔴 Bloqueado
 

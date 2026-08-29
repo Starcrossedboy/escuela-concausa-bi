@@ -4,7 +4,7 @@ with ciclos as (
 
     select distinct
         ciclo as id_ciclo
-    from {{ source('silver', 'matricula') }}
+    from {{ ref('matricula') }}
 
 )
 

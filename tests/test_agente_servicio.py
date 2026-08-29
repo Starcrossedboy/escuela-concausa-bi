@@ -2,7 +2,9 @@
 
 from __future__ import annotations
 
-from src.agente.servicio import procesar_consulta
+from src.agente import servicio
+from src.agente.recuperacion import ContextoNoEncontrado, ErrorRecuperacion
+from src.agente.servicio import procesar_consulta, procesar_consulta_con_rag
 
 
 def test_orquesta_consulta_segura_con_dependencias_inyectadas() -> None:
@@ -70,3 +72,61 @@ def test_sql_inseguro_nunca_llega_al_ejecutor() -> None:
     assert resultado.fuera_de_alcance
     assert resultado.sql_generado is None
     assert not ejecutado
+
+
+def test_fallo_de_recuperacion_no_genera_ni_ejecuta_sql() -> None:
+    def recuperar(pregunta: str) -> str:
+        raise ErrorRecuperacion("ChromaDB no disponible")
+
+    def no_debe_llamarse(*args):
+        raise AssertionError("No debe continuar sin contexto RAG")
+
+    resultado = procesar_consulta(
+        "Que escuelas tienen mayor riesgo?",
+        recuperar_contexto=recuperar,
+        generar_sql=no_debe_llamarse,
+        ejecutar_sql=no_debe_llamarse,
+        redactar_respuesta=no_debe_llamarse,
+    )
+
+    assert resultado.respuesta == "El contexto de FARO no está disponible temporalmente."
+    assert resultado.sql_generado is None
+    assert not resultado.fuera_de_alcance
+
+
+def test_contexto_no_encontrado_no_se_reporta_como_caida() -> None:
+    def recuperar(pregunta: str) -> str:
+        raise ContextoNoEncontrado("sin coincidencias")
+
+    def no_debe_llamarse(*args):
+        raise AssertionError("No debe continuar sin contexto")
+
+    resultado = procesar_consulta(
+        "Que escuelas tienen mayor riesgo?",
+        recuperar_contexto=recuperar,
+        generar_sql=no_debe_llamarse,
+        ejecutar_sql=no_debe_llamarse,
+        redactar_respuesta=no_debe_llamarse,
+    )
+
+    assert resultado.respuesta == "No encontré contexto de Gold para responder esa pregunta."
+    assert resultado.sql_generado is None
+    assert not resultado.fuera_de_alcance
+
+
+def test_entrada_compuesta_usa_recuperacion_rag_real(monkeypatch) -> None:
+    monkeypatch.setattr(
+        servicio,
+        "recuperar_contexto",
+        lambda pregunta: "Tabla gold.features_escuela(cct)",
+    )
+
+    resultado = procesar_consulta_con_rag(
+        "Que escuelas tienen mayor riesgo?",
+        generar_sql=lambda prompt, pregunta: "SELECT cct FROM gold.features_escuela",
+        ejecutar_sql=lambda sql: [{"cct": "09ABC0001X"}],
+        redactar_respuesta=lambda pregunta, filas: "Una escuela.",
+    )
+
+    assert resultado.respuesta == "Una escuela."
+    assert resultado.sql_generado == "SELECT cct FROM gold.features_escuela LIMIT 1000;"

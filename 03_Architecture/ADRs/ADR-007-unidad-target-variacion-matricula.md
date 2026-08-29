@@ -3,17 +3,27 @@ id: ADR-007
 title: "ADR-007 — Unidad de target_variacion_matricula: fracción, no diferencia absoluta"
 owner: "Héctor Rafael Morales Marbán"
 status: proposed
-traces_up: ["REQ-003", "ADR-003"]
-traces_down: ["US-104", "US-311", "US-313", "15_ML_Models/Indice_Riesgo_ML01", "03_Architecture/Data_Model"]
+traces_up: ["REQ-003", "ADR-003", "DEC-006"]
+traces_down: ["US-104", "US-311", "US-313", "US-212", "15_ML_Models/Indice_Riesgo_ML01", "03_Architecture/Data_Model", "DEC-006"]
 supersedes: []
-tags: [architecture, adr, ml, celula-1, celula-3, celula-4]
+tags: [architecture, adr, ml, celula-1, celula-2, celula-3, celula-4]
 date: "2026-08-28"
 ---
 
 # ADR-007 — Unidad de `target_variacion_matricula`: fracción, no diferencia absoluta
 
 > **Estatus: propuesta.** Requiere ratificación de Andrés González Habib (ADR-003, modelado),
-> Christian Ruiz (contrato de la API) y Diana Alvarez (producción en Gold). Convoca: Edgar Coronel.
+> Christian Ruiz (contrato de la API), Diana Alvarez (producción en Gold) y **Marina García**
+> (consumo en los tableros). Convoca: Edgar Coronel.
+>
+> Marina se agrega el 2026-08-28 a petición suya y con razón: el rechazo de la alternativa B más
+> abajo se apoya en que **Superset lee Gold directo**, así que su área es la que sostiene el
+> argumento. Usar a un equipo como razón para descartar una opción y no sentarlo en la mesa era un
+> defecto de esta propuesta, no una omisión de cortesía.
+>
+> El costo de la decisión es asimétrico y conviene tenerlo a la vista: si se ratifica fracción,
+> `DEC-006` y el umbral 0.6 siguen válidos sin tocar nada; si no, hay que rehacer §5.1 del contrato
+> de DB-03/DB-04. Cinco minutos para Célula 3, medio sprint para Célula 2.
 
 ## Contexto
 
@@ -75,6 +85,21 @@ exactamente las que "la escuela como sensor social" existe para hacer visibles. 
 pierde un tercio de sus alumnos es una señal de territorio; cuarenta alumnos menos en un bachillerato
 metropolitano de 2 400 es ruido estadístico. El target absoluto los ordena al revés.
 
+### El equipo ya había decidido esto sin notarlo
+
+`DEC-006` (13-ago, ratificada por Manuel Serranía leyendo `Screen_Specs`) fija el umbral de negocio
+así:
+
+> **"escuela en riesgo" = `indice_riesgo ≥ 0.6` ↔ pérdida de ~5 % de matrícula**
+
+Ese "~5 %" es una **fracción**. El umbral que la Célula 2 ya usa en sus tableros sólo significa algo
+si el target lo es. Con diferencia absoluta, "0.6" no corresponde a ninguna pérdida porcentual
+concreta: corresponde a una cantidad de alumnos distinta en cada escuela.
+
+Es decir, ratificar fracción no introduce una decisión nueva — hace explícito lo que `DEC-006` ya
+supuso al definirse. La alternativa A obligaría a **reabrir DEC-006**, no sólo a recalibrar la
+sigmoide.
+
 ## Alternativas consideradas
 
 **A. Recalibrar `indice_riesgo` sobre alumnos absolutos.** Rechazada: no existe un umbral absoluto que
@@ -97,6 +122,10 @@ fuente con unidad implícita, y cualquier otro consumidor repetiría el error.
   ofreció).
 - ML-01 hay que reentrenarlo; el MAE dejará de leerse en alumnos y pasará a leerse en fracción, lo que
   además lo vuelve comparable entre entidades de tamaños distintos.
+- **Célula 2 no toca nada si se ratifica fracción**: `indice_riesgo` vuelve a caer dentro de [0,1]
+  con resolución real y el umbral 0.6 de `DEC-006` conserva su significado. Con la unidad actual,
+  `escuelas_en_riesgo` marcaría el **100 %** del universo y el tablero se vería normal — el mismo
+  modo de falla que BUG-017, pero en pantalla.
 - `matricula_previa == 0` deja de ser divisible. `variacion_desde_serie` ya rechaza ese caso de forma
   explícita; C1 necesita la misma regla, no un `NULLIF` silencioso que produzca `SIN_DATO` invisible.
 

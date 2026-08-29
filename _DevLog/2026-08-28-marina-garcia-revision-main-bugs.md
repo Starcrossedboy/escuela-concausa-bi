@@ -75,9 +75,20 @@ un fixture con ≥4 ciclos sembrado desde `bronze.cct`.
 
 Su DevLog deja sin resolver un `HistGradientBoostingRegressor: window shape cannot be larger than
 input array shape` al intentar backtesting real, y se lo pasa a Héctor. **Ese es BUG-015, y Héctor lo
-arregló el mismo día**: ella corrió a las 20:48 y el fix (`4f22bd8`) entró a las 22:45, dos horas
-después. Verificado con `git merge-base --is-ancestor`: el fix **no** era ancestro de su corrida.
-Probablemente no lo sabe.
+arregló el mismo día.**
+
+> **Corrección (29-ago), señalada por Héctor Morales y ratificada por el PM.** Mi primera redacción
+> citaba `4f22bd8` (22:45) como el fix. **No lo es**: ese fue el primer intento y evaluaba la
+> cobertura de drivers de forma **global**, así que no sirvió — Diana volvió a correr después de ese
+> commit y obtuvo el mismo error. El que funcionó es **`f906a7d` (23:04)**, que la evalúa **por
+> ventana**: `d6_aire` tenía datos globalmente pero estaba vacío en el tramo de entrenamiento.
+>
+> La corrección importa por una razón concreta que Héctor explicó mejor que yo: tal como lo redacté,
+> Diana concluiría que su segundo fallo **no debió ocurrir** y acabaría dudando de su ambiente en vez
+> de confiar en él. Un reporte que hace desconfiar de un ambiente sano cuesta más que el bug.
+>
+> Y donde escribí *"probablemente pasa"* ya hay certeza, no conjetura: Héctor verificó la cadena
+> completa sobre `main` con el target real — **F1 0.633, 78 de 80 predicciones con recomendación**.
 
 ## BUG-027 — referencia rota que CI no puede ver
 

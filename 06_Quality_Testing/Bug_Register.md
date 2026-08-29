@@ -38,7 +38,7 @@ tags: [qa, bugs]
 | BUG-023 | Tercera aparición del defecto de BUG-015/BUG-018, ahora en `evaluar.py`: `error_por_entidad()` y `cobertura_y_error()` predecían con los **seis** drivers aunque el modelo se hubiera entrenado con menos, así que `construir_reporte()` **no podía generar el reporte** en el único escenario que el PM necesita documentar para la demo — el de 5 de 6 drivers. `ValueError: The feature names should match those that were passed during fit` | high | **fixed** | US-312 / REQ-003 / AC-003.2 | `feat/hector-marban-drivers-en-evaluacion` | — | ver detalle |
 | BUG-024 | `SELECT ... INTO` atravesaba el guardarraíl porque empieza con `SELECT`, pero en PostgreSQL crea una tabla; el agente no tiene otra capa que garantice solo lectura | **critical** | **fixed** | US-304a / US-305 / REQ-006 | `fix/andres-habib-bug024-select-into-rag-empty` | `tests/test_agente_guardrails.py::test_select_into_se_rechaza_como_escritura` |
 | BUG-025 | El endpoint desplegado `/api/v1/agente/consulta` es el **stub** de `src/api/v1/agente.py`: responde **la misma cadena fija a cualquier pregunta**, incluidas las fuera de alcance y las destructivas. Además su filtro de palabras busca `"borrar"` por subcadena, así que **«Borra la tabla de predicciones» no lo dispara** y recibe la respuesta normal con `fuera_de_alcance: false`. Los guardarraíles reales de `src/agente/guardrails.py` —que sí rechazan esa frase— nunca se invocan desde la API | high | open | US-304a, US-305, REQ-006 | pendiente (**C4 + C3**): conectar `procesar_consulta_con_rag()` al endpoint; como mitigación inmediata, que el stub llame a `pregunta_en_alcance()` |
-| BUG-026 | **Ningún juego de fixtures del repo puede ejercitar el grano escuela multi-ciclo.** Hay dos y cada uno resuelve la mitad: `bronze_formato911_sample.csv` + `…_ciclo_anterior_sample.csv` traen CCT coherentes con `gold.dim_escuela` (**59 de 60**) pero solo **2 ciclos**, así que `gold.features_escuela` sale con 1 y ML-01 no puede hacer partición temporal; `bronze_formato911_historico_sample.csv` trae **6 ciclos** pero comparte solo **3 CCT de 30** con `dim_escuela` (se generó sobre su propio universo, disjunto de `bronze.cct`), así que a grano escuela el JOIN se vacía **sin ningún error** — el modo de falla silenciosa de BUG-012. Consecuencia: entrenar ML-01 y verificar los bloques de predicción de DB-03 (AC-002.4) solo es posible con ~460 MB de CSV real en un ambiente propio (hoy, únicamente el de Diana); **CI nunca recorre esa ruta** | high | open | US-104 / US-113 / US-313 / REQ-001 / REQ-003 | pendiente (**C1**) — un fixture de Formato 911 con ≥4 ciclos **sobre los CCT de `bronze.cct`**; los generadores ya existen, falta sembrarlos del mismo universo | — (propuesto: aserción dbt de solape mínimo con `dim_escuela` y de ciclos mínimos en `features_escuela`) |
+| BUG-026 | **Ningún juego de fixtures del repo puede ejercitar el grano escuela multi-ciclo.** Hay dos y cada uno resuelve la mitad: `bronze_formato911_sample.csv` + `…_ciclo_anterior_sample.csv` traen CCT coherentes con `gold.dim_escuela` (**59 de 60**) pero solo **2 ciclos**, así que `gold.features_escuela` sale con 1 y ML-01 no puede hacer partición temporal; `bronze_formato911_historico_sample.csv` trae **6 ciclos** pero comparte solo **3 CCT de 30** con `dim_escuela` (se generó sobre su propio universo, disjunto de `bronze.cct`), así que a grano escuela el JOIN se vacía **sin ningún error** — el modo de falla silenciosa de BUG-012. Consecuencia: entrenar ML-01 y verificar los bloques de predicción de DB-03 (AC-002.4) solo es posible con ~460 MB de CSV real en un ambiente propio (hoy, únicamente el de Diana); **CI nunca recorre esa ruta** | high | **en revisión** | US-104 / US-113 / US-313 / REQ-001 / REQ-003 | **PR #129** (Diana Alvarez) — fixture aditivo `bronze_formato911_serie_historica_sample.csv`: reutiliza las CCT de `bronze_formato911_sample.csv` tal cual (mismo patrón que `..._ciclo_anterior_fixture.py`) y agrega 2021-2022 y 2022-2023 sobre la MISMA tabla. No toca ningún modelo dbt. **Verificado de punta a punta por la reportante el 29-ago** | — (propuesto: aserción dbt de solape mínimo con `dim_escuela` y de ciclos mínimos en `features_escuela`) |
 | BUG-027 | `superset/semantic/metrics_kpis_base_us221.yaml` apunta sus 5 `sql_ref` a `sql/kpi_0*.sql`, ruta que **ya no existe**: el commit `1c2f5f9` movió esos archivos de `superset/sql/` a `superset/semantic/` y actualizó el test, pero no el YAML. Nadie lo nota porque `tests/test_kpis_us221.py` **codifica la ruta a mano** (`SQL_DIR = superset/semantic`) y nunca lee el `sql_ref` del catálogo: la prueba pasa en verde mientras el artefacto que la gente consulta apunta al vacío | low | open | US-221 / REQ-002 | pendiente (**C2**, Oscar Quiroz) — corregir a `semantic/…` | — (propuesto: que el test resuelva la ruta desde el YAML en vez de codificarla) |
 
 ## BUG-016 — Filas sin ningún driver rompían la publicación de ML-02
@@ -890,11 +890,48 @@ universo de CCT, porque su único consumidor, `gold.matricula_municipio_nivel`, 
 municipio × nivel y **nunca toca `dim_escuela`**. La incoherencia era invisible hasta que alguien
 intentó usar el histórico a grano escuela.
 
-### Fix propuesto
+### Precisión de la causa (Diana Alvarez, 2026-08-29)
 
-De C1. Un fixture de Formato 911 con **≥4 ciclos sobre los CCT de `bronze.cct`**. Los dos
-generadores ya existen y ya saben producir la suciedad correcta; falta que ambos partan del mismo
-universo de escuelas. No hace falta tocar ningún modelo dbt.
+Mi encuadre original —"dos fixtures y cada uno resuelve la mitad"— sugiere que el histórico era
+candidato a tapar el hueco. **No lo es, y por una razón más de fondo que el solape de CCT:**
+`silver.matricula`, que es la que alimenta `features_escuela`, **nunca lee de
+`bronze.formato911_historico`**. Ese camino termina en `gold.matricula_municipio_nivel` (DEC-007) y
+no toca el grano escuela. Aunque se le arreglara el solape, no habría movido la aguja aquí.
+
+El hueco real es aritmético y vive en la tabla que sí está en el linaje:
+`bronze.formato911_2024_2025` solo tenía **2 ciclos crudos**, y `con_target`
+(`features_escuela.sql:74`) sacrifica siempre el primer ciclo de cada `cct` como referencia del
+`LAG`. Como `ventanas_posibles()` exige 3 ciclos ya con target, hacen falta **4 ciclos crudos**. El
+solape sigue siendo cierto y sigue importando —es lo que hace que el arreglo aparente falle en
+silencio— pero es la consecuencia, no la causa.
+
+### Fix
+
+**PR #129** (Diana Alvarez): fixture aditivo con **≥4 ciclos sobre los CCT de `bronze.cct`**,
+reutilizando las de `bronze_formato911_sample.csv` tal cual —mismo patrón que
+`..._ciclo_anterior_fixture.py`— para que el 100 % de solape sea estructural y no una coincidencia
+que haya que perseguir. Se carga en la misma tabla. No toca ningún modelo dbt.
+
+### Verificación del fix (Marina García del Buey, 2026-08-29)
+
+Revisado corriéndolo, no leyéndolo. El generador es **reproducible** (mismo MD5 al regenerar) y la
+carga es **idempotente**. Resultado en Postgres local:
+
+| Qué | Antes | Con PR #129 |
+|---|---|---|
+| Ciclos crudos en `bronze.formato911_2024_2025` | 2 | **4** |
+| Ciclos en `gold.features_escuela` | 1 | **3** (2022-2023 … 2024-2025) |
+| CCT que cruzan con `gold.dim_escuela` | — | **60 de 60** |
+| `publicar_gold.py --desde-gold` | `ValueError` por 1 ciclo | **entrena ML-01, MAE 12.2252** |
+
+`dbt run --threads 1 --full-refresh`: 22 modelos OK; el único fallo es `silver.agua_region` por
+CONAGUA no ingerida, que es el error esperado y correcto. La corrida se detiene ahora en la guarda de
+BUG-017 —no en la falta de ciclos—, tal como Diana reportó.
+
+Observación menor, **no bloqueante**: el panel queda desbalanceado (60 escuelas en 2022-2023, 30 en
+2023-2024, 55 en 2024-2025), porque los dos ciclos nuevos cubren las 72 CCT del fixture base y los
+dos viejos no. Con 1 ventana de backtesting funciona; si algún día se quieren 2 o más, conviene
+emparejar la cobertura.
 
 ### Test de regresión
 

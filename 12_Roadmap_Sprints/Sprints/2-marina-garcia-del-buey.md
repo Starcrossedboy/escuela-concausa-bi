@@ -298,7 +298,7 @@ Actualiza esta tabla **antes de cada standup**. El PM la revisa para el tablero 
 | ID | Historia | Estado | % | Bloqueado por | Fecha compromiso |
 |---|---|---|---|---|---|
 | `US-211a` | Cubos y metricas de DB-03 y DB-04 | ✅ Terminado | 100% | — | Dom 23 ago |
-| `US-212` | Construir DB-03 Ficha de escuela y DB-04 C | 🟡 En curso | 90% | **BUG-026** (ningún fixture ejercita el grano escuela multi-ciclo) | Dom 30 ago |
+| `US-212` | Construir DB-03 Ficha de escuela y DB-04 C | 🟡 En curso | 95% | **ADR-007** (unidad de `target_variacion_matricula`) | Dom 30 ago |
 | `US-214a` | Filtros y drill-down en DB-03 y DB-04 | ⬜ Por iniciar | 0% | — | Dom 6 sep |
 | `US-215a` | Usabilidad/accesibilidad DB-03 y DB-04 | ⬜ Por iniciar | 0% | — | Dom 6 sep |
 | `US-207` | FARO Web: panel de ML interactivo | ⬜ Por iniciar | 0% | API de inferencia (US-412/US-415) | Dom 6 sep |
@@ -318,12 +318,25 @@ Actualiza esta tabla **antes de cada standup**. El PM la revisa para el tablero 
 > ningún juego de fixtures del repo ejercita el grano escuela multi-ciclo, así que no puedo verificar
 > AC-002.4 en mi ambiente ni CI cubre esa ruta. Es de C1 y el arreglo no toca ningún modelo dbt.
 >
-> **Dos cosas más a vigilar, que no bloquean pero cambian el significado del entregable:**
-> **BUG-017/ADR-007** — `indice_riesgo` se publicó saturado porque el target viene en alumnos absolutos
-> y la sigmoide está calibrada sobre fracción; con esa escala DB-04 diría "100 % de escuelas en riesgo".
-> Pedí entrar a la ratificación del ADR como consumidora afectada. **Criterio nuevo del 28-ago** en
-> `Execution_Status.md`: las historias con superficie desplegada no cierran hasta que la ruta responda
-> en el despliegue que se va a demostrar — falta que Edgar confirme si aplica a US-212.
+> **US-212 al 95 % (2026-08-29).** **BUG-026 lo resolvió el PR #129 de Diana**, que revisé
+> corriéndolo: `features_escuela` pasa de 1 a 3 ciclos, **60/60 CCT** cruzan el catálogo y ML-01
+> entrena (MAE 12.2252). Ella precisó además mi causa raíz —`silver.matricula` nunca lee del camino
+> histórico, así que el hueco es aritmético: `con_target` sacrifica el primer ciclo, luego hacen falta
+> 4 crudos para los 3 que exige `ventanas_posibles()`—. El pipeline ya llega hasta donde debe.
+>
+> **Lo único que falta para el 100 % es ratificar ADR-007**, y no es espera pasiva: **entré como
+> ratificadora** por el PR #128 de Héctor. Mientras la unidad siga siendo alumnos absolutos, la guarda
+> de BUG-017 detiene la publicación —correctamente— y los bloques ML de DB-03 no se pueden verificar.
+> Argumento a llevar a la mesa, que me pasó Héctor: **DEC-006 ya dice "≥ 0.6 ↔ pérdida de ~5 % de
+> matrícula"**, y ese "~5 %" es una fracción. El umbral de mis tableros ya presupone la unidad que
+> ADR-007 propone, así que la alternativa A no es una opción nueva: es reabrir DEC-006.
+>
+> **El criterio de cierre por URL pública NO aplica a US-212** (Edgar, 29-ago): ese gate se escribió
+> para rutas HTTP de la API, por la asimetría entre US-411 y US-412. Un tablero de Superset cierra con
+> evidencia de código más capa de datos validada, sin depender de que C5 despliegue Superset.
+>
+> **BUG-027 quedó `superseded`**, no se arregla: Manuel decidió borrar los `kpi_*.sql` y remapear las
+> tarjetas a los datasets canónicos. Sobrevive el hallazgo de por qué CI no lo veía.
 >
 > BUG-012 (runbook del pipeline local) sigue abierto sin avance.
 

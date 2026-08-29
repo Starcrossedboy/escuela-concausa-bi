@@ -156,10 +156,12 @@ def verificar_modelos_registrados(
         if not encontradas:
             faltantes.append(nombre)
             continue
-        versiones[nombre] = max(
-            (str(version.version) for version in encontradas),
-            key=lambda version: int(version),
-        )
+        try:
+            versiones[nombre] = str(max(int(version.version) for version in encontradas))
+        except (TypeError, ValueError) as exc:
+            raise RuntimeError(
+                f"MLflow devolvió una versión inválida para {nombre!r}."
+            ) from exc
 
     if faltantes:
         raise RuntimeError(f"Modelos sin versión en MLflow Registry: {', '.join(faltantes)}.")

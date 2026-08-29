@@ -283,6 +283,7 @@ ensamblado as (
     select
         b.cct,
         b.id_ciclo,
+        b.cve_mun,
         d1.d1_pobreza,
         coalesce(d1.d1_cobertura, 'SIN_DATO') as d1_cobertura,
         d2.d2_inseguridad,
@@ -347,6 +348,7 @@ con_driver_dominante as (
 select
     cct,
     id_ciclo,
+    cve_mun,
     d1_pobreza,
     d2_inseguridad,
     d3_infraestructura,

@@ -147,7 +147,15 @@ def cargar_features(ruta: Path = FEATURES_POR_DEFECTO) -> pd.DataFrame:
         raise FileNotFoundError(
             f"No existe {ruta}. Genera el fixture con: python -m src.modelos.generar_fixture"
         )
-    df = pd.read_parquet(ruta) if ruta.suffix == ".parquet" else pd.read_csv(ruta)
+    # `cve_mun` es puramente numérica ("09001"): sin dtype explícito pandas la infiere int64 y se
+    # come el cero de la izquierda, con lo que "09001" llega como 9001 y el join contra
+    # `dim_municipio` -- y la agregación de DEC-007 -- fallan en silencio para las 9 entidades
+    # cuya clave INEGI empieza en cero, CDMX incluida.
+    df = (
+        pd.read_parquet(ruta)
+        if ruta.suffix == ".parquet"
+        else pd.read_csv(ruta, dtype={"cve_mun": str})
+    )
     return _validar_contrato(df, "La tabla de features")
 
 

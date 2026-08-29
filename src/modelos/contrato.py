@@ -60,6 +60,11 @@ class FeaturesEscuela(BaseModel):
     cct: StrictStr = Field(min_length=10, max_length=10)
     id_ciclo: StrictStr
 
+    #: Clave INEGI municipal (5 dígitos). La agrega la C1 para el análisis de sesgo geográfico de
+    #: US-325. Lleva default porque el fixture sintético es anterior al cambio: sin él, y con
+    #: `extra="forbid"`, el espejo rechazaría tanto las filas viejas como —al revés— las nuevas.
+    cve_mun: StrictStr | None = None
+
     d1_pobreza: Puntaje | None
     d2_inseguridad: Puntaje | None
     d3_infraestructura: Puntaje | None

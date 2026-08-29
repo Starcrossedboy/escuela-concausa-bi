@@ -1,17 +1,29 @@
+import glob
+
 import pandas as pd
 import great_expectations as gx
 
-# 1. Cargamos los datos de Bronze
-df = pd.read_parquet("data/bronze/ds08_conapo.parquet")
+# 1. Cargamos el archivo más reciente que el extractor guardó en Bronze
+archivos = sorted(glob.glob("data/bronze/conapo/conapo_*.parquet"))
+df = pd.read_parquet(archivos[-1])
 
 # 2. Contexto y fuente de datos
 context = gx.get_context(context_root_dir="great_expectations")
-data_source = context.data_sources.add_pandas("pandas_ds08")
-data_asset = data_source.add_dataframe_asset(name="ds08_poblacion")
-batch_definition = data_asset.add_batch_definition_whole_dataframe("batch_ds08")
+try:
+    data_source = context.data_sources.add_pandas("pandas_ds08")
+except gx.exceptions.DataContextError:
+    data_source = context.data_sources.get("pandas_ds08")
+try:
+    data_asset = data_source.add_dataframe_asset(name="ds08_poblacion")
+except ValueError:
+    data_asset = data_source.get_asset("ds08_poblacion")
+try:
+    batch_definition = data_asset.add_batch_definition_whole_dataframe("batch_ds08")
+except ValueError:
+    batch_definition = data_asset.get_batch_definition("batch_ds08")
 
 # 3. Suite de reglas para DS-08
-suite = context.suites.add(gx.ExpectationSuite(name="suite_ds08_conapo"))
+suite = context.suites.add_or_update(gx.ExpectationSuite(name="suite_ds08_conapo"))
 
 # --- Nulos: campos clave que nunca deben venir vacíos ---
 suite.add_expectation(gx.expectations.ExpectColumnValuesToNotBeNull(column="cve_mun"))

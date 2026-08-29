@@ -1,8 +1,11 @@
+import glob
+
 import pandas as pd
 import great_expectations as gx
 
-# 1. Cargamos los datos que ya guardamos en Bronze
-df = pd.read_parquet("data/bronze/ds06_conagua_presas.parquet")
+# 1. Cargamos el archivo más reciente que el extractor guardó en Bronze
+archivos = sorted(glob.glob("data/bronze/conagua/conagua_*.parquet"))
+df = pd.read_parquet(archivos[-1])
 
 # 2. Las columnas numéricas vienen como texto (así las entregó la API de CONAGUA)
 #    Las convertimos a número de verdad para poder validar rangos
@@ -15,12 +18,21 @@ df["alt_cort"] = pd.to_numeric(df["alt_cort"], errors="coerce")
 context = gx.get_context(context_root_dir="great_expectations")
 
 # 4. Le decimos a GE que nuestra fuente de datos es un DataFrame de pandas
-data_source = context.data_sources.add_pandas("pandas_ds06")
-data_asset = data_source.add_dataframe_asset(name="ds06_presas")
-batch_definition = data_asset.add_batch_definition_whole_dataframe("batch_ds06")
+try:
+    data_source = context.data_sources.add_pandas("pandas_ds06")
+except gx.exceptions.DataContextError:
+    data_source = context.data_sources.get("pandas_ds06")
+try:
+    data_asset = data_source.add_dataframe_asset(name="ds06_presas")
+except ValueError:
+    data_asset = data_source.get_asset("ds06_presas")
+try:
+    batch_definition = data_asset.add_batch_definition_whole_dataframe("batch_ds06")
+except ValueError:
+    batch_definition = data_asset.get_batch_definition("batch_ds06")
 
 # 5. Armamos la "suite": el conjunto de reglas de calidad para DS-06
-suite = context.suites.add(gx.ExpectationSuite(name="suite_ds06_conagua"))
+suite = context.suites.add_or_update(gx.ExpectationSuite(name="suite_ds06_conagua"))
 
 # --- Nulos: estos campos nunca deben venir vacíos ---
 suite.add_expectation(gx.expectations.ExpectColumnValuesToNotBeNull(column="nombre_oficial"))

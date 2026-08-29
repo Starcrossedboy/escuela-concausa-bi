@@ -1,83 +1,75 @@
 -- =============================================================================
--- db09_cubo_recomendaciones (virtual)  ·  DB-09 Recomendaciones prescriptivas
+-- db09_cubo_recomendaciones  ·  DB-09 Recomendaciones prescriptivas
 -- -----------------------------------------------------------------------------
--- Historia : US-204  (Manuel Alejandro Serrania Reinada, Celula 2 - Analytics & BI)
--- Contrato : 04_UX_Design/Cube_Specs_DB06_DB09.md §5
---            KPI-11 recomendaciones por prioridad, KPI-07 driver dominante,
---            KPI-04 escuelas en riesgo (contexto, AC-002.5) y la tabla
---            "Escuelas a intervenir".
--- Grano    : una fila por cct x id_ciclo. Espejo del cubo fisico
---            gold.cubo_recomendaciones (US-113, C1): misma semantica de
---            cobertura; la columna aditiva `recomendacion_emitida` es el unico
---            0 permitido y su paridad contra gold.recomendaciones la valida C1.
---            Cuando el cubo fisico exista, este dataset se reduce a
---            `SELECT * FROM gold.cubo_recomendaciones` y se le agrega el riesgo
---            por LEFT JOIN a gold.predicciones (contexto de los KPIs globales).
+-- Historia : US-204  (Manuel Alejandro Serrania Reinada, Celula 2)
+--            Repunteo US-205 (Manuel Alejandro Serrania Reinada, C2)
+-- Contrato : 04_UX_Design/Cube_Specs_DB06_DB09.md  (DOC-CUBESPEC-DB0609, §5.1/§5.2/§5.3)
+-- Grano    : una fila por cct x id_ciclo (detalle)
 --
--- EL DIFERENCIADOR DEL PROYECTO: la recomendacion prescriptiva de la escuela
---   segun su driver dominante. Una escuela sin recomendacion NO se inventa un
---   driver: `driver_dominante`/`nombre_driver` se etiquetan 'SIN_DATO' como
---   categoria (permitido por R2: etiquetar el vacio, nunca rellenar una
---   metrica con cero) y `cobertura_recomendacion` lo gobierna.
+-- REPUNTEO A CUBOS FISICOS (US-205 / US-113): passthrough de
+--   gold.cubo_recomendaciones (C1). Covariancias del cubo (ver
+--   dbt/models/gold/cubo_recomendaciones.sql):
+--     * varianza flechada: driver_dominante / nombre_driver / recomendacion /
+--       prioridad vienen de gold.recomendaciones, mientras que la fila en si
+--       existe por LATENCY (UNION 08 -- escuelas sin triangulacion). Por eso
+--       aqui se etiquetan SQL NULL como 'SIN_DATO' (R2) y como designador v1 el
+--       cubo preserva driver_clave AS driver_dominante.
+--     * valor 0 real vs SIN_DATO: pct_escuelas_recomendadas =
+--       SUM(recomendacion_emitida)/COUNT(DISTINCT cct) (KPI-07).
 --
--- R1: salidas ML por JOIN (recomendaciones + predicciones, grano escuela DEC-010)
--- R2: SIN_DATO nunca cero. R3: umbral 0.6 para en_riesgo.
+-- Lo unico que falta en el cubo C1 es la salida ML-01 (indice/en_riesgo) para
+--   el ranking de urgencia (AC-010.0): aqui NO se re-agrega el hecho ni se
+--   duplica la llave -- se hace el mismo LEFT JOIN de C1 contra gold.predicciones
+--   (llave cct-id_ciclo, modelo 'ML-01', grano escuela) y la razon KPI-03 la
+--   recalcula el motor. cobertura_prediccion hace explícitas las filas sin
+--   prediccion (nunca se inventa es_riesgo).
+--
+-- Reglas aplicadas: R1 (salidas de ML por LEFT JOIN, aqui y en C1), R2 (SIN_DATO
+--                   nunca cero -- 'SIN_DATO' literal y cobertura), R3 (en_riesgo
+--                   derivado con la misma cota del contrato debajo), R5 (Gold
+--                   acotado). Sin GROUP BY: detalle.
 -- =============================================================================
 
 SELECT
-    -- ---------- identidad ------------------------------------------------------
-    f.cct,
-    e.nombre                                    AS nombre_escuela,
-    e.nivel,                                     -- filtro global: nivel educativo
-    e.sostenimiento,
+    -- ---------- identidad y llaves -------------------------------------------
+    cr.cct,
+    cr.id_ciclo,                               -- filtro global: ciclo
+    cr.ciclo,
+    cr.anio_inicio,
+    cr.nombre_escuela,
+    cr.nivel,                                  -- filtro global: nivel educativo
+    cr.sostenimiento,
+    cr.cve_ent,                                -- filtro global: entidad
+    cr.cve_mun,                                -- filtro: municipio
+    cr.nombre_municipio,
+    cr.nombre_entidad,
 
-    -- ---------- territorio y tiempo --------------------------------------------
-    f.cve_mun,
-    dm.cve_ent,                                  -- filtro global: entidad
-    dm.nombre_municipio,
-    dm.nombre_entidad,
-    f.id_ciclo,                                  -- filtro global: ciclo
-    dt.ciclo,
-    dt.anio_inicio,
+    -- ---------- contexto observado --------------------------------------------
+    cr.matricula_total,
+    cr.driver_dominante,                       -- clave del driver (designador v1)
+    COALESCE(cr.nombre_driver, 'SIN_DATO')     AS nombre_driver,
+    cr.recomendacion,
+    cr.prioridad,                              -- ALTA/MEDIA/BAJA (chart por prioridad)
+    cr.cobertura_recomendacion,                -- OK / SIN_DATO (ML-02)
 
-    -- ---------- hechos observados ----------------------------------------------
-    f.matricula_total,
-    f.indice_completitud_drivers,
+    -- ---------- progreso de ML-02 (KPI-07) ------------------------------------
+    cr.recomendacion_emitida,                  -- 1 si hay recomendacion
 
-    -- ---------- recomendacion prescriptiva (ML-02, por JOIN) -------------------
-    COALESCE(r.driver_dominante, 'SIN_DATO')    AS driver_dominante,
-    COALESCE(dd.nombre, 'SIN_DATO')             AS nombre_driver,
-    r.recomendacion,
-    r.prioridad,
-    CASE
-        WHEN r.cct IS NULL THEN 0
-        ELSE 1
-    END                                         AS recomendacion_emitida,
-    CASE
-        WHEN r.cct IS NULL THEN 'SIN_DATO'
-        ELSE 'OK'
-    END                                         AS cobertura_recomendacion,
-
-    -- ---------- riesgo de contexto (ML-01, por JOIN, grano escuela) ------------
+    -- ---------- ranking de urgencia (AC-010.0): riesgo ML-01 por LEFT JOIN ----
     p.indice_riesgo,
     CASE
-        WHEN p.indice_riesgo IS NULL THEN NULL
-        WHEN p.indice_riesgo >= 0.6 THEN TRUE      -- R3
+        WHEN p.indice_riesgo IS NULL THEN NULL     -- sin prediccion: desconocido
+        WHEN p.indice_riesgo >= 0.6   THEN TRUE    -- R3: umbral de negocio
         ELSE FALSE
-    END                                         AS en_riesgo,
+    END                                          AS en_riesgo,
     CASE
         WHEN p.cct IS NULL THEN 'SIN_DATO'
         ELSE 'OK'
-    END                                         AS cobertura_prediccion
+    END                                          AS cobertura_prediccion
 
-FROM gold.fact_escuela_ciclo f
-JOIN      gold.dim_escuela    e  ON f.cct      = e.cct
-JOIN      gold.dim_tiempo     dt ON f.id_ciclo = dt.id_ciclo
-JOIN      gold.dim_municipio  dm ON f.cve_mun  = dm.cve_mun
-LEFT JOIN gold.recomendaciones r ON f.cct      = r.cct
-                                AND f.id_ciclo = r.id_ciclo
-LEFT JOIN gold.dim_driver     dd ON r.driver_dominante = dd.id_driver
-LEFT JOIN gold.predicciones   p  ON f.cct      = p.cct
-                                AND f.id_ciclo = p.id_ciclo
-                                AND p.modelo   = 'ML-01'
-                                AND (p.grano IS NULL OR p.grano = 'escuela')
+FROM gold.cubo_recomendaciones cr
+LEFT JOIN gold.predicciones p
+    ON cr.cct     = p.cct
+   AND cr.id_ciclo = p.id_ciclo
+   AND p.modelo    = 'ML-01'
+   AND (p.grano IS NULL OR p.grano = 'escuela')

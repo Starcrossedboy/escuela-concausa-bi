@@ -1,45 +1,55 @@
 import logging
 from datetime import datetime, timezone
+from pathlib import Path
 
 import pandas as pd
-import requests
 
 logger = logging.getLogger(__name__)
 
 SOURCE_NAME = "DS-08_CONAPO"
-SOURCE_URL = "PENDIENTE-CONFIRMAR"  # ver DS-08_CONAPO.md — dueño: Emilio Galnares Ruiz
+SOURCE_URL = (
+    "https://www.datos.gob.mx/dataset/proyecciones-de-poblacion/"
+    "resource/3c3092be-583e-4490-8c23-67ef9a64b198"
+)
+SOURCE_FILE = "data/raw/pobproy_quinq1.csv"
 BRONZE_PATH = "data/bronze/conapo"
+
+# NOTA (US-121a, Emilio Galnares Ruiz): CONAPO distribuye este dataset vía una
+# aplicación web con sesiones temporales (sin URL de descarga permanente), por lo
+# que este extractor parte del archivo ya descargado en SOURCE_FILE en vez de una
+# descarga automática por internet. Ver 14_Data_Sources/DS-08_CONAPO_Proyecciones.md,
+# sección 10 (Riesgos conocidos).
 
 
 def extraer_conapo() -> str:
     """
-    Descarga las Proyecciones de la Población de México (CONAPO) y las guarda en Bronze.
+    Procesa las Proyecciones de la Población de México (CONAPO) desde el archivo
+    ya descargado, corrige la clave de municipio a 5 dígitos y las guarda en Bronze.
 
     Returns:
         Ruta del archivo Parquet generado.
 
     Raises:
-        ValueError: si la URL no está confirmada todavía, o si la respuesta viene vacía.
-        requests.RequestException: si falla la descarga.
+        FileNotFoundError: si el archivo fuente no existe en SOURCE_FILE.
+        ValueError: si el archivo viene vacío.
     """
-    if SOURCE_URL == "PENDIENTE-CONFIRMAR":
-        raise ValueError(
-            f"{SOURCE_NAME}: URL aún no confirmada por el dueño de la fuente (Emilio Galnares Ruiz). "
-            "Ver 14_Data_Sources/DS-08_CONAPO.md"
+    if not Path(SOURCE_FILE).exists():
+        raise FileNotFoundError(
+            f"{SOURCE_NAME}: no se encontró {SOURCE_FILE}. CONAPO no ofrece URL de "
+            f"descarga estable; el archivo debe descargarse manualmente desde "
+            f"{SOURCE_URL} y colocarse en esa ruta antes de correr este extractor."
         )
 
     logger.info("Iniciando extracción de %s", SOURCE_NAME)
 
-    response = requests.get(SOURCE_URL, timeout=60)
-    response.raise_for_status()
+    df = pd.read_csv(SOURCE_FILE)
+    if df.empty:
+        raise ValueError(f"{SOURCE_NAME}: archivo vacío, no se guarda nada")
 
-    # TODO: reemplazar por el parseo real del CSV de CONAPO
-    data = response.json() if response.content else None
-    if not data:
-        raise ValueError(f"{SOURCE_NAME}: respuesta vacía, no se guarda nada")
+    # Esquema real confirmado: CLAVE, CLAVE_ENT, NOM_ENT, NOM_MUN, SEXO, ANO,
+    # POB_TOTAL, POB_00_04 ... POB_85_mm (ver DS-08_CONAPO_Proyecciones.md sección 5)
+    df["cve_mun"] = df["CLAVE"].astype(str).str.zfill(5)
 
-    df = pd.DataFrame(data)
-    # Esquema esperado: cve_ent, cve_mun, anio, edad/grupo_edad, poblacion
     df["_ingested_at"] = datetime.now(timezone.utc)
     df["_source"] = SOURCE_NAME
     df["_source_url"] = SOURCE_URL

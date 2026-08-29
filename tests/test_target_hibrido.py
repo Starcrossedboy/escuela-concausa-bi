@@ -308,3 +308,66 @@ def test_la_salida_encaja_con_unir_target(agregado) -> None:
     assert not final.empty
     assert COLUMNA_TARGET in final.columns
     assert final[COLUMNA_TARGET].notna().all()
+
+
+# ------------------------------------------------- cve_mun en el contrato (US-325)
+
+
+@pytest.fixture
+def features_con_cve_mun(features: pd.DataFrame, dimension: pd.DataFrame) -> pd.DataFrame:
+    """Las features como quedan cuando el contrato publica `cve_mun` (cambio de C1 para US-325)."""
+    return features.merge(dimension[["cct", "cve_mun"]], on="cct", how="left")
+
+
+def test_agrega_igual_traiga_o_no_cve_mun_el_contrato(
+    features: pd.DataFrame, features_con_cve_mun: pd.DataFrame, dimension: pd.DataFrame
+) -> None:
+    """El reporte de Diana: con `cve_mun` en ambos lados, pandas lo renombra y el `groupby` truena.
+
+    La agregación no debe depender de qué lado aporta la clave; el resultado tiene que ser el mismo.
+    """
+    sin_columna, _ = agregar_a_municipio_nivel(features, dimension)
+    con_columna, _ = agregar_a_municipio_nivel(features_con_cve_mun, dimension)
+
+    assert "cve_mun" in con_columna.columns
+    assert not any(c.endswith(("_x", "_y")) for c in con_columna.columns)
+    pd.testing.assert_frame_equal(
+        sin_columna.sort_values(list(LLAVE_AGREGADA)).reset_index(drop=True),
+        con_columna.sort_values(list(LLAVE_AGREGADA)).reset_index(drop=True),
+    )
+
+
+def test_detecta_la_escuela_ausente_de_la_dimension_aunque_traiga_cve_mun(
+    features_con_cve_mun: pd.DataFrame, dimension: pd.DataFrame
+) -> None:
+    """La trampa de tomar `cve_mun` de las features sin cambiar el detector de faltantes.
+
+    Antes el hueco se detectaba con `cve_mun.isna()`. Si la clave llega desde las features, una
+    escuela que no está en la dimensión la sigue trayendo: el `isna()` no la ve, y su `nivel` en
+    NaN se cuela al `groupby`. Por eso el faltante se detecta con el indicador del merge.
+    """
+    huerfana = dimension["cct"].iloc[0]
+    dimension_corta = dimension[dimension["cct"] != huerfana]
+
+    agregado, resumen = agregar_a_municipio_nivel(features_con_cve_mun, dimension_corta)
+
+    assert resumen.escuelas_sin_dimension > 0, "la escuela ausente tiene que contarse"
+    assert not agregado["nivel"].isna().any(), "ningún nivel nulo puede llegar al agregado"
+
+
+def test_el_espejo_acepta_el_contrato_antes_y_despues_del_cambio() -> None:
+    """`extra='forbid'`: sin el campo, el espejo rechazaría las filas nuevas de la C1."""
+    from src.modelos.contrato import FeaturesEscuela
+
+    base = {
+        "cct": "09DPR0001A",
+        "id_ciclo": "2023-2024",
+        **{d: 0.5 for d in DRIVERS},
+        **{f"{d.split('_')[0]}_cobertura": "OK" for d in DRIVERS},
+        "driver_dominante": "D1",
+        "indice_completitud_drivers": 1.0,
+        "target_variacion_matricula": -0.03,
+    }
+
+    assert FeaturesEscuela(**base).cve_mun is None
+    assert FeaturesEscuela(**base, cve_mun="09002").cve_mun == "09002"

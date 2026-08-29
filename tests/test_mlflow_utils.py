@@ -152,3 +152,21 @@ def test_reporta_modelos_faltantes_en_registry(monkeypatch) -> None:
             "http://mlflow:5000",
             frozenset({"ML03_ClusteringEscuelas"}),
         )
+
+
+def test_reporta_version_invalida_con_el_modelo_afectado(monkeypatch) -> None:
+    class ClienteFake:
+        def __init__(self, tracking_uri: str) -> None:
+            pass
+
+        def search_model_versions(self, filtro: str):
+            return [SimpleNamespace(version=None)]
+
+    monkeypatch.setitem(sys.modules, "mlflow", SimpleNamespace(MlflowClient=ClienteFake))
+    monkeypatch.setattr(mlflow_utils, "verificar_compatibilidad", lambda uri: None)
+
+    with pytest.raises(RuntimeError, match="ML01_RegresionMatricula"):
+        verificar_modelos_registrados(
+            "http://mlflow:5000",
+            frozenset({"ML01_RegresionMatricula"}),
+        )

@@ -13,24 +13,13 @@ from pathlib import Path
 RAIZ = Path(__file__).resolve().parents[1]
 DOCKERFILE = RAIZ / "docker" / "api.Dockerfile"
 
-# Rutas oficiales del contrato v1, copiadas literal de la lista "esperadas"
-# en tests/test_api_contract.py::test_openapi_declara_todas_las_rutas.
-# No se inventan aqui: es la misma fuente de verdad que ya usa el repo.
-API_PREFIX = "/api/v1"
-RUTAS_CONTRATO_V1 = [
-    f"{API_PREFIX}/health",
-    f"{API_PREFIX}/version",
-    f"{API_PREFIX}/auth/login",
-    f"{API_PREFIX}/escuelas",
-    f"{API_PREFIX}/escuelas/{{cct}}",
-    f"{API_PREFIX}/municipios",
-    f"{API_PREFIX}/kpis",
-    f"{API_PREFIX}/predicciones/{{cct}}",
-    f"{API_PREFIX}/predicciones/batch",
-    f"{API_PREFIX}/agente/consulta",
-    f"{API_PREFIX}/admin/pipeline/run",
-    f"{API_PREFIX}/admin/metrics",
-]
+# Referencia oficial del contrato v1: el modulo que SI debe exponer el
+# contrato completo (US-401). No se escribe ninguna ruta a mano: se leen
+# dinamicamente de su propio esquema OpenAPI, para que la prueba nunca quede
+# desactualizada cuando el contrato crezca (pedido explicito de Edgar tras
+# revisar el primer borrador de esta prueba).
+MODULO_CONTRATO_V1 = "src.api.app"
+ATRIBUTO_CONTRATO_V1 = "app"
 
 
 def _extraer_app_del_cmd(texto_dockerfile: str) -> str:
@@ -49,6 +38,19 @@ def _importar_app(referencia: str):
     modulo_nombre, atributo = referencia.split(":")
     modulo = importlib.import_module(modulo_nombre)
     return getattr(modulo, atributo)
+
+
+def _rutas_del_contrato_v1() -> set[str]:
+    """Rutas oficiales del contrato v1, leidas del esquema OpenAPI en vivo.
+
+    Se importa src.api.app (la app de referencia de US-401, no la que arranca
+    el Dockerfile) y se leen sus rutas desde app.openapi()["paths"]. Nunca se
+    escribe una ruta a mano: si el contrato crece o cambia, esta funcion
+    siempre refleja el estado real del codigo.
+    """
+    modulo = importlib.import_module(MODULO_CONTRATO_V1)
+    app_contrato = getattr(modulo, ATRIBUTO_CONTRATO_V1)
+    return set(app_contrato.openapi()["paths"].keys())
 
 
 def test_dockerfile_declara_un_cmd_uvicorn() -> None:
@@ -72,20 +74,22 @@ def test_app_que_arranca_el_contenedor_expone_el_contrato_v1() -> None:
     rutas bajo /api/v1). Esta prueba falla mientras el Dockerfile no arranque
     la app correcta, y protege contra que el bug regrese en el futuro.
 
-    Las rutas esperadas son las mismas que ya valida
-    tests/test_api_contract.py::test_openapi_declara_todas_las_rutas, para no
-    duplicar criterio propio y quedar trazada a la fuente oficial del contrato.
+    Las rutas esperadas NO estan escritas a mano: se obtienen en vivo del
+    esquema OpenAPI de src.api.app (la fuente oficial del contrato v1), para
+    que la prueba nunca genere falsos positivos cuando el contrato crezca con
+    rutas legitimas nuevas.
     """
     contenido = DOCKERFILE.read_text(encoding="utf-8")
     referencia = _extraer_app_del_cmd(contenido)
-    app = _importar_app(referencia)
+    app_arrancada = _importar_app(referencia)
 
-    rutas_expuestas = set(app.openapi()["paths"].keys())
+    rutas_esperadas = _rutas_del_contrato_v1()
+    rutas_expuestas = set(app_arrancada.openapi()["paths"].keys())
 
-    faltantes = [ruta for ruta in RUTAS_CONTRATO_V1 if ruta not in rutas_expuestas]
+    faltantes = sorted(rutas_esperadas - rutas_expuestas)
 
     assert not faltantes, (
         f"El Dockerfile arranca '{referencia}', que NO expone el contrato v1. "
-        f"Faltan {len(faltantes)} de {len(RUTAS_CONTRATO_V1)} rutas: {faltantes}. "
+        f"Faltan {len(faltantes)} de {len(rutas_esperadas)} rutas: {faltantes}. "
         "El CMD debe apuntar a 'src.api.app:app' (BUG-008)."
     )

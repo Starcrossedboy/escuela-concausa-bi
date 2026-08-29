@@ -6,7 +6,7 @@ status: approved
 version: "1.1"
 traces_up: ["01_Product/PRD", "02_Requirements/User_Stories"]
 traces_down: ["US-301", "US-302", "US-303", "US-304a", "US-305"]
-last_reviewed: "2026-08-26"
+last_reviewed: "2026-08-28"
 tags: [sprint, plan, celula-3, nivel-alto]
 ---
 
@@ -298,10 +298,10 @@ Actualiza esta tabla **antes de cada standup**. El PM la revisa para el tablero 
 | ID | Historia | Estado | % | Bloqueado por | Fecha compromiso |
 |---|---|---|---|---|---|
 | `US-301` | Diseñar la estrategia de modelado y validación | ✅ Terminado | 100% | — | Cerrada 9 ago |
-| `US-302` | Entrenar ML-02: clasificación de driver | 🔵 En revisión | 95% | Métricas E2E sobre Gold real · endpoint SHAP real de C4 | Dom 30 ago |
+| `US-302` | Entrenar ML-02: clasificación de driver | 🔵 En revisión | 95% | Gold real · Registry Docker · endpoint SHAP de C4 | Junta de cierre |
 | `US-303` | Registrar los 3 modelos en MLflow y exponerlos vía API | 🟡 En curso | 75% | ML-03 de Estefany · integración final de inferencia C4 · E2E local requiere `.env` | Dom 30 ago |
 | `US-304a` | Diseñar prompt y guardarraíles del agente | 🔵 En revisión | 98% | Endpoint real de C4 · E2E con Chroma/Gold | Dom 6 sep |
-| `US-305` | Integrar el widget de chat RAG en FARO Web | 🔵 En revisión | 80% | Endpoint real de C4 · login US-405 de Christian · E2E integrado | Dom 6 sep |
+| `US-305` | Integrar el widget de chat RAG en FARO Web | 🔵 En revisión | 80% | Endpoint real de C4 · login US-405 de Christian · **BUG-020** · E2E integrado | Dom 6 sep |
 
 **Estados válidos:** ⬜ Por iniciar · 🟡 En curso · 🔵 En revisión (PR abierto) · ✅ Terminado · 🔴 Bloqueado
 

@@ -51,3 +51,4 @@ reciban recomendaciones distintas.
 | [[15_ML_Models/ML01_Model_Card]] | Ficha de Modelo de ML-01: propósito, features de entrada, métricas obtenidas (MAE/RMSE), limitaciones y contexto de NO uso (US-324) |
 | [[15_ML_Models/ML02_Model_Card]] | Ficha de Modelo de ML-02: clasificación multiclase, driver dominante, F1/SHAP, coberturas y contexto de NO uso (US-324) |
 | [[15_ML_Models/ML03_Model_Card]] | Ficha de Modelo de ML-03: agrupamiento no supervisado (clustering), características usadas, silhouette score y fronteras (US-324) |
+| [[15_ML_Models/ML03_Entrenamiento_US321]] | KMeans temporal, selección de `k` por Silhouette y perfiles auditables; política provisional sin imputación (US-321) |

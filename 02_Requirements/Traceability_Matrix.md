@@ -136,3 +136,9 @@ tags: [requirements, traceability, matrix]
 | `REQ-007` | `US-004`, `US-521c`, `US-523a` | Reconciliación de 91 US ejecutada · US-523a pasa a `done` por PR #93/documento `approved` ✅ · US-521c conserva DevLog no filed | Edward regulariza DevLog; Edgar cierra acuerdos del reporte y regenera tablero | 🟡 En revisión |
 
 → Seguimiento de junta: [[13_Reports/US_Validation_Followup_2026-08-28]]
+
+## Evidencia incremental — 2026-08-29 · ML-03 clustering temporal
+
+| REQ | Historias | Evidencia de prueba | DevLog | Estado |
+|---|---|---|---|---|
+| `REQ-003` | `US-321` | Pipeline KMeans + StandardScaler; selección de `k` por Silhouette walk-forward; perfiles de negocio; target y llaves excluidos; política provisional `casos_completos` sin imputar cero | [[_DevLog/2026-08-29-estefany-hernandez-us321-clustering]] | 🟡 En revisión; espera fallback ratificado y corrida real |

@@ -285,7 +285,7 @@ Actualiza esta tabla **antes de cada standup**. El PM la revisa para el tablero 
 
 | ID | Historia | Estado | % | Bloqueado por | Fecha compromiso |
 |---|---|---|---|---|---|
-| `US-321` | Entrenar el Modelo 3 - Clustering de escue | ⬜ Por iniciar | 0% | — | Dom 30 ago |
+| `US-321` | Entrenar el Modelo 3 - Clustering de escue | 🔵 En revisión | 70% | Fallback de imputación y ejecución real con ≥4 ciclos Bronze | Dom 30 ago |
 | `US-322` | Analisis exploratorio y seleccion de varia | ⬜ Por iniciar | 0% | — | Dom 30 ago |
 | `US-325` | Sesgo por cobertura parcial en features | ⬜ Por iniciar | 0% | — | Dom 30 ago |
 

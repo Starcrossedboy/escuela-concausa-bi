@@ -22,6 +22,7 @@ tags: [moc, reports]
 | [[13_Reports/US_Validation_Followup_2026-08-28]] | Corte auditable de US cerradas, en validación y bloqueadas, con responsables y acciones |
 | [`US_Validation_Followup_2026-08-28.html`](US_Validation_Followup_2026-08-28.html) | Vista interactiva para conducir la junta, registrar acuerdos y exportar el seguimiento |
 | [[13_Reports/Vault_Correcciones_2026-08-29]] | Plan de corrección del vault: hallazgos de gobernanza de la revisión de PRs del 29-ago, con dueño y fecha |
+| [[13_Reports/Junta_Mock_2026-08-29]] | Guion de la junta del mock: qué se puede demostrar hoy, las 3 decisiones a tomar y los bloqueos con dueño |
 
 ## Convención
 - Un reporte por fecha: `Executive_YYYY-MM-DD.md`.

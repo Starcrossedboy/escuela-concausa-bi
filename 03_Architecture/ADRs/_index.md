@@ -19,3 +19,4 @@ tags: [moc, adr, architecture]
 | [[03_Architecture/ADRs/ADR-004-autenticacion-oauth2-jwt]] | Autenticación: OAuth2 con Google + JWT propio (access/refresh) | proposed | 2026-08-17 |
 | [[03_Architecture/ADRs/ADR-005-dim-driver-mapeo]] | Mapeo de D3/D4 en dim_driver: infraestructura y conectividad desde CEMABE | accepted | 2026-08-17 |
 | [[03_Architecture/ADRs/ADR-006-idw-calidad-aire-agua]] | Interpolación IDW de D5/D6 (agua/aire) hacia cada escuela | accepted | 2026-08-19 |
+| [[03_Architecture/ADRs/ADR-007-unidad-target-variacion-matricula]] | Unidad de `target_variacion_matricula`: fracción, no diferencia absoluta | **proposed** | 2026-08-28 |

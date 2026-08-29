@@ -29,6 +29,7 @@ def test_pregunta_fuera_de_dominio_se_rechaza() -> None:
         "DELETE FROM gold.predicciones",
         "UPDATE gold.escuelas SET nombre = 'x'",
         "DROP TABLE gold.features_escuela",
+        "SELECT cct INTO public.robo FROM gold.predicciones",
         "SELECT * FROM gold.escuelas; DELETE FROM gold.escuelas",
     ],
 )
@@ -83,3 +84,8 @@ def test_limit_se_reduce_si_excede_el_maximo() -> None:
 def test_preparar_sql_seguro_falla_con_verbo_prohibido() -> None:
     with pytest.raises(ValueError, match="verbo prohibido"):
         preparar_sql_seguro("WITH borrado AS (DELETE FROM gold.predicciones) SELECT 1")
+
+
+def test_select_into_se_rechaza_como_escritura() -> None:
+    with pytest.raises(ValueError, match="into"):
+        preparar_sql_seguro("SELECT cct INTO public.robo FROM gold.predicciones")

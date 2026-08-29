@@ -16,7 +16,7 @@ with escuela as (
         cve_mun,
         latitud,
         longitud
-    from {{ source('silver', 'escuela') }}
+    from {{ ref('escuela') }}
     where cve_ent in {{ scope_entidades() }}
 
 ),
@@ -31,7 +31,7 @@ infraestructura as (
         sanitarios,
         internet,
         computadoras
-    from {{ source('silver', 'cemabe') }}
+    from {{ ref('cemabe') }}
 
 )
 

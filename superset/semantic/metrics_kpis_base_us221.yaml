@@ -1,0 +1,79 @@
+# Capa semántica — Tarjetas de KPI reutilizables (US-221)
+# Implementa las "KPIs globales" de Screen_Specs.md §2 (AC-002.5):
+# todo tablero debe mostrar al menos matrícula, riesgo y una serie de tiempo.
+#
+# Dataset base: gold.cubo_matricula (KPI-01, 02, 08) + JOIN a gold.predicciones (KPI-03, 04)
+# Dueño del catálogo: Manuel Serranía (US-201) — este archivo NO redefine fórmulas,
+# solo las expone como métricas reutilizables de Superset.
+#
+# Convención de filtros globales (Screen_Specs.md §5): id_ciclo, cve_ent, nivel.
+# Alcance: SCOPE_ENTIDADES = ['09', '15', '19', '14']
+
+dataset: cubo_matricula
+owner: "Oscar Antonio Quiroz Lázaro"
+story: US-221
+traces_up: ["04_UX_Design/Screen_Specs", "US-201"]
+
+filters_globales:
+  - columna: id_ciclo
+    tipo: temporal
+  - columna: cve_ent
+    tipo: categorico
+    dominio: ["09", "15", "19", "14"]
+  - columna: nivel
+    tipo: categorico
+
+metrics:
+  - id: KPI-01
+    nombre: matricula_total
+    verbose_name: "Matrícula total"
+    tipo: tarjeta_serie_tiempo
+    sql_ref: sql/kpi_01_matricula_total.sql
+    formato_d3: ",d"
+    nota: "Serie por ciclo; grano municipio. Filtra por :nivel si el usuario lo selecciona."
+
+  - id: KPI-02
+    nombre: variacion_matricula_pct
+    verbose_name: "Variación de matrícula"
+    tipo: tarjeta_contexto
+    sql_ref: sql/kpi_02_variacion_matricula.sql
+    formato_d3: ",.1%"
+    nota: "Ponderada por matrícula, no promedio simple de escuelas. Ya viene como razón (no *100)."
+
+  - id: KPI-03
+    nombre: indice_riesgo_promedio
+    verbose_name: "Índice de riesgo promedio"
+    tipo: tarjeta_contexto
+    sql_ref: sql/kpi_03_indice_riesgo_promedio.sql
+    formato_d3: ",.2f"
+    nota: "JOIN interno a predicciones ML-01: escuelas SIN_DATO se excluyen, nunca cuentan como 0."
+
+  - id: KPI-04
+    nombre: escuelas_en_riesgo
+    verbose_name: "Escuelas en riesgo"
+    tipo: tarjeta_contexto
+    sql_ref: sql/kpi_04_escuelas_en_riesgo.sql
+    formato_d3: ",d"
+    nota: "Umbral ratificado DEC-006: indice_riesgo >= 0.6. Mostrar junto a total_escuelas (con predicción)."
+
+  - id: KPI-08
+    nombre: escuelas_por_nivel
+    verbose_name: "Escuelas por nivel educativo"
+    tipo: distribucion
+    sql_ref: sql/kpi_08_escuelas_por_nivel.sql
+    chart_sugerido: barras_horizontales
+    nota: "Un valor por nivel educativo (Preescolar…Media Superior). No confundir con % matrícula."
+
+reutilizacion:
+  consumido_por:
+    - historia: US-203
+      dashboard: DB-01 Ejecutivo
+      responsable: "Manuel Alejandro Serranía Reinada"
+      nota: >
+        Estas 5 tarjetas son las "KPIs globales" que DB-01 debe mostrar por
+        Screen_Specs.md §2. US-221 las construye una vez como componente;
+        DB-01 las embebe, no las reconstruye.
+  contrato_para_reutilizacion:
+    - "Las fórmulas SQL no cambian entre esta capa y el catálogo canónico de Manuel."
+    - "El grano y las llaves (cct, cve_mun, id_ciclo) son los de gold.fact_escuela_ciclo."
+    - "Los filtros globales (ciclo/entidad/nivel) se aplican igual en cualquier tablero que las embeba."

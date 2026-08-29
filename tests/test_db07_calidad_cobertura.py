@@ -17,7 +17,7 @@ from pathlib import Path
 
 import pytest
 
-FIXTURES_DB = Path(__file__).parent / "fixtures" / "fixtures.db"
+FIXTURES_DB = Path(__file__).parent / "fixtures" / "fixtures_db07.db"
 SQL_DIR = Path(__file__).parent.parent / "superset" / "semantic"
 
 SCOPE_ENTIDADES = {"09", "15", "19", "14"}
@@ -28,7 +28,7 @@ def load_sql(filename: str) -> str:
     SQLite (quita el prefijo de esquema 'gold.'). La lógica de la query no
     se toca."""
     if not FIXTURES_DB.exists():
-        from tests.fixtures.generate_fixtures import main as generar
+        from tests.fixtures.generate_fixtures_db07 import main as generar
         generar()
     raw = (SQL_DIR / filename).read_text(encoding="utf-8")
     lines = [l for l in raw.splitlines() if not l.strip().startswith("--")]
@@ -38,7 +38,7 @@ def load_sql(filename: str) -> str:
 @pytest.fixture(scope="module")
 def conn():
     if not FIXTURES_DB.exists():
-        from tests.fixtures.generate_fixtures import main as generar
+        from tests.fixtures.generate_fixtures_db07 import main as generar
         generar()
     connection = sqlite3.connect(FIXTURES_DB)
     yield connection

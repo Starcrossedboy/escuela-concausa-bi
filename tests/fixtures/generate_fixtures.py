@@ -1,71 +1,75 @@
 """
-Fixtures sintéticas para US-222 (DB-07 Calidad y cobertura de datos).
+Fixtures sintéticas para US-221 (Series de matrícula, distribución por nivel
+educativo y tarjetas de KPI reutilizables).
 
-Replica el esquema REAL confirmado contra Postgres:
-- gold.cubo_completitud (72 filas reales al validar, grano cve_mun x nivel x
-  id_driver x id_ciclo)
-- gold.geo_municipio (usada por db07_mapa_vacios.sql para el JOIN geométrico)
-
-Reglas seguidas (mismas que US-221):
-- Dataset ≤500 filas, anonimizado, sin datos reales.
-- Alcance: SCOPE_ENTIDADES = ['09','15','19','14'].
-- Se deja a propósito una mezcla de cobertura_driver = 'OK' / 'SIN_DATO' para
-  poder probar que las razones SUM/SUM no cuentan SIN_DATO como cero.
+Reglas seguidas (ver Plan de Sprint §8 y Screen_Specs.md):
+- Dataset ≤500 filas, anonimizado, sin datos personales ni reales.
+- Alcance geográfico: SCOPE_ENTIDADES = 09 (CDMX), 15 (Edomex), 19 (Nuevo León), 14 (Jalisco).
+- Llaves de cruce: CCT sintético + clave INEGI de municipio (cve_mun, 5 dígitos).
+- Se deja explícitamente una fracción de escuelas SIN cobertura de predicción (ML-01
+  aún no las ha puntuado) para poder probar que KPI-03/04 filtran correctamente y que
+  ninguna consulta finge un 0 donde hay SIN_DATO.
 
 Uso:
-    python generate_fixtures.py    # crea fixtures.db (SQLite) en este directorio
+    python generate_fixtures.py           # crea fixtures.db (SQLite) en este directorio
 """
 import random
 import sqlite3
 from pathlib import Path
 
-random.seed(222)  # determinista
+random.seed(221)  # determinista, como pide la regla de fixtures del plan de sprint
 
 DB_PATH = Path(__file__).parent / "fixtures.db"
 
 SCOPE_ENTIDADES = {
-    "09": ("Ciudad de Mexico", ["Coyoacan", "Benito Juarez"]),
-    "15": ("Mexico", ["Naucalpan"]),
-    "19": ("Nuevo Leon", ["Monterrey"]),
-    "14": ("Jalisco", ["Guadalajara"]),
+    "09": ("Ciudad de México", ["Álvaro Obregón", "Coyoacán", "Iztapalapa"]),
+    "15": ("México", ["Toluca", "Naucalpan", "Ecatepec"]),
+    "19": ("Nuevo León", ["Monterrey", "San Pedro Garza García", "Apodaca"]),
+    "14": ("Jalisco", ["Guadalajara", "Zapopan", "Tlaquepaque"]),
 }
-NIVELES = ["PREESCOLAR", "PRIMARIA", "SECUNDARIA", "MEDIA SUPERIOR"]
-DRIVERS = [
-    ("D1", "Pobreza y rezago social"),
-    ("D2", "Inseguridad del entorno"),
-    ("D3", "Infraestructura escolar"),
-    ("D4", "Conectividad digital"),
-    ("D5", "Estres hidrico"),
-    ("D6", "Calidad del aire"),
-]
-CICLOS = [(1, "2023-2024", 2023), (2, "2024-2025", 2024)]
+NIVELES = ["Preescolar", "Primaria", "Secundaria", "Media Superior"]
+CICLOS = ["2023-2024", "2024-2025", "2025-2026"]
 
 
 def build_schema(conn: sqlite3.Connection) -> None:
     conn.executescript(
         """
-        CREATE TABLE cubo_completitud (
-            cve_mun            TEXT NOT NULL,
-            cve_ent            TEXT NOT NULL,
-            nombre_municipio   TEXT NOT NULL,
-            nombre_entidad     TEXT NOT NULL,
-            nivel              TEXT NOT NULL,
-            id_ciclo           INTEGER NOT NULL,
-            ciclo              TEXT NOT NULL,
-            anio_inicio        INTEGER NOT NULL,
-            id_driver          TEXT NOT NULL,
-            nombre_driver      TEXT NOT NULL,
-            total_escuelas     INTEGER NOT NULL,
-            escuelas_con_dato  INTEGER NOT NULL,
-            escuelas_sin_dato  INTEGER NOT NULL,
-            suma_completitud   REAL NOT NULL,
-            cobertura_driver   TEXT NOT NULL
+        CREATE TABLE dim_tiempo (
+            id_ciclo INTEGER PRIMARY KEY,
+            ciclo TEXT NOT NULL,
+            anio_inicio INTEGER NOT NULL
         );
 
-        CREATE TABLE geo_municipio (
-            cve_mun          TEXT PRIMARY KEY,
+        CREATE TABLE dim_municipio (
+            cve_mun TEXT PRIMARY KEY,
+            cve_ent TEXT NOT NULL,
             nombre_municipio TEXT NOT NULL,
-            geometria        TEXT NOT NULL
+            nombre_entidad TEXT NOT NULL
+        );
+
+        CREATE TABLE dim_escuela (
+            cct TEXT PRIMARY KEY,
+            nivel TEXT NOT NULL,
+            sostenimiento TEXT NOT NULL,
+            cve_mun TEXT NOT NULL REFERENCES dim_municipio(cve_mun)
+        );
+
+        CREATE TABLE fact_escuela_ciclo (
+            cct TEXT NOT NULL REFERENCES dim_escuela(cct),
+            id_ciclo INTEGER NOT NULL REFERENCES dim_tiempo(id_ciclo),
+            cve_mun TEXT NOT NULL REFERENCES dim_municipio(cve_mun),
+            matricula_total INTEGER NOT NULL,
+            variacion_matricula REAL NOT NULL,
+            PRIMARY KEY (cct, id_ciclo)
+        );
+
+        CREATE TABLE predicciones (
+            cct TEXT NOT NULL,
+            id_ciclo INTEGER NOT NULL,
+            modelo TEXT NOT NULL,
+            indice_riesgo REAL,
+            valor REAL,
+            probabilidad REAL
         );
         """
     )
@@ -73,43 +77,61 @@ def build_schema(conn: sqlite3.Connection) -> None:
 
 def seed(conn: sqlite3.Connection) -> None:
     cur = conn.cursor()
-    municipios = []
 
-    for cve_ent, (_nombre_ent, munis) in SCOPE_ENTIDADES.items():
+    for i, ciclo in enumerate(CICLOS, start=1):
+        cur.execute(
+            "INSERT INTO dim_tiempo VALUES (?, ?, ?)", (i, ciclo, 2023 + i - 1)
+        )
+
+    municipios = []
+    for cve_ent, (nombre_ent, munis) in SCOPE_ENTIDADES.items():
         for j, muni in enumerate(munis, start=1):
             cve_mun = f"{cve_ent}{j:03d}"
-            municipios.append((cve_mun, cve_ent, muni, _nombre_ent))
+            municipios.append(cve_mun)
             cur.execute(
-                "INSERT INTO geo_municipio VALUES (?, ?, ?)",
-                (cve_mun, muni, f'[[[-99.{j},19.{j}],[-99.{j+1},19.{j}],[-99.{j+1},19.{j+1}],[-99.{j},19.{j+1}],[-99.{j},19.{j}]]]'),
+                "INSERT INTO dim_municipio VALUES (?, ?, ?, ?)",
+                (cve_mun, cve_ent, muni, nombre_ent),
             )
 
-    n_rows = 0
-    for cve_mun, cve_ent, nombre_municipio, nombre_entidad in municipios:
-        for id_ciclo, ciclo, anio_inicio in CICLOS:
-            for nivel in random.sample(NIVELES, k=2):  # 2 de 4 niveles por municipio/ciclo
-                for id_driver, nombre_driver in DRIVERS:
-                    total_escuelas = 1
-                    # ~25% de las combinaciones quedan SIN_DATO a propósito
-                    sin_dato = random.random() < 0.25
-                    escuelas_con_dato = 0 if sin_dato else 1
-                    escuelas_sin_dato = 1 if sin_dato else 0
-                    suma_completitud = round(random.uniform(0.5, 1.0), 3)
-                    cobertura_driver = "SIN_DATO" if sin_dato else "OK"
-                    cur.execute(
-                        "INSERT INTO cubo_completitud VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
-                        (
-                            cve_mun, cve_ent, nombre_municipio, nombre_entidad,
-                            nivel, id_ciclo, ciclo, anio_inicio,
-                            id_driver, nombre_driver,
-                            total_escuelas, escuelas_con_dato, escuelas_sin_dato,
-                            suma_completitud, cobertura_driver,
-                        ),
-                    )
-                    n_rows += 1
+    escuelas = []
+    cct_seq = 1
+    for cve_mun in municipios:
+        for _ in range(random.randint(8, 12)):  # ~100-120 escuelas totales
+            cct = f"FIC{cct_seq:04d}9"  # CCT sintético, nunca uno real
+            cct_seq += 1
+            nivel = random.choice(NIVELES)
+            sostenimiento = random.choice(["Público", "Privado"])
+            escuelas.append((cct, nivel, sostenimiento, cve_mun))
+            cur.execute(
+                "INSERT INTO dim_escuela VALUES (?, ?, ?, ?)",
+                (cct, nivel, sostenimiento, cve_mun),
+            )
+
+    for id_ciclo, _ in enumerate(CICLOS, start=1):
+        for cct, _nivel, _sost, cve_mun in escuelas:
+            matricula = random.randint(80, 900)
+            variacion = round(random.uniform(-0.15, 0.10), 4)
+            cur.execute(
+                "INSERT INTO fact_escuela_ciclo VALUES (?, ?, ?, ?, ?)",
+                (cct, id_ciclo, cve_mun, matricula, variacion),
+            )
+
+            # ML-01 aún no puntúa a todas las escuelas (llega en S4) -> SIN_DATO real.
+            # Dejamos ~20% de escuelas sin predicción a propósito.
+            if random.random() > 0.20:
+                indice_riesgo = round(random.betavariate(2, 5), 4)  # sesgado a valores bajos
+                cur.execute(
+                    "INSERT INTO predicciones VALUES (?, ?, 'ML-01', ?, ?, ?)",
+                    (
+                        cct,
+                        id_ciclo,
+                        indice_riesgo,
+                        round(random.uniform(-0.1, 0.1), 4),
+                        round(random.uniform(0.5, 0.99), 4),
+                    ),
+                )
 
     conn.commit()
-    return n_rows
 
 
 def main() -> None:
@@ -118,11 +140,12 @@ def main() -> None:
     conn = sqlite3.connect(DB_PATH)
     try:
         build_schema(conn)
-        n_rows = seed(conn)
-        n_municipios = conn.execute("SELECT COUNT(*) FROM geo_municipio").fetchone()[0]
+        seed(conn)
+        n_escuelas = conn.execute("SELECT COUNT(*) FROM dim_escuela").fetchone()[0]
+        n_filas = conn.execute("SELECT COUNT(*) FROM fact_escuela_ciclo").fetchone()[0]
         print(f"Fixtures generadas en {DB_PATH}")
-        print(f"  municipios: {n_municipios} | filas cubo_completitud: {n_rows}")
-        assert n_rows <= 500, "Regla del plan de sprint: fixtures <=500 filas"
+        print(f"  escuelas: {n_escuelas} | filas fact_escuela_ciclo: {n_filas}")
+        assert n_filas <= 500, "Regla del plan de sprint: fixtures ≤500 filas"
     finally:
         conn.close()
 

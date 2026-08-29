@@ -45,6 +45,18 @@ models:
         data_tests:
           - not_null
 
+      - name: cve_mun
+        description: >
+          Clave INEGI de municipio a 5 caracteres (US-325: expuesta a partir de aquí para
+          análisis geográfico de cobertura parcial; misma fuente que cct, silver.matricula).
+          Ya se usaba internamente como llave de join de D1/D2, nunca antes en el contrato.
+        data_tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_municipio')
+                field: cve_mun
+
       - name: d1_cobertura
         description: "Cobertura de D1 (pobreza/rezago social, CONEVAL)."
         data_tests:

@@ -27,4 +27,6 @@ def features() -> pd.DataFrame:
             f"Falta {FIXTURE_FEATURES}. Genéralo con: "
             "python -m src.modelos.generar_fixture"
         )
-    return pd.read_csv(FIXTURE_FEATURES)
+    # cve_mun es puramente numérica (p.ej. "09001") -- sin dtype=str, pandas la infiere como
+    # int64 y se come el cero a la izquierda, rompiendo el join contra dim_municipio.
+    return pd.read_csv(FIXTURE_FEATURES, dtype={"cve_mun": str})

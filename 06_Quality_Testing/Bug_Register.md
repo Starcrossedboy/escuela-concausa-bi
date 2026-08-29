@@ -36,6 +36,7 @@ tags: [qa, bugs]
 | BUG-020 | En la URL pública **toda ruta que toca base de datos responde HTTP 500**: `/api/v1/predicciones/{cct}`, `/predicciones/batch` y `/escuelas`. `/api/v1/health` responde 200, así que el contenedor corre y el despliegue de BUG-008 sirvió. Con token válido, inválido o sin token el resultado es el mismo 500 —nunca 401—, así que el fallo ocurre **antes** de validar auth. Sin esto no hay demo end-to-end ni el punto de rúbrica de URL pública | **critical** | open | US-401 / US-411 / US-501 / REQ-004 / REQ-005 | — | Christian Ruiz (C4) · Luis Téllez (C5) | ver detalle |
 | BUG-021 | `dbt run` con el número de hilos por defecto (`threads>1`) truena en `gold.dim_escuela`, `dim_municipio` y `dim_tiempo` con *relation does not exist*, aunque su silver de origen se cree casi en el mismo instante. Con `--threads 1` corre limpio de punta a punta. Causa: esos modelos leían su origen con `source('silver', …)` en vez de `ref()`. `silver.*` son modelos **de este mismo proyecto**, no datos externos, así que dbt no tenía cómo saber que debía construirlos antes y los agendaba en paralelo. Con `threads=1` el orden accidental funcionaba y el defecto quedaba escondido | high | **fixed** | US-213 / US-113 / REQ-001 | **Reportado por Monserrat Miranda** (2026-08-28, validando DB-05/DB-08 contra Gold real) · **corregido por Diana Alvarez** en `fix/diana-varela-bug016-source-vs-ref`: los siete modelos Gold pasan a `ref()`; `_gold__sources.yml` queda sólo como documentación de columnas | `dbt run` completo con hilos por defecto ✅ · [[_DevLog/2026-08-29-diana-alvarez-bug021-source-vs-ref]] |
 | BUG-023 | Tercera aparición del defecto de BUG-015/BUG-018, ahora en `evaluar.py`: `error_por_entidad()` y `cobertura_y_error()` predecían con los **seis** drivers aunque el modelo se hubiera entrenado con menos, así que `construir_reporte()` **no podía generar el reporte** en el único escenario que el PM necesita documentar para la demo — el de 5 de 6 drivers. `ValueError: The feature names should match those that were passed during fit` | high | **fixed** | US-312 / REQ-003 / AC-003.2 | `feat/hector-marban-drivers-en-evaluacion` | — | ver detalle |
+| BUG-024 | `SELECT ... INTO` atravesaba el guardarraíl porque empieza con `SELECT`, pero en PostgreSQL crea una tabla; el agente no tiene otra capa que garantice solo lectura | **critical** | **fixed** | US-304a / US-305 / REQ-006 | `fix/andres-habib-bug024-select-into-rag-empty` | `tests/test_agente_guardrails.py::test_select_into_se_rechaza_como_escritura` |
 | BUG-025 | El endpoint desplegado `/api/v1/agente/consulta` es el **stub** de `src/api/v1/agente.py`: responde **la misma cadena fija a cualquier pregunta**, incluidas las fuera de alcance y las destructivas. Además su filtro de palabras busca `"borrar"` por subcadena, así que **«Borra la tabla de predicciones» no lo dispara** y recibe la respuesta normal con `fuera_de_alcance: false`. Los guardarraíles reales de `src/agente/guardrails.py` —que sí rechazan esa frase— nunca se invocan desde la API | high | open | US-304a, US-305, REQ-006 | pendiente (**C4 + C3**): conectar `procesar_consulta_con_rag()` al endpoint; como mitigación inmediata, que el stub llame a `pregunta_en_alcance()` |
 
 ## BUG-016 — Filas sin ningún driver rompían la publicación de ML-02
@@ -192,6 +193,20 @@ base de producción** —sólo contra el Gold local de Diana—. Pero `/escuelas
 depende de ese job, así que el problema parece más amplio que la tabla de C3.
 
 Lo que hace falta para cerrarlo es mirar los logs de Cloud Run, que son de C4/C5.
+
+## BUG-024 — `SELECT INTO` atravesaba el guardarraíl de solo lectura
+
+Reportado por Edgar Coronel el 2026-08-28 durante la revisión de seguridad del PR #119.
+`validar_sql_lectura()` aceptaba cualquier sentencia que comenzara con `SELECT` o `WITH` y no
+incluyera los verbos prohibidos. En PostgreSQL, esta consulta crea una tabla aunque empiece con
+`SELECT`:
+
+```sql
+SELECT cct INTO public.robo FROM gold.predicciones;
+```
+
+El arreglo agrega `into` a `VERBOS_PROHIBIDOS`. Una consulta legítima de solo lectura no necesita
+esa cláusula. La regresión comprueba tanto `validar_sql_lectura()` como `preparar_sql_seguro()`.
 
 ## BUG-025 — El agente desplegado responde lo mismo a todo, incluido lo destructivo
 

@@ -4,7 +4,11 @@ from unittest.mock import MagicMock
 
 import pytest
 
-from src.agente.recuperacion import ErrorRecuperacion, recuperar_contexto
+from src.agente.recuperacion import (
+    ContextoNoEncontrado,
+    ErrorRecuperacion,
+    recuperar_contexto,
+)
 
 
 def test_recuperar_contexto_exito():
@@ -44,5 +48,5 @@ def test_recuperar_contexto_vacio_falla_explicito():
     modelo = MagicMock()
     modelo.encode.return_value = MagicMock(tolist=lambda: [0.1])
 
-    with pytest.raises(ErrorRecuperacion, match="no devolvió contexto"):
+    with pytest.raises(ContextoNoEncontrado, match="No se encontró contexto"):
         recuperar_contexto("pregunta", modelo=modelo, cliente=cliente)

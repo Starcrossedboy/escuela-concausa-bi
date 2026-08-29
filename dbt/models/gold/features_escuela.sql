@@ -21,6 +21,10 @@
 -- todavía no tiene datos reales. Cuando DS-06 entregue su prueba de descarga, se replica aquí
 -- el mismo patrón IDW que ya tiene D6.
 --
+-- driver_dominante (2026-08-28, US-302): etiqueta operativa por argmax sobre D1..D6 con
+-- cobertura 'OK', acordada con Andrés González Habib/C3 -- ver el comentario de la CTE
+-- `con_driver_dominante` más abajo para la especificación completa.
+--
 -- FIX (2026-08-19, Diana): Data_Model.md §7 es explícito -- "el filtro WHERE cve_ent IN
 -- SCOPE_ENTIDADES se aplica únicamente en la frontera Silver -> Gold (Y EN FEATURES/MODELOS/
 -- DASHBOARDS que derivan de Gold)". Esta tabla es Gold y es justo "features" -- debía llevar
@@ -39,7 +43,7 @@ with matricula_ciclo as (
         cve_mun,
         alumnos_total as matricula_total,
         cast(split_part(ciclo, '-', 1) as int) as anio_inicio
-    from {{ source('silver', 'matricula') }}
+    from {{ ref('matricula') }}
     where cve_ent in {{ scope_entidades() }}
 
 ),
@@ -81,7 +85,7 @@ cemabe_binarios as (
         case when sanitarios in ('0', '1') then sanitarios::numeric end as sanitarios_num,
         case when internet in ('0', '1') then internet::numeric end as internet_num,
         case when computadoras in ('0', '1') then computadoras::numeric end as computadoras_num
-    from {{ source('silver', 'cemabe') }}
+    from {{ ref('cemabe') }}
 
 ),
 
@@ -123,7 +127,7 @@ rezago_ultimo as (
         row_number() over (
             partition by cve_mun order by periodo_medicion desc
         ) as _rn
-    from {{ source('silver', 'rezago_municipio') }}
+    from {{ ref('rezago_municipio') }}
 
 ),
 
@@ -158,7 +162,7 @@ d1 as (
 delitos_por_municipio as (
 
     select cve_mun, sum(conteo) as conteo_total
-    from {{ source('silver', 'delitos_municipio') }}
+    from {{ ref('delitos_municipio') }}
     group by cve_mun
 
 ),
@@ -198,7 +202,7 @@ aire_pm25 as (
         max(latitud) as latitud,
         max(longitud) as longitud,
         avg(valor) as pm25_promedio
-    from {{ source('silver', 'aire_estacion') }}
+    from {{ ref('aire_estacion') }}
     where parametro = 'PM2.5' and dato_valido = 1
         and latitud is not null and longitud is not null
         and latitud != 0 and longitud != 0
@@ -298,6 +302,46 @@ ensamblado as (
     left join d2 on d2.cve_mun = b.cve_mun
     left join d6 on d6.cct = b.cct
 
+),
+
+-- driver_dominante (US-302, acordado con Andrés González Habib/C3 el 2026-08-28): etiqueta
+-- OPERATIVA derivada por argmax sobre los drivers con cobertura 'OK' -- NO es una observación
+-- independiente ni evidencia causal (ver advertencia en Evaluacion_Modelos.md). Misma regla
+-- que ya usa `generar_driver_dominante_proxy()` en entrenar_ml02.py -- se centraliza aquí para
+-- que ML-02 deje de recalcularla por su cuenta; hay una prueba de paridad contra esa función
+-- en tests/test_entrenar_ml02.py::test_paridad_driver_dominante_real_contra_proxy.
+--
+-- Reglas (especificación de Andrés, 2026-08-28):
+--   1. Solo entran drivers con valor no nulo y cobertura 'OK' (SIN_DATO queda excluido).
+--   2. Desempate determinista por prioridad D1 > D2 > D3 > D4 > D5 > D6 -- `order by valor
+--      desc, codigo asc` logra esto porque 'D1' < 'D2' < ... lexicográficamente.
+--   3. Si ninguna fila tiene un driver elegible, driver_dominante queda NULL (nunca un driver
+--      artificial) -- LEFT JOIN LATERAL preserva la fila con NULL cuando la subconsulta no
+--      devuelve nada.
+con_driver_dominante as (
+
+    select
+        e.*,
+        ganador.codigo as driver_dominante
+    from ensamblado e
+    left join lateral (
+        select codigo
+        from unnest(
+            array['D1', 'D2', 'D3', 'D4', 'D5', 'D6'],
+            array[
+                case when e.d1_cobertura = 'OK' then e.d1_pobreza::double precision end,
+                case when e.d2_cobertura = 'OK' then e.d2_inseguridad::double precision end,
+                case when e.d3_cobertura = 'OK' then e.d3_infraestructura::double precision end,
+                case when e.d4_cobertura = 'OK' then e.d4_conectividad::double precision end,
+                case when e.d5_cobertura = 'OK' then e.d5_agua::double precision end,
+                case when e.d6_cobertura = 'OK' then e.d6_aire::double precision end
+            ]
+        ) as t(codigo, valor)
+        where valor is not null
+        order by valor desc, codigo asc
+        limit 1
+    ) as ganador on true
+
 )
 
 select
@@ -315,6 +359,7 @@ select
     d4_cobertura,
     d5_cobertura,
     d6_cobertura,
+    driver_dominante,
     (
         (case when d1_cobertura = 'OK' then 1 else 0 end)
         + (case when d2_cobertura = 'OK' then 1 else 0 end)
@@ -324,4 +369,4 @@ select
         + (case when d6_cobertura = 'OK' then 1 else 0 end)
     ) / 6.0 as indice_completitud_drivers,
     target_variacion_matricula
-from ensamblado
+from con_driver_dominante

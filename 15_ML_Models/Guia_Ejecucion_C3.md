@@ -75,6 +75,15 @@ Para solo registrar run/artefacto sin publicar en registry, omitir `--registrar-
 El registro ejecuta un preflight de compatibilidad y, cuando se usa `--registrar-modelo`, exige que
 MLflow confirme una versión y la guarda como tag `registered_model_version`.
 
+Para comprobar ML-02 después del registro:
+
+```powershell
+.\.venv\Scripts\python.exe -m src.modelos.verificar_registry --modelo ML02_DriverClasificador
+```
+
+Sin `--modelo`, el comando comprueba que ML-01, ML-02 y ML-03 tengan al menos una versión y reporta
+por nombre cualquier modelo faltante.
+
 ## Publicar ML-01 y ML-02 en Gold
 
 ```powershell

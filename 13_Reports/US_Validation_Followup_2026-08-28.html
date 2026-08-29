@@ -1,0 +1,332 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>FARO · Seguimiento de validación de US · 2026-08-28</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --ink: #18212f;
+      --muted: #5f6b7a;
+      --line: #d9e0e8;
+      --surface: #ffffff;
+      --bg: #f3f6f9;
+      --navy: #14324a;
+      --blue: #2366a8;
+      --green: #18794e;
+      --green-bg: #e9f7ef;
+      --amber: #8a5a00;
+      --amber-bg: #fff6dd;
+      --red: #a52a2a;
+      --red-bg: #fdecec;
+      --gray-bg: #eef2f6;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--ink);
+      font: 15px/1.45 system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+    header {
+      background: linear-gradient(120deg, #102b40, #205b83);
+      color: white;
+      padding: 32px max(24px, calc((100vw - 1480px) / 2));
+    }
+    header h1 { margin: 0 0 6px; font-size: clamp(24px, 3vw, 38px); }
+    header p { margin: 0; max-width: 980px; color: #dceaf4; }
+    main { max-width: 1520px; margin: 0 auto; padding: 24px; }
+    .notice {
+      background: #eaf3fb;
+      border: 1px solid #b7d2e7;
+      border-left: 5px solid var(--blue);
+      border-radius: 10px;
+      padding: 14px 16px;
+      margin-bottom: 18px;
+    }
+    .cards { display: grid; grid-template-columns: repeat(4, minmax(150px, 1fr)); gap: 12px; }
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      padding: 16px;
+      box-shadow: 0 4px 14px rgb(20 50 74 / 6%);
+    }
+    .card span { color: var(--muted); font-size: 13px; }
+    .card strong { display: block; margin-top: 4px; font-size: 28px; }
+    .toolbar {
+      display: grid;
+      grid-template-columns: minmax(240px, 2fr) repeat(3, minmax(160px, 1fr));
+      gap: 10px;
+      margin: 18px 0 10px;
+    }
+    input, select, textarea, button {
+      font: inherit;
+      border: 1px solid #b9c4cf;
+      border-radius: 8px;
+      background: white;
+      color: var(--ink);
+    }
+    input, select { min-height: 40px; padding: 8px 10px; }
+    textarea { width: 220px; min-height: 62px; padding: 8px; resize: vertical; }
+    button { padding: 9px 13px; cursor: pointer; font-weight: 650; }
+    button.primary { background: var(--blue); border-color: var(--blue); color: white; }
+    button.secondary { background: white; }
+    button.danger { color: var(--red); border-color: #dfa6a6; }
+    .actions { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 14px; }
+    .table-wrap { overflow: auto; border: 1px solid var(--line); border-radius: 12px; background: white; }
+    table { width: 100%; min-width: 1420px; border-collapse: collapse; }
+    th {
+      position: sticky;
+      top: 0;
+      z-index: 2;
+      background: var(--navy);
+      color: white;
+      text-align: left;
+      font-size: 12px;
+      letter-spacing: .02em;
+      padding: 11px 9px;
+    }
+    td { border-bottom: 1px solid var(--line); padding: 10px 9px; vertical-align: top; }
+    tbody tr:hover { background: #f7fafc; }
+    .us { font-weight: 800; white-space: nowrap; }
+    .prs { white-space: nowrap; }
+    a { color: #0d5f9f; }
+    .badge {
+      display: inline-block;
+      border-radius: 999px;
+      padding: 4px 9px;
+      font-size: 12px;
+      font-weight: 750;
+      white-space: nowrap;
+    }
+    .done { color: var(--green); background: var(--green-bg); }
+    .in_review, .validated { color: var(--amber); background: var(--amber-bg); }
+    .in_progress { color: var(--blue); background: #eaf3fb; }
+    .blocked { color: var(--red); background: var(--red-bg); }
+    .planned, .none { color: #4d5966; background: var(--gray-bg); }
+    .decision { min-width: 170px; }
+    .meeting-ok { background: #f0fbf5; }
+    .small { color: var(--muted); font-size: 12px; }
+    footer { color: var(--muted); padding: 22px 0 10px; }
+    .empty { display: none; padding: 24px; text-align: center; color: var(--muted); }
+    @media (max-width: 900px) {
+      .cards { grid-template-columns: repeat(2, 1fr); }
+      .toolbar { grid-template-columns: 1fr; }
+      main { padding: 14px; }
+    }
+    @media print {
+      header { padding: 18px; }
+      main { padding: 0; }
+      .toolbar, .actions, .notice button { display: none !important; }
+      .table-wrap { overflow: visible; border: 0; }
+      table { min-width: 0; font-size: 9px; }
+      th { position: static; }
+      textarea { border: 0; min-height: 32px; width: 150px; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>FARO · Seguimiento de validación y cierre</h1>
+    <p>Corte 28 de agosto de 2026 · herramienta local para conducir la junta por responsable,
+      acordar el siguiente estado y exportar las decisiones.</p>
+  </header>
+  <main>
+    <section class="notice">
+      <strong>Cómo usarlo:</strong> filtra por responsable, revisa el gate y selecciona el estado
+      acordado. Las decisiones y notas se guardan solo en este navegador. Exporta el resultado al
+      terminar y úsalo para actualizar
+      <a href="../12_Roadmap_Sprints/Execution_Status.md">Execution_Status.md</a> mediante PR.
+      Este HTML no cambia por sí solo la fuente canónica.
+    </section>
+
+    <section class="cards" aria-label="Resumen de la reconciliación">
+      <div class="card"><span>US totales del proyecto</span><strong>91</strong></div>
+      <div class="card"><span>Done tras reconciliación</span><strong>31</strong></div>
+      <div class="card"><span>En revisión</span><strong>24</strong></div>
+      <div class="card"><span>Decisiones registradas aquí</span><strong id="decisionCount">0</strong></div>
+    </section>
+
+    <section class="toolbar" aria-label="Filtros">
+      <input id="search" type="search" placeholder="Buscar US, PR, responsable o acción…" aria-label="Buscar">
+      <select id="statusFilter" aria-label="Filtrar por estado actual">
+        <option value="">Todos los estados actuales</option>
+        <option value="done">Done</option>
+        <option value="in_review">En revisión</option>
+        <option value="in_progress">En progreso</option>
+      </select>
+      <select id="ownerFilter" aria-label="Filtrar por responsable"><option value="">Todos los responsables</option></select>
+      <select id="groupFilter" aria-label="Filtrar por grupo">
+        <option value="">Todos los grupos</option>
+        <option value="Cierre aplicado">Cierres aplicados</option>
+        <option value="Validación">Cola de validación</option>
+        <option value="Dependencia">Dependencias en progreso</option>
+      </select>
+    </section>
+
+    <section class="actions" aria-label="Acciones del reporte">
+      <button class="primary" id="exportJson">Exportar acuerdos JSON</button>
+      <button class="secondary" id="exportCsv">Exportar acuerdos CSV</button>
+      <button class="secondary" id="copyMd">Copiar resumen Markdown</button>
+      <button class="secondary" onclick="window.print()">Imprimir / guardar PDF</button>
+      <button class="danger" id="reset">Borrar decisiones locales</button>
+    </section>
+
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>US</th><th>PR</th><th>Descripción corta</th><th>Responsable</th><th>Estado actual</th>
+            <th>Acción de cierre</th><th>Quién valida</th><th>Estado acordado en junta</th><th>Notas / compromiso</th>
+          </tr>
+        </thead>
+        <tbody id="rows"></tbody>
+      </table>
+      <div class="empty" id="empty">No hay filas para los filtros seleccionados.</div>
+    </div>
+    <footer>
+      Fuente: <a href="US_Validation_Followup_2026-08-28.md">reporte canónico de seguimiento</a>,
+      historial Git local y snapshot PM del 28-ago. Los controles son deliberadamente locales y
+      offline: no contienen credenciales ni realizan llamadas a GitHub.
+    </footer>
+  </main>
+
+  <script>
+    const repo = "https://github.com/edgarcoroneln/escuela-concausa-bi/pull/";
+    const items = [
+      {us:"US-323", prs:[108], title:"Set de evaluación de 20 preguntas", owner:"Carlos Mayorga", current:"done", group:"Cierre aplicado", action:"Cierre aplicado: pruebas, DevLog y documento approved.", validator:"Andrés González / Edgar Coronel"},
+      {us:"US-412", prs:[95], title:"Endpoints de inferencia leyendo Gold", owner:"Juan Carlos Macías", current:"in_review", group:"Validación", action:"Reabierta: /predicciones/* responde 500 en producción. Cierra con BUG-020 resuelto, igual que US-411.", validator:"Christian Ruiz / Luis Téllez; valida Juan Carlos Macías"},
+      {us:"US-415", prs:[95], title:"Contrato Pydantic API ↔ modelos", owner:"Juan Carlos Macías", current:"done", group:"Cierre aplicado", action:"Cierre aplicado: 11 pruebas, documentación y DevLog.", validator:"Christian Ruiz / Karla Monter"},
+      {us:"US-523a", prs:[90,93], title:"Branch protection contra ruleset real", owner:"Alejandro Velázquez", current:"done", group:"Cierre aplicado", action:"Cierre aplicado: documento corrected/approved y TEST-002.", validator:"Edgar Coronel"},
+
+      {us:"US-004", prs:[112], title:"Matriz y tablero de control", owner:"Edgar Coronel", current:"in_review", group:"Validación", action:"Cerrar acuerdos de este reporte, regenerar tablero y validar TEST-002.", validator:"Edgar Coronel"},
+      {us:"US-113", prs:[81,105,115], title:"Cubos Gold, carga real y orden dbt", owner:"Deni Garrido", current:"in_review", group:"Validación", action:"Validar DB-10 con DS-06 o aprobar excepción explícita; confirmar cierre.", validator:"Deni Garrido / Diana Alvarez / Edgar Coronel"},
+      {us:"US-121a", prs:[107], title:"Prueba real DS-06 y DS-08", owner:"Emilio Galnares", current:"in_review", group:"Validación", action:"Revisar evidencia de descarga, checks y merge.", validator:"Diana Alvarez"},
+      {us:"US-122a", prs:[107], title:"Extractores DS-06 y DS-08", owner:"Emilio Galnares", current:"in_review", group:"Validación", action:"Ejecutar contra fuentes reales, revisar metadatos y merge.", validator:"Diana Alvarez"},
+      {us:"US-123a", prs:[107], title:"Calidad DS-06 y DS-08", owner:"Emilio Galnares", current:"in_review", group:"Validación", action:"Confirmar resultados reales y tratamiento SIN_DATO.", validator:"Diana Alvarez"},
+      {us:"US-124a", prs:[107], title:"Fixtures y pruebas DS-06/DS-08", owner:"Emilio Galnares", current:"in_review", group:"Validación", action:"Revisar fixtures ≤500 filas, checks y merge.", validator:"Diana Alvarez"},
+      {us:"US-204", prs:[100], title:"DB-06 Predicciones y DB-09 Recomendaciones", owner:"Manuel Serranía", current:"in_review", group:"Validación", action:"Repetir 15/15 charts con salidas reales de US-313.", validator:"Manuel Serranía / Héctor Morales"},
+      {us:"US-213", prs:[114], title:"DB-05 por driver y DB-08 explorador", owner:"Monserrat Miranda", current:"in_review", group:"Validación", action:"Revalidar dim_driver, resolver checks, obtener revisión y merge.", validator:"Manuel Serranía / Diana Alvarez"},
+      {us:"US-221", prs:[106], title:"Gráficos KPI reutilizables", owner:"Oscar Quiroz", current:"in_review", group:"Validación", action:"Revisar artefactos, checks y merge.", validator:"Manuel Serranía"},
+      {us:"US-302", prs:[58,113,116,117], title:"ML-02, driver real y cobertura por ventana", owner:"Andrés González", current:"in_review", group:"Validación", action:"Ejecutar Gold real, Registry Docker, endpoint SHAP y aprobar documento.", validator:"Andrés González / Christian Ruiz"},
+      {us:"US-304a", prs:[92,104,108,119], title:"Prompt, guardarraíles y servicio seguro", owner:"Andrés González", current:"in_review", group:"Validación", action:"Conectar procesar_consulta_con_rag() al endpoint real de C4 (BUG-025) y corregir SELECT … INTO en el validador (BUG-024).", validator:"Andrés González / Christian Ruiz"},
+      {us:"US-304b", prs:[108,119], title:"Recuperación RAG sobre esquema Gold", owner:"Carlos Mayorga", current:"in_review", group:"Validación", action:"Carga diferida y errores tipados ya mergeados; falta probar la recuperación dentro del contenedor.", validator:"Carlos Mayorga / Andrés González"},
+      {us:"US-305", prs:[92,94,98,104,119], title:"Widget de chat, historial y JWT", owner:"Andrés González", current:"in_review", group:"Validación", action:"E2E widget→API→RAG con login real; resolver BUG-020 y BUG-025.", validator:"Andrés González / Christian Ruiz / Carlos Mayorga"},
+      {us:"US-313", prs:[41,83,96,111,117], title:"Publicación batch a Gold", owner:"Héctor Morales", current:"in_review", group:"Validación", action:"Ratificar ADR-007/BUG-019 y ejecutar --desde-gold sobre Gold real.", validator:"Héctor Morales / Diana Alvarez / Edgar Coronel / Andrés González"},
+      {us:"US-324", prs:[110], title:"Model cards ML-01/02/03", owner:"Carlos Mayorga", current:"in_review", group:"Validación", action:"Corregir ficha ML-03 y obtener revisión de los tres dueños.", validator:"Héctor Morales / Andrés González / Estefany Hernández"},
+      {us:"US-403", prs:[97], title:"RBAC ciudadano y analista", owner:"Christian Ruiz", current:"in_review", group:"Validación", action:"Definir ANALISTA_EMAILS, ejecutar 401/403 E2E y registrar revisión de seguridad.", validator:"Christian Ruiz / Edgar Coronel"},
+      {us:"US-411", prs:[59,95,99], title:"Endpoints reales sobre Gold", owner:"Karla Monter", current:"in_review", group:"Validación", action:"Resolver BUG-020, validar producción y ratificar /series fuera de alcance.", validator:"Christian Ruiz / Luis Téllez / Karla Monter"},
+      {us:"US-416", prs:[101], title:"Cache TTL, timeout y respuesta 503", owner:"Juan Carlos Macías", current:"in_review", group:"Validación", action:"Ratificar diseño y aceptar que E2E Postgres corresponde a US-422.", validator:"Christian Ruiz / Karla Monter"},
+      {us:"US-521c", prs:[23], title:"Ambiente local Superset y agente", owner:"Edward Ruiz", current:"in_review", group:"Validación", action:"Crear DevLog .md filed, actualizar índice y repetir la guía.", validator:"Edward Ruiz / Luis Téllez"},
+      {us:"US-522a", prs:[90,99], title:"Contenedor API/Postgres y app real", owner:"Alejandro Velázquez", current:"in_review", group:"Validación", action:"Ejecutar E2E local Compose API ↔ Postgres.", validator:"Alejandro Velázquez / Luis Téllez / Christian Ruiz"},
+      {us:"US-522b", prs:[87], title:"Contenedor Airflow y jobs ML", owner:"Edgar Ulises Jiménez", current:"in_review", group:"Validación", action:"Resolver checks/revisión y merge.", validator:"Luis Téllez"},
+      {us:"US-522c", prs:[49,71], title:"Contenedor Superset y driver PostgreSQL", owner:"Edward Ruiz", current:"in_review", group:"Validación", action:"Verificar conexión, escribir DevLog y actualizar BUG-004 a fixed.", validator:"Edward Ruiz / Luis Téllez / Manuel Serranía"},
+      {us:"US-524a", prs:[102], title:"Logs, healthcheck y monitoreo API/Postgres", owner:"Alejandro Velázquez", current:"in_review", group:"Validación", action:"Resolver checks, revisión C5 y merge.", validator:"Luis Téllez"},
+
+      {us:"US-106", prs:[77,80], title:"Linaje y freeze de esquema", owner:"Diana Alvarez", current:"in_progress", group:"Dependencia", action:"Cerrar US-113, confirmar RISK-008 y aprobar el documento de linaje.", validator:"Diana Alvarez / Deni Garrido / Edgar Coronel"},
+      {us:"US-212", prs:[84,103], title:"DB-03/DB-04 sobre pipeline real", owner:"Marina García", current:"in_progress", group:"Dependencia", action:"US-313 debe publicar el mismo ciclo; repetir los bloques ML.", validator:"Marina García / Manuel Serranía / Héctor Morales"},
+      {us:"US-311", prs:[28,56,96,111], title:"ML-01 con target híbrido", owner:"Héctor Morales", current:"in_progress", group:"Dependencia", action:"Ratificar ADR-007/BUG-019, correr Gold real y confirmar Registry.", validator:"Héctor Morales / Andrés González / Diana Alvarez / Edgar Coronel"},
+      {us:"US-312", prs:[42,118], title:"Evaluación comparativa de modelos", owner:"Héctor Morales", current:"in_progress", group:"Dependencia", action:"PR #118 mergeado; queda ML-03/US-321 con Silhouette.", validator:"Héctor Morales / Estefany Hernández"}
+    ];
+
+    const labels = {
+      none: "Sin decisión", keep: "Mantener estado actual", planned: "Planned",
+      in_progress: "En progreso", in_review: "En revisión", validated: "Validada para cerrar",
+      blocked: "Bloqueada", done: "Cerrada / Done"
+    };
+    const claveAlmacen = "faro-us-followup-2026-08-28-v1";
+    let decisions = {};
+    try { decisions = JSON.parse(localStorage.getItem(claveAlmacen) || "{}"); } catch (_) { decisions = {}; }
+
+    const rows = document.getElementById("rows");
+    const search = document.getElementById("search");
+    const statusFilter = document.getElementById("statusFilter");
+    const ownerFilter = document.getElementById("ownerFilter");
+    const groupFilter = document.getElementById("groupFilter");
+    const empty = document.getElementById("empty");
+
+    [...new Set(items.map(i => i.owner))].sort().forEach(owner => {
+      const option = document.createElement("option"); option.value = owner; option.textContent = owner;
+      ownerFilter.appendChild(option);
+    });
+
+    function prLinks(prs) {
+      return prs.map(n => `<a href="${repo}${n}" target="_blank" rel="noopener">#${n}</a>`).join(" · ");
+    }
+    function stateLabel(state) {
+      return ({done:"Done", in_review:"En revisión", in_progress:"En progreso", planned:"Planned", blocked:"Bloqueada"})[state] || state;
+    }
+    function save() {
+      localStorage.setItem(claveAlmacen, JSON.stringify(decisions));
+      document.getElementById("decisionCount").textContent = Object.values(decisions).filter(d => d.status && d.status !== "none").length;
+    }
+    function render() {
+      const q = search.value.trim().toLowerCase();
+      const visible = items.filter(item => {
+        const haystack = [item.us, item.title, item.owner, item.action, item.validator, item.prs.join(" ")].join(" ").toLowerCase();
+        return (!q || haystack.includes(q)) && (!statusFilter.value || item.current === statusFilter.value)
+          && (!ownerFilter.value || item.owner === ownerFilter.value) && (!groupFilter.value || item.group === groupFilter.value);
+      });
+      rows.innerHTML = "";
+      visible.forEach(item => {
+        const saved = decisions[item.us] || {status:"none", notes:""};
+        const tr = document.createElement("tr");
+        if (saved.status === "done" || saved.status === "validated") tr.classList.add("meeting-ok");
+        tr.innerHTML = `
+          <td><span class="us">${item.us}</span><div class="small">${item.group}</div></td>
+          <td class="prs">${prLinks(item.prs)}</td>
+          <td>${item.title}</td>
+          <td>${item.owner}</td>
+          <td><span class="badge ${item.current}">${stateLabel(item.current)}</span></td>
+          <td>${item.action}</td>
+          <td>${item.validator}</td>
+          <td><select class="decision" aria-label="Estado acordado para ${item.us}">
+            ${Object.entries(labels).map(([value,label]) => `<option value="${value}" ${saved.status===value?"selected":""}>${label}</option>`).join("")}
+          </select></td>
+          <td><textarea aria-label="Notas para ${item.us}" placeholder="Acuerdo, fecha y responsable…"></textarea></td>`;
+        const select = tr.querySelector("select");
+        const notes = tr.querySelector("textarea"); notes.value = saved.notes || "";
+        select.addEventListener("change", () => { decisions[item.us] = {status:select.value, notes:notes.value}; save(); render(); });
+        notes.addEventListener("input", () => { decisions[item.us] = {status:select.value, notes:notes.value}; save(); });
+        rows.appendChild(tr);
+      });
+      empty.style.display = visible.length ? "none" : "block";
+      save();
+    }
+
+    [search, statusFilter, ownerFilter, groupFilter].forEach(el => el.addEventListener("input", render));
+
+    function decisionRows() {
+      return items.map(item => ({...item, agreed_status:(decisions[item.us] || {}).status || "none", notes:(decisions[item.us] || {}).notes || ""}));
+    }
+    function download(name, body, type) {
+      const blob = new Blob([body], {type}); const url = URL.createObjectURL(blob);
+      const a = document.createElement("a"); a.href = url; a.download = name; a.click(); URL.revokeObjectURL(url);
+    }
+    document.getElementById("exportJson").addEventListener("click", () => {
+      download("faro-acuerdos-us-2026-08-28.json", JSON.stringify({generated_at:new Date().toISOString(), decisions:decisionRows()}, null, 2), "application/json");
+    });
+    document.getElementById("exportCsv").addEventListener("click", () => {
+      const quote = value => `"${String(value ?? "").replaceAll('"','""')}"`;
+      const header = ["US","PR","Descripción","Responsable","Estado actual","Acción","Validador","Estado acordado","Notas"];
+      const lines = decisionRows().map(x => [x.us,x.prs.map(n=>`#${n}`).join("/"),x.title,x.owner,x.current,x.action,x.validator,labels[x.agreed_status],x.notes].map(quote).join(","));
+      download("faro-acuerdos-us-2026-08-28.csv", [header.map(quote).join(","),...lines].join("\n"), "text/csv;charset=utf-8");
+    });
+    document.getElementById("copyMd").addEventListener("click", async event => {
+      const chosen = decisionRows().filter(x => x.agreed_status !== "none");
+      const md = ["| US | Estado acordado | Notas |","|---|---|---|",...chosen.map(x => `| ${x.us} | ${labels[x.agreed_status]} | ${x.notes.replaceAll("|","/")} |`)].join("\n");
+      try { await navigator.clipboard.writeText(md); event.target.textContent = "Resumen copiado"; }
+      catch (_) { download("faro-acuerdos-us-2026-08-28.md", md, "text/markdown;charset=utf-8"); }
+      setTimeout(() => event.target.textContent = "Copiar resumen Markdown", 1800);
+    });
+    document.getElementById("reset").addEventListener("click", () => {
+      if (confirm("¿Borrar todas las decisiones y notas guardadas en este navegador?")) {
+        decisions = {}; localStorage.removeItem(claveAlmacen); render();
+      }
+    });
+    render();
+  </script>
+</body>
+</html>

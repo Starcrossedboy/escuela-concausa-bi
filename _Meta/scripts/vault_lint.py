@@ -5,6 +5,7 @@ Detecta:
   - Links [[wikilink]] rotos (destino inexistente)
   - Archivos .md sin frontmatter YAML
   - IDs duplicados en frontmatter
+  - Texto con la codificación rota (mojibake) por editores en locale no-UTF-8
   - Documentos huérfanos (no referenciados por ningún _index.md ni ningún otro doc)
 
 Uso:
@@ -31,6 +32,10 @@ INLINE_CODE = re.compile(r"`[^`]*`")
 
 # Archivos que legítimamente no llevan frontmatter (se copian a otro sitio o son raíz)
 FM_EXEMPT = {"README.md", "PULL_REQUEST_TEMPLATE.md"}
+
+# Escotilla para documentar el defecto sin dispararlo. Los bloques de código ``` ya se
+# omiten, así que esto solo hace falta en prosa que deba mostrar el texto roto en línea.
+PERMITIR_MOJIBAKE = "vault-lint: permitir-mojibake"
 
 # Directorios que NO son artefactos del vault: salida generada (graphify-out/) o ambientes y
 # cachés locales (ya en .gitignore). Se excluyen del linter para no reportar, p. ej., cada
@@ -63,6 +68,36 @@ def strip_code(text):
     return INLINE_CODE.sub("", FENCED.sub("", text))
 
 
+def es_mojibake(linea):
+    """¿Esta línea es texto UTF-8 que un editor guardó como si fuera cp1252?
+
+    Prueba de ida y vuelta: si la línea puede codificarse en cp1252 y ese resultado
+    decodifica como UTF-8 válido **dando algo distinto**, entonces los bytes originales
+    ya eran UTF-8 y se escribieron dos veces. Es lo que convierte `Descripción` en
+    `DescripciÃ³n`.
+
+    Un acento correcto no dispara la prueba: `é` sí codifica a cp1252 (0xE9), pero ese
+    byte suelto no es UTF-8 válido, así que decodificar falla y la línea pasa. Tampoco
+    disparan los emoji, las flechas ni las comillas angulares: no existen en cp1252 y la
+    codificación falla antes.
+
+    Origen: el PR #102 reescribió las 227 líneas de `_DevLog/_index.md` así. Es la misma
+    familia de BUG-005 (CRLF de Windows) y BUG-011 (`read_text()` sin `encoding`): el
+    locale del sistema filtrándose a un archivo del vault.
+
+    **Alcance conocido.** Cubre la familia de letras acentuadas, que es la que nos ha
+    pegado. No cubre el mojibake de comillas tipográficas cuando arrastra bytes que cp1252
+    deja sin definir (0x81, 0x8D, 0x8F, 0x90, 0x9D): ahí la codificación falla y la línea
+    pasa. Ampliarlo exigiría una tabla de traducción propia; no se hizo porque ese caso no
+    se ha presentado y el costo de un falso positivo en un check requerido es alto.
+    """
+    try:
+        reparada = linea.encode("cp1252").decode("utf-8")
+    except (UnicodeEncodeError, UnicodeDecodeError):
+        return False
+    return reparada != linea
+
+
 def stem(path):
     return os.path.splitext(os.path.basename(path))[0]
 
@@ -74,12 +109,23 @@ def main(root="."):
         stems.setdefault(stem(p), []).append(p)
 
     broken, no_fm, referenced = [], [], set()
+    mojibake = []
     ids = {}
 
     for p in md_files:
         text = open(p, encoding="utf-8", errors="replace").read()
         if not text.lstrip().startswith("---") and os.path.basename(p) not in FM_EXEMPT:
             no_fm.append(p)
+        # Codificación rota: se omiten los bloques ``` para poder documentar el defecto.
+        en_bloque = False
+        for n, linea in enumerate(text.splitlines(), start=1):
+            if linea.lstrip().startswith("```"):
+                en_bloque = not en_bloque
+                continue
+            if en_bloque or PERMITIR_MOJIBAKE in linea:
+                continue
+            if es_mojibake(linea):
+                mojibake.append((p, n, linea.strip()[:70]))
         # IDs: se ignoran las plantillas (_Templates/) porque son ejemplares con IDs placeholder
         if "/_Templates/" not in _norm(p):
             for m in ID_RE.finditer(text.split("---")[1] if "---" in text else ""):
@@ -111,6 +157,17 @@ def main(root="."):
         print(f"\n❌ IDs duplicados ({len(dup_ids)}):")
         for k, v in dup_ids.items():
             print(f"   {k}: {', '.join(v)}")
+    if mojibake:
+        problems += len(mojibake)
+        archivos = sorted({p for p, _, _ in mojibake})
+        print(f"\n❌ Codificación rota ({len(mojibake)} líneas en {len(archivos)} archivo(s)):")
+        for p, n, muestra in mojibake[:10]:
+            print(f"   {p}:{n} → {muestra}")
+        if len(mojibake) > 10:
+            print(f"   … y {len(mojibake) - 10} líneas más")
+        print("   Tu editor guardó texto UTF-8 como si fuera cp1252 (Windows).")
+        print("   Recupera el archivo con `git checkout origin/main -- <ruta>` y vuelve a")
+        print("   editarlo con el editor en UTF-8. Ver _Meta/Vault_Rules.md.")
     if orphans:
         print(f"\nℹ️  Posibles huérfanos ({len(orphans)}) — no referenciados por wikilinks:")
         for p in orphans:

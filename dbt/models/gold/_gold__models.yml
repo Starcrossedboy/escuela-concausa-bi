@@ -87,6 +87,20 @@ models:
               arguments:
                 values: ['OK', 'SIN_DATO']
 
+      - name: driver_dominante
+        description: >
+          Etiqueta OPERATIVA (US-302, acordada con Andrés González Habib/C3 el 2026-08-28):
+          argmax entre los drivers con cobertura 'OK'. NO es una observación independiente ni
+          evidencia causal -- es la misma regla que ya usaba `generar_driver_dominante_proxy()`
+          en entrenar_ml02.py, centralizada aquí. Desempate determinista D1 > D2 > D3 > D4 > D5
+          > D6. NULL cuando ninguna fila tiene un driver elegible (nunca un valor artificial) --
+          ver dbt/tests/features_escuela_driver_dominante_*.sql para las pruebas de cobertura,
+          no-nulos y grano.
+        data_tests:
+          - accepted_values:
+              arguments:
+                values: ['D1', 'D2', 'D3', 'D4', 'D5', 'D6']
+
       - name: indice_completitud_drivers
         description: "Fracción (0-1) de los 6 drivers con cobertura OK para este cct x ciclo."
         data_tests:

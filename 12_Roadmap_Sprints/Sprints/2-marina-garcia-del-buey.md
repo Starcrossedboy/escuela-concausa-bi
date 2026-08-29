@@ -298,7 +298,7 @@ Actualiza esta tabla **antes de cada standup**. El PM la revisa para el tablero 
 | ID | Historia | Estado | % | Bloqueado por | Fecha compromiso |
 |---|---|---|---|---|---|
 | `US-211a` | Cubos y metricas de DB-03 y DB-04 | ✅ Terminado | 100% | — | Dom 23 ago |
-| `US-212` | Construir DB-03 Ficha de escuela y DB-04 C | 🟡 En curso | 90% | **BUG-013** (predicciones en otro ciclo que el hecho) | Dom 30 ago |
+| `US-212` | Construir DB-03 Ficha de escuela y DB-04 C | 🟡 En curso | 90% | **BUG-026** (ningún fixture ejercita el grano escuela multi-ciclo) | Dom 30 ago |
 | `US-214a` | Filtros y drill-down en DB-03 y DB-04 | ⬜ Por iniciar | 0% | — | Dom 6 sep |
 | `US-215a` | Usabilidad/accesibilidad DB-03 y DB-04 | ⬜ Por iniciar | 0% | — | Dom 6 sep |
 | `US-207` | FARO Web: panel de ML interactivo | ⬜ Por iniciar | 0% | API de inferencia (US-412/US-415) | Dom 6 sep |
@@ -312,10 +312,20 @@ Actualiza esta tabla **antes de cada standup**. El PM la revisa para el tablero 
 > US-211a. DB-03 y DB-04 ya corren sobre el **pipeline real** (bronze→silver→gold), sin mock: los
 > **24 charts devuelven datos** y D5 sale `SIN_DATO` —no cero— porque CONAGUA no está ingerida.
 >
-> **Falta el 10% por BUG-013**, que no es trabajo mío: `publicar_gold.py` publica predicciones para el
-> ciclo 2023-2024 mientras el hecho tiene 2024-2025, así que el JOIN da cero y los bloques de
-> predicción y recomendación de DB-03 (AC-002.4) quedan vacíos. También se levantó BUG-012 por la
-> falta de runbook del pipeline local.
+> **Falta el 10 %, y el bloqueo se movió (2026-08-28).** BUG-013 se resolvió por sus dos mitades:
+> Héctor agregó `--desde-gold` a `publicar_gold.py` (el hueco era que no sabía leer de una tabla) y
+> Diana cargó 4 ciclos reales con la estrella completa en verde. **Lo que impide cerrar es BUG-026:**
+> ningún juego de fixtures del repo ejercita el grano escuela multi-ciclo, así que no puedo verificar
+> AC-002.4 en mi ambiente ni CI cubre esa ruta. Es de C1 y el arreglo no toca ningún modelo dbt.
+>
+> **Dos cosas más a vigilar, que no bloquean pero cambian el significado del entregable:**
+> **BUG-017/ADR-007** — `indice_riesgo` se publicó saturado porque el target viene en alumnos absolutos
+> y la sigmoide está calibrada sobre fracción; con esa escala DB-04 diría "100 % de escuelas en riesgo".
+> Pedí entrar a la ratificación del ADR como consumidora afectada. **Criterio nuevo del 28-ago** en
+> `Execution_Status.md`: las historias con superficie desplegada no cierran hasta que la ruta responda
+> en el despliegue que se va a demostrar — falta que Edgar confirme si aplica a US-212.
+>
+> BUG-012 (runbook del pipeline local) sigue abierto sin avance.
 
 **Estados válidos:** ⬜ Por iniciar · 🟡 En curso · 🔵 En revisión (PR abierto) · ✅ Terminado · 🔴 Bloqueado
 

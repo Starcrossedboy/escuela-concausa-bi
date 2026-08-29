@@ -21,9 +21,9 @@ tags: [index, moc, data-sources]
 | [[14_Data_Sources/DS-03_CEMABE\|DS-03]] | SEP · CEMABE | Censo 2013 | Nacional · escuela | D3 · D4 | Deni Garrido Fragoso | draft · prueba pendiente |
 | [[14_Data_Sources/DS-04_SESNSP_Incidencia_Delictiva\|DS-04]] | SESNSP · Incidencia delictiva | **Mensual** | Nacional | D2 | Luis Enrique García Vázquez | draft · prueba pendiente |
 | [[14_Data_Sources/DS-05_SINAICA_Calidad_Aire\|DS-05]] | SINAICA · Calidad del aire | **Horaria** | ~80 zonas urbanas | D6 | Luis Enrique García Vázquez | draft · prueba pendiente |
-| [[14_Data_Sources/DS-06_CONAGUA_SINA\|DS-06]] | CONAGUA · SINA | **Diaria** | Regional | D5 | Emilio Galnares Ruiz | draft · prueba pendiente |
+| [[14_Data_Sources/DS-06_CONAGUA_SINA\|DS-06]] | CONAGUA · SINA | **Diaria** | Regional | D5 | Emilio Galnares Ruiz | en revisión (PR abierto) |
 | [[14_Data_Sources/DS-07_CONEVAL_Rezago_Social\|DS-07]] | CONEVAL · Rezago social | Bienal | Nacional | D1 | Deni Garrido Fragoso | draft · prueba pendiente |
-| [[14_Data_Sources/DS-08_CONAPO_Proyecciones\|DS-08]] | CONAPO · Proyecciones | Anual | Nacional | (denominador) | Emilio Galnares Ruiz | draft · prueba pendiente |
+| [[14_Data_Sources/DS-08_CONAPO_Proyecciones\|DS-08]] | CONAPO · Proyecciones | Anual | Nacional | (denominador) | Emilio Galnares Ruiz | en revisión (PR abierto) |
 
 > **Nota de asignación:** las 8 fuentes se reparten entre la Célula 1 (Data Engineering & Quality)
 > como asignación inicial (2 por integrante); la prueba de descarga real de Semana 1 corresponde al

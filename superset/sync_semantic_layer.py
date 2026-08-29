@@ -768,6 +768,94 @@ def _layout_grilla(charts_con_layout: list[tuple[int, str, int, int]]) -> dict:
     return position
 
 
+def _layout_tabs(
+    tabs: list[tuple[str, str, list[tuple[int, str, int, int]], str | None]]
+) -> dict:
+    """Genera position_json v2 con tabs (US-213), árbol validado por Manuel Serranía:
+    ROOT_ID(TABS) → TAB-<id> → GRID-<id> → filas → CHART|MARKDOWN.
+
+    Cambio aditivo: función hermana de `_layout_grilla()`, no la reemplaza — los
+    tableros ya sincronizados (camino plano, sin tabs) siguen usando
+    `_layout_grilla()` sin ningún cambio.
+
+    `tabs` es una lista de (tab_id, tab_label, charts_con_layout, nota_opcional).
+    `charts_con_layout` tiene el mismo formato tupla que ya usa `_layout_grilla()`.
+    Si `nota_opcional` no es None, se agrega un nodo MARKDOWN estático (meta.code)
+    como la primera fila del GRID del tab — aprobado por Manuel junto con los
+    tabs, mismo PR: la nota de fuente/nivel de medición del driver es texto
+    estático en el YAML (no una consulta), tal como ya anticipa el contrato
+    (`fuente_driver`). Id estable `MD-{tab_id}-0` para que el sync sea idempotente.
+    """
+    position: dict[str, Any] = {"DASHBOARD_VERSION_KEY": "v2"}
+    tab_node_ids: list[str] = []
+    contador = 0
+    for tab_id, tab_label, charts_con_layout, nota in tabs:
+        tab_node_id = f"TAB-{tab_id}"
+        grid_node_id = f"GRID-{tab_id}"
+        rows: list[str] = []
+
+        if nota:
+            md_row_id = f"ROW-MD-{tab_id}"
+            md_id = f"MD-{tab_id}-0"
+            rows.append(md_row_id)
+            position[md_row_id] = {
+                "type": "ROW",
+                "id": md_row_id,
+                "parentId": grid_node_id,
+                "children": [md_id],
+                "meta": {"background": "BACKGROUND_TRANSPARENT"},
+            }
+            position[md_id] = {
+                "type": "MARKDOWN",
+                "id": md_id,
+                "parentId": md_row_id,
+                "children": [],
+                "meta": {"code": nota, "width": 12, "height": 8},
+            }
+
+        for cid, nombre, width, height in charts_con_layout:
+            row_id = f"ROW-{contador}"
+            comp_id = f"CHART-{contador}"
+            contador += 1
+            rows.append(row_id)
+            position[row_id] = {
+                "type": "ROW",
+                "id": row_id,
+                "parentId": grid_node_id,
+                "children": [comp_id],
+                "meta": {"background": "BACKGROUND_TRANSPARENT"},
+            }
+            position[comp_id] = {
+                "type": "CHART",
+                "id": comp_id,
+                "parentId": row_id,
+                "children": [],
+                "meta": {
+                    "chartId": cid,
+                    "sliceName": nombre,
+                    "width": width,
+                    "height": height,
+                },
+            }
+        position[grid_node_id] = {
+            "type": "GRID",
+            "id": grid_node_id,
+            "parentId": tab_node_id,
+            "children": rows,
+        }
+        position[tab_node_id] = {
+            "type": "TAB",
+            "id": tab_node_id,
+            "parentId": "ROOT_ID",
+            "children": [grid_node_id],
+            "meta": {"text": tab_label},
+        }
+        tab_node_ids.append(tab_node_id)
+
+    position["ROOT_ID"] = {"type": "TABS", "id": "ROOT_ID", "children": tab_node_ids}
+    return position
+
+
 def _uuid_estable(*partes: str) -> str:
     """UUID determinístico por nombre, para que el sync sea reproducible."""
     return str(uuid.uuid5(uuid.NAMESPACE_URL, f"faro-us203:{':'.join(partes)}"))
@@ -978,23 +1066,47 @@ def ensure_dashboard(token: str, csrf: str, dash_cfg: dict, datasets_by_name: di
     slug = dash_cfg["slug"]
     print(f"\n▸ Dashboard '{titulo}'...")
 
+    # US-213: dashboards con un tab por driver (clave `tabs:` en vez de `charts:`
+    # en la raíz). Cambio aditivo -- si no hay `tabs`, el camino de abajo es
+    # exactamente el de antes, para los tableros ya sincronizados.
+    usa_tabs = "tabs" in dash_cfg
     charts_validos: list[tuple[dict, int, str]] = []
+    todos_los_charts: list[dict] = []
     layout: list[tuple[int, str, int, int]] = []
-    for ch in dash_cfg.get("charts", []):
-        cid, ch_uuid = ensure_chart(token, csrf, ch, datasets_by_name, yaml_datasets)
-        if cid == -1:
-            continue
-        charts_validos.append((ch, cid, ch_uuid))
-        if validar_datos:
-            validar_chart(token, datasets_by_name[ch["dataset"]], ch)
-        layout.append((cid, ch["nombre"], int(ch.get("ancho", 12)), int(ch.get("alto", ALTO_GRAFICO))))
+    tabs_layout: list[tuple[str, str, list[tuple[int, str, int, int]], str | None]] = []
+
+    if usa_tabs:
+        for tab_cfg in dash_cfg["tabs"]:
+            layout_tab: list[tuple[int, str, int, int]] = []
+            for ch in tab_cfg.get("charts", []):
+                todos_los_charts.append(ch)
+                cid, ch_uuid = ensure_chart(token, csrf, ch, datasets_by_name, yaml_datasets)
+                if cid == -1:
+                    continue
+                charts_validos.append((ch, cid, ch_uuid))
+                if validar_datos:
+                    validar_chart(token, datasets_by_name[ch["dataset"]], ch)
+                layout_tab.append((cid, ch["nombre"], int(ch.get("ancho", 12)), int(ch.get("alto", ALTO_GRAFICO))))
+            tabs_layout.append((
+                tab_cfg["id"], tab_cfg.get("etiqueta", tab_cfg["id"]), layout_tab, tab_cfg.get("nota"),
+            ))
+    else:
+        for ch in dash_cfg.get("charts", []):
+            todos_los_charts.append(ch)
+            cid, ch_uuid = ensure_chart(token, csrf, ch, datasets_by_name, yaml_datasets)
+            if cid == -1:
+                continue
+            charts_validos.append((ch, cid, ch_uuid))
+            if validar_datos:
+                validar_chart(token, datasets_by_name[ch["dataset"]], ch)
+            layout.append((cid, ch["nombre"], int(ch.get("ancho", 12)), int(ch.get("alto", ALTO_GRAFICO))))
 
     if not charts_validos:
         print("    ✗ Sin charts válidos; dashboard no creado")
         return
 
     # Datasets involucrados (charts + filtros nativos), con uuid real.
-    datasets_invueltos = {ch["dataset"] for ch in dash_cfg.get("charts", []) if ch["dataset"] in datasets_by_name}
+    datasets_invueltos = {ch["dataset"] for ch in todos_los_charts if ch["dataset"] in datasets_by_name}
     for f in dash_cfg.get("filtros_globales", []):
         datasets_invueltos.update(ds for ds in f.get("datasets", []) if ds in datasets_by_name)
     detalles_ds = {ds: _detalle_dataset(token, datasets_by_name[ds]) for ds in sorted(datasets_invueltos)}
@@ -1018,9 +1130,14 @@ def ensure_dashboard(token: str, csrf: str, dash_cfg: dict, datasets_by_name: di
     if nativos:
         json_metadata["native_filter_configuration"] = nativos
 
-    position = _position_con_uuid(
-        _layout_grilla(layout), [(cid, cu) for _, cid, cu in charts_validos]
-    )
+    if usa_tabs:
+        position = _position_con_uuid(
+            _layout_tabs(tabs_layout), [(cid, cu) for _, cid, cu in charts_validos]
+        )
+    else:
+        position = _position_con_uuid(
+            _layout_grilla(layout), [(cid, cu) for _, cid, cu in charts_validos]
+        )
 
     db_export = _export_database(token, db_id)
     db_uuid = str(db_export["uuid"])

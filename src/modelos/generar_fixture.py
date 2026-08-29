@@ -12,7 +12,7 @@ Uso:
     python -m src.modelos.generar_fixture
     python -m src.modelos.generar_fixture --escuelas 80 --salida tests/fixtures/otro.csv
 
-Lo que el fixture SÍ reproduce del contrato: el grano CCT × ciclo, las 17 columnas, el rango
+Lo que el fixture SÍ reproduce del contrato: el grano CCT × ciclo, las 18 columnas, el rango
 [0,1] de los drivers, la ausencia explícita `SIN_DATO` y su coherencia con el valor nulo, una
 cobertura desigual entre drivers parecida a la real (D5 es regional, D6 cubre ~80 zonas urbanas),
 y `driver_dominante` (US-302) calculado con la misma regla de argmax que
@@ -82,6 +82,19 @@ def _generar_ccts(rng: np.random.Generator, n_escuelas: int) -> list[str]:
         ccts.append(f"{entidad}{nivel}{consecutivo}{verificador}")
     return ccts
 
+def _generar_municipios(rng: np.random.Generator, n_escuelas: int) -> list[str]:
+    """Claves INEGI de municipio sintéticas (US-325): 2 dígitos de entidad + 3 de municipio.
+
+    Varios municipios por entidad y varias escuelas por municipio (módulo 7), para que el
+    análisis de concentración geográfica de US-325 tenga con qué trabajar -- no una escuela
+    por municipio.
+    """
+    municipios: list[str] = []
+    for i in range(n_escuelas):
+        entidad = SCOPE_ENTIDADES[i % len(SCOPE_ENTIDADES)]
+        consecutivo = f"{(i % 7) + 1:03d}"
+        municipios.append(f"{entidad}{consecutivo}")
+    return municipios
 
 def generar(n_escuelas: int = 80, semilla: int = SEMILLA) -> pd.DataFrame:
     """Construye el DataFrame simulado de features.
@@ -91,7 +104,7 @@ def generar(n_escuelas: int = 80, semilla: int = SEMILLA) -> pd.DataFrame:
         semilla: semilla del generador, para reproducibilidad.
 
     Returns:
-        DataFrame con las 16 columnas del contrato, ordenado por CCT y ciclo.
+        DataFrame con las 18 columnas del contrato, ordenado por CCT y ciclo.
 
     Raises:
         ValueError: si el total de filas excede el tope de 500 del plan de sprint §8.
@@ -114,7 +127,7 @@ def generar(n_escuelas: int = 80, semilla: int = SEMILLA) -> pd.DataFrame:
     filas: list[dict[str, object]] = []
     for i, cct in enumerate(ccts):
         for t, ciclo in enumerate(CICLOS):
-            fila: dict[str, object] = {"cct": cct, "id_ciclo": ciclo}
+            fila: dict[str, object] = {"cct": cct, "id_ciclo": ciclo, "cve_mun": _generar_municipios(rng, n_escuelas)[i]}
             observados = 0
             presion = 0.0
 
@@ -155,7 +168,7 @@ def generar(n_escuelas: int = 80, semilla: int = SEMILLA) -> pd.DataFrame:
             filas.append(fila)
 
     columnas = (
-        ["cct", "id_ciclo"]
+        ["cct", "id_ciclo", "cve_mun"]
         + list(DRIVERS)
         + [f"d{k}_cobertura" for k in range(1, len(DRIVERS) + 1)]
         + ["driver_dominante", "indice_completitud_drivers", "target_variacion_matricula"]

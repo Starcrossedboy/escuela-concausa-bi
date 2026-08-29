@@ -141,4 +141,4 @@ tags: [requirements, traceability, matrix]
 
 | REQ | Historias | Evidencia de prueba | DevLog | Estado |
 |---|---|---|---|---|
-| `REQ-003` | `US-322`, `US-325` | EDA reproducible y auditoría de `SIN_DATO` por driver, entidad y municipio; `cve_mun` excluida del vector de clustering; validación de clave INEGI y cero inicial; 17 pruebas enfocadas ✅ · Ruff ✅ · Vault limpio ✅ | [[_DevLog/2026-08-29-estefany-hernandez-us322-us325-territorial]] | 🟡 En revisión; US-325 espera ejecución sobre Gold real |
+| `REQ-003` | `US-322`, `US-325` | EDA reproducible y auditoría de `SIN_DATO` por driver, entidad y municipio; `cve_mun` excluida del vector de clustering; validación de clave INEGI y cero inicial; 17 pruebas enfocadas ✅ · suite 544 ✅ · Ruff ✅ · Vault limpio ✅ | [[_DevLog/2026-08-29-estefany-hernandez-us322-us325-territorial]] | 🟡 En revisión; US-325 espera ejecución sobre Gold real |

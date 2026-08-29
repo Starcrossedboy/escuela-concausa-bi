@@ -39,10 +39,9 @@ cuando falta.
 - [x] Datos municipales de pruebas 100% sintéticos y asignados explícitamente.
 - [x] No se infiere municipio desde el CCT ni se convierte `SIN_DATO` en cero.
 - [x] `pytest tests/test_analizar_features.py -q`: 17 passed.
+- [x] `pytest tests/ -q`: 544 passed, 5 skipped.
 - [x] Ruff limpio en módulo y pruebas.
 - [x] `vault_lint.py`: Vault limpio.
-- [ ] Suite completa: no recolectó en el runtime aislado por dependencias no instaladas de otras
-  células (`fastapi`, `sqlalchemy`, `sklearn`, `requests`, entre otras); CI debe ejecutar el gate.
 
 ## Pendientes
 

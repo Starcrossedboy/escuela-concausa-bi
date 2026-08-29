@@ -1,0 +1,51 @@
+version: 2
+
+models:
+  - name: cubo_completitud
+    description: >
+      US-113 / DB-07. Vista materializada a grano municipio × nivel × driver × ciclo.
+      Expone componentes aditivos para KPI-05/KPI-06 y cobertura explícita.
+      Las razones se calculan downstream:
+      completitud_promedio = SUM(suma_completitud) / NULLIF(SUM(total_escuelas), 0);
+      pct_sin_dato = SUM(escuelas_sin_dato) / NULLIF(SUM(total_escuelas), 0).
+    columns:
+      - name: cve_mun
+        data_tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_municipio')
+                field: cve_mun
+      - name: nivel
+        data_tests: [not_null]
+      - name: id_driver
+        data_tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_driver')
+                field: id_driver
+          - accepted_values:
+              arguments:
+                values: ['D1', 'D2', 'D3', 'D4', 'D5', 'D6']
+      - name: id_ciclo
+        data_tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_tiempo')
+                field: id_ciclo
+      - name: total_escuelas
+        data_tests: [not_null]
+      - name: escuelas_con_dato
+        data_tests: [not_null]
+      - name: escuelas_sin_dato
+        data_tests: [not_null]
+      - name: suma_completitud
+        data_tests: [not_null]
+      - name: cobertura_driver
+        data_tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: ['OK', 'SIN_DATO']

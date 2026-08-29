@@ -6,7 +6,7 @@ status: active
 source_of_truth: true
 traces_up: ["02_Requirements/User_Stories", "12_Roadmap_Sprints/PLAN_MAESTRO"]
 traces_down: ["13_Reports/PM_Dashboard_Spec", "02_Requirements/Traceability_Matrix"]
-last_reviewed: "2026-08-25"
+last_reviewed: "2026-08-28"
 tags: [roadmap, execution, status, dashboard]
 ---
 
@@ -23,6 +23,12 @@ tags: [roadmap, execution, status, dashboard]
 - `blocked` exige `bloqueo_desde` y un `BLOCK-###` en [[10_Risk_Governance/Blocker_Register]].
 - `done` exige evidencia de PR/commit, prueba, DevLog y trazabilidad conforme a
   [[05_Engineering/Definition_of_Done]].
+- **Historias cuyo entregable es una ruta HTTP no cierran mientras esa ruta no responda en el
+  despliegue que se va a demostrar.** El código correcto y las pruebas en verde son condición
+  necesaria, no suficiente: la rúbrica evalúa la URL pública viva. Una historia cuyo entregable es
+  un contrato, un esquema o una biblioteca sí cierra con evidencia de código, porque no tiene
+  superficie desplegada que verificar. Criterio adoptado el 28-ago para resolver la asimetría entre
+  US-411 y US-412 (ver [[13_Reports/US_Validation_Followup_2026-08-28]]).
 - El porcentaje del tablero se deriva del estado; nunca se captura manualmente.
 - El PO actualiza este registro al cierre de cada standup.
 
@@ -33,41 +39,56 @@ tags: [roadmap, execution, status, dashboard]
 | US-001 | done | 2026-08-01 | — | [[_DevLog/2026-08-03-handoff-cierre-planeacion]] · PR #3/#5 | 2026-08-10 |
 | US-002 | done | 2026-08-01 | — | [[01_Product/PRD_General_Materia]] · [[02_Requirements/Requirements_Detailed]] | 2026-08-10 |
 | US-003 | done | 2026-08-02 | — | [[09_AI_Governance/Agent_Contexts/_index]] · PR #3/#5 | 2026-08-10 |
-| US-004 | in_review | 2026-08-03 | — | [[02_Requirements/Traceability_Matrix]] · [[13_Reports/PM_Dashboard_Spec]] (calendario con responsable visible) | 2026-08-12 |
+| US-004 | in_review | 2026-08-03 | — | [[02_Requirements/Traceability_Matrix]] · [[13_Reports/PM_Dashboard_Spec]] · PR #112. Reconciliación integral del 28-ago ejecutada; queda como historia continua hasta resolver o acordar en junta los gates del [[13_Reports/US_Validation_Followup_2026-08-28\|reporte de seguimiento]] y regenerar el tablero con las decisiones finales | 2026-08-28 |
 | US-101 | done | 2026-08-02 | — | [[03_Architecture/Data_Model]] · [[_DevLog/2026-08-07-diana-alvarez-data-model-us101]] · PR #9 · PR #30 (columna indice_riesgo) | 2026-08-17 |
 | US-102 | done | 2026-08-11 | — | [[_DevLog/2026-08-16-diana-alvarez-us102-fix-import-errors]] · PR #29 (DAGs de Airflow para las 8 fuentes) · PR #38 (fix de importación en dags) | 2026-08-17 |
 | US-103 | done | 2026-08-15 | — | [[_DevLog/2026-08-19-diana-alvarez-us103-gold-estrella]] · PR #48 (esquema estrella Gold: dim_escuela, dim_municipio, fact_escuela_ciclo; 170 tests) | 2026-08-19 |
 | US-104 | done | 2026-08-15 | — | [[_DevLog/2026-08-19-diana-alvarez-us104-features-escuela]] · PR #48 (gold.features_escuela con drivers D1-D4 reales); **target definido por DEC-007** (híbrido: variación `municipio × nivel` con serie SNIEE + features escuela con 911) — resuelve RISK-007 | 2026-08-19 |
 | US-105 | done | 2026-08-18 | — | [[_DevLog/2026-08-19-diana-alvarez-us105-idw-calidad-aire]] · PR #52 (interpolación IDW de D6 calidad del aire + cobertura parcial e índice de confianza) | 2026-08-19 |
-| US-106 | in_progress | 2026-08-23 | — | [[_DevLog/2026-08-23-diana-alvarez-us106-linaje-freeze]] · PR #77 ([[03_Architecture/Data_Lineage_US106]]: linaje nodo por nodo de fuente → dashboard). **El freeze no está declarado**: el documento sigue en `status: draft` y su checklist tiene 3 de 6 ítems abiertos (cubos de DEC-009 en US-113, RISK-008, y el propio cambio a `approved`). Diana la declara al 80% | 2026-08-25 |
+| US-106 | in_progress | 2026-08-23 | — | [[_DevLog/2026-08-23-diana-alvarez-us106-linaje-freeze]] · PR #77 ([[03_Architecture/Data_Lineage_US106]]: linaje nodo por nodo de fuente → dashboard) · PR #80 (Diana la declara al 80%). **El freeze sigue sin declararse**: el documento continúa en `status: draft`. Su dependencia US-113 pasó a `in_review` con PR #81, no a `done`, y **RISK-008** (`coneval_periodo_medicion`) sigue sin confirmar. Cierra cuando ambas cosas se resuelvan y Diana cambie el documento a `approved` | 2026-08-26 |
 | US-111 | done | 2026-08-12 | — | [[_DevLog/2026-08-16-deni-garrido-us111-bronze-silver-cierre]] · PR #37 (transformaciones Bronze → Silver con dbt) · PR #67 (alineación del `ciclo` canónico) · PR #82 (**BUG-009**: 11 vars de dbt con default permanente, DEC-011) | 2026-08-25 |
 | US-112 | done | 2026-08-14 | — | [[_DevLog/2026-08-22-deni-garrido-us112-silver-gold]] · PR #72 (estrella Gold materializada + tests nativos unique/not_null/relationships/accepted_values) · PR #67 (ciclo canónico en Silver). El DevLog condicionaba el cierre a que PR #72 dejara de estar abierto; se mergeó el 22-ago | 2026-08-25 |
-| US-113 | in_progress | 2026-08-15 | — | PR #32 (cubos de agregación DB-03/DB-04, avance) · PR #81 **abierto en borrador** (8 cubos Gold + 30 tests de contrato; Deni la declara al 92%, trabada por `cubo_pipeline`/DB-10 sin relación dbt de metadata de ingesta). Grano nuevo ratificado en **DEC-009**. Es el ítem que falta para el freeze de US-106 | 2026-08-25 |
+| US-113 | in_review | 2026-08-15 | — | [[_DevLog/2026-08-23-deni-garrido-us113-cierre-dec010-pipeline]] · PR #81 (9 cubos y contratos) · [[_DevLog/2026-08-28-diana-alvarez-formato911-real-validacion-us113]] / PR #105 (estrella + **8 cubos** contra 4 ciclos reales, 149/149) · PR #115 / BUG-021 (dependencias `ref()` corregidas). Falta materializar/validar DB-10 `cubo_pipeline`, dependiente de DS-06, o que el PM apruebe una excepción explícita de alcance; después Deni confirma el cierre | 2026-08-28 |
+| US-121a | in_review | 2026-08-28 | — | PR #107 abierto: prueba de descarga de DS-06 CONAGUA y DS-08 CONAPO. Pendiente revisión de C1, checks y merge | 2026-08-28 |
+| US-122a | in_review | 2026-08-28 | — | PR #107 abierto: extractores de DS-06/DS-08. Pendiente revisión técnica, checks, merge y ejecución contra las fuentes reales | 2026-08-28 |
+| US-123a | in_review | 2026-08-28 | — | PR #107 abierto: validaciones de calidad para DS-06/DS-08. Pendiente confirmar resultados reales y cobertura `SIN_DATO` | 2026-08-28 |
+| US-124a | in_review | 2026-08-28 | — | PR #107 abierto: fixtures/pruebas de DS-06/DS-08. Pendiente revisión, checks y merge | 2026-08-28 |
 | US-121b | done | 2026-08-13 | — | [[_DevLog/2026-08-14-luis-garcia-us121b-prueba-descarga]] · PR #31 (prueba de descarga real DS-04/DS-05) | 2026-08-17 |
-| US-122b | done | 2026-08-14 | — | [[_DevLog/2026-08-18-luis-garcia-us122b-extractor-sinaica]] · PR #31 · PR #47 (extractor real de DS-05 SINAICA probado contra la API en vivo) | 2026-08-19 |
-| US-123b | in_progress | 2026-08-18 | — | [[_DevLog/2026-08-21-luis-garcia-us123b-great-expectations-ds05]] · PR #47 · PR #63 (suite real de Great Expectations para DS-05 Bronze). **Mitad DS-05 lista, mitad DS-04 pendiente** en PR #85 abierto — Luis la declara al 50% | 2026-08-25 |
+| US-122b | done | 2026-08-14 | — | [[_DevLog/2026-08-18-luis-garcia-us122b-extractor-sinaica]] · [[_DevLog/2026-08-24-luis-garcia-us122b-us123b-sesnsp-fuente-alterna]] · PR #31 · PR #47 (extractor real de DS-05 SINAICA contra la API en vivo) · PR #85 (fuente alterna de DS-04 en `repodatos.atdt.gob.mx` verificada; el extractor agrega subtipo y modalidad, 12 553 440 filas) | 2026-08-26 |
+| US-123b | done | 2026-08-18 | — | [[_DevLog/2026-08-21-luis-garcia-us123b-great-expectations-ds05]] · [[_DevLog/2026-08-24-luis-garcia-us122b-us123b-sesnsp-fuente-alterna]] · PR #47 · PR #63 (suite GE de DS-05) · **PR #85** (suite GE de DS-04, TEST-011 14/15 con hallazgo real: una fila con conteo negativo). Las dos mitades entregadas; Luis la declara 100% | 2026-08-26 |
+| US-124b | done | 2026-08-24 | — | [[_DevLog/2026-08-24-luis-garcia-us124b-fixtures-ds04-ds05]] · **PR #85** (28 pruebas `pytest` nuevas para extractores y suites GE de DS-04/DS-05, corren offline sin red; 326 pruebas del repo en verde) | 2026-08-26 |
 | US-201 | done | 2026-08-07 | — | [[04_UX_Design/Screen_Specs]] · [[_DevLog/2026-08-07-manuel-serrania-us-201]] · PR #10 · PR #27/#36 (KPIs 15-18, JOIN a predicciones) · PR #78 (alta de KPI-19/KPI-20 en el catálogo canónico) | 2026-08-25 |
 | US-202 | done | 2026-08-15 | — | [[_DevLog/2026-08-16-manuel-serrania-us202-superset]] · PR #39 (Superset: conexión, datasets y capa semántica) | 2026-08-17 |
-| US-203 | done | 2026-08-21 | — | [[_DevLog/2026-08-21-manuel-serrania-us203-tableros-db01-db02]] · [[_DevLog/2026-08-22-manuel-serrania-us203-filtros-nombres-reales]] · PR #71 (DB-01 Ejecutivo y DB-02 Mapa de riesgo, filtros AC-002.2 completos y nombres INEGI reales vía `gold.geo_municipio`) · `test_semantic_db01_db02` 47 casos ✅ · E2E Playwright 16/16 charts con datos | 2026-08-25 |
+| US-203 | done | 2026-08-21 | — | [[_DevLog/2026-08-21-manuel-serrania-us203-tableros-db01-db02]] · [[_DevLog/2026-08-22-manuel-serrania-us203-filtros-nombres-reales]] · PR #71 (DB-01 Ejecutivo y DB-02 Mapa de riesgo, filtros AC-002.2 completos y nombres INEGI reales vía `gold.geo_municipio`; 47 casos y E2E Playwright 16/16 charts) · PR #88 (**BUG-011**: `sync_semantic_layer.py` leía en cp1252 y repuntaba charts homónimos de otro tablero) | 2026-08-26 |
+| US-204 | in_review | 2026-08-27 | — | [[_DevLog/2026-08-27-manuel-serrania-us204-db06-db09]] · PR #100 mergeado: DB-06/DB-09, 50 pruebas y validación en vivo 15/15 charts sobre mock identificado. Falta repetir la validación con predicciones/recomendaciones reales del mismo ciclo después de cerrar US-313/BUG-013 | 2026-08-28 |
 | US-206 | in_progress | 2026-08-07 | — | [[_DevLog/2026-08-07-edgar-andamiaje-faro-web]] · [[03_Architecture/Frontend_Architecture]] (solo andamiaje) | 2026-08-10 |
 | US-207 | in_progress | 2026-08-07 | — | [[_DevLog/2026-08-07-edgar-andamiaje-faro-web]] · [[03_Architecture/Frontend_Architecture]] (solo andamiaje) | 2026-08-10 |
 | US-211a | done | 2026-08-15 | — | [[_DevLog/2026-08-21-marina-garcia-cierre-us211a]] · PR #32 · PR #39 (métricas y jerarquías de cubos DB-03/DB-04, 28 casos `test_semantic_db03_db04`); grano de DB-04 registrado en **DEC-008** | 2026-08-21 |
 | US-211b | done | 2026-08-22 | — | [[_DevLog/2026-08-22-monserrat-miranda-us211b-cubos-db05-db08]] · [[_DevLog/2026-08-22-monserrat-miranda-us211b-fix-revision-manuel]] · PR #73 (contrato semántico de DB-05/DB-08 en formato largo, 29 casos `test_semantic_db05_db08`) · PR #78 (alta de KPI-19/KPI-20, cierra §8.3); revisado y aprobado por Manuel Serranía; grano registrado en **DEC-009** | 2026-08-25 |
+| US-212 | in_progress | 2026-08-24 | — | [[_DevLog/2026-08-24-marina-garcia-us212-db03-db04]] · PR #84 · [[_DevLog/2026-08-27-marina-garcia-pipeline-local-us212]] / PR #103: pipeline real y 24/24 charts con datos. No pasa a revisión: BUG-013 deja vacíos los bloques ML por desalineación de ciclo; repetir E2E cuando US-313 publique desde Gold real. **Valida: Marina García**, con Manuel Serranía y salidas de Héctor Morales | 2026-08-28 |
+| US-213 | in_review | 2026-08-28 | — | PR #114 abierto: DB-05 por driver y DB-08 explorador sobre `gold.cubo_driver`/`cubo_pivot`. Pendiente resolver/revalidar `gold.dim_driver`, checks, revisión de Manuel y merge | 2026-08-28 |
+| US-221 | in_review | 2026-08-28 | — | PR #106 abierto: gráficos base reutilizables de KPIs. Pendiente revisión de Manuel Serranía, checks y merge | 2026-08-28 |
 | US-301 | done | 2026-08-09 | — | [[03_Architecture/ADRs/ADR-003-ml-estrategia-modelado]] · [[_DevLog/2026-08-09-andres-gonzalez-us301-estrategia-modelado]] · PR #12 | 2026-08-10 |
-| US-302 | in_review | 2026-08-16 | — | PR #33 (avance independiente ML/agente) · PR #58 (ML-02 clasificación de driver dominante con SHAP, integrado a Gold). `in_review` y no `done`: [[15_ML_Models/ML02_Clasificacion_Driver]] sigue en `status: in_review` | 2026-08-25 |
+| US-302 | in_review | 2026-08-16 | — | PR #58 (ML-02 + SHAP + Gold) · PR #113 (`driver_dominante` supervisado real) · PR #116 (BUG-018 por ventana) · PR #117 (etiqueta real como autoridad); suite integrada 500 pass y F1 0.633. Falta correr métricas sobre Gold real actual, validar Registry Docker, conectar SHAP al endpoint y aprobar [[15_ML_Models/ML02_Clasificacion_Driver]] | 2026-08-28 |
 | US-303 | in_progress | 2026-08-16 | — | PR #33 (avance independiente ML/agente); vence en S4 | 2026-08-17 |
-| US-304a | in_progress | 2026-08-16 | — | PR #33 (avance independiente ML/agente); vence en S5 | 2026-08-17 |
-| US-304b | in_progress | 2026-08-16 | — | PR #33 (avance independiente ML/agente, Carlos); vence en S5 | 2026-08-17 |
-| US-305 | in_progress | 2026-08-07 | — | [[_DevLog/2026-08-07-edgar-andamiaje-faro-web]] · [[03_Architecture/Frontend_Architecture]] (solo andamiaje) | 2026-08-10 |
+| US-304a | in_review | 2026-08-16 | — | PR #92/#104 (prompt, guardarraíles y servicio seguro) · PR #108 entrega RAG/evaluación · **PR #119 mergeado**: `procesar_consulta_con_rag()` integra la recuperación con los guardarraíles y el texto de excepción deja de entrar al prompt como contexto. Falta conectar el endpoint real de C4, ejecutar el E2E con Chroma/Gold levantados y aprobar [[15_ML_Models/Agente_Guardrails_US304a]]. **BUG-024**: `SELECT … INTO` atraviesa el validador de SQL | 2026-08-28 |
+| US-304b | in_review | 2026-08-16 | — | [[_DevLog/2026-08-27-carlos-mayorga-us304b-us323]] · PR #108 mergeado · [[15_ML_Models/Agente_Recuperacion_US304b]] en `approved` · **PR #119 mergeado**: carga diferida del modelo, errores tipados e indexación idempotente con IDs deterministas. Falta verificar la recuperación dentro del contenedor antes de cerrar | 2026-08-28 |
+| US-305 | in_review | 2026-08-26 | — | PR #92/#94 (widget e historial) · PR #98 (JWT) · PR #104 (cliente 401/403) · PR #108 (RAG disponible) · PR #119 (integración RAG mergeada). Falta E2E widget → API → RAG con login real US-405 y resolver BUG-020 de la API desplegada | 2026-08-28 |
 | US-311 | in_progress | 2026-08-08 | — | [[_DevLog/2026-08-13-hector-morales-entrenamiento-ml01]] · PR #28 (ML-01 entrenado, **MAE 0.0141 / RMSE 0.0177**, TEST-005) · PR #8 · PR #21; MLflow ya alineado a 3.15.1 (PR #45, **BLOCK-001 mitigating**) — falta que Héctor re-corra y confirme el registry end-to-end para cerrar AC-003.4; **objetivo de predicción definido por DEC-007** e **implementado a nivel `municipio × nivel`** (PR #56, `target_hibrido.py`, **TEST-009**, 18 casos) sobre fixture — objetivo real pendiente de la **serie SNIEE** (gate 30-ago). PR #83 generaliza el desglose por entidad que impedía entrenar sobre el grano de DEC-007 | 2026-08-25 |
-| US-312 | in_progress | 2026-08-18 | — | [[_DevLog/2026-08-18-hector-morales-evaluacion-us312]] · PR #42 (reporte de evaluación comparativa, TEST-007); **avance parcial** — falta ML-03 (US-321) para cerrar AC-003.2 | 2026-08-18 |
-| US-313 | in_review | 2026-08-14 | — | [[_DevLog/2026-08-14-hector-morales-publicacion-gold]] · [[_DevLog/2026-08-23-hector-morales-grano-dual-dec010]] · PR #41 (job batch a `gold.predicciones`, TEST-006, DEC-005) · PR #83 (**grano dual de DEC-010**: discriminador `grano`, CHECK en base y dos índices únicos parciales; 32 casos en `test_publicar_gold`). `in_review` y no `done`: [[15_ML_Models/Publicacion_Gold]] sigue en `status: in_review` y **BUG-010** mantiene `/predicciones` sirviendo `mock_data` | 2026-08-25 |
+| US-312 | in_progress | 2026-08-18 | — | [[_DevLog/2026-08-18-hector-morales-evaluacion-us312]] · PR #42 (reporte comparativo, TEST-007) · **PR #118 mergeado**: los drivers excluidos llegan a `Evaluacion_Modelos.md` §5/§5.1 y a MLflow de ML-01, §5 acota su alcance al conjunto que la generó, y BUG-023 queda registrado. Sigue incompleta: AC-003.2 exige ML-03/US-321 | 2026-08-28 |
+| US-313 | in_review | 2026-08-14 | — | PR #41 (job batch) · PR #83 (grano dual) · PR #96 (serie histórica) · PR #111/#117 (Gold real, cobertura y etiqueta real). BUG-010 ya está `fixed` por PR #95 y `--desde-gold` está en `main`; falta ratificar ADR-007/BUG-019, ejecutar contra el Gold real actual, verificar joins/ciclos y aprobar [[15_ML_Models/Publicacion_Gold]] | 2026-08-28 |
+| US-323 | done | 2026-08-27 | — | [[_DevLog/2026-08-27-carlos-mayorga-us304b-us323]] · PR #108 mergeado · [[15_ML_Models/Agente_Evaluacion_US323]] en `approved` · set de 20 preguntas y pruebas automatizadas de alcance/SQL inseguro | 2026-08-28 |
+| US-324 | in_review | 2026-08-27 | — | [[_DevLog/2026-08-27-carlos-mayorga-us324]] · PR #110 mergeado: fichas ML-01/02/03. Falta revisión de los dueños de cada modelo y corregir la ficha ML-03 para no afirmar implementación mientras US-321 sigue pendiente | 2026-08-28 |
 | US-401 | done | 2026-08-03 | — | [[03_Architecture/API_Specification]] · `api/openapi.v1.json` · [[_DevLog/2026-08-11-christian-ruiz-us401-contrato-api]] · PR #19 (18 pruebas de contrato) | 2026-08-11 |
 | US-402 | done | 2026-08-15 | — | [[_DevLog/2026-08-17-christian-ruiz-us402-oauth-jwt]] · [[03_Architecture/ADRs/ADR-004-autenticacion-oauth2-jwt]] · PR #43 (OAuth2 + JWT access/refresh, `test_auth_jwt` 15 casos) | 2026-08-18 |
-| US-403 | in_progress | 2026-08-15 | — | PR #43 (base de RBAC entregada); falta completar los 2 roles del PRD | 2026-08-18 |
+| US-403 | in_review | 2026-08-15 | — | [[_DevLog/2026-08-26-christian-ruiz-us403-rbac]] · PR #97 mergeado: `ciudadano`/`analista`, enforcement centralizado, flag híbrido y 10 pruebas RBAC. Falta ratificar la política definitiva `ANALISTA_EMAILS`, ejecutar 401/403 E2E con auth real y registrar revisión humana explícita de seguridad | 2026-08-28 |
 | US-404 | in_progress | 2026-08-15 | — | PR #43 (hardening inicial de la API, avance); vence en S4 | 2026-08-18 |
 | US-405 | in_progress | 2026-08-07 | — | [[_DevLog/2026-08-07-edgar-andamiaje-faro-web]] · [[03_Architecture/Frontend_Architecture]] (solo andamiaje) | 2026-08-10 |
-| US-411 | in_review | 2026-08-20 | — | [[_DevLog/2026-08-20-karla-monter-us411-endpoints-gold]] · PR #59 (endpoints reales sobre Gold, repositorio inyectable y ordenamiento). `in_review` y no `done`: Karla declara 90% en su plan de sprint y `/series` quedó fuera de alcance por decisión propia — falta su confirmación de cierre. **BUG-008** lo hace inalcanzable dentro del contenedor | 2026-08-25 |
+| US-411 | in_review | 2026-08-20 | — | [[_DevLog/2026-08-20-karla-monter-us411-endpoints-gold]] · PR #59 (Gold real) · PR #99 (BUG-008 resuelto y app real desplegada). No cierra: **BUG-020 critical** hace que las rutas con BD respondan 500 en producción. Tras corregirlo, Karla valida `/escuelas`, `/municipios`, `/kpis` y confirma `/series` fuera de alcance | 2026-08-28 |
+| US-412 | in_review | 2026-08-26 | — | [[_DevLog/2026-08-26-juan-macias-us412-repositorio-modelos-bug010]] · PR #95 mergeado: `/predicciones/*` lee `gold.predicciones` + `gold.recomendaciones` mediante repositorio inyectable, BUG-010 `fixed`, contrato/OpenAPI y pruebas de 200/404/batch. **No cierra: BUG-020 critical** hace que `/predicciones` y `/predicciones/batch` respondan 500 en producción — son las rutas que esta historia entrega y de las que depende la demo de ML. Se cierra igual que US-411: cuando la ruta responda en el despliegue. La integración Postgres E2E sigue trazada a US-422 | 2026-08-28 |
+| US-415 | done | 2026-08-26 | — | [[_DevLog/2026-08-26-juan-macias-us415-contrato-modelos]] · PR #95 mergeado: contrato Pydantic API↔ML, reutiliza `FeaturesEscuela`, valida alineación CCT/ciclo y agrega 11 pruebas; Juan la declara terminada en su plan | 2026-08-28 |
+| US-416 | in_review | 2026-08-27 | — | [[_DevLog/2026-08-27-juan-macias-us416-cache-timeouts]] · PR #101 mergeado: cache TTL por fila, cache negativo, timeout SQL y error 503; suite 390 pass. Falta que el TL C4 ratifique el diseño y acepte que la prueba con Postgres real corresponde a US-422 | 2026-08-28 |
+| US-421 | done | 2026-08-09 | — | **Entregada por otros, no por su dueña.** Las dos mitades existen en `main` desde antes de que Eloisa González arrancara: el esqueleto FastAPI en `src/api/main.py` (**Luis Téllez**, `0bfeb2e`, 09-ago, US-501) y el healthcheck con el contrato navegable en `src/api/v1/health.py` + `src/api/app.py` (**Christian Ruiz**, `1648259`, PR #19, 11-ago, US-401) — `/health`, `/version` y `/api/v1/docs`, que es AC-004.1. Cubierta por `test_health_ok` y `test_version_ok` en `tests/test_api_contract.py`, ambas en verde. Eloisa la verificó de punta a punta y lo dejó en dos DevLogs (PR #91) sin código propio, porque no quedaba código por escribir. **Es un traslape de planeación del PM**, no una historia sin entregar: se le asignó una historia que otras dos ya habían cubierto. Se reasigna a **US-422**, arrancando por la prueba que detecta **BUG-008**. Nota: dentro del contenedor `/health` lo sirve hoy `src.api.main:app`, no el contrato v1 — eso es BUG-008, y se registra en US-522a | 2026-08-26 |
 | US-501 | done | 2026-08-09 | — | [[08_CICD_DevOps/Cloud_Run_Deploy]] · [[_DevLog/2026-08-09-luis-tellez-us501-cloud-run-deploy]] · PR #13 (URL pública viva) | 2026-08-10 |
 | US-502 | done | 2026-08-13 | — | [[_DevLog/2026-08-15-luis-tellez-us502-docker-compose-ml-services]] · PR #34 (MLflow/Superset/ChromaDB con hardening) · PR #35 (docker-compose del ecosistema) | 2026-08-17 |
 | US-503 | done | 2026-08-14 | — | [[_DevLog/2026-08-15-luis-tellez-us503-ci-pipeline]] · PR #35 (pipeline CI completo con GitLeaks y pip-audit) | 2026-08-17 |
@@ -75,44 +96,28 @@ tags: [roadmap, execution, status, dashboard]
 | US-505 | in_progress | 2026-08-16 | — | PR #34 (avance temprano de rollback/observabilidad); vence en S6 | 2026-08-17 |
 | US-521a | done | 2026-08-12 | — | [[_DevLog/2026-08-12-alejandro-velazquez-mendoza]] · PR #25 (docker-compose + guía local API/Postgres) | 2026-08-17 |
 | US-521b | in_progress | 2026-08-09 | — | [[_Meta/US-521b-guia-ambiente-local]] · [[_DevLog/2026-08-09-edgar-jimenez-setup]] · PR #14 · PR #29 (env DAGs); **verificar si el docker-compose de Airflow/ML ya queda cubierto por el compose del ecosistema (PR #35)** | 2026-08-17 |
-| US-521c | in_review | 2026-08-12 | — | PR #23 (inventario de dependencias + ambiente local Superset/agente); falta DevLog para `done` | 2026-08-17 |
-| US-522c | in_review | 2026-08-18 | — | PR #49 (contenerización de Superset + resolución de bloqueo de arranque); falta DevLog para `done`. **BUG-004** sigue abierto a su nombre (`psycopg2` ausente en la imagen de Superset) | 2026-08-25 |
+| US-521c | in_review | 2026-08-12 | — | PR #23 mergeado: inventario y ambiente local. Existe `_DevLog/2026-08-11-Edward-Setup-Local`, pero no tiene extensión `.md`, ID ni estado válido y el linter no lo evalúa; Edward debe archivarlo correctamente, actualizar el índice y repetir la guía | 2026-08-28 |
+| US-522a | in_review | 2026-08-12 | — | [[_DevLog/2026-08-25-alejandro-velazquez-us522a]] · PR #90 · PR #99 / [[_DevLog/2026-08-27-luis-tellez-bug008-api-dockerfile]]: contenedor corregido para arrancar la app real y OpenAPI de 18+ rutas validado en Cloud Run. Falta un E2E local Compose API↔Postgres; BUG-020 de producción se sigue por separado | 2026-08-28 |
+| US-522b | in_review | 2026-08-25 | — | PR #87 abierto: contenerización de Airflow y corrección de SQLAlchemy. Pendiente resolver checks/revisión y merge | 2026-08-28 |
+| US-522c | in_review | 2026-08-18 | — | PR #49 (contenedor Superset) · PR #71 corrige instalación persistente de `psycopg2` dentro de `/app/.venv` y ya existe evidencia de sync real. Falta que Edward escriba DevLog válido y que C5 actualice BUG-004 de `open` a `fixed` tras una verificación final | 2026-08-28 |
+| US-523a | done | 2026-08-12 | — | [[_DevLog/2026-08-25-alejandro-velazquez-us522a]] · PR #90 · [[_DevLog/2026-08-26-edgar-reconciliacion-y-branch-protection]] / PR #93: documento corregido contra el ruleset real, tres discrepancias resueltas, [[05_Engineering/Branch_Protection]] en `approved` y TEST-002/vault en verde | 2026-08-28 |
 | US-523c | done | 2026-08-22 | — | [[08_CICD_DevOps/US-523c-quality-gate]] (`status: done`) · PR #69 (workflow `quality_gate.yml` + plantilla de PR). Operando en todos los PRs desde el 22-ago. Deuda conocida: el workflow no se dispara en `edited`, así que corregir el cuerpo de un PR no vuelve a correr el check | 2026-08-25 |
+| US-524a | in_review | 2026-08-28 | — | PR #102 abierto: logs estructurados, healthcheck y monitoreo de API/Postgres; la rama contiene correcciones de revisión y DevLog. Pendiente checks, revisión de C5 y merge | 2026-08-28 |
 
-## Interpretación
+## Interpretación actual — 2026-08-28
 
-**Reconciliación 2026-08-17 (cierre de S2 / arranque de S3).** Se incorporaron los PR #23–#39 que el
-registro no reflejaba. Sprint 1 y Sprint 2 quedan esencialmente cerrados.
+- **32 `done`:** se agregan US-323, US-412, US-415 y US-523a, todas con PR mergeado, evidencia,
+  DevLog y artefacto/pruebas trazables.
+- **23 `in_review`:** incluyen las entregas mergeadas que aún necesitan una validación final y los
+  PR abiertos #87, #102, #106, #107 y #114.
+- **12 `in_progress`:** conservan trabajo funcional o dependencias todavía no terminadas; un PR
+  parcial no las convierte automáticamente en `in_review`.
+- **24 `planned`:** historias sin evidencia suficiente de inicio en las fuentes disponibles.
 
-**`done` (PR + DevLog, Definition of Done):**
-- **S1:** US-001/002/003 (Edgar) · US-101 (Diana, +columna `indice_riesgo` PR #30) · US-201 (Manuel) ·
-  US-301 (Andrés) · US-401 (Christian) · US-501 (Luis Téllez) · US-121b (Luis E. García, PR #31) ·
-  US-521a (Alejandro, PR #25).
-- **S2:** US-102 (Diana · DAG maestro, PR #29/#38) · US-111 (Deni · Bronze→Silver, PR #37) ·
-  US-502 (Luis Téllez · docker-compose del ecosistema, PR #34/#35) · US-503 (Luis Téllez · pipeline CI,
-  PR #35).
-- **S3 adelantadas:** US-202 (Manuel · Superset, PR #39) · US-402 (Christian · OAuth2 + JWT, PR #43).
+El detalle accionable —responsable, PR, gate de cierre, validador y controles para registrar
+decisiones en junta— vive en [[13_Reports/US_Validation_Followup_2026-08-28]]. El HTML asociado es
+una bitácora local de reunión; **no sustituye** esta fuente canónica.
 
-**`in_review` (core entregado, falta DevLog/trazabilidad o mantenimiento):** US-004 (tablero PM,
-continuo) · US-122b (extractores DS-04/05) · US-211a (cubos DB-03/04) · US-521c (ambiente Superset/agente).
-
-**`in_progress`:** US-112/US-113 (Silver→Gold y cubos, Deni, S3) · US-302/303/304a/304b (Andrés/Carlos ·
-avance independiente ML/agente, PR #33) · US-403/404 (Christian · RBAC base + hardening, PR #43) ·
-US-504/505 (Luis Téllez · hardening/observabilidad, PR #34) · US-521b (Edgar Jiménez · **verificar** si el
-compose del ecosistema ya lo cubre) · las cuatro de **FARO Web** (US-206/207/305/405 · solo andamiaje, PR #7).
-
-**🛑 Corrección de US-311 (gap detectado por Héctor, PR #42/#41).** Se **regresa de `done` a
-`in_progress`**: aunque PR #28 entrenó el modelo con métricas sólidas, **AC-003.4 no está cumplido** — el
-registro en MLflow no funciona porque `docker/mlflow.Dockerfile` corre `mlflow==2.8.0` contra el cliente
-`3.15.1`, así que el modelo nunca llega al *registry* (solo se ven las corridas en la UI). Es un
-**bloqueo real (BLOCK-001)** que también frena AC-003.4 de US-302/303 (Andrés), US-321 (Estefany) y
-US-313. Lo resuelve **Célula 5** (Luis) alineando las versiones. Además, **US-312/US-313** entran como
-`in_progress` (avances parciales de Héctor: reporte de evaluación y publicación a Gold).
-
-**⚠️ Hueco real (bloqueo de calendario):** **Emilio Galnares** no ha arrancado su ramo de **DS-06
-(CONAGUA) y DS-08 (CONAPO)** — US-121a (prueba, S1), US-122a (extractores, S2) y US-123a (Great
-Expectations, S3), todas suyas y encadenadas. Su par Luis E. García ya cerró el ramo simétrico
-(DS-04/05). Es el único gap de S2 y arrastra 2 de las 8 fuentes hacia Gold. **Prioridad de destrabe.**
-
-Para US de documentación/diseño, la "prueba" de Definition of Done la cubren la revisión del Tech Lead
-responsable, `vault_lint` y TEST-002.
+Para US de documentación/diseño, la prueba de Definition of Done la cubren la revisión del Tech Lead,
+`vault_lint` y TEST-002. Para código, datos, seguridad o despliegue se conserva además el gate técnico
+específico descrito en la fila de la historia.

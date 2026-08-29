@@ -194,7 +194,9 @@ def ensure_database(token: str, csrf: str) -> int:
 
 def _read_sql(path: Path) -> str:
     """Lee un archivo .sql y extrae la query (sin comentarios al inicio)."""
-    raw = path.read_text()
+    # encoding explícito: en Windows read_text() usa cp1252 y truena con acentos
+    # (misma familia que BUG-005 / BUG-011).
+    raw = path.read_text(encoding="utf-8")
     # Quitar comentarios SQL al inicio (líneas que empiezan con --)
     lines = []
     in_comment_block = True
@@ -270,7 +272,7 @@ def _read_yaml(path: Path) -> dict:
     """
     try:
         import yaml
-        return yaml.safe_load(path.read_text())
+        return yaml.safe_load(path.read_text(encoding="utf-8"))
     except ImportError:
         pass
 
@@ -283,7 +285,7 @@ def _read_yaml(path: Path) -> dict:
     in_block_scalar = False
     block_lines: list[str] = []
 
-    for line in path.read_text().splitlines():
+    for line in path.read_text(encoding="utf-8").splitlines():
         if not line.strip() or line.strip().startswith("#"):
             continue
 
@@ -659,7 +661,21 @@ def ensure_chart(token: str, csrf: str, chart_cfg: dict, datasets_by_name: dict[
         "filters": [{"col": "slice_name", "opr": "eq", "value": nombre}],
     }), safe="")
     resp = _request("GET", f"/api/v1/chart/?q={filtro}", token=token)
-    existente = next((c for c in resp.get("result", []) if c.get("slice_name") == nombre), None)
+    homonimos = [c for c in resp.get("result", []) if c.get("slice_name") == nombre]
+    # El slice_name NO es identidad global: dos tableros pueden tener charts
+    # homónimos sobre datasets distintos (hallazgo de US-212 — DB-01 y DB-03/04
+    # compartían nombres y el sync repuntaba el chart ajeno sin avisar). Solo se
+    # actualiza el candidato que apunta al MISMO dataset; los demás quedan
+    # intactos y aquí se crea un chart nuevo para este tablero.
+    existente = None
+    for candidato in homonimos:
+        ds_candidato = candidato.get("datasource_id")
+        if ds_candidato is None:
+            detalle_c = _request("GET", f"/api/v1/chart/{candidato['id']}", token=token).get("result", {})
+            ds_candidato = detalle_c.get("datasource_id")
+        if ds_candidato == ds_id:
+            existente = candidato
+            break
 
     body = {
         "slice_name": nombre,
@@ -677,6 +693,9 @@ def ensure_chart(token: str, csrf: str, chart_cfg: dict, datasets_by_name: dict[
         })
         print(f"    ✔ Chart '{nombre}' actualizado (id={chart_id})")
     else:
+        if homonimos:
+            print(f"    ⚠ '{nombre}': existe con ese nombre en otro dataset; "
+                  f"se crea copia para este tablero (el chart ajeno no se toca)")
         creado = _request("POST", "/api/v1/chart/", token=token, csrf_token=csrf, body=body)
         chart_id = creado.get("id")
         print(f"    ✔ Chart '{nombre}' creado (id={chart_id})")
@@ -746,6 +765,94 @@ def _layout_grilla(charts_con_layout: list[tuple[int, str, int, int]]) -> dict:
         "parentId": "ROOT_ID",
         "children": rows,
     }
+    return position
+
+
+def _layout_tabs(
+    tabs: list[tuple[str, str, list[tuple[int, str, int, int]], str | None]]
+) -> dict:
+    """Genera position_json v2 con tabs (US-213), árbol validado por Manuel Serranía:
+    ROOT_ID(TABS) → TAB-<id> → GRID-<id> → filas → CHART|MARKDOWN.
+
+    Cambio aditivo: función hermana de `_layout_grilla()`, no la reemplaza — los
+    tableros ya sincronizados (camino plano, sin tabs) siguen usando
+    `_layout_grilla()` sin ningún cambio.
+
+    `tabs` es una lista de (tab_id, tab_label, charts_con_layout, nota_opcional).
+    `charts_con_layout` tiene el mismo formato tupla que ya usa `_layout_grilla()`.
+    Si `nota_opcional` no es None, se agrega un nodo MARKDOWN estático (meta.code)
+    como la primera fila del GRID del tab — aprobado por Manuel junto con los
+    tabs, mismo PR: la nota de fuente/nivel de medición del driver es texto
+    estático en el YAML (no una consulta), tal como ya anticipa el contrato
+    (`fuente_driver`). Id estable `MD-{tab_id}-0` para que el sync sea idempotente.
+    """
+    position: dict[str, Any] = {"DASHBOARD_VERSION_KEY": "v2"}
+    tab_node_ids: list[str] = []
+    contador = 0
+    for tab_id, tab_label, charts_con_layout, nota in tabs:
+        tab_node_id = f"TAB-{tab_id}"
+        grid_node_id = f"GRID-{tab_id}"
+        rows: list[str] = []
+
+        if nota:
+            md_row_id = f"ROW-MD-{tab_id}"
+            md_id = f"MD-{tab_id}-0"
+            rows.append(md_row_id)
+            position[md_row_id] = {
+                "type": "ROW",
+                "id": md_row_id,
+                "parentId": grid_node_id,
+                "children": [md_id],
+                "meta": {"background": "BACKGROUND_TRANSPARENT"},
+            }
+            position[md_id] = {
+                "type": "MARKDOWN",
+                "id": md_id,
+                "parentId": md_row_id,
+                "children": [],
+                "meta": {"code": nota, "width": 12, "height": 8},
+            }
+
+        for cid, nombre, width, height in charts_con_layout:
+            row_id = f"ROW-{contador}"
+            comp_id = f"CHART-{contador}"
+            contador += 1
+            rows.append(row_id)
+            position[row_id] = {
+                "type": "ROW",
+                "id": row_id,
+                "parentId": grid_node_id,
+                "children": [comp_id],
+                "meta": {"background": "BACKGROUND_TRANSPARENT"},
+            }
+            position[comp_id] = {
+                "type": "CHART",
+                "id": comp_id,
+                "parentId": row_id,
+                "children": [],
+                "meta": {
+                    "chartId": cid,
+                    "sliceName": nombre,
+                    "width": width,
+                    "height": height,
+                },
+            }
+        position[grid_node_id] = {
+            "type": "GRID",
+            "id": grid_node_id,
+            "parentId": tab_node_id,
+            "children": rows,
+        }
+        position[tab_node_id] = {
+            "type": "TAB",
+            "id": tab_node_id,
+            "parentId": "ROOT_ID",
+            "children": [grid_node_id],
+            "meta": {"text": tab_label},
+        }
+        tab_node_ids.append(tab_node_id)
+
+    position["ROOT_ID"] = {"type": "TABS", "id": "ROOT_ID", "children": tab_node_ids}
     return position
 
 
@@ -959,23 +1066,47 @@ def ensure_dashboard(token: str, csrf: str, dash_cfg: dict, datasets_by_name: di
     slug = dash_cfg["slug"]
     print(f"\n▸ Dashboard '{titulo}'...")
 
+    # US-213: dashboards con un tab por driver (clave `tabs:` en vez de `charts:`
+    # en la raíz). Cambio aditivo -- si no hay `tabs`, el camino de abajo es
+    # exactamente el de antes, para los tableros ya sincronizados.
+    usa_tabs = "tabs" in dash_cfg
     charts_validos: list[tuple[dict, int, str]] = []
+    todos_los_charts: list[dict] = []
     layout: list[tuple[int, str, int, int]] = []
-    for ch in dash_cfg.get("charts", []):
-        cid, ch_uuid = ensure_chart(token, csrf, ch, datasets_by_name, yaml_datasets)
-        if cid == -1:
-            continue
-        charts_validos.append((ch, cid, ch_uuid))
-        if validar_datos:
-            validar_chart(token, datasets_by_name[ch["dataset"]], ch)
-        layout.append((cid, ch["nombre"], int(ch.get("ancho", 12)), int(ch.get("alto", ALTO_GRAFICO))))
+    tabs_layout: list[tuple[str, str, list[tuple[int, str, int, int]], str | None]] = []
+
+    if usa_tabs:
+        for tab_cfg in dash_cfg["tabs"]:
+            layout_tab: list[tuple[int, str, int, int]] = []
+            for ch in tab_cfg.get("charts", []):
+                todos_los_charts.append(ch)
+                cid, ch_uuid = ensure_chart(token, csrf, ch, datasets_by_name, yaml_datasets)
+                if cid == -1:
+                    continue
+                charts_validos.append((ch, cid, ch_uuid))
+                if validar_datos:
+                    validar_chart(token, datasets_by_name[ch["dataset"]], ch)
+                layout_tab.append((cid, ch["nombre"], int(ch.get("ancho", 12)), int(ch.get("alto", ALTO_GRAFICO))))
+            tabs_layout.append((
+                tab_cfg["id"], tab_cfg.get("etiqueta", tab_cfg["id"]), layout_tab, tab_cfg.get("nota"),
+            ))
+    else:
+        for ch in dash_cfg.get("charts", []):
+            todos_los_charts.append(ch)
+            cid, ch_uuid = ensure_chart(token, csrf, ch, datasets_by_name, yaml_datasets)
+            if cid == -1:
+                continue
+            charts_validos.append((ch, cid, ch_uuid))
+            if validar_datos:
+                validar_chart(token, datasets_by_name[ch["dataset"]], ch)
+            layout.append((cid, ch["nombre"], int(ch.get("ancho", 12)), int(ch.get("alto", ALTO_GRAFICO))))
 
     if not charts_validos:
         print("    ✗ Sin charts válidos; dashboard no creado")
         return
 
     # Datasets involucrados (charts + filtros nativos), con uuid real.
-    datasets_invueltos = {ch["dataset"] for ch in dash_cfg.get("charts", []) if ch["dataset"] in datasets_by_name}
+    datasets_invueltos = {ch["dataset"] for ch in todos_los_charts if ch["dataset"] in datasets_by_name}
     for f in dash_cfg.get("filtros_globales", []):
         datasets_invueltos.update(ds for ds in f.get("datasets", []) if ds in datasets_by_name)
     detalles_ds = {ds: _detalle_dataset(token, datasets_by_name[ds]) for ds in sorted(datasets_invueltos)}
@@ -999,9 +1130,14 @@ def ensure_dashboard(token: str, csrf: str, dash_cfg: dict, datasets_by_name: di
     if nativos:
         json_metadata["native_filter_configuration"] = nativos
 
-    position = _position_con_uuid(
-        _layout_grilla(layout), [(cid, cu) for _, cid, cu in charts_validos]
-    )
+    if usa_tabs:
+        position = _position_con_uuid(
+            _layout_tabs(tabs_layout), [(cid, cu) for _, cid, cu in charts_validos]
+        )
+    else:
+        position = _position_con_uuid(
+            _layout_grilla(layout), [(cid, cu) for _, cid, cu in charts_validos]
+        )
 
     db_export = _export_database(token, db_id)
     db_uuid = str(db_export["uuid"])

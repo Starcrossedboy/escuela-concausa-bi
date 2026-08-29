@@ -1,0 +1,202 @@
+{
+  "expectations": [
+    {
+      "id": "6a137f85-4f88-4915-8522-416fa57e2e3f",
+      "kwargs": {
+        "column": "cve_ent"
+      },
+      "meta": {},
+      "severity": "critical",
+      "type": "expect_column_values_to_not_be_null"
+    },
+    {
+      "id": "85ebe14b-bd2e-4b8e-bf50-ba6ad0f1b724",
+      "kwargs": {
+        "column": "cve_mun"
+      },
+      "meta": {},
+      "severity": "critical",
+      "type": "expect_column_values_to_not_be_null"
+    },
+    {
+      "id": "7b6504b5-e1b8-4ebe-8d40-e055e8d63fcb",
+      "kwargs": {
+        "column": "anio"
+      },
+      "meta": {},
+      "severity": "critical",
+      "type": "expect_column_values_to_not_be_null"
+    },
+    {
+      "id": "e47ac3b1-a1b2-4297-a1fc-9ce5a18bde56",
+      "kwargs": {
+        "column": "mes"
+      },
+      "meta": {},
+      "severity": "critical",
+      "type": "expect_column_values_to_not_be_null"
+    },
+    {
+      "id": "5cf9e377-3743-435c-81b5-60850955b202",
+      "kwargs": {
+        "column": "tipo_delito"
+      },
+      "meta": {},
+      "severity": "critical",
+      "type": "expect_column_values_to_not_be_null"
+    },
+    {
+      "id": "222c1aad-276c-4fcf-aa81-16803655f671",
+      "kwargs": {
+        "column": "conteo"
+      },
+      "meta": {},
+      "severity": "critical",
+      "type": "expect_column_values_to_not_be_null"
+    },
+    {
+      "id": "51266e92-7487-4314-980b-c95e6e6721a5",
+      "kwargs": {
+        "column": "anio",
+        "type_": "int64"
+      },
+      "meta": {},
+      "severity": "critical",
+      "type": "expect_column_values_to_be_of_type"
+    },
+    {
+      "id": "f667a899-d0bb-4339-bf4c-7f542b1a73ff",
+      "kwargs": {
+        "column": "mes",
+        "type_": "int64"
+      },
+      "meta": {},
+      "severity": "critical",
+      "type": "expect_column_values_to_be_of_type"
+    },
+    {
+      "id": "6782a0cd-39aa-4677-b318-68e362937d8e",
+      "kwargs": {
+        "column": "cve_ent",
+        "regex": "^\\d{1,2}$"
+      },
+      "meta": {},
+      "severity": "critical",
+      "type": "expect_column_values_to_match_regex"
+    },
+    {
+      "id": "ccf40685-9efe-4765-a6c3-7403132aab2e",
+      "kwargs": {
+        "column": "cve_mun",
+        "regex": "^\\d{1,3}$"
+      },
+      "meta": {},
+      "severity": "critical",
+      "type": "expect_column_values_to_match_regex"
+    },
+    {
+      "id": "9cd44d6d-3cdb-4626-915e-9501c39cc72b",
+      "kwargs": {
+        "column": "anio",
+        "max_value": 2030.0,
+        "min_value": 2015.0
+      },
+      "meta": {},
+      "severity": "critical",
+      "type": "expect_column_values_to_be_between"
+    },
+    {
+      "id": "e1942fb4-e98b-4b97-ba2f-328a7fb9d2f9",
+      "kwargs": {
+        "column": "mes",
+        "max_value": 12.0,
+        "min_value": 1.0
+      },
+      "meta": {},
+      "severity": "critical",
+      "type": "expect_column_values_to_be_between"
+    },
+    {
+      "id": "2cad0029-ae50-4270-9b17-e95911c68ecf",
+      "kwargs": {
+        "column": "conteo",
+        "min_value": 0.0
+      },
+      "meta": {},
+      "severity": "critical",
+      "type": "expect_column_values_to_be_between"
+    },
+    {
+      "id": "15e1c9fa-3982-4656-8859-597fa2f1e959",
+      "kwargs": {
+        "column": "tipo_delito",
+        "value_set": [
+          "Aborto",
+          "Abuso de confianza",
+          "Abuso sexual",
+          "Acoso sexual",
+          "Allanamiento de morada",
+          "Amenazas",
+          "Contra el medio ambiente",
+          "Corrupci\u00f3n de menores",
+          "Da\u00f1o a la propiedad",
+          "Delitos cometidos por servidores p\u00fablicos",
+          "Despojo",
+          "Electorales",
+          "Evasi\u00f3n de presos",
+          "Extorsi\u00f3n",
+          "Falsedad",
+          "Falsificaci\u00f3n",
+          "Feminicidio",
+          "Fraude",
+          "Homicidio",
+          "Hostigamiento sexual",
+          "Incesto",
+          "Incumplimiento de obligaciones de asistencia familiar",
+          "Lesiones",
+          "Narcomenudeo",
+          "Otros delitos contra el patrimonio",
+          "Otros delitos contra la familia",
+          "Otros delitos contra la sociedad",
+          "Otros delitos del Fuero Com\u00fan",
+          "Otros delitos que atentan contra la libertad personal",
+          "Otros delitos que atentan contra la libertad y la seguridad sexual",
+          "Otros delitos que atentan contra la vida y la integridad corporal",
+          "Rapto",
+          "Robo",
+          "Secuestro",
+          "Trata de personas",
+          "Tr\u00e1fico de menores",
+          "Violaci\u00f3n equiparada",
+          "Violaci\u00f3n simple",
+          "Violencia de g\u00e9nero en todas sus modalidades distinta a la violencia familiar",
+          "Violencia familiar"
+        ]
+      },
+      "meta": {},
+      "severity": "critical",
+      "type": "expect_column_values_to_be_in_set"
+    },
+    {
+      "id": "73b6042c-2840-4904-be2d-b131ec34b08f",
+      "kwargs": {
+        "column_list": [
+          "cve_ent",
+          "cve_mun",
+          "anio",
+          "mes",
+          "tipo_delito"
+        ]
+      },
+      "meta": {},
+      "severity": "critical",
+      "type": "expect_compound_columns_to_be_unique"
+    }
+  ],
+  "id": "bbb5dbdb-a4c7-4db6-bcba-098d0fc2d13e",
+  "meta": {
+    "great_expectations_version": "1.21.0"
+  },
+  "name": "suite_sesnsp",
+  "notes": null
+}

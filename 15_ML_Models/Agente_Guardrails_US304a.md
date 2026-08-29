@@ -3,9 +3,9 @@ id: DOC-AGENTE-GUARDRAILS-US304A
 title: "Agente FARO — Guardarraíles de seguridad"
 owner: "Andrés González Habib"
 status: in_review
-version: "0.2"
+version: "0.5"
 traces_up: ["US-304a", "REQ-006", "03_Architecture/API_Specification"]
-traces_down: ["src/agente/guardrails.py", "src/agente/prompt.py", "tests/test_agente_guardrails.py", "tests/test_agente_prompt.py"]
+traces_down: ["src/agente/guardrails.py", "src/agente/prompt.py", "src/agente/servicio.py", "tests/test_agente_guardrails.py", "tests/test_agente_prompt.py", "tests/test_agente_servicio.py"]
 tags: [agente, rag, seguridad, guardrails, celula-3]
 ---
 
@@ -22,13 +22,19 @@ Los módulos ejecutables viven en `src/agente/guardrails.py` y `src/agente/promp
 solo definen instrucciones, validan y normalizan la pregunta o consulta generada para que una capa
 posterior pueda decidir si continúa.
 
+`src/agente/servicio.py` deja preparado ese flujo posterior mediante dependencias inyectables para
+recuperar contexto, generar SQL, ejecutarlo y redactar la respuesta. El servicio valida el alcance
+antes de recuperar contexto y valida el SQL antes de llamar al ejecutor. La entrada
+`procesar_consulta_con_rag()` conecta por defecto la recuperación ChromaDB de US-304b con este flujo,
+sin acoplar la generación SQL, ejecución ni redacción a una implementación concreta.
+
 ## Reglas implementadas
 
 1. **Alcance FARO.** La pregunta debe contener vocabulario del dominio: escuelas, matrícula, riesgo,
    drivers, municipios, CCT, agua, aire, pobreza, inseguridad, infraestructura o conectividad.
 2. **Solo lectura.** El SQL generado debe iniciar con `SELECT` o `WITH`.
 3. **Sin escritura ni DDL.** Se rechazan `DELETE`, `UPDATE`, `DROP`, `INSERT`, `ALTER`, `TRUNCATE`,
-   `CREATE`, `MERGE`, `REPLACE`, `UPSERT` y `VACUUM`.
+   `CREATE`, `MERGE`, `REPLACE`, `UPSERT`, `VACUUM` y `SELECT INTO` (BUG-024).
 4. **Una sentencia.** Se rechazan sentencias múltiples y comentarios SQL.
 5. **Solo esquema Gold.** Cada tabla de `FROM` o `JOIN` debe pertenecer a `gold.*`; se permiten CTE
     definidos en la misma consulta, pero no `public`, `information_schema`, `pg_catalog` ni tablas
@@ -51,6 +57,10 @@ La salida se alinea con `AgenteRespuestaOut`:
 - `sql_generado`: consulta auditada, o `None` si no aplica;
 - `fuera_de_alcance`: `true` cuando el guardarraíl rechaza la pregunta.
 
+El contrato canónico de `03_Architecture/API_Specification.md` y `api/openapi.v1.json` no define un
+campo separado para la razón del rechazo. La explicación se devuelve en `respuesta`, mientras
+`fuera_de_alcance=true` permite al cliente representarla como rechazo sin interpretar el texto.
+
 ## Validación
 
 `tests/test_agente_guardrails.py` cubre:
@@ -61,10 +71,15 @@ La salida se alinea con `AgenteRespuestaOut`:
 - rechazo de tablas fuera de Gold, sin esquema y `JOIN` mixtos;
 - inyección o reducción de `LIMIT 1000`;
 - error explícito cuando `preparar_sql_seguro()` recibe un verbo prohibido.
+- rechazo de `SELECT ... INTO`, que en PostgreSQL crea una tabla aunque comience con `SELECT`.
 - presencia de reglas obligatorias en el prompt de sistema y composición con contexto recuperado.
+
+`tests/test_agente_servicio.py` verifica el orden del flujo y que una pregunta fuera de alcance o un
+SQL inseguro nunca lleguen al ejecutor. También verifica que un fallo de recuperación detenga la
+generación, que la ausencia de coincidencias no se reporte como una caída y que la entrada compuesta
+use el RAG real.
 
 ## Pendientes para cerrar US-304a
 
-- Acordar con Célula 4 si el endpoint devuelve la razón de rechazo o solo `fuera_de_alcance=true`.
-- Integrar estos guardarraíles en el servicio del agente cuando exista la capa de recuperación US-304b.
-- Registrar ejemplos aceptados/rechazados en el set de evaluación del agente (US-323).
+- Conectar `procesar_consulta_con_rag()` al endpoint real del agente de Célula 4.
+- Ejecutar el E2E con ChromaDB, modelo de embeddings y base Gold levantados.

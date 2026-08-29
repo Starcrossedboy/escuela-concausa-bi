@@ -30,11 +30,11 @@ Formato 911 **no bloquea** esta verificación. Lo que sí bloquea son dos defect
 |---|---|---|---|
 | 1 | ML-01 entrenado y publicando a Gold | ✅ listo y verificado contra Postgres | C3 |
 | 2 | La app real servida por el contenedor | ❌ **BUG-008** — corre el hola mundo de US-501 | C5 + C4 |
-| 3 | `/predicciones` leyendo Gold | ❌ **BUG-010** — sigue en `mock_data` | C4 |
+| 3 | `/predicciones` leyendo Gold | ✅ **BUG-010 cerrado** — `RepositorioModelos` (PR #95, Juan Macías) | C4 |
 
-**Con los dos bugs abiertos, la verificación #4 no se puede pasar honestamente**: el endpoint no es
-alcanzable en el contenedor, y aunque lo fuera devolvería un número escrito a mano en vez de la
-predicción del modelo.
+**Queda un solo bloqueo: BUG-008.** El endpoint ya lee Gold de verdad (PR #95), pero **no es
+alcanzable en el contenedor** porque éste sirve la app equivocada. Con el `CMD` corregido, la
+verificación #4 es alcanzable hoy mismo con datos simulados marcados.
 
 ## 3. El tramo de la Célula 3, paso a paso
 
@@ -78,6 +78,15 @@ Las tres nos costaron tiempo en sesiones previas. Vale la pena no redescubrirlas
    `/api/v1/docs`. Una verificación que consulte `/docs` va a fallar aunque todo esté bien.
 3. **`docker compose up -d api` usa la imagen cacheada.** Tras cambiar código de la API hay que
    agregar `--build`.
+4. **El ciclo por defecto del endpoint no coincide con el que publica el job.**
+   `/api/v1/predicciones/{cct}` usa `CICLO_DEFAULT = "2024-2025"`, pero `publicar_gold` escribe el
+   ciclo más reciente del fixture, que es **`2023-2024`**. Sin `?ciclo=2023-2024` explícito el
+   endpoint responde **404 aunque el dato esté ahí**. Con datos reales del 911 el default sí
+   coincidirá, porque su ciclo más nuevo es 2024-2025 — pero para el ensayo hay que pasarlo a mano:
+
+   ```bash
+   curl "http://localhost:8000/api/v1/predicciones/<CCT>?ciclo=2023-2024"
+   ```
 
 ## 5. Qué hace falta para que la verificación pase
 

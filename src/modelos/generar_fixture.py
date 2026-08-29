@@ -12,9 +12,12 @@ Uso:
     python -m src.modelos.generar_fixture
     python -m src.modelos.generar_fixture --escuelas 80 --salida tests/fixtures/otro.csv
 
-Lo que el fixture SÍ reproduce del contrato: el grano CCT × ciclo, las 16 columnas, el rango
-[0,1] de los drivers, la ausencia explícita `SIN_DATO` y su coherencia con el valor nulo, y una
-cobertura desigual entre drivers parecida a la real (D5 es regional, D6 cubre ~80 zonas urbanas).
+Lo que el fixture SÍ reproduce del contrato: el grano CCT × ciclo, las 18 columnas, el rango
+[0,1] de los drivers, la ausencia explícita `SIN_DATO` y su coherencia con el valor nulo, una
+cobertura desigual entre drivers parecida a la real (D5 es regional, D6 cubre ~80 zonas urbanas),
+y `driver_dominante` (US-302) calculado con la misma regla de argmax que
+`gold.features_escuela` publica de verdad (ver dbt/models/gold/features_escuela.sql): el driver
+con cobertura OK y mayor valor, desempate D1>D2>D3>D4>D5>D6, NULL si ninguno es elegible.
 
 Lo que NO reproduce: las distribuciones reales de cada driver. Sirve para validar la mecánica de
 la partición y el pipeline, **no para sacar conclusiones sustantivas ni métricas comparables**.
@@ -79,6 +82,24 @@ def _generar_ccts(rng: np.random.Generator, n_escuelas: int) -> list[str]:
         ccts.append(f"{entidad}{nivel}{consecutivo}{verificador}")
     return ccts
 
+def _generar_municipios(ccts: list[str]) -> list[str]:
+    """Claves INEGI de municipio sintéticas (US-325): 2 dígitos de entidad + 3 de municipio.
+
+    La clave se deriva **de la entidad que ya codifica el CCT**, nunca de la posición en la
+    lista: así entidad y municipio no pueden contradecirse. Varias escuelas caen en el mismo
+    municipio (módulo 7) para que el análisis de concentración geográfica de US-325 tenga con
+    qué trabajar -- no una escuela por municipio.
+
+    `gold.dim_escuela` toma esta misma columna del fixture de features (ver
+    `generar_fixture_dim.py`), así que ambos artefactos comparten un único origen de la clave
+    municipal. Inventarla por separado en cada lado produce un desfase silencioso: la agregación
+    de DEC-007 parte los grupos según qué lado aporte `cve_mun` y nada falla.
+
+    >>> _generar_municipios(["09DPR0000X", "15DES0001Y"])
+    ['09001', '15002']
+    """
+    return [f"{cct[:2]}{(i % 7) + 1:03d}" for i, cct in enumerate(ccts)]
+
 
 def generar(n_escuelas: int = 80, semilla: int = SEMILLA) -> pd.DataFrame:
     """Construye el DataFrame simulado de features.
@@ -88,7 +109,7 @@ def generar(n_escuelas: int = 80, semilla: int = SEMILLA) -> pd.DataFrame:
         semilla: semilla del generador, para reproducibilidad.
 
     Returns:
-        DataFrame con las 16 columnas del contrato, ordenado por CCT y ciclo.
+        DataFrame con las 18 columnas del contrato, ordenado por CCT y ciclo.
 
     Raises:
         ValueError: si el total de filas excede el tope de 500 del plan de sprint §8.
@@ -102,6 +123,7 @@ def generar(n_escuelas: int = 80, semilla: int = SEMILLA) -> pd.DataFrame:
 
     rng = np.random.default_rng(semilla)
     ccts = _generar_ccts(rng, n_escuelas)
+    municipios = _generar_municipios(ccts)
 
     # Nivel base por escuela: una escuela pobre tiende a seguir siéndolo entre ciclos.
     base = {d: rng.beta(2, 3, size=n_escuelas) for d in DRIVERS}
@@ -111,7 +133,11 @@ def generar(n_escuelas: int = 80, semilla: int = SEMILLA) -> pd.DataFrame:
     filas: list[dict[str, object]] = []
     for i, cct in enumerate(ccts):
         for t, ciclo in enumerate(CICLOS):
-            fila: dict[str, object] = {"cct": cct, "id_ciclo": ciclo}
+            fila: dict[str, object] = {
+                "cct": cct,
+                "id_ciclo": ciclo,
+                "cve_mun": municipios[i],
+            }
             observados = 0
             presion = 0.0
 
@@ -132,6 +158,18 @@ def generar(n_escuelas: int = 80, semilla: int = SEMILLA) -> pd.DataFrame:
                     fila[driver] = None
                     fila[f"d{j + 1}_cobertura"] = Cobertura.SIN_DATO.value
 
+            # driver_dominante (US-302): misma regla que gold.features_escuela -- argmax entre
+            # los drivers con cobertura OK, desempate por orden de DRIVERS (D1..D6) al conservar
+            # el primero en un empate (`>` estricto, no `>=`).
+            mejor_driver: str | None = None
+            mejor_valor: float | None = None
+            for j, driver in enumerate(DRIVERS):
+                valor_driver = fila[driver]
+                if valor_driver is not None and (mejor_valor is None or valor_driver > mejor_valor):
+                    mejor_valor = valor_driver
+                    mejor_driver = f"D{j + 1}"
+            fila["driver_dominante"] = mejor_driver
+
             # Sin redondear: debe cumplirse exactamente que completitud == observados / 6.
             fila["indice_completitud_drivers"] = observados / len(DRIVERS)
             fila["target_variacion_matricula"] = round(
@@ -140,10 +178,10 @@ def generar(n_escuelas: int = 80, semilla: int = SEMILLA) -> pd.DataFrame:
             filas.append(fila)
 
     columnas = (
-        ["cct", "id_ciclo"]
+        ["cct", "id_ciclo", "cve_mun"]
         + list(DRIVERS)
         + [f"d{k}_cobertura" for k in range(1, len(DRIVERS) + 1)]
-        + ["indice_completitud_drivers", "target_variacion_matricula"]
+        + ["driver_dominante", "indice_completitud_drivers", "target_variacion_matricula"]
     )
     return pd.DataFrame(filas, columns=columnas).sort_values(["cct", "id_ciclo"], ignore_index=True)
 

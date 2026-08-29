@@ -132,3 +132,37 @@ def verificar_compatibilidad(tracking_uri: str, version_cliente: str | None = No
             "Alinea las versiones: el servidor lo define `docker/mlflow.Dockerfile` (Célula 5) y "
             "el cliente `requirements/celula-3.txt`."
         )
+
+
+def verificar_modelos_registrados(
+    tracking_uri: str,
+    nombres_modelos: frozenset[str] = NOMBRES_MODELOS_CANONICOS,
+) -> dict[str, str]:
+    """Confirma que cada modelo solicitado tenga al menos una versión en el Registry."""
+    for nombre in nombres_modelos:
+        validar_nombre_modelo(nombre)
+    verificar_compatibilidad(tracking_uri)
+
+    try:
+        from mlflow import MlflowClient
+    except ImportError as exc:  # pragma: no cover - depende del ambiente de C3
+        raise RuntimeError("Instala mlflow para verificar el Model Registry.") from exc
+
+    cliente = MlflowClient(tracking_uri=tracking_uri)
+    versiones: dict[str, str] = {}
+    faltantes: list[str] = []
+    for nombre in sorted(nombres_modelos):
+        encontradas = list(cliente.search_model_versions(f"name='{nombre}'"))
+        if not encontradas:
+            faltantes.append(nombre)
+            continue
+        try:
+            versiones[nombre] = str(max(int(version.version) for version in encontradas))
+        except (TypeError, ValueError) as exc:
+            raise RuntimeError(
+                f"MLflow devolvió una versión inválida para {nombre!r}."
+            ) from exc
+
+    if faltantes:
+        raise RuntimeError(f"Modelos sin versión en MLflow Registry: {', '.join(faltantes)}.")
+    return versiones

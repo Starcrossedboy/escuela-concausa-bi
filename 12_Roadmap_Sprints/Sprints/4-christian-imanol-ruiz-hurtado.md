@@ -6,7 +6,7 @@ status: approved
 version: "1.0"
 traces_up: ["01_Product/PRD", "02_Requirements/User_Stories"]
 traces_down: ["US-401", "US-402", "US-403", "US-404"]
-last_reviewed: "2026-07-31"
+last_reviewed: "2026-08-28"
 tags: [sprint, plan, celula-4, nivel-alto]
 ---
 
@@ -296,9 +296,9 @@ Actualiza esta tabla **antes de cada standup**. El PM la revisa para el tablero 
 
 | ID | Historia | Estado | % | Bloqueado por | Fecha compromiso |
 |---|---|---|---|---|---|
-| `US-401` | Definir y publicar el contrato de la API ( | 🔵 En revisión (PR abierto) | 90% | — | Dom 9 ago |
-| `US-402` | Implementar OAuth2 + JWT con refresh/acces | 🔵 En revisión (PR abierto) | 65% | Google creds (C5) · política de rol (PO) | Dom 30 ago |
-| `US-403` | Implementar RBAC con los 2 roles del PRD | ⬜ Por iniciar | 0% | — | Dom 30 ago |
+| `US-401` | Definir y publicar el contrato de la API ( | ✅ Terminado (PR #19 merged) | 100% | — | Dom 9 ago |
+| `US-402` | Implementar OAuth2 + JWT con refresh/acces | ✅ Terminado (PR #43 merged) | 100% | Google creds (C5) · política de rol (PO) — pendientes para e2e | Dom 30 ago |
+| `US-403` | Implementar RBAC con los 2 roles del PRD | 🔵 En revisión (PR #97 mergeado) | 90% | Política `ANALISTA_EMAILS` · E2E 401/403 · revisión de seguridad | Junta de cierre |
 | `US-404` | Hardening de la API | ⬜ Por iniciar | 0% | — | Dom 6 sep |
 
 **Estados válidos:** ⬜ Por iniciar · 🟡 En curso · 🔵 En revisión (PR abierto) · ✅ Terminado · 🔴 Bloqueado

@@ -53,14 +53,18 @@ def _guardar_parquet(df: pd.DataFrame, bronze_path: str, prefix: str) -> str:
     return output_path
 
 
+def _parsear_estaciones_activas(data: list[dict]) -> list[int]:
+    """Extrae y deduplica los IDs de estación de la respuesta de `getUltimosEnvios`."""
+    return sorted({int(item["idEstacion"]) for item in data})
+
+
 def _estaciones_activas() -> list[int]:
     """IDs de estaciones con envío reciente (`getUltimosEnvios`)."""
     response = requests.post(
         ULTIMOS_ENVIOS_URL, data={"metodo": "getUltimosEnvios"}, timeout=30
     )
     response.raise_for_status()
-    data = response.json()
-    return sorted({int(item["idEstacion"]) for item in data})
+    return _parsear_estaciones_activas(response.json())
 
 
 def extraer_sinaica_estaciones() -> str:
@@ -108,29 +112,15 @@ def extraer_sinaica_estaciones() -> str:
     return output_path
 
 
-def _extraer_dato_horario(estacion_id: int, parametro: str, fecha_ini: str) -> pd.DataFrame:
+def _parsear_respuesta_datos(texto: str, estacion_id: int, parametro: str) -> pd.DataFrame:
     """
-    Descarga los datos horarios de un parámetro/estación desde `datGrafs.php` y
-    extrae el arreglo `var dat = [...]` embebido en la respuesta HTML+JS.
+    Extrae el arreglo `var dat = [...]` embebido en la respuesta HTML+JS de
+    `datGrafs.php` (no es JSON puro, ver módulo).
 
     Devuelve un DataFrame vacío (no lanza error) si la estación no reporta ese
     parámetro — es un caso esperado, no una falla.
     """
-    response = requests.post(
-        DATOS_URL,
-        data={
-            "estacionId": estacion_id,
-            "param": parametro,
-            "fechaIni": fecha_ini,
-            "rango": 1,  # 1 = 1 día (ver DS-05 doc para el resto de los códigos)
-            "tipoDatos": "",  # "" = Cruda, "V" = Validada, "M" = Manual
-            "datoBase": 1,
-        },
-        timeout=60,
-    )
-    response.raise_for_status()
-
-    match = _DAT_PATTERN.search(response.text)
+    match = _DAT_PATTERN.search(texto)
     if not match:
         raise ValueError(
             f"{SOURCE_NAME}: no se encontró 'var dat = [...]' en la respuesta "
@@ -146,6 +136,24 @@ def _extraer_dato_horario(estacion_id: int, parametro: str, fecha_ini: str) -> p
     df["id_estacion"] = int(estacion_id)
     df["parametro"] = parametro
     return df[["fecha", "hora", "valor", "val", "id_estacion", "parametro"]]
+
+
+def _extraer_dato_horario(estacion_id: int, parametro: str, fecha_ini: str) -> pd.DataFrame:
+    """Descarga los datos horarios de un parámetro/estación desde `datGrafs.php`."""
+    response = requests.post(
+        DATOS_URL,
+        data={
+            "estacionId": estacion_id,
+            "param": parametro,
+            "fechaIni": fecha_ini,
+            "rango": 1,  # 1 = 1 día (ver DS-05 doc para el resto de los códigos)
+            "tipoDatos": "",  # "" = Cruda, "V" = Validada, "M" = Manual
+            "datoBase": 1,
+        },
+        timeout=60,
+    )
+    response.raise_for_status()
+    return _parsear_respuesta_datos(response.text, estacion_id, parametro)
 
 
 def extraer_sinaica_observaciones(

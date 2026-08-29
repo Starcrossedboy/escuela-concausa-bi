@@ -6,7 +6,7 @@ status: approved
 version: "1.0"
 traces_up: ["01_Product/PRD", "02_Requirements/User_Stories"]
 traces_down: ["US-521a", "US-522a", "US-523a", "US-524a", "US-525a"]
-last_reviewed: "2026-07-31"
+last_reviewed: "2026-08-28"
 tags: [sprint, plan, celula-5, nivel-bajo]
 ---
 
@@ -302,10 +302,10 @@ Actualiza esta tabla **antes de cada standup**. El PM la revisa para el tablero 
 
 | ID | Historia | Estado | % | Bloqueado por | Fecha compromiso |
 |---|---|---|---|---|---|
-| `US-521a` | Guia ambiente local: API y Postgres | ⬜ Por iniciar | 0% | — | Dom 9 ago |
-| `US-522a` | Contenerizar API y Postgres | ⬜ Por iniciar | 0% | — | Dom 23 ago |
-| `US-523a` | Branch protection y required reviews | ⬜ Por iniciar | 0% | — | Dom 23 ago |
-| `US-524a` | Monitoreo de API y Postgres | ⬜ Por iniciar | 0% | — | Dom 6 sep |
+| `US-521a` | Guia ambiente local: API y Postgres | ✅ Terminado | 100% | — | Dom 9 ago |
+| `US-522a` | Contenerizar API y Postgres | 🔵 En revisión | 100% | E2E local Compose API↔Postgres | Junta de cierre |
+| `US-523a` | Branch protection y required reviews | ✅ Terminado | 100% | — | Dom 23 ago |
+| `US-524a` | Monitoreo de API y Postgres | 🔵 En revisión (PR #102 abierto) | 95% | Checks, revisión C5 y merge | Dom 6 sep |
 | `US-525a` | Runbook rollback API y Postgres | ⬜ Por iniciar | 0% | — | Mar 8 sep |
 
 **Estados válidos:** ⬜ Por iniciar · 🟡 En curso · 🔵 En revisión (PR abierto) · ✅ Terminado · 🔴 Bloqueado

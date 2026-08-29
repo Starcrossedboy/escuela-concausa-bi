@@ -1,0 +1,69 @@
+version: 2
+
+models:
+  - name: cubo_comparador_municipio
+    description: >
+      US-113 / DB-04. Vista materializada a grano municipio × nivel × ciclo,
+      ratificado por DEC-008. Conserva componentes aditivos para reagregación
+      correcta y banderas explícitas de cobertura para drivers y riesgo.
+    columns:
+      - name: cve_mun
+        data_tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_municipio')
+                field: cve_mun
+      - name: nivel
+        data_tests: [not_null]
+      - name: id_ciclo
+        data_tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_tiempo')
+                field: id_ciclo
+      - name: cve_ent
+        data_tests: [not_null]
+      - name: escuelas
+        data_tests: [not_null]
+      - name: matricula_total
+        data_tests: [not_null]
+      - name: escuelas_con_prediccion
+        data_tests: [not_null]
+
+      - name: cobertura_d1
+        data_tests:
+          - not_null
+          - accepted_values:
+              arguments: {values: ['OK', 'SIN_DATO']}
+      - name: cobertura_d2
+        data_tests:
+          - not_null
+          - accepted_values:
+              arguments: {values: ['OK', 'SIN_DATO']}
+      - name: cobertura_d3
+        data_tests:
+          - not_null
+          - accepted_values:
+              arguments: {values: ['OK', 'SIN_DATO']}
+      - name: cobertura_d4
+        data_tests:
+          - not_null
+          - accepted_values:
+              arguments: {values: ['OK', 'SIN_DATO']}
+      - name: cobertura_d5
+        data_tests:
+          - not_null
+          - accepted_values:
+              arguments: {values: ['OK', 'SIN_DATO']}
+      - name: cobertura_d6
+        data_tests:
+          - not_null
+          - accepted_values:
+              arguments: {values: ['OK', 'SIN_DATO']}
+      - name: cobertura_riesgo
+        data_tests:
+          - not_null
+          - accepted_values:
+              arguments: {values: ['OK', 'SIN_DATO']}

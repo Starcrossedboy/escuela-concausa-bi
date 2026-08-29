@@ -25,7 +25,7 @@ select
     ciclo as id_ciclo,
     sum(matricula_total) as matricula_total
 
-from {{ source('silver', 'matricula_historica') }}
+from {{ ref('matricula_historica') }}
 
 where cve_ent in {{ scope_entidades() }}
 

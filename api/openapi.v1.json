@@ -610,8 +610,15 @@
             "type": "string"
           },
           "cluster": {
-            "title": "Cluster",
-            "type": "integer"
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cluster"
           },
           "driver_dominante": {
             "title": "Driver Dominante",
@@ -642,7 +649,6 @@
           "indice_riesgo",
           "driver_dominante",
           "recomendacion",
-          "cluster",
           "mlflow_run_id"
         ],
         "title": "PrediccionOut",
@@ -858,6 +864,11 @@
             "description": "Validation Error"
           }
         },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
         "summary": "Export",
         "tags": [
           "Administración"
@@ -880,6 +891,11 @@
             "description": "Successful Response"
           }
         },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
         "summary": "Metrics",
         "tags": [
           "Administración"
@@ -922,6 +938,11 @@
             "description": "Validation Error"
           }
         },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
         "summary": "Pipeline Run",
         "tags": [
           "Administración"
@@ -964,6 +985,11 @@
             "description": "Validation Error"
           }
         },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
         "summary": "Consulta",
         "tags": [
           "Agente"
@@ -1257,6 +1283,11 @@
             "description": "Validation Error"
           }
         },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
         "summary": "Listar Escuelas",
         "tags": [
           "Gold"
@@ -1300,6 +1331,11 @@
             "description": "Validation Error"
           }
         },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
         "summary": "Obtener Escuela",
         "tags": [
           "Gold"
@@ -1408,6 +1444,11 @@
             "description": "Validation Error"
           }
         },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
         "summary": "Obtener Kpis",
         "tags": [
           "Gold"
@@ -1536,6 +1577,11 @@
             "description": "Validation Error"
           }
         },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
         "summary": "Listar Municipios",
         "tags": [
           "Gold"
@@ -1579,6 +1625,11 @@
             "description": "Validation Error"
           }
         },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
         "summary": "Obtener Municipio",
         "tags": [
           "Gold"
@@ -1587,7 +1638,7 @@
     },
     "/api/v1/predicciones/batch": {
       "post": {
-        "description": "Inferencia en lote (rol mínimo: **analista** — se forzará en US-403).",
+        "description": "Inferencia en lote (rol mínimo: **analista** — se forzará en US-403).\n\nOmite silenciosamente los CCT sin fila en `gold.predicciones` -- nunca inventa una\npredicción para un CCT fuera de alcance o sin modelo corrido.",
         "operationId": "prediccion_batch_api_v1_predicciones_batch_post",
         "requestBody": {
           "content": {
@@ -1621,6 +1672,11 @@
             "description": "Validation Error"
           }
         },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
         "summary": "Prediccion Batch",
         "tags": [
           "Predicciones"
@@ -1674,6 +1730,11 @@
             "description": "Validation Error"
           }
         },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
         "summary": "Prediccion",
         "tags": [
           "Predicciones"
@@ -1717,6 +1778,11 @@
             "description": "Validation Error"
           }
         },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
         "summary": "Explicacion",
         "tags": [
           "Predicciones"

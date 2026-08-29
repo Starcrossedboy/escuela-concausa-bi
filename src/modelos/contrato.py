@@ -40,6 +40,18 @@ class Cobertura(str, Enum):
     SIN_DATO = "SIN_DATO"
 
 
+class DriverDominante(str, Enum):
+    """Códigos aceptados de `driver_dominante` (US-302). Mismos valores que `CODIGOS_DRIVER`
+    en `src/modelos/recomendaciones.py` y que `DRIVER_A_CLASE` en `entrenar_ml02.py`."""
+
+    D1 = "D1"
+    D2 = "D2"
+    D3 = "D3"
+    D4 = "D4"
+    D5 = "D5"
+    D6 = "D6"
+
+
 class FeaturesEscuela(BaseModel):
     """Una fila por CCT × ciclo. Grano y columnas fijados por el contrato §5.3."""
 
@@ -47,6 +59,11 @@ class FeaturesEscuela(BaseModel):
 
     cct: StrictStr = Field(min_length=10, max_length=10)
     id_ciclo: StrictStr
+
+    #: Clave INEGI municipal (5 dígitos). La agrega la C1 para el análisis de sesgo geográfico de
+    #: US-325. Lleva default porque el fixture sintético es anterior al cambio: sin él, y con
+    #: `extra="forbid"`, el espejo rechazaría tanto las filas viejas como —al revés— las nuevas.
+    cve_mun: StrictStr | None = None
 
     d1_pobreza: Puntaje | None
     d2_inseguridad: Puntaje | None
@@ -61,6 +78,12 @@ class FeaturesEscuela(BaseModel):
     d4_cobertura: Cobertura
     d5_cobertura: Cobertura
     d6_cobertura: Cobertura
+
+    #: Etiqueta OPERATIVA (US-302, acordada con Andrés González Habib/C3 el 2026-08-28): argmax
+    #: entre los drivers con cobertura OK, desempate determinista D1>D2>D3>D4>D5>D6. NO es una
+    #: observación independiente ni evidencia causal. NULL cuando ninguna fila tiene un driver
+    #: elegible. Ver dbt/models/gold/features_escuela.sql (CTE `con_driver_dominante`).
+    driver_dominante: DriverDominante | None
 
     indice_completitud_drivers: Annotated[StrictFloat, Field(ge=0, le=1)]
     target_variacion_matricula: StrictFloat  # etiqueta (partición temporal)

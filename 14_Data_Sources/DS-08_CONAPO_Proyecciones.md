@@ -2,9 +2,15 @@
 id: DS-08
 title: "DS-08 · CONAPO Proyecciones de Población"
 owner: "Emilio Galnares Ruiz"
-status: draft
-traces_up: ["01_Product/PRD", "12_Roadmap_Sprints/PLAN_MAESTRO"]
-tags: [data-source, bronze, denominador]
+status: in_review
+traces_up:
+  - 02_Requirements/User_Stories
+traces_down:
+  - US-121a
+  - US-122a
+  - US-123a
+  - US-124a
+tags: [data-source, bronze, conapo, proyecciones]
 ---
 
 # DS-08 · CONAPO Proyecciones de Población
@@ -48,13 +54,28 @@ tags: [data-source, bronze, denominador]
 ## 8. Licencia de uso
 - Términos de Libre Uso MX (CONAPO) — **confirmar** en la ficha oficial.
 
-## 9. Prueba de descarga real — **PENDIENTE** (Semana 1)
-- [ ] Archivo descargado físicamente
-- [ ] Abierto y con datos utilizables
-- [ ] Registros contados: `______`
-- [ ] Esquema verificado (columnas y tipos)
-- [ ] Llave confirmada: `cve_mun` de 5 dígitos + grupo de edad
-- **Responsable:** Emilio Galnares Ruiz · **Fecha:** ______
+## 9. Prueba de descarga real — PENDIENTE (Semana 1)
+- [x] Archivo descargado físicamente
+- [x] Abierto y con datos utilizables
+- [x] Registros contados: `252450`
+- [x] Esquema verificado (campos y tipos)
+- [x] Llave confirmada: columna `CLAVE` (tipo int64 en el archivo original), requiere
+      conversión a texto con relleno de ceros a la izquierda (`.astype(str).str.zfill(5)`)
+      para obtener la clave INEGI de 5 dígitos estándar. Columna resultante: `cve_mun`.
+- [x] Extractor construido (US-122a): script `extractor_ds08.py` que lee el archivo
+      local descargado (CONAPO no ofrece link de descarga fijo, ver limitación en
+      sección 10), corrige la clave de municipio a 5 dígitos (`cve_mun`), y guarda
+      252,450 registros en `data/bronze/ds08_conapo.parquet` con columnas
+      `_ingested_at`, `_source`, `_source_url`.
+- [x] Validaciones Great Expectations (US-123a): suite `ds08_suite` con 7 expectativas
+      (nulos en cve_mun/NOM_MUN/POB_TOTAL/ANO/SEXO, rango de POB_TOTAL 0-25M,
+      longitud de cve_mun=5 caracteres). Resultado: 7/7 exitosas (100%) sobre
+      252,450 registros. Script: `validaciones_ds08.py`. Data Docs generado localmente.
+- [x] Fixture de prueba generado (US-124a): `tests/fixtures/ds08_fixture.csv` con
+      muestra aleatoria de 500 filas (de 252,450 totales). Semilla fija
+      (random_state=42) para reproducibilidad en CI. Sin datos personales
+      (población agregada por municipio/sexo/año, no hay identificación individual).
+- **Responsable:** Emilio Galnares Ruiz · **Fecha:** 24/08/2026
 
 ## 10. Riesgos conocidos
 - Son **proyecciones**, no censos: hay incertidumbre inherente.

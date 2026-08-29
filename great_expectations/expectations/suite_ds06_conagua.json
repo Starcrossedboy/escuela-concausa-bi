@@ -1,0 +1,77 @@
+{
+  "expectations": [
+    {
+      "id": "5ec5f26a-dad4-4263-a475-f37cb14002cf",
+      "kwargs": {
+        "column": "nombre_oficial"
+      },
+      "meta": {},
+      "severity": "critical",
+      "type": "expect_column_values_to_not_be_null"
+    },
+    {
+      "id": "ad937889-11e8-4caa-be52-d963b5772756",
+      "kwargs": {
+        "column": "estado"
+      },
+      "meta": {},
+      "severity": "critical",
+      "type": "expect_column_values_to_not_be_null"
+    },
+    {
+      "id": "baf949a9-1a94-4a3a-8262-36f25fe951bc",
+      "kwargs": {
+        "column": "cap_namo"
+      },
+      "meta": {},
+      "severity": "critical",
+      "type": "expect_column_values_to_not_be_null"
+    },
+    {
+      "id": "ef0ef6d5-051c-4c81-bb1a-48506a86d761",
+      "kwargs": {
+        "column": "id_presa"
+      },
+      "meta": {},
+      "severity": "critical",
+      "type": "expect_column_values_to_be_unique"
+    },
+    {
+      "id": "c6179271-291a-4cc7-9bdb-b09070c51cc6",
+      "kwargs": {
+        "column": "id_presa"
+      },
+      "meta": {},
+      "severity": "critical",
+      "type": "expect_column_values_to_not_be_null"
+    },
+    {
+      "id": "a12b2e0e-acdb-41f5-b762-e240276e97cf",
+      "kwargs": {
+        "column": "cap_namo",
+        "max_value": 100000.0,
+        "min_value": 0.0
+      },
+      "meta": {},
+      "severity": "critical",
+      "type": "expect_column_values_to_be_between"
+    },
+    {
+      "id": "ca0fe514-00e9-47bd-9ec5-d445e35320ad",
+      "kwargs": {
+        "column": "alt_cort",
+        "max_value": 500.0,
+        "min_value": 0.0
+      },
+      "meta": {},
+      "severity": "critical",
+      "type": "expect_column_values_to_be_between"
+    }
+  ],
+  "id": "a93b643d-9168-4d20-adf0-e8d570893be3",
+  "meta": {
+    "great_expectations_version": "1.20.0"
+  },
+  "name": "suite_ds06_conagua",
+  "notes": null
+}

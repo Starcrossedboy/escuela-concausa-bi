@@ -52,6 +52,11 @@ tags: [requirements, traceability, matrix]
 |---|---|---|---|---|
 | `REQ-006` | `US-305` | Cliente y widget preparados para propagar `Authorization: Bearer` desde la sesión: 9 pruebas enfocadas ✅ · Ruff ✅ | [[_DevLog/2026-08-27-andres-gonzalez-us305-jwt-client]] | 🟡 En progreso |
 
+## Evidencia incremental — 2026-08-28
+
+| REQ | Historias | Evidencia de prueba | DevLog | Estado |
+|---|---|---|---|---|
+| `REQ-001` | `US-121a`, `US-122a`, `US-123a`, `US-124a` | DS-06 (CONAGUA) destrabado: endpoint POST real confirmado (`mapa.php`, 180 presas con volumen NAME/NAMO), reemplaza el placeholder `SOURCE_URL="PENDIENTE-CONFIRMAR"` en `extractor_conagua.py` · DS-08 (CONAPO) procesado desde archivo local (sin URL de descarga estable), clave municipal corregida a 5 dígitos en `extractor_conapo.py` · Great Expectations: `suite_ds06_conagua` 7/7 ✅ (180 filas) y `suite_ds08_conapo` 7/7 ✅ (252,450 filas) · Fixtures CI: `bronze_ds06_conagua_sample.csv` (180 filas) y `bronze_ds08_conapo_sample.csv` (500 filas) | [[_DevLog/2026-08-28-emilio-galnares-us121a-ds06-ds08]] | 🟡 En progreso |
 ---
 
 ## Leyenda de estado

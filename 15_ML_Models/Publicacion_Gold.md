@@ -134,11 +134,29 @@ ML-01 durante diagnóstico.
 
 ## 7. Uso
 
+### Contra `gold.features_escuela` real (cierra BUG-013)
+
 ```bash
 docker compose up -d db
-export DATABASE_URL="postgresql+psycopg2://postgres:...@localhost:5432/escuela_concausa_db"
-python -m src.modelos.publicar_gold --features <ruta_features> --run-id <mlflow_run_id>
+export DATABASE_URL="postgresql+psycopg2://postgres:<PASSWORD>@localhost:5432/escuela_concausa_db"
+python -m src.modelos.publicar_gold --desde-gold
 ```
+
+`--desde-gold` lee la tabla materializada por la Célula 1 en vez del fixture. Es lo que resuelve el
+`JOIN` en cero de **DB-03**: publicando desde el fixture, las predicciones salen de un ciclo que el
+hecho real no tiene, así que `cobertura_prediccion` queda en `SIN_DATO` para el 100 % de las
+escuelas.
+
+Requiere que `gold.features_escuela` esté materializada (`dbt run`). Si no lo está, el job **falla
+con un mensaje que lo dice**, en vez de publicar silenciosamente desde el fixture.
+
+### Contra el fixture sintético (desarrollo)
+
+```bash
+python -m src.modelos.publicar_gold --features tests/fixtures/features_escuela_mock.csv
+```
+
+Imprime un aviso explícito de que los datos son sintéticos.
 
 ## 8. Pruebas
 

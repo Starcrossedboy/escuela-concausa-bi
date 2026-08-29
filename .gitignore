@@ -51,6 +51,9 @@ Thumbs.db
 # ---- Obsidian ----
 .obsidian/workspace*
 .obsidian/cache
+# Estado local del grafo del editor: cambia solo con abrir el vault y ensuciaba
+# los diffs de cualquier PR. No es configuración compartida.
+.obsidian/graph.json
 
 # ---- Graphify ----
 graphify-out/cost.json

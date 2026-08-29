@@ -48,6 +48,7 @@ VERBOS_PROHIBIDOS = frozenset(
         "delete",
         "drop",
         "insert",
+        "into",
         "merge",
         "replace",
         "truncate",

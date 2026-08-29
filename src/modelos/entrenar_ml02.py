@@ -79,6 +79,9 @@ class ResultadoML02:
     ventanas: tuple[MetricasClasificacionVentana, ...]
     modelo: HistGradientBoostingClassifier
     columna_target_usada: str
+    drivers_usados: tuple[str, ...] = DRIVERS
+    drivers_excluidos: tuple[str, ...] = ()
+    excluidos_por_ventana: dict[str, tuple[str, ...]] | None = None
 
     @property
     def f1_macro_promedio(self) -> float:
@@ -150,9 +153,14 @@ def validar_target_ml02(df: pd.DataFrame, columna_target: str) -> None:
         raise ValueError(f"{columna_target} necesita al menos dos clases para entrenar ML-02.")
 
 
-def _matriz(df: pd.DataFrame) -> pd.DataFrame:
+def drivers_utilizables(df: pd.DataFrame) -> list[str]:
+    """Devuelve los drivers con al menos un valor observado en este conjunto."""
+    return [driver for driver in DRIVERS if df[driver].notna().any()]
+
+
+def _matriz(df: pd.DataFrame, columnas: list[str] | None = None) -> pd.DataFrame:
     """Extrae drivers para el clasificador; los ausentes quedan como NaN."""
-    return df[list(DRIVERS)]
+    return df[list(columnas if columnas is not None else DRIVERS)]
 
 
 def entrenar_y_evaluar(
@@ -165,14 +173,26 @@ def entrenar_y_evaluar(
     validar_target_ml02(df, target)
     params = {**HIPERPARAMETROS, **(hiperparametros or {})}
     ventanas: list[MetricasClasificacionVentana] = []
+    usables: list[str] = []
+    excluidos_por_ventana: dict[str, tuple[str, ...]] = {}
     modelo: HistGradientBoostingClassifier | None = None
 
     for particion in generar_backtesting(df, n_ventanas=n_ventanas):
         entrena, prueba = particion.aplicar(df)
         verificar_sin_fuga(entrena, prueba)
 
-        x_entrena, y_entrena = _matriz(entrena), entrena[target]
-        x_prueba, y_prueba = _matriz(prueba), prueba[target]
+        usables = drivers_utilizables(entrena)
+        if not usables:
+            raise ValueError(
+                f"Ningún driver tiene datos en la ventana de entrenamiento {particion}. "
+                "Revisa la cobertura por ciclo de `gold.features_escuela`."
+            )
+        fuera = [driver for driver in DRIVERS if driver not in usables]
+        if fuera:
+            excluidos_por_ventana[str(particion)] = tuple(fuera)
+
+        x_entrena, y_entrena = _matriz(entrena, usables), entrena[target]
+        x_prueba, y_prueba = _matriz(prueba, usables), prueba[target]
 
         modelo = HistGradientBoostingClassifier(**params).fit(x_entrena, y_entrena)
         predicho = modelo.predict(x_prueba)
@@ -196,12 +216,20 @@ def entrenar_y_evaluar(
 
     if modelo is None:  # pragma: no cover
         raise RuntimeError("El backtesting no produjo ninguna ventana.")
-    return ResultadoML02(ventanas=tuple(ventanas), modelo=modelo, columna_target_usada=target)
+    return ResultadoML02(
+        ventanas=tuple(ventanas),
+        modelo=modelo,
+        columna_target_usada=target,
+        drivers_usados=tuple(usables),
+        drivers_excluidos=tuple(driver for driver in DRIVERS if driver not in usables),
+        excluidos_por_ventana=excluidos_por_ventana,
+    )
 
 
 def predecir_driver(modelo: HistGradientBoostingClassifier, features: pd.DataFrame) -> pd.DataFrame:
     """Predice driver dominante y recomendacion en la forma que consumira la API."""
-    drivers = modelo.predict(_matriz(features))
+    columnas = list(getattr(modelo, "feature_names_in_", DRIVERS))
+    drivers = modelo.predict(_matriz(features, columnas))
     return pd.DataFrame(
         {
             "cct": features["cct"].to_numpy(),
@@ -257,8 +285,9 @@ def calcular_shap_kernel(
     except ImportError as exc:  # pragma: no cover - depende del ambiente de C3
         raise RuntimeError("Instala shap para calcular explicabilidad de ML-02.") from exc
 
-    x_ref = _matriz(referencia).head(max_referencia)
-    x_filas = _matriz(filas)
+    columnas = list(getattr(modelo, "feature_names_in_", DRIVERS))
+    x_ref = _matriz(referencia, columnas).head(max_referencia)
+    x_filas = _matriz(filas, columnas)
     explainer = shap.KernelExplainer(modelo.predict_proba, x_ref)
     valores = explainer.shap_values(x_filas)
     probabilidades = modelo.predict_proba(x_filas)

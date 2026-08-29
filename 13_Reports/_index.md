@@ -19,6 +19,8 @@ tags: [moc, reports]
 | [[13_Reports/data/_index]] | Catálogo de snapshots generados y su carácter no canónico |
 | [[13_Reports/Executive_Dashboard_template]] | Plantilla de reporte ejecutivo |
 | [[13_Reports/Audit_Report_template]] | Plantilla de auditoría |
+| [[13_Reports/US_Validation_Followup_2026-08-28]] | Corte auditable de US cerradas, en validación y bloqueadas, con responsables y acciones |
+| [`US_Validation_Followup_2026-08-28.html`](US_Validation_Followup_2026-08-28.html) | Vista interactiva para conducir la junta, registrar acuerdos y exportar el seguimiento |
 
 ## Convención
 - Un reporte por fecha: `Executive_YYYY-MM-DD.md`.

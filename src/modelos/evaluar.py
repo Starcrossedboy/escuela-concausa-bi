@@ -11,7 +11,7 @@ cifras del vault nunca se desincronicen de las que produce el pipeline.
 |---|---|---|
 | ML-01 · regresión de matrícula | MAE / RMSE | `entrenar_ml01` (US-311) |
 | ML-02 · clasificación de driver | F1 macro / accuracy | `entrenar_ml02` (US-302, Andrés) |
-| ML-03 · clustering | Silhouette | **pendiente** — US-321 (Estefany) |
+| ML-03 · clustering | Silhouette | `entrenar_ml03` (US-321, Estefany) |
 
 Ambos comparten la misma partición temporal, así que sus ventanas son comparables entre sí.
 
@@ -43,6 +43,7 @@ from src.modelos.entrenar_ml01 import cargar_features
 from src.modelos.entrenar_ml01 import entrenar_y_evaluar as entrenar_ml01
 from src.modelos.entrenar_ml02 import cargar_features_ml02, columna_target_disponible
 from src.modelos.entrenar_ml02 import entrenar_y_evaluar as entrenar_ml02
+from src.modelos.entrenar_ml03 import entrenar_y_evaluar as entrenar_ml03
 
 REPORTE_POR_DEFECTO = Path("06_Quality_Testing/Automated/Evaluacion_Modelos.md")
 
@@ -69,7 +70,14 @@ class FilaComparativa:
     ventanas: int
 
     @property
-    def supera_baseline(self) -> bool:
+    def supera_baseline(self) -> bool | None:
+        """`None` para un modelo sin baseline: no supera ni deja de superar, no aplica.
+
+        ML-03 es no supervisado y su Silhouette es una medida absoluta de separación, no una
+        mejora sobre nada. Devolver `False` lo haría parecer un modelo que no aporta.
+        """
+        if np.isnan(self.baseline):
+            return None
         return self.mejora > 0
 
 
@@ -99,7 +107,30 @@ def _resumen_ml02(resultado) -> FilaComparativa:
     )
 
 
-def tabla_comparativa(resultado_ml01, resultado_ml02) -> pd.DataFrame:
+def _resumen_ml03(resultado) -> FilaComparativa:
+    """ML-03 no tiene baseline: `Silhouette` mide separación, no mejora sobre un modelo tonto."""
+    ventanas = int(
+        resultado.metricas[resultado.metricas["k"] == resultado.k_seleccionado]["silhouette"]
+        .notna()
+        .sum()
+    )
+    return FilaComparativa(
+        modelo="ML-03",
+        tipo="no supervisado",
+        metrica=f"Silhouette (k={resultado.k_seleccionado})",
+        valor=resultado.silhouette_promedio,
+        desviacion=float(
+            resultado.metricas[resultado.metricas["k"] == resultado.k_seleccionado]["silhouette"]
+            .dropna()
+            .std(ddof=0)
+        ),
+        baseline=float("nan"),
+        mejora=float("nan"),
+        ventanas=ventanas,
+    )
+
+
+def tabla_comparativa(resultado_ml01, resultado_ml02, resultado_ml03=None) -> pd.DataFrame:
     """Tabla comparativa de los modelos evaluados.
 
     ML-01 y ML-02 optimizan cosas distintas (error absoluto vs F1), así que **sus métricas no se
@@ -107,10 +138,12 @@ def tabla_comparativa(resultado_ml01, resultado_ml02) -> pd.DataFrame:
     propio baseline.
     """
     filas = [_resumen_ml01(resultado_ml01), _resumen_ml02(resultado_ml02)]
+    if resultado_ml03 is not None:
+        filas.append(_resumen_ml03(resultado_ml03))
     return pd.DataFrame([f.__dict__ for f in filas])
 
 
-def curva_por_ventana(resultado_ml01, resultado_ml02) -> pd.DataFrame:
+def curva_por_ventana(resultado_ml01, resultado_ml02, resultado_ml03=None) -> pd.DataFrame:
     """Evolución de la métrica a lo largo de las ventanas de backtesting.
 
     Es la "curva" de la historia, en forma de datos. Permite ver si el modelo se degrada conforme
@@ -143,6 +176,24 @@ def curva_por_ventana(resultado_ml01, resultado_ml02) -> pd.DataFrame:
                 "n_entrena": v.n_entrena,
             }
         )
+    if resultado_ml03 is not None:
+        # Sólo el `k` elegido: las demás filas de `metricas` son la búsqueda, no el modelo.
+        elegidas = resultado_ml03.metricas[
+            resultado_ml03.metricas["k"] == resultado_ml03.k_seleccionado
+        ].dropna(subset=["silhouette"])
+        for i, (_, fila) in enumerate(elegidas.iterrows(), start=1):
+            filas.append(
+                {
+                    "ventana": i,
+                    "modelo": "ML-03",
+                    "ciclo_prueba": fila["ciclo_prueba"],
+                    "metrica": "Silhouette",
+                    "valor": float(fila["silhouette"]),
+                    "baseline": float("nan"),
+                    "mejora": float("nan"),
+                    "n_entrena": int(fila["n_entrenamiento"]),
+                }
+            )
     return pd.DataFrame(filas)
 
 
@@ -288,12 +339,81 @@ def _parrafo_exclusiones(fuera_ml01: tuple[str, ...], fuera_ml02: tuple[str, ...
     return "**" + ". ".join(partes) + ".**"
 
 
-def construir_reporte(df: pd.DataFrame, resultado_ml01, resultado_ml02) -> str:
+def _parrafo_umbrales(incumplidos: pd.DataFrame) -> str:
+    """Un umbral incumplido tiene que leerse como tal, no quedar en una celda de una tabla."""
+    if incumplidos.empty:
+        return "**Los cuatro umbrales se cumplen** con los datos de esta corrida."
+    nombres = ", ".join(f"{r.modelo} ({r.metrica} = {r.valor})" for r in incumplidos.itertuples())
+    return (
+        f"> [!warning] Umbral no alcanzado: {nombres}\n"
+        "> Está evaluado y reporta su métrica —que es lo que exige AC-003.2— pero **no llega al "
+        "umbral de aceptación** de `ML_Strategy` §5. Reportarlo es parte del entregable: un modelo "
+        "que no alcanza su umbral sobre el fixture sintético no puede presentarse como si lo "
+        "hiciera, y la cifra tiene que volver a mirarse contra los datos reales de US-104."
+    )
+
+
+def cumplimiento_umbrales(resultado_ml01, resultado_ml02, resultado_ml03=None) -> pd.DataFrame:
+    """Contrasta cada métrica contra su umbral de `ML_Strategy` §5 y **afirma** si se cumple.
+
+    Enunciar los umbrales y las cifras por separado deja la comparación al lector, y un umbral
+    incumplido se lee igual que uno cumplido. Aquí se resuelve en el propio reporte.
+    """
+    filas = [
+        ("ML-01", "MAE", resultado_ml01.mae_promedio, UMBRALES["ML-01_mae"], "menor"),
+        ("ML-01", "RMSE", resultado_ml01.rmse_promedio, UMBRALES["ML-01_rmse"], "menor"),
+        ("ML-02", "F1 macro", resultado_ml02.f1_macro_promedio, UMBRALES["ML-02_f1_macro"], "mayor"),
+    ]
+    if resultado_ml03 is not None:
+        filas.append(
+            ("ML-03", "Silhouette", resultado_ml03.silhouette_promedio,
+             UMBRALES["ML-03_silhouette"], "mayor")
+        )
+    registros = []
+    for modelo, metrica, valor, umbral, sentido in filas:
+        cumple = valor < umbral if sentido == "menor" else valor >= umbral
+        registros.append({
+            "modelo": modelo,
+            "metrica": metrica,
+            "valor": round(float(valor), 4),
+            "umbral": f"{'<' if sentido == 'menor' else '≥'} {umbral}",
+            "cumple": "✅ sí" if cumple else "❌ **no**",
+        })
+    return pd.DataFrame(registros)
+
+
+def _estado_ml03(resultado) -> str:
+    """Celda de cobertura de ML-03: evaluado, o pendiente con su dueña."""
+    if resultado is None:
+        return "⬜ **pendiente** — US-321 (Estefany Hernández), aún sin implementar"
+    return (
+        f"✅ evaluado — `k={resultado.k_seleccionado}`, "
+        f"Silhouette {resultado.silhouette_promedio:.4f}"
+    )
+
+
+def _cierre_ac0032(resultado) -> str:
+    """Dice si AC-003.2 ya está cubierto, sin adelantarse a la aprobación del PM."""
+    if resultado is None:
+        return "AC-003.2 no queda cerrado hasta que ML-03 reporte su Silhouette."
+    return (
+        "**Los tres modelos reportan su métrica**, que es lo que AC-003.2 exige. ML-03 entrena "
+        f"sobre {resultado.filas_entrenadas} de {resultado.filas_totales} filas: "
+        f"{resultado.filas_excluidas} quedan fuera por la política `{resultado.politica_ausencia}`, "
+        "porque KMeans no admite ausencias y **no se imputan** — la misma regla de cobertura "
+        "parcial que rige el resto del pipeline. Esa exclusión es parte del resultado, no una "
+        "limpieza previa: los grupos describen a las escuelas con datos completos, no al universo."
+    )
+
+
+def construir_reporte(df: pd.DataFrame, resultado_ml01, resultado_ml02, resultado_ml03=None) -> str:
     """Genera el documento Markdown completo, con frontmatter listo para el vault."""
-    comparativa = tabla_comparativa(resultado_ml01, resultado_ml02)
-    curva = curva_por_ventana(resultado_ml01, resultado_ml02)
+    comparativa = tabla_comparativa(resultado_ml01, resultado_ml02, resultado_ml03)
+    curva = curva_por_ventana(resultado_ml01, resultado_ml02, resultado_ml03)
     entidades = error_por_entidad(df, resultado_ml01)
     cobertura = cobertura_y_error(df, resultado_ml01)
+    umbrales = cumplimiento_umbrales(resultado_ml01, resultado_ml02, resultado_ml03)
+    incumplidos = umbrales[umbrales["cumple"].str.contains("no")]
     drivers = drivers_en_el_modelo(resultado_ml01, resultado_ml02)
     exclusiones = exclusiones_por_ventana(resultado_ml01, resultado_ml02)
     fuera_01 = resultado_ml01.drivers_excluidos
@@ -327,9 +447,13 @@ tags: [qa, ml, celula-3, metricas]
 
 {_md(comparativa)}
 
-ML-01 y ML-02 optimizan cosas distintas —error absoluto contra F1—, así que **sus métricas no se
-comparan entre sí**. Lo comparable es `mejora`: cuánto aporta cada modelo sobre su propio baseline.
-Un modelo que no supera su baseline no aporta nada, sin importar qué tan buena se vea su métrica.
+Los tres optimizan cosas distintas —error absoluto, F1 y separación de grupos—, así que **sus
+métricas no se comparan entre sí**. Entre ML-01 y ML-02 lo comparable es `mejora`: cuánto aporta
+cada uno sobre su propio baseline; el que no lo supera no aporta nada, por buena que se vea su cifra.
+
+**ML-03 no tiene baseline y por eso `mejora` va vacía**, no en cero. Es no supervisado: su
+Silhouette mide qué tan separados quedan los grupos, no cuánto le gana a un modelo tonto. Ponerle un
+cero lo haría parecer un modelo que no aporta, que es una afirmación distinta a "no aplica".
 
 ML-02 se entrena hoy contra `{target_ml02}`. Si es el proxy determinista, su F1 mide la capacidad
 de recuperar una etiqueta derivada de los propios drivers, **no de predecir un driver observado**;
@@ -403,6 +527,10 @@ apenas empieza— se resuelve solo conforme se carguen más ciclos.
 RMSE < {UMBRALES["ML-01_rmse"]} (5 puntos porcentuales); ML-02 F1 macro ≥
 {UMBRALES["ML-02_f1_macro"]}; ML-03 Silhouette ≥ {UMBRALES["ML-03_silhouette"]}.
 
+{_md(umbrales)}
+
+{_parrafo_umbrales(incumplidos)}
+
 ML-01 usa la misma unidad proporcional de `target_variacion_matricula`: `0.0141` equivale a un
 error medio de 1.41 puntos porcentuales. No se convierte a alumnos porque el contrato de features
 no incluye la matrícula base necesaria para hacerlo de forma reproducible. Los umbrales son
@@ -414,9 +542,9 @@ provisionales hasta ejecutar la evaluación contra los datos reales de US-104.
 |---|---|
 | ML-01 · regresión | ✅ evaluado |
 | ML-02 · clasificación | ✅ evaluado (target `{target_ml02}`) |
-| ML-03 · clustering | ⬜ **pendiente** — US-321 (Estefany Hernández), aún sin implementar |
+| ML-03 · clustering | {_estado_ml03(resultado_ml03)} |
 
-AC-003.2 no queda cerrado hasta que ML-03 reporte su Silhouette.
+{_cierre_ac0032(resultado_ml03)}
 """
 
 
@@ -434,14 +562,22 @@ def main() -> int:
 
     resultado_ml01 = entrenar_ml01(df01, n_ventanas=args.ventanas)
     resultado_ml02 = entrenar_ml02(df02, n_ventanas=args.ventanas)
+    # ML-03 consume las mismas features; no tiene cargador propio ni ventanas fijas.
+    resultado_ml03 = entrenar_ml03(df01, n_ventanas=args.ventanas)
     print(f"ML-01 MAE {resultado_ml01.mae_promedio:.4f} ± {resultado_ml01.mae_desviacion:.4f}")
     print(
         f"ML-02 F1 {resultado_ml02.f1_macro_promedio:.4f} ± {resultado_ml02.f1_macro_desviacion:.4f}"
         f" (target: {columna_target_disponible(df02)})"
     )
+    print(
+        f"ML-03 Silhouette {resultado_ml03.silhouette_promedio:.4f} "
+        f"(k={resultado_ml03.k_seleccionado}, {resultado_ml03.filas_excluidas} filas excluidas)"
+    )
 
     args.salida.parent.mkdir(parents=True, exist_ok=True)
-    args.salida.write_text(construir_reporte(df01, resultado_ml01, resultado_ml02), encoding="utf-8")
+    args.salida.write_text(
+        construir_reporte(df01, resultado_ml01, resultado_ml02, resultado_ml03), encoding="utf-8"
+    )
     print(f"Reporte escrito en {args.salida}")
 
     if args.figuras:

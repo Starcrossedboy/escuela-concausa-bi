@@ -123,6 +123,11 @@ tags: [requirements, traceability, matrix]
 |---|---|---|---|---|
 | `REQ-003` | `US-311`, `US-312` | Drivers usados/excluidos publicados en `Evaluacion_Modelos.md` §5 y §5.1 y registrados en MLflow (`cobertura_drivers`, `drivers_sin_datos` por ventana) ✅ · **BUG-023**: el reporte no podía generarse con un driver excluido porque predecía con los 6 ✅ · §5 acota la tabla a la corrida que la generó y declara el estado real de D5 en Gold ✅ · registro MLflow con pruebas (doble inyectado, corre sin `mlflow` en CI) ✅ · 9 pruebas nuevas · suite 510 ✅ | [[_DevLog/2026-08-28-hector-morales-drivers-en-evaluacion]] | 🟡 En progreso |
 
+## Evidencia incremental — 2026-08-28 · `cve_mun` en el contrato
+
+| REQ | Historias | Evidencia de prueba | DevLog | Estado |
+|---|---|---|---|---|
+| `REQ-003` | `US-325`, `US-311`, `US-313` | `agregar_a_municipio_nivel()` soporta `cve_mun` en el contrato sin colisión de sufijos y detecta el faltante con el indicador del merge ✅ · espejo `FeaturesEscuela` acepta el contrato antes y después del cambio (`extra=forbid`) ✅ · 4 pruebas nuevas verificadas contra regresión · suite 521 ✅ | [[_DevLog/2026-08-28-hector-morales-cve-mun-contrato]] | 🟡 En progreso |
 ## Evidencia incremental — 2026-08-28 · reconciliación integral de estatus
 
 | REQ | Historias | Evidencia / decisión de estado | Próxima validación | Estado |

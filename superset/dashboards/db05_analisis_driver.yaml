@@ -1,0 +1,458 @@
+# =============================================================================
+# DB-05 - Tablero Analisis por driver · definicion declarativa (US-213)
+# -----------------------------------------------------------------------------
+# Historia : US-213 (Monserrat Xcaret Miranda Olivas, Celula 2 - Analytics & BI)
+# Contrato : 04_UX_Design/Cube_Specs_DB05_DB08.md §3-§4
+# Consumido por : superset/sync_semantic_layer.py (idempotente)
+#
+# Un tab por driver (D1-D6): valor promedio, cobertura y evolucion por ciclo,
+# con desglose municipal. El filtro por driver de cada tab NO es codigo -- es
+# un `adhoc_filters` declarado en `params_extra` (mecanismo aprobado por
+# Manuel Serrania, US-202): filtra id_driver = 'Dx' antes de agregar, sobre el
+# mismo dataset db05_cubo_driver que ya usan los otros 5 tabs.
+#
+# Los 6 tabs siguen el mismo patron validado con D1 (estructura, YAML y datos
+# reales de Gold via dbt): mismo juego de 6 charts, filtrado por su propio
+# id_driver via adhoc_filters/params_extra, con la nota de fuente por driver
+# (Cube_Specs_DB05_DB08.md §3.3).
+# =============================================================================
+
+version: "1.0"
+owner: "Monserrat Xcaret Miranda Olivas"
+story: US-213
+
+dashboards:
+  - titulo: "DB-05 · Análisis por driver"
+    slug: db05-analisis-driver
+    descripcion: >
+      Un tab por driver (D1-D6): valor promedio, cobertura y evolución por ciclo,
+      con desglose municipal. Contrato: 04_UX_Design/Cube_Specs_DB05_DB08.md.
+    filtros_globales:
+      - columna: id_ciclo
+        etiqueta: "Ciclo escolar"
+        datasets: [db05_cubo_driver]
+      - columna: nombre_entidad
+        etiqueta: "Entidad"
+        datasets: [db05_cubo_driver]
+      - columna: nivel
+        etiqueta: "Nivel educativo"
+        datasets: [db05_cubo_driver]
+
+    tabs:
+      - id: D1
+        etiqueta: "D1 · Pobreza y rezago social"
+        nota: "CONEVAL (DS-07) · medido a nivel municipio"
+        charts:
+          - nombre: "D1 · KPI-19 · Valor promedio del driver"
+            dataset: db05_cubo_driver
+            metrica: valor_promedio_driver
+            viz: big_number_total
+            ancho: 3
+            alto: 38
+            subheader: "Promedio en el alcance filtrado"
+            params_extra:
+              adhoc_filters:
+                - expressionType: SIMPLE
+                  subject: id_driver
+                  operator: "=="
+                  comparator: "D1"
+                  clause: WHERE
+
+          - nombre: "D1 · Escuelas con dato del driver"
+            dataset: db05_cubo_driver
+            metrica: escuelas_con_dato
+            viz: big_number_total
+            ancho: 3
+            alto: 38
+            params_extra:
+              adhoc_filters:
+                - {expressionType: SIMPLE, subject: id_driver, operator: "==", comparator: "D1", clause: WHERE}
+
+          - nombre: "D1 · KPI-06 · % escuelas sin dato"
+            dataset: db05_cubo_driver
+            metrica: pct_escuelas_sin_dato
+            viz: big_number_total
+            ancho: 3
+            alto: 38
+            subheader: "SIN_DATO explícito, nunca cero (R2)"
+            params_extra:
+              adhoc_filters:
+                - {expressionType: SIMPLE, subject: id_driver, operator: "==", comparator: "D1", clause: WHERE}
+
+          - nombre: "D1 · Escuelas en el alcance"
+            dataset: db05_cubo_driver
+            metrica: escuelas
+            viz: big_number_total
+            ancho: 3
+            alto: 38
+            params_extra:
+              adhoc_filters:
+                - {expressionType: SIMPLE, subject: id_driver, operator: "==", comparator: "D1", clause: WHERE}
+
+          - nombre: "D1 · Valor promedio del driver por ciclo"
+            dataset: db05_cubo_driver
+            metrica: valor_promedio_driver
+            viz: echarts_timeseries_line
+            ancho: 6
+            alto: 60
+            eje_x: ciclo
+            params_extra:
+              adhoc_filters:
+                - {expressionType: SIMPLE, subject: id_driver, operator: "==", comparator: "D1", clause: WHERE}
+
+          - nombre: "D1 · Municipios · valor y cobertura"
+            dataset: db05_cubo_driver
+            metrica: valor_promedio_driver
+            viz: table
+            ancho: 6
+            alto: 60
+            dimensiones: [nombre_entidad, nombre_municipio, nivel, escuelas, escuelas_con_dato, cobertura_driver]
+            row_limit: 100
+            params_extra:
+              adhoc_filters:
+                - {expressionType: SIMPLE, subject: id_driver, operator: "==", comparator: "D1", clause: WHERE}
+
+      - id: D2
+        etiqueta: "D2 · Inseguridad del entorno"
+        nota: "SESNSP (DS-04) · medido a nivel municipio"
+        charts:
+          - nombre: "D2 · KPI-19 · Valor promedio del driver"
+            dataset: db05_cubo_driver
+            metrica: valor_promedio_driver
+            viz: big_number_total
+            ancho: 3
+            alto: 38
+            subheader: "Promedio en el alcance filtrado"
+            params_extra:
+              adhoc_filters:
+                - {expressionType: SIMPLE, subject: id_driver, operator: "==", comparator: "D2", clause: WHERE}
+
+          - nombre: "D2 · Escuelas con dato del driver"
+            dataset: db05_cubo_driver
+            metrica: escuelas_con_dato
+            viz: big_number_total
+            ancho: 3
+            alto: 38
+            params_extra:
+              adhoc_filters:
+                - {expressionType: SIMPLE, subject: id_driver, operator: "==", comparator: "D2", clause: WHERE}
+
+          - nombre: "D2 · KPI-06 · % escuelas sin dato"
+            dataset: db05_cubo_driver
+            metrica: pct_escuelas_sin_dato
+            viz: big_number_total
+            ancho: 3
+            alto: 38
+            subheader: "SIN_DATO explícito, nunca cero (R2)"
+            params_extra:
+              adhoc_filters:
+                - {expressionType: SIMPLE, subject: id_driver, operator: "==", comparator: "D2", clause: WHERE}
+
+          - nombre: "D2 · Escuelas en el alcance"
+            dataset: db05_cubo_driver
+            metrica: escuelas
+            viz: big_number_total
+            ancho: 3
+            alto: 38
+            params_extra:
+              adhoc_filters:
+                - {expressionType: SIMPLE, subject: id_driver, operator: "==", comparator: "D2", clause: WHERE}
+
+          - nombre: "D2 · Valor promedio del driver por ciclo"
+            dataset: db05_cubo_driver
+            metrica: valor_promedio_driver
+            viz: echarts_timeseries_line
+            ancho: 6
+            alto: 60
+            eje_x: ciclo
+            params_extra:
+              adhoc_filters:
+                - {expressionType: SIMPLE, subject: id_driver, operator: "==", comparator: "D2", clause: WHERE}
+
+          - nombre: "D2 · Municipios · valor y cobertura"
+            dataset: db05_cubo_driver
+            metrica: valor_promedio_driver
+            viz: table
+            ancho: 6
+            alto: 60
+            dimensiones: [nombre_entidad, nombre_municipio, nivel, escuelas, escuelas_con_dato, cobertura_driver]
+            row_limit: 100
+            params_extra:
+              adhoc_filters:
+                - {expressionType: SIMPLE, subject: id_driver, operator: "==", comparator: "D2", clause: WHERE}
+
+      - id: D3
+        etiqueta: "D3 · Infraestructura escolar"
+        nota: "CEMABE (DS-03) · medido a nivel escuela"
+        charts:
+          - nombre: "D3 · KPI-19 · Valor promedio del driver"
+            dataset: db05_cubo_driver
+            metrica: valor_promedio_driver
+            viz: big_number_total
+            ancho: 3
+            alto: 38
+            subheader: "Promedio en el alcance filtrado"
+            params_extra:
+              adhoc_filters:
+                - {expressionType: SIMPLE, subject: id_driver, operator: "==", comparator: "D3", clause: WHERE}
+
+          - nombre: "D3 · Escuelas con dato del driver"
+            dataset: db05_cubo_driver
+            metrica: escuelas_con_dato
+            viz: big_number_total
+            ancho: 3
+            alto: 38
+            params_extra:
+              adhoc_filters:
+                - {expressionType: SIMPLE, subject: id_driver, operator: "==", comparator: "D3", clause: WHERE}
+
+          - nombre: "D3 · KPI-06 · % escuelas sin dato"
+            dataset: db05_cubo_driver
+            metrica: pct_escuelas_sin_dato
+            viz: big_number_total
+            ancho: 3
+            alto: 38
+            subheader: "SIN_DATO explícito, nunca cero (R2)"
+            params_extra:
+              adhoc_filters:
+                - {expressionType: SIMPLE, subject: id_driver, operator: "==", comparator: "D3", clause: WHERE}
+
+          - nombre: "D3 · Escuelas en el alcance"
+            dataset: db05_cubo_driver
+            metrica: escuelas
+            viz: big_number_total
+            ancho: 3
+            alto: 38
+            params_extra:
+              adhoc_filters:
+                - {expressionType: SIMPLE, subject: id_driver, operator: "==", comparator: "D3", clause: WHERE}
+
+          - nombre: "D3 · Valor promedio del driver por ciclo"
+            dataset: db05_cubo_driver
+            metrica: valor_promedio_driver
+            viz: echarts_timeseries_line
+            ancho: 6
+            alto: 60
+            eje_x: ciclo
+            params_extra:
+              adhoc_filters:
+                - {expressionType: SIMPLE, subject: id_driver, operator: "==", comparator: "D3", clause: WHERE}
+
+          - nombre: "D3 · Municipios · valor y cobertura"
+            dataset: db05_cubo_driver
+            metrica: valor_promedio_driver
+            viz: table
+            ancho: 6
+            alto: 60
+            dimensiones: [nombre_entidad, nombre_municipio, nivel, escuelas, escuelas_con_dato, cobertura_driver]
+            row_limit: 100
+            params_extra:
+              adhoc_filters:
+                - {expressionType: SIMPLE, subject: id_driver, operator: "==", comparator: "D3", clause: WHERE}
+
+      - id: D4
+        etiqueta: "D4 · Conectividad digital"
+        nota: "CEMABE (DS-03) · medido a nivel escuela"
+        charts:
+          - nombre: "D4 · KPI-19 · Valor promedio del driver"
+            dataset: db05_cubo_driver
+            metrica: valor_promedio_driver
+            viz: big_number_total
+            ancho: 3
+            alto: 38
+            subheader: "Promedio en el alcance filtrado"
+            params_extra:
+              adhoc_filters:
+                - {expressionType: SIMPLE, subject: id_driver, operator: "==", comparator: "D4", clause: WHERE}
+
+          - nombre: "D4 · Escuelas con dato del driver"
+            dataset: db05_cubo_driver
+            metrica: escuelas_con_dato
+            viz: big_number_total
+            ancho: 3
+            alto: 38
+            params_extra:
+              adhoc_filters:
+                - {expressionType: SIMPLE, subject: id_driver, operator: "==", comparator: "D4", clause: WHERE}
+
+          - nombre: "D4 · KPI-06 · % escuelas sin dato"
+            dataset: db05_cubo_driver
+            metrica: pct_escuelas_sin_dato
+            viz: big_number_total
+            ancho: 3
+            alto: 38
+            subheader: "SIN_DATO explícito, nunca cero (R2)"
+            params_extra:
+              adhoc_filters:
+                - {expressionType: SIMPLE, subject: id_driver, operator: "==", comparator: "D4", clause: WHERE}
+
+          - nombre: "D4 · Escuelas en el alcance"
+            dataset: db05_cubo_driver
+            metrica: escuelas
+            viz: big_number_total
+            ancho: 3
+            alto: 38
+            params_extra:
+              adhoc_filters:
+                - {expressionType: SIMPLE, subject: id_driver, operator: "==", comparator: "D4", clause: WHERE}
+
+          - nombre: "D4 · Valor promedio del driver por ciclo"
+            dataset: db05_cubo_driver
+            metrica: valor_promedio_driver
+            viz: echarts_timeseries_line
+            ancho: 6
+            alto: 60
+            eje_x: ciclo
+            params_extra:
+              adhoc_filters:
+                - {expressionType: SIMPLE, subject: id_driver, operator: "==", comparator: "D4", clause: WHERE}
+
+          - nombre: "D4 · Municipios · valor y cobertura"
+            dataset: db05_cubo_driver
+            metrica: valor_promedio_driver
+            viz: table
+            ancho: 6
+            alto: 60
+            dimensiones: [nombre_entidad, nombre_municipio, nivel, escuelas, escuelas_con_dato, cobertura_driver]
+            row_limit: 100
+            params_extra:
+              adhoc_filters:
+                - {expressionType: SIMPLE, subject: id_driver, operator: "==", comparator: "D4", clause: WHERE}
+
+      - id: D5
+        etiqueta: "D5 · Estrés hídrico"
+        nota: "CONAGUA SINA (DS-06) · SIN_DATO explícito -- fuente aún no ingerida (Cube_Specs §3.3)"
+        charts:
+          - nombre: "D5 · KPI-19 · Valor promedio del driver"
+            dataset: db05_cubo_driver
+            metrica: valor_promedio_driver
+            viz: big_number_total
+            ancho: 3
+            alto: 38
+            subheader: "Promedio en el alcance filtrado"
+            params_extra:
+              adhoc_filters:
+                - {expressionType: SIMPLE, subject: id_driver, operator: "==", comparator: "D5", clause: WHERE}
+
+          - nombre: "D5 · Escuelas con dato del driver"
+            dataset: db05_cubo_driver
+            metrica: escuelas_con_dato
+            viz: big_number_total
+            ancho: 3
+            alto: 38
+            params_extra:
+              adhoc_filters:
+                - {expressionType: SIMPLE, subject: id_driver, operator: "==", comparator: "D5", clause: WHERE}
+
+          - nombre: "D5 · KPI-06 · % escuelas sin dato"
+            dataset: db05_cubo_driver
+            metrica: pct_escuelas_sin_dato
+            viz: big_number_total
+            ancho: 3
+            alto: 38
+            subheader: "SIN_DATO explícito, nunca cero (R2)"
+            params_extra:
+              adhoc_filters:
+                - {expressionType: SIMPLE, subject: id_driver, operator: "==", comparator: "D5", clause: WHERE}
+
+          - nombre: "D5 · Escuelas en el alcance"
+            dataset: db05_cubo_driver
+            metrica: escuelas
+            viz: big_number_total
+            ancho: 3
+            alto: 38
+            params_extra:
+              adhoc_filters:
+                - {expressionType: SIMPLE, subject: id_driver, operator: "==", comparator: "D5", clause: WHERE}
+
+          - nombre: "D5 · Valor promedio del driver por ciclo"
+            dataset: db05_cubo_driver
+            metrica: valor_promedio_driver
+            viz: echarts_timeseries_line
+            ancho: 6
+            alto: 60
+            eje_x: ciclo
+            params_extra:
+              adhoc_filters:
+                - {expressionType: SIMPLE, subject: id_driver, operator: "==", comparator: "D5", clause: WHERE}
+
+          - nombre: "D5 · Municipios · valor y cobertura"
+            dataset: db05_cubo_driver
+            metrica: valor_promedio_driver
+            viz: table
+            ancho: 6
+            alto: 60
+            dimensiones: [nombre_entidad, nombre_municipio, nivel, escuelas, escuelas_con_dato, cobertura_driver]
+            row_limit: 100
+            params_extra:
+              adhoc_filters:
+                - {expressionType: SIMPLE, subject: id_driver, operator: "==", comparator: "D5", clause: WHERE}
+
+      - id: D6
+        etiqueta: "D6 · Calidad del aire"
+        nota: "SINAICA (DS-05) · medido a nivel escuela (IDW, radio 15km)"
+        charts:
+          - nombre: "D6 · KPI-19 · Valor promedio del driver"
+            dataset: db05_cubo_driver
+            metrica: valor_promedio_driver
+            viz: big_number_total
+            ancho: 3
+            alto: 38
+            subheader: "Promedio en el alcance filtrado"
+            params_extra:
+              adhoc_filters:
+                - {expressionType: SIMPLE, subject: id_driver, operator: "==", comparator: "D6", clause: WHERE}
+
+          - nombre: "D6 · Escuelas con dato del driver"
+            dataset: db05_cubo_driver
+            metrica: escuelas_con_dato
+            viz: big_number_total
+            ancho: 3
+            alto: 38
+            params_extra:
+              adhoc_filters:
+                - {expressionType: SIMPLE, subject: id_driver, operator: "==", comparator: "D6", clause: WHERE}
+
+          - nombre: "D6 · KPI-06 · % escuelas sin dato"
+            dataset: db05_cubo_driver
+            metrica: pct_escuelas_sin_dato
+            viz: big_number_total
+            ancho: 3
+            alto: 38
+            subheader: "SIN_DATO explícito, nunca cero (R2)"
+            params_extra:
+              adhoc_filters:
+                - {expressionType: SIMPLE, subject: id_driver, operator: "==", comparator: "D6", clause: WHERE}
+
+          - nombre: "D6 · Escuelas en el alcance"
+            dataset: db05_cubo_driver
+            metrica: escuelas
+            viz: big_number_total
+            ancho: 3
+            alto: 38
+            params_extra:
+              adhoc_filters:
+                - {expressionType: SIMPLE, subject: id_driver, operator: "==", comparator: "D6", clause: WHERE}
+
+          - nombre: "D6 · Valor promedio del driver por ciclo"
+            dataset: db05_cubo_driver
+            metrica: valor_promedio_driver
+            viz: echarts_timeseries_line
+            ancho: 6
+            alto: 60
+            eje_x: ciclo
+            params_extra:
+              adhoc_filters:
+                - {expressionType: SIMPLE, subject: id_driver, operator: "==", comparator: "D6", clause: WHERE}
+
+          - nombre: "D6 · Municipios · valor y cobertura"
+            dataset: db05_cubo_driver
+            metrica: valor_promedio_driver
+            viz: table
+            ancho: 6
+            alto: 60
+            dimensiones: [nombre_entidad, nombre_municipio, nivel, escuelas, escuelas_con_dato, cobertura_driver]
+            row_limit: 100
+            params_extra:
+              adhoc_filters:
+                - {expressionType: SIMPLE, subject: id_driver, operator: "==", comparator: "D6", clause: WHERE}

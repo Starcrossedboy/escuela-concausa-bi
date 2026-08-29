@@ -126,8 +126,26 @@
             "title": "D6"
           },
           "driver_dominante": {
-            "title": "Driver Dominante",
-            "type": "string"
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Driver Dominante"
+          },
+          "es_estimado_por_grupo": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Es Estimado Por Grupo"
           },
           "indice_completitud_drivers": {
             "maximum": 1.0,
@@ -136,10 +154,17 @@
             "type": "number"
           },
           "indice_riesgo": {
-            "maximum": 1.0,
-            "minimum": 0.0,
-            "title": "Indice Riesgo",
-            "type": "number"
+            "anyOf": [
+              {
+                "maximum": 1.0,
+                "minimum": 0.0,
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Indice Riesgo"
           },
           "latitud": {
             "anyOf": [
@@ -179,6 +204,10 @@
           "sostenimiento": {
             "title": "Sostenimiento",
             "type": "string"
+          },
+          "tiene_prediccion": {
+            "title": "Tiene Prediccion",
+            "type": "boolean"
           }
         },
         "required": [
@@ -187,8 +216,7 @@
           "nivel",
           "cve_mun",
           "matricula_total",
-          "indice_riesgo",
-          "driver_dominante",
+          "tiene_prediccion",
           "sostenimiento",
           "indice_completitud_drivers"
         ],
@@ -210,14 +238,28 @@
             "type": "string"
           },
           "driver_dominante": {
-            "title": "Driver Dominante",
-            "type": "string"
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Driver Dominante"
           },
           "indice_riesgo": {
-            "maximum": 1.0,
-            "minimum": 0.0,
-            "title": "Indice Riesgo",
-            "type": "number"
+            "anyOf": [
+              {
+                "maximum": 1.0,
+                "minimum": 0.0,
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Indice Riesgo"
           },
           "matricula_total": {
             "minimum": 0.0,
@@ -231,6 +273,10 @@
           "nombre": {
             "title": "Nombre",
             "type": "string"
+          },
+          "tiene_prediccion": {
+            "title": "Tiene Prediccion",
+            "type": "boolean"
           }
         },
         "required": [
@@ -239,8 +285,7 @@
           "nivel",
           "cve_mun",
           "matricula_total",
-          "indice_riesgo",
-          "driver_dominante"
+          "tiene_prediccion"
         ],
         "title": "EscuelaOut",
         "type": "object"
@@ -565,8 +610,15 @@
             "type": "string"
           },
           "cluster": {
-            "title": "Cluster",
-            "type": "integer"
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cluster"
           },
           "driver_dominante": {
             "title": "Driver Dominante",
@@ -597,7 +649,6 @@
           "indice_riesgo",
           "driver_dominante",
           "recomendacion",
-          "cluster",
           "mlflow_run_id"
         ],
         "title": "PrediccionOut",
@@ -813,6 +864,11 @@
             "description": "Validation Error"
           }
         },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
         "summary": "Export",
         "tags": [
           "Administración"
@@ -835,6 +891,11 @@
             "description": "Successful Response"
           }
         },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
         "summary": "Metrics",
         "tags": [
           "Administración"
@@ -877,6 +938,11 @@
             "description": "Validation Error"
           }
         },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
         "summary": "Pipeline Run",
         "tags": [
           "Administración"
@@ -919,6 +985,11 @@
             "description": "Validation Error"
           }
         },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
         "summary": "Consulta",
         "tags": [
           "Agente"
@@ -1059,7 +1130,7 @@
     },
     "/api/v1/escuelas": {
       "get": {
-        "description": "Lista escuelas de Gold con filtros opcionales y paginación (rol mínimo: ciudadano).",
+        "description": "Lista escuelas de Gold con filtros, ordenamiento opcionales y paginación (rol mínimo:\nciudadano). `SIN_DATO` en el campo de orden siempre queda al final (ver `repositorio_gold.py`).",
         "operationId": "listar_escuelas_api_v1_escuelas_get",
         "parameters": [
           {
@@ -1132,6 +1203,42 @@
           },
           {
             "in": "query",
+            "name": "order_by",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "enum": [
+                    "cct",
+                    "nombre",
+                    "matricula_total",
+                    "indice_riesgo"
+                  ],
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Order By"
+            }
+          },
+          {
+            "in": "query",
+            "name": "order",
+            "required": false,
+            "schema": {
+              "default": "asc",
+              "enum": [
+                "asc",
+                "desc"
+              ],
+              "title": "Order",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
             "name": "page",
             "required": false,
             "schema": {
@@ -1176,6 +1283,11 @@
             "description": "Validation Error"
           }
         },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
         "summary": "Listar Escuelas",
         "tags": [
           "Gold"
@@ -1219,6 +1331,11 @@
             "description": "Validation Error"
           }
         },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
         "summary": "Obtener Escuela",
         "tags": [
           "Gold"
@@ -1249,7 +1366,7 @@
     },
     "/api/v1/kpis": {
       "get": {
-        "description": "KPIs agregados del tablero (rol mínimo: ciudadano).",
+        "description": "KPIs agregados del tablero (rol mínimo: ciudadano).\n\nFórmulas tomadas literalmente de `04_UX_Design/Screen_Specs.md` (KPI-02 variación ponderada,\nKPI-04 escuelas en riesgo vía JOIN a `gold.predicciones` con umbral 0.6 ratificado, KPI-05\ncompletitud promedio) — no son agregaciones inventadas para este endpoint.",
         "operationId": "obtener_kpis_api_v1_kpis_get",
         "parameters": [
           {
@@ -1327,6 +1444,11 @@
             "description": "Validation Error"
           }
         },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
         "summary": "Obtener Kpis",
         "tags": [
           "Gold"
@@ -1335,7 +1457,7 @@
     },
     "/api/v1/municipios": {
       "get": {
-        "description": "Lista municipios de Gold con filtros opcionales y paginación (rol mínimo: ciudadano).",
+        "description": "Lista municipios de Gold con filtros, ordenamiento opcionales y paginación (rol mínimo:\nciudadano).\n\n`ciclo` no filtra `dim_municipio` (no tiene esa columna, Data_Model.md §4.2 — el municipio\nno varía por ciclo escolar); se acepta en la firma por paridad con el contrato (§3.3) y\nse ignora, igual que hacía el stub de mock_data. `SIN_DATO` en el campo de orden siempre\nqueda al final (ver `repositorio_gold.py`).",
         "operationId": "listar_municipios_api_v1_municipios_get",
         "parameters": [
           {
@@ -1370,6 +1492,43 @@
                 }
               ],
               "title": "Ciclo"
+            }
+          },
+          {
+            "in": "query",
+            "name": "order_by",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "enum": [
+                    "cve_mun",
+                    "nombre_municipio",
+                    "poblacion",
+                    "indice_rezago_social",
+                    "pobreza_pct"
+                  ],
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Order By"
+            }
+          },
+          {
+            "in": "query",
+            "name": "order",
+            "required": false,
+            "schema": {
+              "default": "asc",
+              "enum": [
+                "asc",
+                "desc"
+              ],
+              "title": "Order",
+              "type": "string"
             }
           },
           {
@@ -1418,6 +1577,11 @@
             "description": "Validation Error"
           }
         },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
         "summary": "Listar Municipios",
         "tags": [
           "Gold"
@@ -1461,6 +1625,11 @@
             "description": "Validation Error"
           }
         },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
         "summary": "Obtener Municipio",
         "tags": [
           "Gold"
@@ -1469,7 +1638,7 @@
     },
     "/api/v1/predicciones/batch": {
       "post": {
-        "description": "Inferencia en lote (rol mínimo: **analista** — se forzará en US-403).",
+        "description": "Inferencia en lote (rol mínimo: **analista** — se forzará en US-403).\n\nOmite silenciosamente los CCT sin fila en `gold.predicciones` -- nunca inventa una\npredicción para un CCT fuera de alcance o sin modelo corrido.",
         "operationId": "prediccion_batch_api_v1_predicciones_batch_post",
         "requestBody": {
           "content": {
@@ -1503,6 +1672,11 @@
             "description": "Validation Error"
           }
         },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
         "summary": "Prediccion Batch",
         "tags": [
           "Predicciones"
@@ -1556,6 +1730,11 @@
             "description": "Validation Error"
           }
         },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
         "summary": "Prediccion",
         "tags": [
           "Predicciones"
@@ -1599,6 +1778,11 @@
             "description": "Validation Error"
           }
         },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
         "summary": "Explicacion",
         "tags": [
           "Predicciones"

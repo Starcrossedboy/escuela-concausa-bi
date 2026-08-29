@@ -51,6 +51,9 @@ Thumbs.db
 # ---- Obsidian ----
 .obsidian/workspace*
 .obsidian/cache
+# Estado local del grafo del editor: cambia solo con abrir el vault y ensuciaba
+# los diffs de cualquier PR. No es configuración compartida.
+.obsidian/graph.json
 
 # ---- Graphify ----
 graphify-out/cost.json
@@ -63,3 +66,4 @@ graphify-out/20??-??-??/
 # ---- Snapshots efímeros de reportes ----
 13_Reports/data/github-activity.json
 !dbt/seeds/*.csv
+tests/fixtures/*.db

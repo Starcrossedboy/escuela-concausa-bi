@@ -127,7 +127,13 @@ CICLO_DEFAULT = "2024-2025"
 
 
 def prediccion_de_escuela(escuela: dict, id_ciclo: str = CICLO_DEFAULT) -> dict:
-    """Deriva un `PrediccionOut` de ejemplo a partir de una escuela del mock."""
+    """Deriva un `PrediccionOut` de ejemplo a partir de una escuela del mock.
+
+    Ya no respalda `/predicciones/*` (US-412 lee `gold.predicciones` real vía
+    `RepositorioModelos`, cierra BUG-010); queda como referencia para un mock server standalone
+    (§6 de `API_Specification.md`). `cluster` es `None`: inventar un entero aquí es justo lo que
+    BUG-010 señaló como engañoso, aunque sea en el mock -- ML-03 (US-321) sigue sin productor.
+    """
     driver = escuela["driver_dominante"]
     return {
         "cct": escuela["cct"],
@@ -135,7 +141,7 @@ def prediccion_de_escuela(escuela: dict, id_ciclo: str = CICLO_DEFAULT) -> dict:
         "indice_riesgo": escuela["indice_riesgo"],
         "driver_dominante": driver,
         "recomendacion": RECOMENDACION_POR_DRIVER.get(driver, "Sin recomendación."),
-        "cluster": (int(escuela["cve_mun"][:2]) % 4),
+        "cluster": None,  # ML-03 sin productor (BUG-010, US-321)
         "mlflow_run_id": "mock-run-0000000000000000",
     }
 

@@ -37,7 +37,7 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 
-from src.modelos.contrato import entidad_de_cct
+from src.modelos.contrato import DRIVERS, entidad_de_cct
 from src.modelos.entrenar_ml01 import COLUMNA_TARGET as TARGET_ML01
 from src.modelos.entrenar_ml01 import cargar_features
 from src.modelos.entrenar_ml01 import entrenar_y_evaluar as entrenar_ml01
@@ -156,7 +156,10 @@ def error_por_entidad(df: pd.DataFrame, resultado_ml01) -> pd.DataFrame:
     _, prueba = particion.aplicar(df)
     from src.modelos.entrenar_ml01 import _matriz
 
-    predicho = resultado_ml01.modelo.predict(_matriz(prueba))
+    # Las columnas deben ser las del entrenamiento: si un driver quedó fuera por falta de datos,
+    # pasarlo aquí rompe el predict — y es justo el caso que este reporte tiene que documentar.
+    columnas = list(getattr(resultado_ml01.modelo, "feature_names_in_", DRIVERS))
+    predicho = resultado_ml01.modelo.predict(_matriz(prueba, columnas))
 
     detalle = pd.DataFrame(
         {
@@ -185,7 +188,10 @@ def cobertura_y_error(df: pd.DataFrame, resultado_ml01) -> pd.DataFrame:
     _, prueba = particion.aplicar(df)
     from src.modelos.entrenar_ml01 import _matriz
 
-    predicho = resultado_ml01.modelo.predict(_matriz(prueba))
+    # Las columnas deben ser las del entrenamiento: si un driver quedó fuera por falta de datos,
+    # pasarlo aquí rompe el predict — y es justo el caso que este reporte tiene que documentar.
+    columnas = list(getattr(resultado_ml01.modelo, "feature_names_in_", DRIVERS))
+    predicho = resultado_ml01.modelo.predict(_matriz(prueba, columnas))
     detalle = pd.DataFrame(
         {
             "completitud": prueba["indice_completitud_drivers"].to_numpy(),
@@ -204,6 +210,50 @@ def cobertura_y_error(df: pd.DataFrame, resultado_ml01) -> pd.DataFrame:
     )
 
 
+def drivers_en_el_modelo(resultado_ml01, resultado_ml02) -> pd.DataFrame:
+    """Qué drivers entraron a cada modelo y cuáles quedaron fuera por falta de datos.
+
+    Que un driver no aporte **nada** es un hallazgo del proyecto, no un detalle de implementación:
+    significa que su fuente no está llegando. Hasta ahora eso sólo existía como un `print` en la
+    consola de quien corría el entrenamiento y como un campo del resultado en memoria; aquí queda
+    en el artefacto publicado, que es donde se puede citar.
+
+    Args:
+        resultado_ml01: `ResultadoEntrenamiento` de ML-01.
+        resultado_ml02: `ResultadoML02` de ML-02.
+
+    Returns:
+        Una fila por driver, con su estado en cada modelo.
+    """
+    usados_01, usados_02 = set(resultado_ml01.drivers_usados), set(resultado_ml02.drivers_usados)
+    return pd.DataFrame(
+        {
+            "driver": list(DRIVERS),
+            "ML-01": ["entró" if d in usados_01 else "**fuera**" for d in DRIVERS],
+            "ML-02": ["entró" if d in usados_02 else "**fuera**" for d in DRIVERS],
+        }
+    )
+
+
+def exclusiones_por_ventana(resultado_ml01, resultado_ml02) -> pd.DataFrame:
+    """Detalle por ventana: un driver puede faltar sólo en el tramo con el que se entrena.
+
+    Es la distinción que costó dos vueltas descubrir (BUG-015): un driver ausente **siempre** es un
+    hueco de fuente, mientras que uno ausente **sólo en las ventanas viejas** se resuelve solo en
+    cuanto haya más ciclos cargados. No son el mismo problema ni tienen el mismo dueño.
+    """
+    filas: list[dict[str, str]] = []
+    for modelo, resultado in (("ML-01", resultado_ml01), ("ML-02", resultado_ml02)):
+        por_ventana = getattr(resultado, "excluidos_por_ventana", None) or {}
+        for ventana, fuera in por_ventana.items():
+            filas.append(
+                {"modelo": modelo, "ventana": ventana, "sin_datos": ", ".join(fuera)}
+            )
+    if not filas:
+        return pd.DataFrame({"modelo": [], "ventana": [], "sin_datos": []})
+    return pd.DataFrame(filas)
+
+
 def _md(df: pd.DataFrame, decimales: int = 4) -> str:
     """DataFrame → tabla Markdown, con números estables para que el diff sea legible."""
     copia = df.copy()
@@ -215,12 +265,39 @@ def _md(df: pd.DataFrame, decimales: int = 4) -> str:
     return "\n".join([encabezado, separador, *filas])
 
 
+def _md_o_prosa(df: pd.DataFrame, si_vacio: str) -> str:
+    """Tabla Markdown, o una frase cuando no hay filas.
+
+    Una tabla con encabezado y cero filas se lee como "no se midió", que es justo lo contrario de
+    lo que significa. Si no hay nada que reportar, hay que decirlo con palabras.
+    """
+    return _md(df) if not df.empty else si_vacio
+
+
+def _parrafo_exclusiones(fuera_ml01: tuple[str, ...], fuera_ml02: tuple[str, ...]) -> str:
+    """Redacta el hallazgo en prosa, para que el reporte se lea sin descifrar la tabla."""
+    if not fuera_ml01 and not fuera_ml02:
+        return "Los seis drivers tienen datos suficientes: **ningún driver quedó fuera**."
+    partes = []
+    if fuera_ml01:
+        partes.append(f"ML-01 entrena con {len(DRIVERS) - len(fuera_ml01)} de {len(DRIVERS)} "
+                      f"drivers; queda fuera `{'`, `'.join(fuera_ml01)}`")
+    if fuera_ml02:
+        partes.append(f"ML-02 con {len(DRIVERS) - len(fuera_ml02)} de {len(DRIVERS)}; "
+                      f"queda fuera `{'`, `'.join(fuera_ml02)}`")
+    return "**" + ". ".join(partes) + ".**"
+
+
 def construir_reporte(df: pd.DataFrame, resultado_ml01, resultado_ml02) -> str:
     """Genera el documento Markdown completo, con frontmatter listo para el vault."""
     comparativa = tabla_comparativa(resultado_ml01, resultado_ml02)
     curva = curva_por_ventana(resultado_ml01, resultado_ml02)
     entidades = error_por_entidad(df, resultado_ml01)
     cobertura = cobertura_y_error(df, resultado_ml01)
+    drivers = drivers_en_el_modelo(resultado_ml01, resultado_ml02)
+    exclusiones = exclusiones_por_ventana(resultado_ml01, resultado_ml02)
+    fuera_01 = resultado_ml01.drivers_excluidos
+    fuera_02 = resultado_ml02.drivers_excluidos
     target_ml02 = resultado_ml02.columna_target_usada
     peor = entidades.iloc[0]
 
@@ -286,7 +363,41 @@ Responde la pregunta que el proyecto se hace explícitamente: **¿predecimos peo
 datos?** Si el error crece al bajar la completitud, el sistema es menos confiable justo en las
 zonas con cobertura parcial —y eso debe declararse junto a la predicción, no esconderse.
 
-## 5. Umbrales de aceptación
+## 5. Drivers que entraron al modelo
+
+{_md(drivers)}
+
+{_parrafo_exclusiones(fuera_01, fuera_02)}
+
+> [!important] Esta tabla describe **la corrida que generó este reporte**, no el estado de las
+> fuentes en producción
+> Hoy se genera contra `tests/fixtures/features_escuela_mock.csv`, que trae los seis drivers
+> poblados a propósito. Que aquí digan "entró" **no significa que la fuente esté llegando**.
+>
+> Contra el Gold real la tabla será distinta, y ya se sabe en qué: `features_escuela.sql` fija
+> `d5_agua = NULL` y `d5_cobertura = 'SIN_DATO'` de forma explícita, y ningún modelo Gold consume
+> `silver.agua_region`. **Mientras ese enlace no se conecte, ML-01 entrenará con 5 de 6 drivers y
+> D5 (agua) será el que quede fuera.** Regenerar este reporte contra `gold.features_escuela` (US-104)
+> es lo que convierte esa afirmación en cifra publicada.
+
+Un driver excluido **no es un ajuste técnico**: es una fuente que no está llegando. Aparece aquí, y
+no sólo en la consola de quien entrena, porque es una cifra que el proyecto tiene que poder citar —
+decir "el modelo entrena con 5 de 6 drivers" obliga a decir también cuál falta y por qué.
+
+Los `SIN_DATO` de un driver que sí entró no se imputan: llegan al modelo como ausencia real
+(`HistGradientBoosting` los maneja de forma nativa). Lo que se excluye es únicamente el driver que
+no tiene **ningún** valor con el que aprender.
+
+### 5.1 Exclusiones por ventana
+
+{_md_o_prosa(exclusiones, "Ninguna ventana de entrenamiento se quedó sin un driver: **todos tuvieron datos en todos los tramos** de esta corrida.")}
+
+La cobertura se evalúa dentro de cada ventana de entrenamiento, no sobre el conjunto completo. La
+distinción importa y tiene dueños distintos: un driver ausente en **todas** las ventanas es un hueco
+de fuente que alguien debe ir a buscar; uno ausente sólo en las **más viejas** —porque su serie
+apenas empieza— se resuelve solo conforme se carguen más ciclos.
+
+## 6. Umbrales de aceptación
 
 `15_ML_Models/ML_Strategy` §5 fija: ML-01 MAE < {UMBRALES["ML-01_mae"]} (3 puntos porcentuales) y
 RMSE < {UMBRALES["ML-01_rmse"]} (5 puntos porcentuales); ML-02 F1 macro ≥
@@ -297,7 +408,7 @@ error medio de 1.41 puntos porcentuales. No se convierte a alumnos porque el con
 no incluye la matrícula base necesaria para hacerlo de forma reproducible. Los umbrales son
 provisionales hasta ejecutar la evaluación contra los datos reales de US-104.
 
-## 6. Cobertura de la evaluación
+## 7. Cobertura de la evaluación
 
 | Modelo | Estado |
 |---|---|

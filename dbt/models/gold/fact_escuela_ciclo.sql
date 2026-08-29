@@ -25,7 +25,7 @@ with matricula_ciclo as (
         ciclo as id_ciclo,
         alumnos_total as matricula_total,
         cast(split_part(ciclo, '-', 1) as int) as anio_inicio
-    from {{ source('silver', 'matricula') }}
+    from {{ ref('matricula') }}
 
 ),
 
@@ -84,7 +84,7 @@ cemabe_binarios as (
         case when sanitarios in ('0', '1') then sanitarios::numeric end as sanitarios_num,
         case when internet in ('0', '1') then internet::numeric end as internet_num,
         case when computadoras in ('0', '1') then computadoras::numeric end as computadoras_num
-    from {{ source('silver', 'cemabe') }}
+    from {{ ref('cemabe') }}
 
 ),
 
@@ -126,7 +126,7 @@ rezago_ultimo as (
         row_number() over (
             partition by cve_mun order by periodo_medicion desc
         ) as _rn
-    from {{ source('silver', 'rezago_municipio') }}
+    from {{ ref('rezago_municipio') }}
 
 ),
 
@@ -161,7 +161,7 @@ d1 as (
 delitos_por_municipio as (
 
     select cve_mun, sum(conteo) as conteo_total
-    from {{ source('silver', 'delitos_municipio') }}
+    from {{ ref('delitos_municipio') }}
     group by cve_mun
 
 ),
@@ -188,10 +188,12 @@ d2 as (
 
 ),
 
--- D6: calidad del aire, SINAICA, interpolación IDW hacia cada escuela (ADR-006, US-105).
--- Radio válido 15km, potencia 2 (IDW estándar); fuera de radio -> SIN_DATO explícito. Solo
--- usa lecturas de PM2.5 (contaminante criterio más reportado por SINAICA, ver DS-05.md §5)
--- marcadas válidas por la propia API (dato_valido = 1).
+-- FIX (2026-08-22, hallazgo de Luis García en PR #63, US-123b/TEST-010): 21 de 384 estaciones
+-- traen el placeholder literal "0.0" en latitud/longitud en vez de un SIN_DATO explícito. El
+-- filtro de radio (distancia_km <= 15) ya las descartaba de facto -- ninguna escuela de México
+-- cae a <15km de (0,0), frente a la costa de África -- pero era "correcto de casualidad", no
+-- por diseño. Se filtran aquí explícitamente para no depender de la geografía (Data_Model.md
+-- §3: "SIN_DATO explícito, nunca cero ni nulo silencioso").
 aire_pm25 as (
 
     select
@@ -199,9 +201,10 @@ aire_pm25 as (
         max(latitud) as latitud,
         max(longitud) as longitud,
         avg(valor) as pm25_promedio
-    from {{ source('silver', 'aire_estacion') }}
+    from {{ ref('aire_estacion') }}
     where parametro = 'PM2.5' and dato_valido = 1
         and latitud is not null and longitud is not null
+        and latitud != 0 and longitud != 0
     group by id_estacion
 
 ),

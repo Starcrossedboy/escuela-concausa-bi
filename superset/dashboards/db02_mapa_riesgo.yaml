@@ -1,0 +1,100 @@
+# =============================================================================
+# DB-02 - Mapa de riesgo territorial · definicion declarativa (US-203)
+# -----------------------------------------------------------------------------
+# Historia : US-203 (Manuel Alejandro Serrania Reinada, Celula 2 - Analytics & BI)
+# Contrato : 04_UX_Design/Screen_Specs.md §2
+# Consumido por : superset/sync_semantic_layer.py (idempotente)
+#
+# El coropletico depende del dataset db02_coropletico, que a su vez requiere
+# gold.geo_municipio (cargador local: superset/cargar_geojson_municipios.py).
+# Si ese dataset no existe, sync lo omite con aviso y el resto del tablero
+# se despliega igual.
+# =============================================================================
+
+version: "1.0"
+owner: "Manuel Alejandro Serranía Reinada"
+story: US-203
+
+dashboards:
+  - titulo: "DB-02 · Mapa de riesgo territorial"
+    slug: db02-mapa-riesgo
+    descripcion: >
+      Riesgo escolar en el territorio (KPI-03/04): coroplético municipal,
+      puntos de escuela georreferenciados y ranking municipal. Los municipios
+      sin predicción ML-01 se muestran como SIN_DATO, nunca como riesgo cero.
+    filtros_globales:
+      - columna: id_ciclo
+        etiqueta: "Ciclo escolar"
+        datasets: [db02_cubo_riesgo_territorial, db02_coropletico, db02_puntos_escuela]
+      - columna: nombre_entidad
+        etiqueta: "Entidad"
+        datasets: [db02_cubo_riesgo_territorial, db02_coropletico, db02_puntos_escuela]
+      - columna: nivel
+        etiqueta: "Nivel educativo"
+        datasets: [db02_cubo_riesgo_territorial, db02_puntos_escuela]
+
+    charts:
+      # ----- Fila 1: tiles KPI -------------------------------------------------
+      - nombre: "KPI-04 · Escuelas en riesgo"
+        dataset: db02_cubo_riesgo_territorial
+        metrica: escuelas_en_riesgo
+        viz: big_number_total
+        ancho: 3
+        alto: 38
+        subheader: "Índice ≥ 0.6 (umbral R3)"
+
+      - nombre: "% de escuelas en riesgo"
+        dataset: db02_cubo_riesgo_territorial
+        metrica: pct_escuelas_en_riesgo
+        viz: big_number_total
+        ancho: 3
+        alto: 38
+        subheader: "Sobre escuelas con predicción"
+
+      - nombre: "KPI-03 · Índice de riesgo promedio"
+        dataset: db02_cubo_riesgo_territorial
+        metrica: indice_riesgo_promedio
+        viz: big_number_total
+        ancho: 3
+        alto: 38
+        subheader: "Promedio municipal ponderado"
+
+      - nombre: "Matrícula expuesta"
+        dataset: db02_cubo_riesgo_territorial
+        metrica: matricula_total
+        viz: big_number_total
+        ancho: 3
+        alto: 38
+        subheader: "Alumnado en municipios del alcance"
+
+      # ----- Fila 2: mapa -------------------------------------------------------
+      - nombre: "Coroplético municipal de riesgo (KPI-10)"
+        dataset: db02_coropletico
+        metrica: indice_riesgo_promedio
+        viz: deck_polygon
+        ancho: 8
+        alto: 90
+        columna_geometria: geometria
+        basemap: "https://tile.openstreetmap.org/{z}/{x}/{y}.png"
+        basemap_nombre: OpenStreetMap
+
+      - nombre: "Escuelas por índice de riesgo (puntos)"
+        dataset: db02_puntos_escuela
+        metrica: indice_riesgo
+        viz: deck_scatter
+        ancho: 4
+        alto: 90
+        latitud: latitud
+        longitud: longitud
+        categoria: nivel
+        radio_px: 8
+
+      # ----- Fila 3: detalle ----------------------------------------------------
+      - nombre: "Ranking municipal por escuelas en riesgo (KPI-04)"
+        dataset: db02_cubo_riesgo_territorial
+        metrica: pct_escuelas_en_riesgo
+        viz: table
+        ancho: 12
+        alto: 70
+        dimensiones: [nombre_entidad, nombre_municipio]
+        row_limit: 50

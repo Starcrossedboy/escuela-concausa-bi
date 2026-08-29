@@ -6,7 +6,7 @@ status: approved
 version: "1.0"
 traces_up: ["01_Product/PRD", "02_Requirements/User_Stories"]
 traces_down: ["US-211b", "US-213", "US-214b", "US-215b"]
-last_reviewed: "2026-07-31"
+last_reviewed: "2026-08-28"
 tags: [sprint, plan, celula-2, nivel-medio]
 ---
 
@@ -288,8 +288,8 @@ Actualiza esta tabla **antes de cada standup**. El PM la revisa para el tablero 
 
 | ID | Historia | Estado | % | Bloqueado por | Fecha compromiso |
 |---|---|---|---|---|---|
-| `US-211b` | Cubos y metricas de DB-05 y DB-08 | ⬜ Por iniciar | 0% | — | Dom 23 ago |
-| `US-213` | Construir DB-05 Analisis por driver y DB-0 | ⬜ Por iniciar | 0% | — | Dom 30 ago |
+| `US-211b` | Cubos y metricas de DB-05 y DB-08 | ✅ Terminado | 100% | — | Cerrada 25 ago |
+| `US-213` | Construir DB-05 Analisis por driver y DB-0 | 🔵 En revisión (PR #114) | 90% | Aprobación de Edgar (PM) — correcciones ya aplicadas (bug renumerado, main mezclado, nit de plantilla) | Hoy 28 ago |
 | `US-214b` | Filtros y drill-down en DB-05 y DB-08 | ⬜ Por iniciar | 0% | — | Dom 6 sep |
 | `US-215b` | Usabilidad/accesibilidad DB-05 y DB-08 | ⬜ Por iniciar | 0% | — | Dom 6 sep |
 

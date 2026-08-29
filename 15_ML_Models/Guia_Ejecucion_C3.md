@@ -2,8 +2,8 @@
 id: DOC-C3-GUIA-EJECUCION
 title: "Guía de ejecución local — Célula 3"
 owner: "Andrés González Habib"
-status: draft
-version: "0.1"
+status: in_review
+version: "0.2"
 traces_up: ["US-302", "US-303", "US-304a", "REQ-003", "REQ-006"]
 traces_down: ["src/modelos/entrenar_ml02.py", "src/agente/guardrails.py", "src/agente/prompt.py", "tests/test_entrenar_ml02.py", "tests/test_agente_guardrails.py", "tests/test_agente_prompt.py", "tests/test_mlflow_utils.py"]
 tags: [ml, agente, setup, pruebas, celula-3]
@@ -15,8 +15,8 @@ tags: [ml, agente, setup, pruebas, celula-3]
 
 ## Objetivo
 
-Comandos mínimos para validar el avance independiente de Célula 3: guardarraíles del agente, prompt,
-scaffold de ML-02 y helper MLflow.
+Comandos mínimos para validar ML-02, su publicación a Gold, las explicaciones SHAP, el helper MLflow
+y los guardarraíles del agente.
 
 ## Ambiente usado en esta rama
 
@@ -37,13 +37,13 @@ de Célula 3 completa y viven en `requirements/celula-3.txt`.
 ## Correr pruebas enfocadas
 
 ```powershell
-.\.venv\Scripts\python.exe -m pytest tests/test_agente_guardrails.py tests/test_agente_prompt.py tests/test_entrenar_ml02.py tests/test_mlflow_utils.py -q --tb=short
+.\.venv\Scripts\python.exe -m pytest tests/test_agente_guardrails.py tests/test_agente_prompt.py tests/test_entrenar_ml02.py tests/test_publicar_gold.py tests/test_mlflow_utils.py -q --tb=short
 ```
 
 Resultado observado en esta sesión:
 
 ```text
-25 passed in 7.71s
+59 passed
 ```
 
 ## Ejecutar ML-02 contra fixture sintético
@@ -72,6 +72,34 @@ Cuando Célula 5 confirme el `MLFLOW_TRACKING_URI`:
 
 Para solo registrar run/artefacto sin publicar en registry, omitir `--registrar-modelo`.
 
+El registro ejecuta un preflight de compatibilidad y, cuando se usa `--registrar-modelo`, exige que
+MLflow confirme una versión y la guarda como tag `registered_model_version`.
+
+Para comprobar ML-02 después del registro:
+
+```powershell
+.\.venv\Scripts\python.exe -m src.modelos.verificar_registry --modelo ML02_DriverClasificador
+```
+
+Sin `--modelo`, el comando comprueba que ML-01, ML-02 y ML-03 tengan al menos una versión y reporta
+por nombre cualquier modelo faltante.
+
+## Publicar ML-01 y ML-02 en Gold
+
+```powershell
+$env:DATABASE_URL = "<URL SQLAlchemy del entorno local>"
+.\.venv\Scripts\python.exe -m src.modelos.publicar_gold --features <RUTA_FEATURES>
+```
+
+El job publica `gold.predicciones` desde ML-01 y `gold.recomendaciones` desde ML-02. La unión se
+valida uno-a-uno por `cct` e `id_ciclo`; no inventa recomendaciones para escuelas sin features.
+
+## Validar SHAP
+
+`explicar_driver()` entrega `cct`, `driver_dominante` y seis contribuciones `D1`…`D6`, conforme a
+`ExplicacionSHAPOut`. Requiere `shap` de `requirements/celula-3.txt`; se verificó localmente con una
+explicación real sobre el fixture sintético.
+
 ## Validar vault
 
 ```powershell
@@ -87,7 +115,9 @@ Resultado observado:
 ## Limitaciones conocidas
 
 - ML-02 usa `driver_dominante_proxy`; falta confirmación humana de la etiqueta real.
-- SHAP queda disponible como función opcional, pero no se ejecuta en CI base porque `shap` no está en
-  `requirements.txt`.
+- SHAP no se ejecuta en CI base porque `shap` no está en `requirements.txt`; sus transformaciones de
+  contrato sí tienen prueba unitaria y el cálculo real se validó en el entorno de Célula 3.
 - US-303 no puede cerrarse hasta tener ML-03 y el acuerdo de MLflow/API.
+- El registry end-to-end requiere las variables locales de Compose; sin ellas `docker compose`
+  rechaza la configuración antes de iniciar MLflow.
 - US-304a no queda integrado end-to-end hasta que existan RAG (US-304b) y endpoint real del agente.

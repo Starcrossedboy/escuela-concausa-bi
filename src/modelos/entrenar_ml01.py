@@ -39,7 +39,7 @@ from __future__ import annotations
 
 import argparse
 import os
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 
 import numpy as np
@@ -100,11 +100,19 @@ class MetricasVentana:
 
 @dataclass(frozen=True)
 class ResultadoEntrenamiento:
-    """Resultado completo del backtesting más el modelo de producción."""
+    """Resultado completo del backtesting más el modelo de producción.
+
+    `drivers_usados` y `drivers_excluidos` describen el modelo que queda en `modelo` —el de la
+    última ventana—, no todas las ventanas. La cobertura se evalúa por ventana y puede variar
+    entre ellas: `excluidos_por_ventana` guarda ese detalle para poder diagnosticarlo.
+    """
 
     ventanas: tuple[MetricasVentana, ...]
     modelo: HistGradientBoostingRegressor
     error_por_entidad: pd.DataFrame
+    drivers_usados: tuple[str, ...] = DRIVERS
+    drivers_excluidos: tuple[str, ...] = ()
+    excluidos_por_ventana: dict[str, tuple[str, ...]] = field(default_factory=dict)
 
     @property
     def mae_promedio(self) -> float:
@@ -139,27 +147,118 @@ def cargar_features(ruta: Path = FEATURES_POR_DEFECTO) -> pd.DataFrame:
         raise FileNotFoundError(
             f"No existe {ruta}. Genera el fixture con: python -m src.modelos.generar_fixture"
         )
-    df = pd.read_parquet(ruta) if ruta.suffix == ".parquet" else pd.read_csv(ruta)
+    # `cve_mun` es puramente numérica ("09001"): sin dtype explícito pandas la infiere int64 y se
+    # come el cero de la izquierda, con lo que "09001" llega como 9001 y el join contra
+    # `dim_municipio` -- y la agregación de DEC-007 -- fallan en silencio para las 9 entidades
+    # cuya clave INEGI empieza en cero, CDMX incluida.
+    df = (
+        pd.read_parquet(ruta)
+        if ruta.suffix == ".parquet"
+        else pd.read_csv(ruta, dtype={"cve_mun": str})
+    )
+    return _validar_contrato(df, "La tabla de features")
 
+
+def _validar_contrato(df: pd.DataFrame, origen: str) -> pd.DataFrame:
+    """Comprueba que la tabla traiga las columnas del contrato `FeaturesEscuela` (§5.3)."""
     faltantes = ({COLUMNA_TARGET, COLUMNA_CICLO, "cct"} | set(DRIVERS)) - set(df.columns)
     if faltantes:
-        raise ValueError(f"La tabla de features no cumple el contrato; faltan: {sorted(faltantes)}")
+        raise ValueError(
+            f"{origen} no cumple el contrato de `gold.features_escuela`; faltan: {sorted(faltantes)}"
+        )
     return df
 
 
-def _matriz(df: pd.DataFrame) -> pd.DataFrame:
-    """Extrae los 6 drivers. Los `SIN_DATO` quedan como `NaN`, sin imputar."""
-    return df[list(DRIVERS)]
+def cargar_features_desde_gold(
+    engine,
+    esquema: str = "gold",
+    tabla: str = "features_escuela",
+) -> pd.DataFrame:
+    """Lee `gold.features_escuela` directamente de la base, en vez del fixture (cierra BUG-013).
+
+    `publicar_gold` nació apuntando al fixture sintético porque la Célula 1 aún no materializaba
+    Gold. Con la tabla real disponible, seguir leyendo el fixture publica predicciones de un ciclo
+    que el hecho real no tiene: el `JOIN` por `(cct, id_ciclo)` da cero y DB-03 muestra
+    `SIN_DATO` en el 100 % de las escuelas.
+
+    Args:
+        engine: motor SQLAlchemy apuntando al Postgres donde vive Gold.
+        esquema: esquema de la tabla.
+        tabla: nombre de la tabla de features.
+
+    Returns:
+        DataFrame con el contrato `FeaturesEscuela`.
+
+    Raises:
+        ValueError: si la tabla no existe, está vacía o no cumple el contrato.
+    """
+    from sqlalchemy import inspect as _inspect
+
+    if not _inspect(engine).has_table(tabla, schema=esquema):
+        raise ValueError(
+            f"No existe `{esquema}.{tabla}` en la base. Materialízala con `dbt run` antes de "
+            "publicar (US-104, Célula 1)."
+        )
+
+    df = pd.read_sql_table(tabla, engine, schema=esquema)
+    if df.empty:
+        raise ValueError(f"`{esquema}.{tabla}` existe pero está vacía; no hay nada que publicar.")
+    return _validar_contrato(df, f"`{esquema}.{tabla}`")
+
+
+def _matriz(df: pd.DataFrame, columnas: list[str] | None = None) -> pd.DataFrame:
+    """Extrae los drivers utilizables. Los `SIN_DATO` quedan como `NaN`, sin imputar."""
+    return df[list(columnas if columnas is not None else DRIVERS)]
+
+
+def drivers_utilizables(df: pd.DataFrame) -> list[str]:
+    """Drivers con al menos un valor observado en este conjunto.
+
+    Un driver **100 % `SIN_DATO`** —cero valores en todo el conjunto— rompe el binning de
+    `HistGradientBoostingRegressor`: al no haber ningún valor distinto, sklearn falla con
+    `window shape cannot be larger than input array shape`, un error que no dice nada sobre la
+    causa real.
+
+    Ese caso no es hipotético: en `gold.features_escuela` real, **D5 (agua) está completo en
+    `SIN_DATO`** porque DS-06 (CONAGUA) sigue sin descarga verificada. Un driver así no aporta
+    información y **se excluye**, pero **nunca en silencio**: la exclusión se reporta, porque
+    "este driver no aportó nada" es un hallazgo del proyecto, no un detalle de implementación.
+
+    Una columna **constante** sí es utilizable: sklearn la maneja, y su ausencia de varianza es
+    información legítima que el modelo puede ignorar por su cuenta.
+    """
+    return [d for d in DRIVERS if df[d].notna().any()]
+
+
+def _entidades_de(df: pd.DataFrame) -> list[str]:
+    """Deriva la clave de entidad, sea el grano escuela o `municipio × nivel`.
+
+    `features_escuela` no trae `cve_ent`, así que la entidad se deduce de la llave disponible: los
+    dos primeros caracteres del `cct` a nivel escuela, o los de `cve_mun` en el grano agregado de
+    DEC-007. Ambas claves INEGI empiezan con la entidad, así que el desglose de US-312 funciona en
+    los dos granos sin pedir columnas nuevas.
+
+    Raises:
+        ValueError: si el DataFrame no trae ninguna de las dos llaves.
+    """
+    if "cct" in df.columns:
+        return [entidad_de_cct(c) for c in df["cct"]]
+    if "cve_mun" in df.columns:
+        return [str(m)[:2] for m in df["cve_mun"]]
+    raise ValueError(
+        "No hay de dónde derivar la entidad: se esperaba `cct` (grano escuela) o `cve_mun` "
+        "(grano municipio_nivel, DEC-007)."
+    )
 
 
 def _error_por_entidad(df_prueba: pd.DataFrame, predicho: np.ndarray) -> pd.DataFrame:
     """Desglosa el error por entidad federativa (insumo de US-312).
 
-    `features_escuela` no trae `cve_ent`, así que la entidad se deriva del CCT.
+    Funciona en los dos granos: la entidad se deriva de `cct` o de `cve_mun`, según cuál esté.
     """
     detalle = pd.DataFrame(
         {
-            "entidad": [entidad_de_cct(c) for c in df_prueba["cct"]],
+            "entidad": _entidades_de(df_prueba),
             "real": df_prueba[COLUMNA_TARGET].to_numpy(),
             "predicho": predicho,
         }
@@ -193,7 +292,17 @@ def entrenar_y_evaluar(
         de producción y el desglose de error por entidad.
     """
     params = {**HIPERPARAMETROS, **(hiperparametros or {})}
+
+    sin_datos_global = [d for d in DRIVERS if d not in drivers_utilizables(df)]
+    if sin_datos_global:
+        print(
+            f"⚠️  Drivers sin ningún dato en todo el conjunto: {sin_datos_global}. "
+            "Quedan fuera del modelo."
+        )
+
     ventanas: list[MetricasVentana] = []
+    usables: list[str] = []
+    excluidos_por_ventana: dict[str, tuple[str, ...]] = {}
     modelo: HistGradientBoostingRegressor | None = None
     error_entidad = pd.DataFrame()
 
@@ -201,8 +310,26 @@ def entrenar_y_evaluar(
         entrena, prueba = particion.aplicar(df)
         verificar_sin_fuga(entrena, prueba)  # garantía ejecutable de AC-003.3
 
-        x_entrena, y_entrena = _matriz(entrena), entrena[COLUMNA_TARGET]
-        x_prueba, y_prueba = _matriz(prueba), prueba[COLUMNA_TARGET]
+        # La cobertura se evalúa DENTRO de la ventana, no sobre el conjunto completo: un driver
+        # puede tener datos sólo en el ciclo más reciente —como D6 tras la interpolación IDW de
+        # US-105— y quedar totalmente vacío en el tramo con el que se entrena. Comprobarlo global
+        # no lo detecta, y sklearn falla al binear con un error que no dice por qué.
+        usables = drivers_utilizables(entrena)
+        if not usables:
+            raise ValueError(
+                f"Ningún driver tiene datos en la ventana de entrenamiento {particion}. "
+                "No hay con qué entrenar; revisa la cobertura por ciclo de `gold.features_escuela`."
+            )
+        fuera = [d for d in DRIVERS if d not in usables]
+        if fuera:
+            excluidos_por_ventana[str(particion)] = tuple(fuera)
+            print(
+                f"⚠️  {particion}: sin datos en el entrenamiento {fuera}; "
+                f"se entrena con {len(usables)} de {len(DRIVERS)} drivers."
+            )
+
+        x_entrena, y_entrena = _matriz(entrena, usables), entrena[COLUMNA_TARGET]
+        x_prueba, y_prueba = _matriz(prueba, usables), prueba[COLUMNA_TARGET]
 
         modelo = HistGradientBoostingRegressor(**params).fit(x_entrena, y_entrena)
         predicho = modelo.predict(x_prueba)
@@ -224,7 +351,12 @@ def entrenar_y_evaluar(
         raise RuntimeError("El backtesting no produjo ninguna ventana.")
 
     return ResultadoEntrenamiento(
-        ventanas=tuple(ventanas), modelo=modelo, error_por_entidad=error_entidad
+        ventanas=tuple(ventanas),
+        modelo=modelo,
+        error_por_entidad=error_entidad,
+        drivers_usados=tuple(usables),
+        drivers_excluidos=tuple(d for d in DRIVERS if d not in usables),
+        excluidos_por_ventana=excluidos_por_ventana,
     )
 
 
@@ -263,6 +395,16 @@ def registrar_en_mlflow(
         mlflow.log_params({f"modelo__{k}": v for k, v in HIPERPARAMETROS.items()})
         mlflow.log_param("n_ventanas", len(resultado.ventanas))
         mlflow.log_param("particion", "temporal walk-forward (nunca aleatoria)")
+        # Un driver excluido es una fuente que no está llegando, no un ajuste técnico: queda como
+        # parámetro de la corrida para poder responder "¿con qué datos se entrenó esto?" meses
+        # después, cuando el print de la consola ya no exista.
+        mlflow.log_param("drivers_usados", list(resultado.drivers_usados))
+        mlflow.log_param("drivers_excluidos", list(resultado.drivers_excluidos))
+        mlflow.log_param("n_drivers_usados", len(resultado.drivers_usados))
+        mlflow.set_tag(
+            "cobertura_drivers",
+            f"{len(resultado.drivers_usados)} de {len(DRIVERS)}",
+        )
         mlflow.log_metrics(
             {
                 "mae_promedio": resultado.mae_promedio,
@@ -277,6 +419,10 @@ def registrar_en_mlflow(
         for i, ventana in enumerate(resultado.ventanas, start=1):
             with mlflow.start_run(run_name=f"ventana-{i}", nested=True):
                 mlflow.log_param("ciclos_entrenamiento", list(ventana.particion.ciclos_entrenamiento))
+                mlflow.log_param(
+                    "drivers_sin_datos",
+                    list(resultado.excluidos_por_ventana.get(str(ventana.particion), ())),
+                )
                 mlflow.log_param("ciclos_prueba", list(ventana.particion.ciclos_prueba))
                 mlflow.log_metrics(
                     {

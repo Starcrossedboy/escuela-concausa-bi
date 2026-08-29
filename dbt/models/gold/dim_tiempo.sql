@@ -1,12 +1,10 @@
--- NOTA (merge 2026-08-18, Diana): Data_Model.md §5.1 documenta la columna como `id_ciclo`,
--- pero silver.matricula (US-111, Deni) la entrega como `ciclo`. Se aliasea aquí para no
--- tocar el modelo de Deni sin coordinar; pendiente decidir con ella/Edgar cuál nombre es
--- el canónico y, si es `ciclo`, actualizar Data_Model.md §5.1 (es fuente de verdad, regla 7).
+-- Decisión canónica coordinada en US-111: Silver expone `ciclo`; Gold conserva
+-- `id_ciclo` como PK/FK del esquema estrella. El alias de abajo es intencional.
 with ciclos as (
 
     select distinct
         ciclo as id_ciclo
-    from {{ source('silver', 'matricula') }}
+    from {{ ref('matricula') }}
 
 )
 

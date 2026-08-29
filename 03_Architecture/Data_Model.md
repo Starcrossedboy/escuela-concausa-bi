@@ -123,7 +123,11 @@ erDiagram
   `poblacion`, `indice_rezago_social`, `grado_rezago`, `pobreza_pct`.
 - **`dim_tiempo`** — `id_ciclo` (PK), `ciclo` (`2023-2024`), `anio_inicio`, `anio_fin`.
 - **`dim_driver`** — `id_driver` (`D1`…`D6`), `nombre`, `descripcion`, `fuente`, `cobertura`,
-  `nivel_geografico`.
+  `nivel_geografico`. Catálogo canónico en `dbt/seeds/dim_driver.csv`; `nombre` es siempre uno de
+  `Pobreza` (D1), `Inseguridad` (D2), `Infraestructura` (D3), `Conectividad` (D4), `Agua` (D5),
+  `Aire` (D6) — nombres cortos, exigidos por `accepted_values` en `dbt/seeds/_gold__seeds.yml`
+  (BUG-022). Cualquier otro texto (p.ej. "Pobreza y rezago social") es de un mock desactualizado,
+  no del catálogo real.
 
 ### 4.3 Cubos materializados (para los 10 dashboards)
 Agregaciones precalculadas para que Superset responda rápido. Cada cubo expone su **bandera de
@@ -131,12 +135,12 @@ cobertura**. Mapa cubo → dashboard:
 
 | Cubo | Alimenta | Grano |
 |---|---|---|
-| `gold.cubo_matricula` | DB-01, DB-06 | entidad × municipio × ciclo |
-| `gold.cubo_riesgo_territorial` | DB-02 | municipio × ciclo |
+| `gold.cubo_matricula` | DB-01, DB-06 | municipio × nivel × ciclo |
+| `gold.cubo_riesgo_territorial` | DB-02 | municipio × nivel × ciclo |
 | `gold.cubo_escuela_360` | DB-03 | cct × ciclo |
 | `gold.cubo_comparador_municipio` | DB-04 | municipio × nivel × ciclo |
-| `gold.cubo_driver` | DB-05 | driver × municipio × ciclo |
-| `gold.cubo_completitud` | DB-07 | municipio × driver × ciclo |
+| `gold.cubo_driver` | DB-05 | driver × municipio × nivel × ciclo |
+| `gold.cubo_completitud` | DB-07 | municipio × nivel × driver × ciclo |
 | `gold.cubo_pivot` | DB-08 | cct × driver × ciclo (base pivotable) |
 | `gold.cubo_recomendaciones` | DB-09 | cct × ciclo |
 | `gold.cubo_pipeline` | DB-10 | fuente × fecha_ingesta |
@@ -145,19 +149,51 @@ cobertura**. Mapa cubo → dashboard:
 > y un cubo ya agregado no se puede desagregar después. Se bajó el grano a
 > `municipio × nivel × ciclo` y las métricas se almacenan como **numerador y denominador por
 > separado** (no como razón/ratio precalculada), para que cualquier filtro downstream reagregue
-> correctamente — mismo principio de medidas aditivas crudas que `fact_escuela_ciclo` (DEC-005).
+> correctamente — mismo principio de medidas aditivas crudas de `fact_escuela_ciclo`.
 > Decisión de esquema tomada por Diana Alvarez Varela (Tech Lead Célula 1, regla 7) el 14 ago
-> 2026, a partir del hallazgo de Marina García en US-211a. Pendiente registrar en Decision_Log.
+> 2026, a partir del hallazgo de Marina García en US-211a. Registrada como **DEC-008**.
+>
+> **Nota de diseño — `cubo_matricula`, `cubo_riesgo_territorial`, `cubo_driver`,
+> `cubo_completitud`:** mismo problema de `cubo_comparador_municipio`, extendido a los cuatro
+> cubos restantes que alimentan tableros con filtro global de nivel educativo (DB-01, DB-02,
+> DB-05, DB-07). Los cuatro bajan su grano para incluir `nivel` y guardan sus métricas como
+> **numerador y denominador por separado**, nunca como razón/promedio precalculado — mismo
+> principio que DEC-008. `cubo_pivot` (DB-08) y `cubo_escuela_360` (DB-03) no lo necesitan: su
+> grano a nivel CCT ya trae `nivel` gratis vía `dim_escuela`.
+> Señalado por Deni Garrido Fragoso (US-113) y Monserrat Xcaret Miranda Olivas (US-211b,
+> `04_UX_Design/Cube_Specs_DB05_DB08.md` §8.1) el 22 ago 2026; decisión de esquema tomada por
+> Diana Alvarez Varela (Tech Lead Célula 1, regla 7) el 23 ago 2026. Registrada como **DEC-009**.
 
 ### 4.4 `gold.features_escuela` — contrato con la Célula 3
-- **Grano:** una fila por **CCT × ciclo**. Los 6 drivers **normalizados** (0–1) + banderas de cobertura
-  + el target de entrenamiento. Contrato **cerrado y versionado** (ver §5.3).
+- **Grano:** una fila por **CCT × ciclo**. `cve_mun` (clave INEGI, 5 caracteres) + los 6 drivers
+  **normalizados** (0–1) + banderas de cobertura + el target de entrenamiento. Contrato **cerrado
+  y versionado** (ver §5.3).
+- **`cve_mun` (US-325, 2026-08-29):** existía como llave de join interna desde el día 1 (D1/D2 se
+  resuelven por municipio); se expone en el contrato a partir de aquí para el análisis de sesgo
+  por cobertura parcial de Estefany Hernández Loredo (C3). Decisión de esquema tomada por Diana
+  Alvarez Varela (Tech Lead Célula 1, regla 7) — cambio aditivo, un solo productor, no requiere
+  ADR (contrasta con ADR-007, donde dos productores generaban la misma columna).
 
 ### 4.5 Salida de modelos
-- **`gold.predicciones`** — `cct`, `id_ciclo`, `modelo` (`ML-01`/`ML-02`/`ML-03`), `valor`
-  (variación cruda, para métricas MAE/RMSE de ML-01), **`indice_riesgo`** (float[0,1], columna
-  derivada calculada en `src/modelos/riesgo.py`), `probabilidad`, `mlflow_run_id`, `generado_at`.
+- **`gold.predicciones`** — grano **dual** desde DEC-010: `grano` (`escuela` | `municipio_nivel`,
+  discriminador explícito) · `cct` (sólo si `grano = escuela`) · `cve_mun` + `nivel` (sólo si
+  `grano = municipio_nivel`) · `id_ciclo` · `modelo` (`ML-01`/`ML-02`/`ML-03`) · `valor`
+  (variación cruda, para métricas MAE/RMSE de ML-01) · **`indice_riesgo`** (float[0,1], columna
+  derivada calculada en `src/modelos/riesgo.py`, sólo tiene sentido a nivel `escuela` hoy) ·
+  `probabilidad` · `mlflow_run_id` · `generado_at`. Exactamente uno de `cct` o
+  (`cve_mun`+`nivel`) debe estar poblado según `grano` — nunca ambos, nunca ninguno.
 - **`gold.recomendaciones`** — `cct`, `id_ciclo`, `driver_dominante`, `recomendacion`, `prioridad`.
+  Se mantiene siempre a grano escuela (el carácter prescriptivo no se agrega, ver PR #56).
+
+> **Nota de diseño — `gold.predicciones` a grano dual:** ML-01 puede predecir a nivel
+> `municipio × nivel` (DEC-007, mitigación de RISK-007) mientras las features y el driver
+> dominante se mantienen a nivel `cct`. Repartir el valor predicho a cada escuela del grupo le
+> atribuiría a una escuela un valor que no se midió ahí — mismo tipo de dato inventado que las
+> reglas de `SIN_DATO` de este proyecto prohíben en otros contextos. Se agrega el discriminador
+> `grano` en vez de repartir. Decisión de esquema tomada por Diana Alvarez Varela (Tech Lead
+> Célula 1, regla 7) el 23-ago-2026, a partir de la pregunta de Héctor Morales (PR #56) — forma
+> exacta del contrato de la API (`PrediccionOut`) pendiente de confirmar con Imanol Ruiz Hurtado
+> (Tech Lead Célula 4). Registrada como **DEC-010**.
 
 ---
 
@@ -177,7 +213,7 @@ class Cobertura(str, Enum):
 
 class SilverMatricula(BaseModel):
     cct: StrictStr = Field(min_length=10, max_length=10)
-    id_ciclo: StrictStr                       # p. ej. "2023-2024"
+    ciclo: StrictStr                          # p. ej. "2023-2024"
     cve_mun: StrictStr = Field(min_length=5, max_length=5)
     matricula_total: StrictInt = Field(ge=0)
     _source: StrictStr
@@ -215,6 +251,7 @@ class FeaturesEscuela(BaseModel):
     model_config = {"extra": "forbid"}         # ninguna columna fuera de contrato
     cct: StrictStr = Field(min_length=10, max_length=10)
     id_ciclo: StrictStr
+    cve_mun: StrictStr | None = None   # US-325, 2026-08-29; default por PRs en paralelo (ver §4.4)
     d1_pobreza: StrictFloat | None = Field(ge=0, le=1)      # None ⇒ ver *_cobertura
     d2_inseguridad: StrictFloat | None = Field(ge=0, le=1)
     d3_infraestructura: StrictFloat | None = Field(ge=0, le=1)
@@ -227,9 +264,22 @@ class FeaturesEscuela(BaseModel):
     d4_cobertura: Cobertura
     d5_cobertura: Cobertura
     d6_cobertura: Cobertura
+    driver_dominante: DriverDominante | None                # etiqueta OPERATIVA, ver nota abajo
     indice_completitud_drivers: StrictFloat = Field(ge=0, le=1)
     target_variacion_matricula: StrictFloat                 # etiqueta (partición temporal)
 ```
+
+> **`driver_dominante` (US-302, acordado con Andrés González Habib/C3 el 2026-08-28):** etiqueta
+> **operativa** derivada por argmax entre los drivers con `*_cobertura = 'OK'` — **no** es una
+> observación independiente ni evidencia causal. Desempate determinista `D1 > D2 > D3 > D4 > D5 >
+> D6`; `NULL` cuando ninguna fila tiene un driver elegible. Es la misma regla que ya vivía como
+> `generar_driver_dominante_proxy()` en `src/modelos/entrenar_ml02.py` (C3), centralizada aquí para
+> que Gold y Python no puedan divergir — hay una prueba de paridad entre ambos en
+> `tests/test_entrenar_ml02.py::test_paridad_driver_dominante_real_contra_proxy`. **No confundir**
+> con el `driver_dominante` de `gold.recomendaciones` (§4.1, nota de `gold.fact_escuela_ciclo`
+> arriba): ese es la *predicción* del clasificador ML-02 ya entrenado, servida por inferencia; este
+> es la *etiqueta de entrenamiento* que hace posible entrenarlo. Son la misma regla de argmax
+> aplicada en dos momentos distintos del pipeline, no el mismo dato.
 
 ### 5.4 Configuración con `pydantic-settings`
 Los parámetros del pipeline se leen de variables de entorno (`.env` nunca se sube), no se hardcodean:
@@ -343,6 +393,9 @@ GOLD    fact_escuela_ciclo + dims + cubos   (estrella, 4 ENTIDADES)
    ▼
 CUBOS materializados  ──►  Superset DB-01 … DB-10
 ```
+> **Detalle completo (US-106):** el diagrama de arriba es la vista rápida por capa. El linaje
+> nodo por nodo — cada tabla real, su estado de materialización, y la checklist de freeze — vive
+> en [[03_Architecture/Data_Lineage_US106|Data_Lineage_US106]].
 
 ---
 

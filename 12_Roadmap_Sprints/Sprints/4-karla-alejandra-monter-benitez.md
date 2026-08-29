@@ -6,7 +6,7 @@ status: approved
 version: "1.0"
 traces_up: ["01_Product/PRD", "02_Requirements/User_Stories"]
 traces_down: ["US-411", "US-413", "US-414"]
-last_reviewed: "2026-07-31"
+last_reviewed: "2026-08-28"
 tags: [sprint, plan, celula-4, nivel-medio]
 ---
 
@@ -278,7 +278,7 @@ Actualiza esta tabla **antes de cada standup**. El PM la revisa para el tablero 
 
 | ID | Historia | Estado | % | Bloqueado por | Fecha compromiso |
 |---|---|---|---|---|---|
-| `US-411` | Implementar los endpoints de datos sobre G | ⬜ Por iniciar | 0% | — | Dom 23 ago |
+| `US-411` | Implementar los endpoints de datos sobre G | 🔵 En revisión | 90% | BUG-020: rutas con BD responden 500 en producción | Junta de cierre |
 | `US-413` | Endpoints administrativos protegidos | ⬜ Por iniciar | 0% | — | Dom 6 sep |
 | `US-414` | Documentar la API en OpenAPI y publicar la | ⬜ Por iniciar | 0% | — | Dom 6 sep |
 

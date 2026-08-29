@@ -14,7 +14,6 @@ PALABRAS_AMBITO = frozenset(
         "escuela",
         "escuelas",
         "matricula",
-        "matricula",
         "riesgo",
         "driver",
         "drivers",
@@ -49,6 +48,7 @@ VERBOS_PROHIBIDOS = frozenset(
         "delete",
         "drop",
         "insert",
+        "into",
         "merge",
         "replace",
         "truncate",
@@ -61,6 +61,18 @@ VERBOS_PROHIBIDOS = frozenset(
 PATRON_PALABRA = re.compile(r"\b[a-zA-Z_][a-zA-Z0-9_]*\b")
 PATRON_LIMIT = re.compile(r"\blimit\s+(\d+)\b", re.IGNORECASE)
 PATRON_COMENTARIO = re.compile(r"(--|/\*|\*/)")
+PATRON_REFERENCIA = re.compile(
+    r"\b(?:from|join)\s+([a-zA-Z_][a-zA-Z0-9_]*(?:\.[a-zA-Z_][a-zA-Z0-9_]*)?)",
+    re.IGNORECASE,
+)
+PATRON_CTE = re.compile(
+    r"(?:\bwith\b|,)\s*([a-zA-Z_][a-zA-Z0-9_]*)\s+as\s*\(",
+    re.IGNORECASE,
+)
+PATRON_JOIN_COMA = re.compile(
+    r"\bfrom\s+[a-zA-Z_][a-zA-Z0-9_.]*(?:\s+(?:as\s+)?[a-zA-Z_][a-zA-Z0-9_]*)?\s*,",
+    re.IGNORECASE,
+)
 
 
 @dataclass(frozen=True)
@@ -107,6 +119,23 @@ def validar_sql_lectura(sql: str) -> ResultadoGuardrail:
     prohibidos = sorted(set(tokens) & VERBOS_PROHIBIDOS)
     if prohibidos:
         return ResultadoGuardrail(False, f"SQL contiene verbo prohibido: {', '.join(prohibidos)}.")
+    if PATRON_JOIN_COMA.search(consulta):
+        return ResultadoGuardrail(False, "SQL con unión por coma no permitido; usa JOIN explícito.")
+
+    referencias = [referencia.lower() for referencia in PATRON_REFERENCIA.findall(consulta)]
+    if not referencias:
+        return ResultadoGuardrail(False, "SQL sin tabla de Gold.")
+    ctes = {cte.lower() for cte in PATRON_CTE.findall(consulta)}
+    fuera_de_gold = [
+        referencia
+        for referencia in referencias
+        if not referencia.startswith("gold.") and referencia not in ctes
+    ]
+    if fuera_de_gold:
+        return ResultadoGuardrail(
+            False,
+            f"SQL fuera del esquema Gold: {', '.join(sorted(set(fuera_de_gold)))}.",
+        )
     return ResultadoGuardrail(True)
 
 

@@ -1,0 +1,64 @@
+version: 2
+
+models:
+  - name: cubo_recomendaciones
+    description: >
+      US-113 / DB-09. Vista materializada a grano CCT × ciclo sobre el universo
+      escolar observado. Expone cobertura explícita OK/SIN_DATO y el componente
+      aditivo `recomendacion_emitida`, cuya suma reproduce exactamente KPI-11
+      (`COUNT(*)` de gold.recomendaciones) sin obligar a Superset a inferir
+      ausencia ni convertir campos ML faltantes a cero.
+    columns:
+      - name: cct
+        data_tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_escuela')
+                field: cct
+      - name: id_ciclo
+        data_tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_tiempo')
+                field: id_ciclo
+      - name: cve_mun
+        data_tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_municipio')
+                field: cve_mun
+      - name: cve_ent
+        data_tests: [not_null]
+      - name: nivel
+        data_tests: [not_null]
+
+      - name: driver_dominante
+        data_tests:
+          - accepted_values:
+              arguments:
+                values: ['D1', 'D2', 'D3', 'D4', 'D5', 'D6']
+                quote: true
+      - name: prioridad
+        data_tests:
+          - accepted_values:
+              arguments:
+                values: ['alta', 'media', 'baja']
+                quote: true
+
+      - name: recomendacion_emitida
+        data_tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: [0, 1]
+                quote: false
+
+      - name: cobertura_recomendacion
+        data_tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: ['OK', 'SIN_DATO']

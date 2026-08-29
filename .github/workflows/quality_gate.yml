@@ -1,0 +1,34 @@
+name: PR Quality Gate
+
+on:
+  pull_request:
+    # `edited` es indispensable (BUG-014): el check lee el cuerpo del PR desde el payload
+    # del evento, así que sin este disparador un cuerpo corregido después del push se queda
+    # en rojo para siempre. Costó los PR #73, #78, #79, #84, #88, #94, #98 y #105.
+    types: [opened, edited, synchronize, reopened, ready_for_review]
+    branches:
+      - main
+
+jobs:
+  quality-checks:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: 📥 Descargar código
+        uses: actions/checkout@v3
+
+      - name: 📝 Verificar que la plantilla de PR esté completa
+        env:
+          PR_BODY: ${{ github.event.pull_request.body }}
+        # La lógica vive en un script para poder probarla (BUG-014). Su regresión es
+        # .github/scripts/probar_verificar_plantilla.sh — 7 casos, que leen la plantilla real
+        # del repositorio: con el patrón anterior no podía pasar su propio gate.
+        run: bash .github/scripts/verificar_plantilla_pr.sh
+
+      - name: 🐍 Configurar Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+
+      - name: 🔍 Ejecutar vault_lint.py
+        run: python _Meta/scripts/vault_lint.py .

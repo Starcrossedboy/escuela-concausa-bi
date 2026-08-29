@@ -45,6 +45,18 @@ models:
         data_tests:
           - not_null
 
+      - name: cve_mun
+        description: >
+          Clave INEGI de municipio a 5 caracteres (US-325: expuesta a partir de aquí para
+          análisis geográfico de cobertura parcial; misma fuente que cct, silver.matricula).
+          Ya se usaba internamente como llave de join de D1/D2, nunca antes en el contrato.
+        data_tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_municipio')
+                field: cve_mun
+
       - name: d1_cobertura
         description: "Cobertura de D1 (pobreza/rezago social, CONEVAL)."
         data_tests:
@@ -87,6 +99,20 @@ models:
               arguments:
                 values: ['OK', 'SIN_DATO']
 
+      - name: driver_dominante
+        description: >
+          Etiqueta OPERATIVA (US-302, acordada con Andrés González Habib/C3 el 2026-08-28):
+          argmax entre los drivers con cobertura 'OK'. NO es una observación independiente ni
+          evidencia causal -- es la misma regla que ya usaba `generar_driver_dominante_proxy()`
+          en entrenar_ml02.py, centralizada aquí. Desempate determinista D1 > D2 > D3 > D4 > D5
+          > D6. NULL cuando ninguna fila tiene un driver elegible (nunca un valor artificial) --
+          ver dbt/tests/features_escuela_driver_dominante_*.sql para las pruebas de cobertura,
+          no-nulos y grano.
+        data_tests:
+          - accepted_values:
+              arguments:
+                values: ['D1', 'D2', 'D3', 'D4', 'D5', 'D6']
+
       - name: indice_completitud_drivers
         description: "Fracción (0-1) de los 6 drivers con cobertura OK para este cct x ciclo."
         data_tests:
@@ -112,6 +138,9 @@ models:
         description: "Clave INEGI de entidad (2 dígitos), derivada de cve_mun."
         data_tests:
           - not_null
+          - accepted_values:
+              arguments:
+                values: ['09', '15', '19', '14']
 
       - name: nombre_municipio
         data_tests:
@@ -123,6 +152,8 @@ models:
 
       - name: poblacion
         description: "Población total del municipio (suma de grupos de edad, CONAPO)."
+        data_tests:
+          - not_null
 
   - name: dim_escuela
     description: >
@@ -135,9 +166,24 @@ models:
           - unique
           - not_null
 
+      - name: nombre
+        data_tests:
+          - not_null
+
+      - name: nivel
+        data_tests:
+          - not_null
+
+      - name: sostenimiento
+        data_tests:
+          - not_null
+
       - name: cve_ent
         data_tests:
           - not_null
+          - accepted_values:
+              arguments:
+                values: ['09', '15', '19', '14']
 
       - name: cve_mun
         data_tests:
@@ -145,36 +191,42 @@ models:
 
       - name: agua
         data_tests:
+          - not_null
           - accepted_values:
               arguments:
                 values: ['0', '1', 'SIN_DATO']
 
       - name: drenaje
         data_tests:
+          - not_null
           - accepted_values:
               arguments:
                 values: ['0', '1', 'SIN_DATO']
 
       - name: electricidad
         data_tests:
+          - not_null
           - accepted_values:
               arguments:
                 values: ['0', '1', 'SIN_DATO']
 
       - name: sanitarios
         data_tests:
+          - not_null
           - accepted_values:
               arguments:
                 values: ['0', '1', 'SIN_DATO']
 
       - name: internet
         data_tests:
+          - not_null
           - accepted_values:
               arguments:
                 values: ['0', '1', 'SIN_DATO']
 
       - name: computadoras
         data_tests:
+          - not_null
           - accepted_values:
               arguments:
                 values: ['0', '1', 'SIN_DATO']
@@ -189,14 +241,26 @@ models:
       - name: cct
         data_tests:
           - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_escuela')
+                field: cct
 
       - name: id_ciclo
         data_tests:
           - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_tiempo')
+                field: id_ciclo
 
       - name: cve_mun
         data_tests:
           - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_municipio')
+                field: cve_mun
 
       - name: matricula_total
         data_tests:
@@ -212,36 +276,74 @@ models:
 
       - name: d1_cobertura
         data_tests:
+          - not_null
           - accepted_values:
               arguments:
                 values: ['OK', 'SIN_DATO']
 
       - name: d2_cobertura
         data_tests:
+          - not_null
           - accepted_values:
               arguments:
                 values: ['OK', 'SIN_DATO']
 
       - name: d3_cobertura
         data_tests:
+          - not_null
           - accepted_values:
               arguments:
                 values: ['OK', 'SIN_DATO']
 
       - name: d4_cobertura
         data_tests:
+          - not_null
           - accepted_values:
               arguments:
                 values: ['OK', 'SIN_DATO']
 
       - name: d5_cobertura
         data_tests:
+          - not_null
           - accepted_values:
               arguments:
                 values: ['OK', 'SIN_DATO']
 
       - name: d6_cobertura
         data_tests:
+          - not_null
           - accepted_values:
               arguments:
                 values: ['OK', 'SIN_DATO']
+  
+
+  
+  - name: matricula_municipio_nivel
+    description: >
+      gold.matricula_municipio_nivel -- agregado municipio x nivel x ciclo de
+      silver.matricula_historica (RISK-007/DEC-007), construido para alimentar
+      unir_target() en src/modelos/target_hibrido.py (PR #56, Hector Morales).
+      Acotado a SCOPE_ENTIDADES (CDMX, Edomex, Nuevo León, Jalisco).
+    columns:
+      - name: cve_mun
+        description: "Clave INEGI de municipio (5 dígitos)."
+        data_tests:
+          - not_null
+
+      - name: nivel
+        description: "Nivel educativo, normalizado a MAYÚSCULAS (match con gold.dim_escuela.nivel)."
+        data_tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: ['PREESCOLAR', 'PRIMARIA', 'SECUNDARIA']
+
+      - name: id_ciclo
+        description: "Ciclo escolar, formato AAAA-AAAA."
+        data_tests:
+          - not_null
+
+      - name: matricula_total
+        description: "Matrícula total del municipio x nivel en el ciclo (suma de todos los cct)."
+        data_tests:
+          - not_null

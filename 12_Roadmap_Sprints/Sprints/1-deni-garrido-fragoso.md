@@ -6,7 +6,7 @@ status: approved
 version: "1.0"
 traces_up: ["01_Product/PRD", "02_Requirements/User_Stories"]
 traces_down: ["US-111", "US-112", "US-113", "US-114"]
-last_reviewed: "2026-07-31"
+last_reviewed: "2026-08-28"
 tags: [sprint, plan, celula-1, nivel-medio]
 ---
 
@@ -287,9 +287,9 @@ Actualiza esta tabla **antes de cada standup**. El PM la revisa para el tablero 
 
 | ID | Historia | Estado | % | Bloqueado por | Fecha compromiso |
 |---|---|---|---|---|---|
-| `US-111` | Implementar transformaciones Bronze -> Sil | ◉ En revisión | 100% | — | Dom 16 ago |
-| `US-112` | Implementar transformaciones Silver -> Gol | ⬜ Por iniciar | 0% | — | Dom 23 ago |
-| `US-113` | Construir los cubos de agregacion | ⬜ Por iniciar | 0% | — | Dom 23 ago |
+| `US-111` | Implementar transformaciones Bronze -> Sil | ✅ Terminado | 100% | — | Cerrada 25 ago |
+| `US-112` | Implementar transformaciones Silver -> Gol | ✅ Terminado | 100% | — | Cerrada 25 ago |
+| `US-113` | Construir los cubos de agregacion | 🔵 En revisión | 100% | DB-10 depende de DS-06; validar o acordar excepción | Revisión 28 ago |
 | `US-114` | Optimizar consultas y crear indices | ⬜ Por iniciar | 0% | — | Dom 6 sep |
 
 **Estados válidos:** ⬜ Por iniciar · 🟡 En curso · 🔵 En revisión (PR abierto) · ✅ Terminado · 🔴 Bloqueado

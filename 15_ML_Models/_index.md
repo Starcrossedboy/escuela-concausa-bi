@@ -53,3 +53,4 @@ reciban recomendaciones distintas.
 | [[15_ML_Models/ML03_Model_Card]] | Ficha de Modelo de ML-03: agrupamiento no supervisado (clustering), características usadas, silhouette score y fronteras (US-324) |
 | [[15_ML_Models/EDA_Features_US322]] | Diagnóstico reproducible, correlaciones y selección de variables sin fuga para ML-03 (US-322) |
 | [[15_ML_Models/Cobertura_Parcial_US325]] | Auditoría de `SIN_DATO`, completitud y concentración territorial por entidad y municipio (US-325) |
+| [[15_ML_Models/ML03_Entrenamiento_US321]] | KMeans temporal, selección de `k` por Silhouette y perfiles auditables; política provisional sin imputación (US-321) |

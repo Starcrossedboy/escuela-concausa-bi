@@ -1,0 +1,111 @@
+"""Pruebas del clustering temporal ML-03 (US-321)."""
+
+from __future__ import annotations
+
+import pandas as pd
+import pytest
+
+from src.modelos.contrato import DRIVERS
+from src.modelos.entrenar_ml03 import (
+    COLUMNAS_PROHIBIDAS,
+    FEATURES_ML03,
+    entrenar_y_evaluar,
+    evaluar_k_temporal,
+    preparar_casos_completos,
+)
+
+
+@pytest.fixture
+def perfiles_sinteticos() -> pd.DataFrame:
+    filas: list[dict[str, object]] = []
+    ciclos = ("2020-2021", "2021-2022", "2022-2023", "2023-2024")
+    centros = (
+        (0.15, 0.20, 0.25, 0.20, 0.15, 0.20),
+        (0.75, 0.80, 0.25, 0.30, 0.20, 0.25),
+        (0.30, 0.35, 0.80, 0.85, 0.25, 0.30),
+    )
+    for ciclo_indice, ciclo in enumerate(ciclos):
+        for grupo, centro in enumerate(centros):
+            for escuela in range(6):
+                variacion = (escuela - 2.5) * 0.006 + ciclo_indice * 0.002
+                fila: dict[str, object] = {
+                    "cct": f"09DPR{grupo}{ciclo_indice}{escuela:02d}X",
+                    "id_ciclo": ciclo,
+                    "cve_mun": f"0900{grupo + 1}",
+                    "indice_completitud_drivers": 1.0,
+                    "target_variacion_matricula": -0.1,
+                }
+                for driver, base in zip(DRIVERS, centro, strict=True):
+                    fila[driver] = base + variacion
+                    fila[f"{driver.split('_')[0]}_cobertura"] = "OK"
+                filas.append(fila)
+    return pd.DataFrame(filas)
+
+
+def test_features_no_contienen_llaves_ni_target() -> None:
+    assert set(FEATURES_ML03).isdisjoint(COLUMNAS_PROHIBIDAS)
+    assert set(DRIVERS) < set(FEATURES_ML03)
+
+
+def test_casos_completos_no_imputan(perfiles_sinteticos: pd.DataFrame) -> None:
+    incompleto = perfiles_sinteticos.copy()
+    incompleto.loc[incompleto.index[0], "d5_agua"] = None
+    incompleto.loc[incompleto.index[0], "d5_cobertura"] = "SIN_DATO"
+
+    completos, excluidos = preparar_casos_completos(incompleto)
+
+    assert excluidos == 1
+    assert len(completos) == len(incompleto) - 1
+    assert completos.loc[:, FEATURES_ML03].notna().all().all()
+
+
+def test_rechaza_politica_no_ratificada(perfiles_sinteticos: pd.DataFrame) -> None:
+    with pytest.raises(ValueError, match="ratificación humana"):
+        preparar_casos_completos(
+            perfiles_sinteticos, politica_ausencia="mediana_municipal"
+        )
+
+
+def test_backtesting_siempre_evalua_el_futuro(
+    perfiles_sinteticos: pd.DataFrame,
+) -> None:
+    metricas = evaluar_k_temporal(
+        perfiles_sinteticos, valores_k=(2, 3, 4), n_ventanas=2
+    )
+
+    for _, fila in metricas.iterrows():
+        anios_train = [int(ciclo[:4]) for ciclo in fila["ciclos_entrenamiento"].split(",")]
+        assert max(anios_train) < int(fila["ciclo_prueba"][:4])
+    assert metricas["silhouette"].notna().any()
+
+
+def test_entrena_selecciona_k_y_perfila_negocio(
+    perfiles_sinteticos: pd.DataFrame,
+) -> None:
+    resultado = entrenar_y_evaluar(
+        perfiles_sinteticos, valores_k=(2, 3, 4), n_ventanas=2
+    )
+
+    assert resultado.k_seleccionado in {2, 3, 4}
+    assert resultado.silhouette_promedio > 0
+    assert len(resultado.asignaciones) == len(perfiles_sinteticos)
+    assert resultado.filas_excluidas == 0
+    assert resultado.perfiles["perfil_negocio"].str.contains(
+        "Presión principal"
+    ).all()
+    assert set(resultado.perfiles["cluster"]) == set(
+        resultado.asignaciones["cluster"]
+    )
+
+
+def test_target_no_cambia_el_modelo(perfiles_sinteticos: pd.DataFrame) -> None:
+    alterado = perfiles_sinteticos.copy()
+    alterado["target_variacion_matricula"] = range(len(alterado))
+
+    base = entrenar_y_evaluar(
+        perfiles_sinteticos, valores_k=(3,), n_ventanas=1
+    )
+    otro = entrenar_y_evaluar(alterado, valores_k=(3,), n_ventanas=1)
+
+    assert base.asignaciones["cluster"].equals(otro.asignaciones["cluster"])
+    assert base.silhouette_promedio == otro.silhouette_promedio

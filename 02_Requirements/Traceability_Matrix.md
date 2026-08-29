@@ -157,3 +157,9 @@ tags: [requirements, traceability, matrix]
 | REQ | Historias | Evidencia de prueba | DevLog | Estado |
 |---|---|---|---|---|
 | `REQ-003` | `US-322`, `US-325` | EDA reproducible y auditoría de `SIN_DATO` por driver, entidad y municipio; `cve_mun` excluida del vector de clustering; validación de clave INEGI y cero inicial; 17 pruebas enfocadas ✅ · suite 544 ✅ · Ruff ✅ · Vault limpio ✅ | [[_DevLog/2026-08-29-estefany-hernandez-us322-us325-territorial]] | 🟡 En revisión; US-325 espera ejecución sobre Gold real |
+
+## Evidencia incremental — 2026-08-29 · ML-03 clustering temporal
+
+| REQ | Historias | Evidencia de prueba | DevLog | Estado |
+|---|---|---|---|---|
+| `REQ-003` | `US-321` | Pipeline KMeans + StandardScaler; selección de `k` por Silhouette walk-forward; perfiles de negocio; target y llaves excluidos; política provisional `casos_completos` sin imputar cero · 6 pruebas enfocadas ✅ · suite 533 ✅ | [[_DevLog/2026-08-29-estefany-hernandez-us321-clustering]] | 🟡 En revisión; espera fallback ratificado y corrida real |

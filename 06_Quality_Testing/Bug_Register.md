@@ -38,8 +38,9 @@ tags: [qa, bugs]
 | BUG-023 | Tercera aparición del defecto de BUG-015/BUG-018, ahora en `evaluar.py`: `error_por_entidad()` y `cobertura_y_error()` predecían con los **seis** drivers aunque el modelo se hubiera entrenado con menos, así que `construir_reporte()` **no podía generar el reporte** en el único escenario que el PM necesita documentar para la demo — el de 5 de 6 drivers. `ValueError: The feature names should match those that were passed during fit` | high | **fixed** | US-312 / REQ-003 / AC-003.2 | `feat/hector-marban-drivers-en-evaluacion` | — | ver detalle |
 | BUG-024 | `SELECT ... INTO` atravesaba el guardarraíl porque empieza con `SELECT`, pero en PostgreSQL crea una tabla; el agente no tiene otra capa que garantice solo lectura | **critical** | **fixed** | US-304a / US-305 / REQ-006 | `fix/andres-habib-bug024-select-into-rag-empty` | `tests/test_agente_guardrails.py::test_select_into_se_rechaza_como_escritura` |
 | BUG-025 | El endpoint desplegado `/api/v1/agente/consulta` es el **stub** de `src/api/v1/agente.py`: responde **la misma cadena fija a cualquier pregunta**, incluidas las fuera de alcance y las destructivas. Además su filtro de palabras busca `"borrar"` por subcadena, así que **«Borra la tabla de predicciones» no lo dispara** y recibe la respuesta normal con `fuera_de_alcance: false`. Los guardarraíles reales de `src/agente/guardrails.py` —que sí rechazan esa frase— nunca se invocan desde la API | high | open | US-304a, US-305, REQ-006 | pendiente (**C4 + C3**): conectar `procesar_consulta_con_rag()` al endpoint; como mitigación inmediata, que el stub llame a `pregunta_en_alcance()` |
-| BUG-026 | **Ningún juego de fixtures del repo puede ejercitar el grano escuela multi-ciclo.** Hay dos y cada uno resuelve la mitad: `bronze_formato911_sample.csv` + `…_ciclo_anterior_sample.csv` traen CCT coherentes con `gold.dim_escuela` (**59 de 60**) pero solo **2 ciclos**, así que `gold.features_escuela` sale con 1 y ML-01 no puede hacer partición temporal; `bronze_formato911_historico_sample.csv` trae **6 ciclos** pero comparte solo **3 CCT de 30** con `dim_escuela` (se generó sobre su propio universo, disjunto de `bronze.cct`), así que a grano escuela el JOIN se vacía **sin ningún error** — el modo de falla silenciosa de BUG-012. Consecuencia: entrenar ML-01 y verificar los bloques de predicción de DB-03 (AC-002.4) solo es posible con ~460 MB de CSV real en un ambiente propio (hoy, únicamente el de Diana); **CI nunca recorre esa ruta** | high | **en revisión** | US-104 / US-113 / US-313 / REQ-001 / REQ-003 | **PR #129** (Diana Alvarez) — fixture aditivo `bronze_formato911_serie_historica_sample.csv`: reutiliza las CCT de `bronze_formato911_sample.csv` tal cual (mismo patrón que `..._ciclo_anterior_fixture.py`) y agrega 2021-2022 y 2022-2023 sobre la MISMA tabla. No toca ningún modelo dbt. **Verificado de punta a punta por la reportante el 29-ago** | — (propuesto: aserción dbt de solape mínimo con `dim_escuela` y de ciclos mínimos en `features_escuela`) |
-| BUG-027 | `superset/semantic/metrics_kpis_base_us221.yaml` apunta sus 5 `sql_ref` a `sql/kpi_0*.sql`, ruta que **ya no existe**: el commit `1c2f5f9` movió esos archivos de `superset/sql/` a `superset/semantic/` y actualizó el test, pero no el YAML. Nadie lo nota porque `tests/test_kpis_us221.py` **codifica la ruta a mano** (`SQL_DIR = superset/semantic`) y nunca lee el `sql_ref` del catálogo: la prueba pasa en verde mientras el artefacto que la gente consulta apunta al vacío | low | open | US-221 / REQ-002 | pendiente (**C2**, Oscar Quiroz) — corregir a `semantic/…` | — (propuesto: que el test resuelva la ruta desde el YAML en vez de codificarla) |
+| BUG-026 | **Ningún juego de fixtures del repo puede ejercitar el grano escuela multi-ciclo.** Hay dos y cada uno resuelve la mitad: `bronze_formato911_sample.csv` + `…_ciclo_anterior_sample.csv` traen CCT coherentes con `gold.dim_escuela` (**59 de 60**) pero solo **2 ciclos**, así que `gold.features_escuela` sale con 1 y ML-01 no puede hacer partición temporal; `bronze_formato911_historico_sample.csv` trae **6 ciclos** pero comparte solo **3 CCT de 30** con `dim_escuela` (se generó sobre su propio universo, disjunto de `bronze.cct`), así que a grano escuela el JOIN se vacía **sin ningún error** — el modo de falla silenciosa de BUG-012. Consecuencia: entrenar ML-01 y verificar los bloques de predicción de DB-03 (AC-002.4) solo es posible con ~460 MB de CSV real en un ambiente propio (hoy, únicamente el de Diana); **CI nunca recorre esa ruta** | high | **fixed** | US-104 / US-113 / US-313 / REQ-001 / REQ-003 | **PR #129** (Diana Alvarez) — fixture aditivo `bronze_formato911_serie_historica_sample.csv`: reutiliza las CCT de `bronze_formato911_sample.csv` tal cual (mismo patrón que `..._ciclo_anterior_fixture.py`) y agrega 2021-2022 y 2022-2023 sobre la MISMA tabla. No toca ningún modelo dbt. **Verificado de punta a punta por la reportante el 29-ago** | — (propuesto: aserción dbt de solape mínimo con `dim_escuela` y de ciclos mínimos en `features_escuela`). **Mergeado el 29-ago**; cierra la mitad que faltaba de BUG-013 | — el fixture *es* la regresión: con él, `features_escuela` sale con 3 ciclos y `publicar_gold.py --desde-gold` entrena. Pendiente la guarda automática propuesta (aserción dbt de solape mínimo con `dim_escuela` y de ciclos mínimos), sin la cual un fixture futuro puede volver a divergir sin que CI lo note 
+| BUG-027 | `superset/semantic/metrics_kpis_base_us221.yaml` apunta sus 5 `sql_ref` a `sql/kpi_0*.sql`, ruta que **ya no existe**: el commit `1c2f5f9` movió esos archivos de `superset/sql/` a `superset/semantic/` y actualizó el test, pero no el YAML. Nadie lo nota porque `tests/test_kpis_us221.py` **codifica la ruta a mano** (`SQL_DIR = superset/semantic`) y nunca lee el `sql_ref` del catálogo: la prueba pasa en verde mientras el artefacto que la gente consulta apunta al vacío | low | **superseded** | US-221 / REQ-002 | US-221 / REQ-002 | **No se corrige la ruta: los archivos desaparecen.** Manuel Serranía ratificó el 28-ago una sola implementación por KPI (regla 1 del vault): se borran los 5 `kpi_*.sql` y las tarjetas se remapean a los datasets canónicos (`db01_cubo_matricula`, `db02_cubo_riesgo_territorial`, `db01_distribucion_escuelas`), sin `sql_ref` a SQL nuevo. Arreglar el `sql_ref` sería trabajo sobre artefactos que se eliminan. Seguimiento en el follow-up de US-221 (C2, Oscar Quiroz) | — **lo que sí sobrevive del hallazgo**: `test_kpis_us221.py` codifica `SQL_DIR` a mano y nunca lee el `sql_ref`, por eso pasaba en verde con el catálogo apuntando al vacío. El follow-up convierte ese test en guarda antiduplicación, que es el requisito que nace de este reporte 
+| BUG-028 | `cargar_features()` leía el CSV **sin `dtype`**, así que pandas infería `int64` en `cve_mun` y se comía el cero de la izquierda: `"09001"` llegaba como `9001`. El join contra `dim_municipio` y la agregación de DEC-007 fallaban **en silencio** para las 9 entidades cuya clave INEGI empieza en cero — **CDMX (09) incluida, que es la entidad principal del alcance**. Diana lo había previsto y lo cubrió en `tests/conftest.py`, pero el lector de producción seguía sin ello, así que las pruebas veían la clave correcta y el pipeline no | high | **fixed** | US-325 / US-311 / DEC-007 / REQ-003 | **PR #127** — `dtype={"cve_mun": str}` en `cargar_features()` (`src/modelos/entrenar_ml01.py`). Detectado por la guarda de coherencia entidad↔municipio que el mismo PR agregó a `generar_fixture_dim.py`: reventó de inmediato con `'9001' contradice la entidad '09'` | la guarda misma es la regresión — `generar()` falla si `cve_mun` no empieza con la entidad que codifica el CCT, así que el cero perdido no puede volver a pasar inadvertido |
 
 ## BUG-016 — Filas sin ningún driver rompían la publicación de ML-02
 
@@ -970,3 +971,83 @@ De C2 (Oscar Quiroz, dueño del artefacto): cambiar los 5 `sql_ref` a `semantic/
 
 Propuesto: que `test_kpis_us221.py` **resuelva la ruta desde el `sql_ref` del YAML** en vez de
 codificarla, para que el catálogo y los archivos no puedan volver a divergir en silencio.
+
+## BUG-028 — El cero de la izquierda de `cve_mun` se perdía al leer el CSV
+
+Encontrado por Edgar Coronel (PM) el 2026-08-29, resolviendo el cruce entre el PR #124 (Héctor
+Morales) y el PR #127 (Diana Alvarez). No lo reportó una persona: lo destapó una guarda escrita
+minutos antes.
+
+### Descripción
+
+`cargar_features()` leía el fixture con `pd.read_csv(ruta)` sin declarar tipos. `cve_mun` es
+puramente numérica, así que pandas la infería `int64` y descartaba el cero inicial:
+
+```
+"09001"  ->  9001
+```
+
+El daño no aparece al leer: aparece **río abajo y sin ruido**. El join contra `dim_municipio` no
+cruza, la agregación de DEC-007 pierde el grupo, y nada lanza excepción. Afecta a las **9 entidades
+cuya clave INEGI empieza en cero** — entre ellas **CDMX (`09`)**, que es la entidad principal de
+`SCOPE_ENTIDADES`.
+
+### Por qué las pruebas no lo veían
+
+Diana **sí había previsto exactamente esto**. Su comentario en `tests/conftest.py` lo dice palabra
+por palabra:
+
+```python
+# cve_mun es puramente numérica (p.ej. "09001") -- sin dtype=str, pandas la infiere como
+# int64 y se come el cero a la izquierda, rompiendo el join contra dim_municipio.
+return pd.read_csv(FIXTURE_FEATURES, dtype={"cve_mun": str})
+```
+
+Pero el `dtype` quedó **sólo en el fixture de pruebas**. El lector de producción —el que usan
+`entrenar_ml01`, `publicar_gold` y la generación de la dimensión— seguía sin él. Resultado: los
+tests veían la clave bien formada y el pipeline real no. El diagnóstico era correcto y la corrección
+se aplicó del lado que no la necesitaba.
+
+Es una variante del modo de falla de [[06_Quality_Testing/Bug_Register#BUG-026]] y de BUG-012: el
+artefacto de prueba y el artefacto real dejan de compartir origen, y la divergencia no produce
+error, sólo números distintos.
+
+### Cómo se detectó
+
+El PR #127 falló `test_agrega_igual_traiga_o_no_cve_mun_el_contrato` —la invariante que Héctor
+escribió en el PR #124— con 230 filas contra 315. Investigando esa diferencia se agregó a
+`generar_fixture_dim.generar()` una guarda de coherencia entre la entidad que codifica el CCT y la
+que declara `cve_mun`. La guarda reventó en la primera corrida:
+
+```
+ValueError: 09DCT0000G: `cve_mun` '9001' contradice la entidad '09' del CCT.
+```
+
+El defecto llevaba ahí desde que el contrato incorporó la columna. La guarda tardó una corrida en
+encontrarlo.
+
+### Fix
+
+`src/modelos/entrenar_ml01.py`, en `cargar_features()`:
+
+```python
+df = (
+    pd.read_parquet(ruta)
+    if ruta.suffix == ".parquet"
+    else pd.read_csv(ruta, dtype={"cve_mun": str})
+)
+```
+
+Parquet no necesita el tratamiento: conserva el tipo declarado en el esquema.
+
+### Test de regresión
+
+**La guarda es la regresión.** `generar_fixture_dim.generar()` falla si `cve_mun` no empieza con la
+entidad que codifica el CCT, o si las features traen más de un municipio por CCT. No es una prueba
+que alguien deba acordarse de correr: es una condición que el generador no puede violar.
+
+### Lección
+
+Una hipótesis correcta escrita en un comentario no protege nada si la corrección se aplica del lado
+equivocado. Cuando alguien documente un riesgo de tipos, la pregunta siguiente es **cuántos lectores
+tiene ese archivo**, no si el test pasa.

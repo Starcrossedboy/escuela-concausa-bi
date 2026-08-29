@@ -18,7 +18,7 @@ from pathlib import Path
 import pytest
 
 FIXTURES_DB = Path(__file__).parent / "fixtures" / "fixtures.db"
-SQL_DIR = Path(__file__).parent.parent / "superset" / "sql"
+SQL_DIR = Path(__file__).parent.parent / "superset" / "semantic"
 
 SCOPE_ENTIDADES = {"09", "15", "19", "14"}
 

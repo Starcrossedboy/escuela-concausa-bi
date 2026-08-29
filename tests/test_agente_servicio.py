@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from src.agente import servicio
-from src.agente.recuperacion import ErrorRecuperacion
+from src.agente.recuperacion import ContextoNoEncontrado, ErrorRecuperacion
 from src.agente.servicio import procesar_consulta, procesar_consulta_con_rag
 
 
@@ -90,6 +90,26 @@ def test_fallo_de_recuperacion_no_genera_ni_ejecuta_sql() -> None:
     )
 
     assert resultado.respuesta == "El contexto de FARO no está disponible temporalmente."
+    assert resultado.sql_generado is None
+    assert not resultado.fuera_de_alcance
+
+
+def test_contexto_no_encontrado_no_se_reporta_como_caida() -> None:
+    def recuperar(pregunta: str) -> str:
+        raise ContextoNoEncontrado("sin coincidencias")
+
+    def no_debe_llamarse(*args):
+        raise AssertionError("No debe continuar sin contexto")
+
+    resultado = procesar_consulta(
+        "Que escuelas tienen mayor riesgo?",
+        recuperar_contexto=recuperar,
+        generar_sql=no_debe_llamarse,
+        ejecutar_sql=no_debe_llamarse,
+        redactar_respuesta=no_debe_llamarse,
+    )
+
+    assert resultado.respuesta == "No encontré contexto de Gold para responder esa pregunta."
     assert resultado.sql_generado is None
     assert not resultado.fuera_de_alcance
 

@@ -19,7 +19,8 @@ tags: [ml, ml-03, clustering, kmeans, silhouette]
 - El scaler y KMeans se ajustan sólo con ciclos anteriores a cada evaluación.
 - Perfiles por cluster con los drivers promedio y una descripción determinista en lenguaje de
   negocio.
-- Integración MLflow disponible, sin promoción al Registry mientras la política sea provisional.
+- Integración MLflow mediante el helper compartido de Célula 3, con versión canónica
+  `ML03_ClusteringEscuelas` en Model Registry.
 
 ## Separación respecto al diagnóstico
 
@@ -35,7 +36,8 @@ partición temporal y perfiles sin inventar el fallback que aún deben ratificar
 Lead de ML.
 
 No es la política final: puede concentrar el entrenamiento en territorios con mayor cobertura. Por
-eso el artefacto no debe promoverse como modelo productivo ni interpretarse sobre escuelas reales.
+eso registrar una versión no autoriza promoverla como modelo productivo ni interpretarla sobre
+escuelas reales.
 
 ## Criterio pendiente para cierre
 
@@ -44,4 +46,4 @@ eso el artefacto no debe promoverse como modelo productivo ni interpretarse sobr
 - Ejecutar sobre `gold.features_escuela` con al menos tres ciclos disponibles para ML; debido a que
   Gold descarta el primer ciclo al construir el target, esto requiere al menos cuatro en Bronze
   (BUG-026).
-- Registrar la corrida final en MLflow y actualizar la ficha ML-03 con el Silhouette real.
+- Ejecutar la corrida final en MLflow y actualizar la ficha ML-03 con el Silhouette real.

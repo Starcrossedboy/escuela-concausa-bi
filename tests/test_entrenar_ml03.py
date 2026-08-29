@@ -5,13 +5,16 @@ from __future__ import annotations
 import pandas as pd
 import pytest
 
+from src.modelos import entrenar_ml03
 from src.modelos.contrato import DRIVERS
 from src.modelos.entrenar_ml03 import (
     COLUMNAS_PROHIBIDAS,
     FEATURES_ML03,
+    NOMBRE_MODELO,
     entrenar_y_evaluar,
     evaluar_k_temporal,
     preparar_casos_completos,
+    registrar_en_mlflow,
 )
 
 
@@ -109,3 +112,28 @@ def test_target_no_cambia_el_modelo(perfiles_sinteticos: pd.DataFrame) -> None:
 
     assert base.asignaciones["cluster"].equals(otro.asignaciones["cluster"])
     assert base.silhouette_promedio == otro.silhouette_promedio
+
+
+def test_registra_version_canonica_en_mlflow(
+    perfiles_sinteticos: pd.DataFrame,
+    monkeypatch,
+) -> None:
+    resultado = entrenar_y_evaluar(
+        perfiles_sinteticos, valores_k=(3,), n_ventanas=1
+    )
+    recibido: dict[str, object] = {}
+
+    def registrar(modelo, config) -> str:
+        recibido.update(modelo=modelo, config=config)
+        return "run-ml03"
+
+    monkeypatch.setattr(entrenar_ml03, "registrar_sklearn", registrar)
+
+    run_id = registrar_en_mlflow(resultado, "http://mlflow:5000")
+
+    config = recibido["config"]
+    assert run_id == "run-ml03"
+    assert recibido["modelo"] is resultado.modelo
+    assert config.nombre_modelo == NOMBRE_MODELO == "ML03_ClusteringEscuelas"
+    assert config.registrar_modelo is True
+    assert config.metricas["silhouette_temporal_promedio"] > 0

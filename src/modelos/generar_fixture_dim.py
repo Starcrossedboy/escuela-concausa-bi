@@ -54,21 +54,40 @@ def nivel_de_cct(cct: str) -> str:
 def generar(features: pd.DataFrame, semilla: int = SEMILLA) -> pd.DataFrame:
     """Construye la dimensión simulada: una fila por CCT.
 
-    El municipio se asigna de forma determinista dentro de la entidad que ya codifica el CCT, así
-    que entidad y municipio nunca se contradicen.
+    Desde US-325 el contrato de `gold.features_escuela` publica `cve_mun`, así que la dimensión
+    **toma esa columna del fixture de features** en vez de inventarla. Ese es el punto: si cada
+    lado la genera por su cuenta, la agregación de DEC-007 devuelve grupos distintos según qué
+    lado aporte la clave y **no falla nada** -- el mismo modo de falla silenciosa de BUG-026.
+
+    Cuando las features no traen `cve_mun` (fixtures anteriores al cambio de contrato), se cae al
+    sorteo determinista de siempre dentro de la entidad que ya codifica el CCT.
     """
     rng = np.random.default_rng(semilla)
     ccts = sorted(features["cct"].unique())
+    del_contrato: dict[str, str] = {}
+    if "cve_mun" in features.columns:
+        por_cct = features[["cct", "cve_mun"]].astype(str).drop_duplicates()
+        if por_cct["cct"].duplicated().any():
+            raise ValueError(
+                "Las features traen más de un `cve_mun` por CCT: la dimensión no puede "
+                "derivarse de un origen ambiguo."
+            )
+        del_contrato = dict(zip(por_cct["cct"], por_cct["cve_mun"], strict=True))
 
     filas = []
     for cct in ccts:
         entidad = entidad_de_cct(cct)
         consecutivo = int(rng.integers(1, MUNICIPIOS_POR_ENTIDAD + 1))
+        cve_mun = del_contrato.get(cct, f"{entidad}{consecutivo:03d}")
+        if cve_mun[:2] != entidad:
+            raise ValueError(
+                f"{cct}: `cve_mun` {cve_mun!r} contradice la entidad {entidad!r} del CCT."
+            )
         filas.append(
             {
                 "cct": cct,
                 "cve_ent": entidad,
-                "cve_mun": f"{entidad}{consecutivo:03d}",
+                "cve_mun": cve_mun,
                 "nivel": nivel_de_cct(cct),
             }
         )

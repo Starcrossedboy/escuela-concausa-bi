@@ -165,8 +165,14 @@ cobertura**. Mapa cubo → dashboard:
 > Diana Alvarez Varela (Tech Lead Célula 1, regla 7) el 23 ago 2026. Registrada como **DEC-009**.
 
 ### 4.4 `gold.features_escuela` — contrato con la Célula 3
-- **Grano:** una fila por **CCT × ciclo**. Los 6 drivers **normalizados** (0–1) + banderas de cobertura
-  + el target de entrenamiento. Contrato **cerrado y versionado** (ver §5.3).
+- **Grano:** una fila por **CCT × ciclo**. `cve_mun` (clave INEGI, 5 caracteres) + los 6 drivers
+  **normalizados** (0–1) + banderas de cobertura + el target de entrenamiento. Contrato **cerrado
+  y versionado** (ver §5.3).
+- **`cve_mun` (US-325, 2026-08-29):** existía como llave de join interna desde el día 1 (D1/D2 se
+  resuelven por municipio); se expone en el contrato a partir de aquí para el análisis de sesgo
+  por cobertura parcial de Estefany Hernández Loredo (C3). Decisión de esquema tomada por Diana
+  Alvarez Varela (Tech Lead Célula 1, regla 7) — cambio aditivo, un solo productor, no requiere
+  ADR (contrasta con ADR-007, donde dos productores generaban la misma columna).
 
 ### 4.5 Salida de modelos
 - **`gold.predicciones`** — grano **dual** desde DEC-010: `grano` (`escuela` | `municipio_nivel`,
@@ -245,6 +251,7 @@ class FeaturesEscuela(BaseModel):
     model_config = {"extra": "forbid"}         # ninguna columna fuera de contrato
     cct: StrictStr = Field(min_length=10, max_length=10)
     id_ciclo: StrictStr
+    cve_mun: StrictStr | None = None   # US-325, 2026-08-29; default por PRs en paralelo (ver §4.4)
     d1_pobreza: StrictFloat | None = Field(ge=0, le=1)      # None ⇒ ver *_cobertura
     d2_inseguridad: StrictFloat | None = Field(ge=0, le=1)
     d3_infraestructura: StrictFloat | None = Field(ge=0, le=1)

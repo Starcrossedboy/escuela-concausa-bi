@@ -1,32 +1,110 @@
-"""Agente conversacional `/agente/*` (§3.5).
+"""Agente conversacional `/agente/*` (§3.5) — conectado al servicio RAG real (BUG-025).
 
-Responde en lenguaje natural sobre Gold y devuelve el SQL generado para auditoría. **Nunca**
-ejecuta escritura/borrado; rechaza preguntas fuera de alcance (`fuera_de_alcance: true`).
-En el stub la respuesta es fija; la Célula 3 conecta el RAG real (Text-to-SQL).
+El endpoint delega en `procesar_consulta_con_rag()` de la Célula 3 (`src/agente/servicio.py`), que
+aplica los guardarraíles reales (`pregunta_en_alcance` + `preparar_sql_seguro`): rechaza preguntas
+fuera de alcance y **garantiza que solo puede generarse/ejecutarse SQL de solo lectura sobre Gold**.
+Esto sustituye al stub que respondía lo mismo a todo (incluida la frase destructiva más obvia).
+
+**Seam de inyección (para Célula 3 / Andrés):** las tres colaboraciones que el servicio necesita
+—`generar_sql` (LLM text-to-SQL), `ejecutar_sql` (ejecutor read-only sobre Gold) y
+`redactar_respuesta` (LLM redactor)— se proveen por dependencias de FastAPI. Sus defaults degradan de
+forma **segura** ("no configurado") para que la app arranque y el CI corra sin LLM ni ChromaDB;
+Andrés (y C5 en despliegue) las sobreescriben con `app.dependency_overrides` / implementaciones reales.
+
+Cualquier fallo interno del servicio se traduce a un mensaje genérico (sin filtrar detalle) — la
+respuesta pública nunca expone trazas, prompts ni SQL crudo de error.
 """
 from __future__ import annotations
 
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends
 
+from src.agente.recuperacion import recuperar_contexto as _recuperar_contexto_rag
+from src.agente.servicio import (
+    EjecutarSQL,
+    GenerarSQL,
+    RecuperarContexto,
+    RedactarRespuesta,
+    procesar_consulta,
+)
 from src.api.schemas import AgenteConsultaIn, AgenteRespuestaOut
 
 router = APIRouter(prefix="/agente", tags=["Agente"])
 
-_PALABRAS_FUERA_ALCANCE = ("borrar", "elimina", "drop", "update", "delete")
+# Mensaje seguro cuando el motor RAG/LLM no está configurado o falla en este entorno.
+_MSG_NO_DISPONIBLE = (
+    "El agente no está disponible en este entorno todavía. Intenta más tarde o consulta los "
+    "tableros."
+)
+
+
+class AgenteNoConfigurado(RuntimeError):
+    """Una colaboración del agente (LLM/ejecutor) no está configurada en este entorno."""
+
+
+# --------------------------------------------------------------------------- #
+# Proveedores inyectables (defaults seguros; C3/Andrés y C5 los sobreescriben)
+# --------------------------------------------------------------------------- #
+
+
+def get_recuperar_contexto() -> RecuperarContexto:
+    """Recuperador de contexto. Default: RAG ChromaDB de US-304b (degrada solo si falta la lib)."""
+    return _recuperar_contexto_rag
+
+
+def get_generar_sql() -> GenerarSQL:
+    """LLM text-to-SQL (Célula 3). Sin configurar por defecto."""
+
+    def _no_configurado(prompt: str, pregunta: str) -> str:
+        raise AgenteNoConfigurado("generar_sql no está configurado (pendiente Célula 3).")
+
+    return _no_configurado
+
+
+def get_ejecutar_sql() -> EjecutarSQL:
+    """Ejecutor read-only del SQL ya validado sobre Gold. Sin configurar por defecto (US-404)."""
+
+    def _no_configurado(sql: str):  # noqa: ANN202 - firma del Callable EjecutarSQL
+        raise AgenteNoConfigurado("ejecutar_sql no está configurado (pendiente C4/US-404 + C5).")
+
+    return _no_configurado
+
+
+def get_redactar_respuesta() -> RedactarRespuesta:
+    """LLM redactor de la respuesta final (Célula 3). Sin configurar por defecto."""
+
+    def _no_configurado(pregunta: str, filas) -> str:  # noqa: ANN001 - firma del Callable
+        raise AgenteNoConfigurado("redactar_respuesta no está configurado (pendiente Célula 3).")
+
+    return _no_configurado
 
 
 @router.post("/consulta", response_model=AgenteRespuestaOut)
-def consulta(body: AgenteConsultaIn) -> AgenteRespuestaOut:
-    """Consulta en lenguaje natural sobre Gold (rol mínimo: ciudadano)."""
-    pregunta = body.pregunta.lower()
-    if any(p in pregunta for p in _PALABRAS_FUERA_ALCANCE):
+def consulta(
+    body: AgenteConsultaIn,
+    recuperar_contexto: RecuperarContexto = Depends(get_recuperar_contexto),
+    generar_sql: GenerarSQL = Depends(get_generar_sql),
+    ejecutar_sql: EjecutarSQL = Depends(get_ejecutar_sql),
+    redactar_respuesta: RedactarRespuesta = Depends(get_redactar_respuesta),
+) -> AgenteRespuestaOut:
+    """Consulta en lenguaje natural sobre Gold (rol mínimo: ciudadano).
+
+    Aplica los guardarraíles reales del agente. Equivale a `procesar_consulta_con_rag()` con el
+    recuperador inyectable, de modo que Andrés (C3) pueda enchufar su LLM/ejecutor por dependencias.
+    """
+    try:
+        resultado = procesar_consulta(
+            body.pregunta,
+            recuperar_contexto=recuperar_contexto,
+            generar_sql=generar_sql,
+            ejecutar_sql=ejecutar_sql,
+            redactar_respuesta=redactar_respuesta,
+        )
+    except Exception:  # noqa: BLE001 - degradación segura: nunca filtrar detalle interno al cliente
         return AgenteRespuestaOut(
-            respuesta="Esa operación no está permitida: el agente es de solo lectura.",
-            sql_generado=None,
-            fuera_de_alcance=True,
+            respuesta=_MSG_NO_DISPONIBLE, sql_generado=None, fuera_de_alcance=False
         )
     return AgenteRespuestaOut(
-        respuesta="En el alcance actual hay 4 escuelas; 2 superan el umbral de riesgo (0.5).",
-        sql_generado="SELECT cct, indice_riesgo FROM gold.features_escuela WHERE indice_riesgo >= 0.5;",
-        fuera_de_alcance=False,
+        respuesta=resultado.respuesta,
+        sql_generado=resultado.sql_generado,
+        fuera_de_alcance=resultado.fuera_de_alcance,
     )

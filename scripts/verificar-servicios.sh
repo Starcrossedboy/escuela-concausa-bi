@@ -6,6 +6,11 @@
 #
 # Uso: ./scripts/verificar-servicios.sh
 
+# Ubicarse en la raíz del repo para que `docker compose` resuelva el proyecto
+# correcto (los contenedores se nombran <proyecto>-<servicio>-<N>).
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+cd "$SCRIPT_DIR/.." || { echo "No se pudo ubicar la raíz del repo"; exit 1; }
+
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 echo "🔍 VERIFICACIÓN DE SERVICIOS FARO"
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
@@ -41,7 +46,7 @@ echo ""
 
 # PostgreSQL (no HTTP, solo Docker)
 printf "%-30s " "PostgreSQL"
-if docker exec faro-postgres pg_isready -U postgres &>/dev/null; then
+if docker compose exec -T db pg_isready -U postgres &>/dev/null; then
     echo -e "${GREEN}✅ OK${NC} - localhost:5432"
     echo "   └─ Base de datos principal (4 DBs)"
 else

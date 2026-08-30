@@ -45,6 +45,7 @@ tags: [qa, bugs]
 | BUG-029 | **RESERVADO — Oscar Quiroz (C2).** `superset/sync_semantic_layer.py` recorre alfabéticamente los `.sql` de `superset/semantic/` y **aborta toda la corrida** al llegar a `db09_cubo_recomendaciones.sql` si `gold.recomendaciones` no existe. No es error del SQL: en un ambiente sin la cadena Bronze→Gold materializada, nadie que sincronice después de `db09` alfabéticamente puede registrar sus datasets. Detectado por Oscar al construir DB-07 (US-222) | medium | open | US-222 / US-205 / REQ-002 | pendiente (**C2**) — mitigación inmediata: cargar `superset/mock/gold_ml_outputs_mock.sql`, mismo patrón de US-203/204/211b/212; solución de fondo: la resiliencia del sync que Manuel agrega en US-205, para que un dataset con tabla ausente no tumbe la corrida completa | — (propuesto: que el sync reporte y continúe en vez de abortar) |
 | BUG-030 | **El esquema real de DS-06 no es el que `silver/agua_region.sql` espera, y el riesgo no es que D5 siga en `SIN_DATO` sino que alguien lo saque con la columna equivocada.** El extractor entrega `id_presa, nombre_oficial, corriente, estado, anio_term, alt_cort, cap_name, cap_namo`; el modelo espera `id_punto, region_hidrologica, latitud, longitud, indicador, valor, fecha`. **Ninguna de las cuatro columnas que importan existe** — no es renombrar, son dos estructuras distintas. Dos huecos: (1) sin `lat`/`lon` no hay interpolación IDW, que `Data_Model.md` §3 exige para D5; (2) `cap_name`/`cap_namo` son la **capacidad máxima** de la presa, no el volumen actual, así que conectarlas produciría un indicador constante en el tiempo que mide el tamaño de la presa y no la disponibilidad hídrica — un número creíble y falso, misma familia que el `indice_riesgo` saturado y el `*100`. Hoy no rompe nada porque BUG-009 mantiene el identifier falso y D5 sigue `SIN_DATO` explícito. Reportado por Diana Alvarez (C1) el 30-ago al revisar los metadatos de DS-06/DS-08, que **sí** están limpios | high | open | US-122a / US-112 / REQ-001 / DS-06 | pendiente (**C1 + Emilio Galnares**) — la solución ya está documentada en la ficha DS-06 §64-70 (endpoint «Detalle por presa: Presa, Año, Vol. de almacenamiento (hm3) — SERIE DE TIEMPO») y §74 (georreferencia vía datos.gob.mx). El extractor de US-122a jaló el listado general porque eso pedía la historia. **Decisión pendiente del PM:** ampliar el extractor, o documentar D5 como cobertura parcial explícita para la demo | — (propuesto: aserción de contrato entre las columnas de `bronze.conagua` y las que `agua_region.sql` consume) |
 | BUG-031 | **KPI-02 «Variación de matrícula» pinta −54.5 % donde el valor real es −0.19 %, en SEIS tableros: DB-01, DB-02, DB-03, DB-04, DB-06 y DB-09.** La métrica es `SUM(variacion_matricula * matricula_total) / NULLIF(SUM(matricula_total), 0)` con `formato: porcentaje_1`, es decir un **promedio ponderado de razones**… salvo que `variacion_matricula` no es una razón: `fact_escuela_ciclo.sql` la produce como `matricula_total - matricula_ciclo_anterior`, **alumnos absolutos** (rango observado −24 a 24). El resultado se renderiza como porcentaje, que multiplica por 100 otra vez. Verificado contra Postgres: 32 312 alumnos contra 32 374 del ciclo anterior = **−0.19 %**; los dos tableros dicen **−54.5 %**, factor 287 | **critical** | open | US-203 / US-204 / US-211a / US-212 / US-221 / REQ-002 / AC-002.4 | pendiente (**C2 · Marina García del Buey**, reportante y autora del defecto) — el origen es §4.4 de [[04_UX_Design/Cube_Specs_DB03_DB04]]: especifiqué `variacion_x_matricula` como componente aditivo, y Deni Garrido lo implementó fielmente. La implementación es correcta; **la especificación no** | `tests/test_semantic_db03_db04.py::test_una_metrica_de_porcentaje_no_multiplica_dos_medidas` |
+| BUG-032 | `Data_Model.md` se contradice a sí mismo sobre dónde vive `indice_riesgo`: la línea 181 (§4.5) describe correctamente `valor` (variación cruda) e `indice_riesgo` como **columnas distintas** —que es lo implementado y lo que consume la API—, pero la nota de la línea 313 afirma que `indice_riesgo` vive *"en la columna `valor`"*. Quien lea §5.3 consultaría `valor` esperando un `[0,1]` y recibiría la variación cruda, hoy en alumnos absolutos: números como `-20` donde espera `0.6` | medium | open | US-313 / US-411 / REQ-003 | — | Diana Alvarez (C1) | ver detalle |
 
 ## BUG-016 — Filas sin ningún driver rompían la publicación de ML-02
 
@@ -285,6 +286,30 @@ El fixture sintético trae los seis drivers poblados. **El escenario que rompe e
 el fixture no representa**, así que ninguna suite lo veía: ni la mía, ni la de ML-02. La lección no
 es "faltaba una prueba" —es que un fixture construido para validar la forma no valida la realidad, y
 que los casos degradados hay que construirlos a propósito.
+
+## BUG-032 — `Data_Model.md` se contradice sobre dónde vive `indice_riesgo`
+
+Encontrado el 2026-08-29 al cerrar los pendientes de `DOC-INDICE-RIESGO`.
+
+**Línea 181 (§4.5), correcta y implementada:**
+
+> `valor` (variación cruda, para métricas MAE/RMSE de ML-01) · **`indice_riesgo`** (float[0,1],
+> columna derivada calculada en `src/modelos/riesgo.py`)
+
+**Línea 313 (nota de §5.3), obsoleta:**
+
+> `indice_riesgo` vive en `gold.predicciones` (columna `valor`, `modelo = 'ML-01'`)
+
+Las dos no pueden ser ciertas. La implementación coincide con la 181: `publicar_gold.py` crea ambas
+columnas y `src/api/schemas.py` declara `indice_riesgo: StrictFloat | None = Field(None, ge=0, le=1)`.
+
+El daño no es teórico. Quien siga §5.3 consultará `valor` esperando un índice acotado a `[0,1]` y
+recibirá la variación cruda — que hasta que se implemente ADR-007 viene en **alumnos absolutos**. Es
+decir, valores como `-20` donde el consumidor espera `0.6`, sin que nada falle. Es el mismo modo de
+falla de BUG-017: un número creíble que significa otra cosa.
+
+Arreglo: la nota de la 313 debe decir que `indice_riesgo` es su **propia columna**, no `valor`.
+Archivo de Célula 1.
 
 ## Convención
 

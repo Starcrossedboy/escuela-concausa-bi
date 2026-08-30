@@ -1,0 +1,96 @@
+# =============================================================================
+# DB-09 - Tablero Recomendaciones prescriptivas · definicion declarativa (US-204)
+# -----------------------------------------------------------------------------
+# Historia : US-204 (Manuel Alejandro Serrania Reinada, Celula 2 - Analytics & BI)
+# Contrato : 04_UX_Design/Cube_Specs_DB06_DB09.md §5
+# Consumido por : superset/sync_semantic_layer.py (idempotente)
+#
+# El diferenciador prescriptivo del proyecto: cada escuela con su driver
+# dominante, su recomendacion ML-02 y su prioridad. Las escuelas que el modelo
+# todavia no explica se agrupan como categoria 'SIN_DATO' (nunca se reparten
+# entre drivers reales, nunca se pintan como cero).
+# =============================================================================
+
+version: "1.0"
+owner: "Manuel Alejandro Serranía Reinada"
+story: US-204
+
+dashboards:
+  - titulo: "DB-09 · Recomendaciones prescriptivas"
+    slug: db09-recomendaciones
+    descripcion: >
+      Qué hacer, dónde y con qué prioridad: recomendaciones emitidas (KPI-11)
+      por prioridad, driver dominante explicado por ML-02 (KPI-07), contexto de
+      riesgo (KPI-04) y la nómina de escuelas a intervenir.
+    filtros_globales:
+      - columna: id_ciclo
+        etiqueta: "Ciclo escolar"
+        datasets: [db09_cubo_recomendaciones]
+      - columna: nombre_entidad
+        etiqueta: "Entidad"
+        datasets: [db09_cubo_recomendaciones]
+      - columna: nivel
+        etiqueta: "Nivel educativo"
+        datasets: [db09_cubo_recomendaciones]
+
+    charts:
+      # ----- Fila 1: tiles KPI ------------------------------------------------
+      - nombre: "KPI-11 · Recomendaciones emitidas"
+        dataset: db09_cubo_recomendaciones
+        metrica: recomendaciones_emitidas
+        viz: big_number_total
+        ancho: 3
+        alto: 38
+        subheader: "Escuelas con driver dominante explicado por ML-02"
+
+      - nombre: "Recomendaciones de prioridad ALTA"
+        dataset: db09_cubo_recomendaciones
+        metrica: recomendaciones_prioridad_alta
+        viz: big_number_total
+        ancho: 3
+        alto: 38
+        subheader: "El modelo manda a intervenir primero"
+
+      - nombre: "% escuelas con recomendación"
+        dataset: db09_cubo_recomendaciones
+        metrica: pct_escuelas_recomendadas
+        viz: big_number_total
+        ancho: 3
+        alto: 38
+        subheader: "Cobertura del plan de intervención"
+
+      - nombre: "KPI-04 · Escuelas en riesgo"
+        dataset: db09_cubo_recomendaciones
+        metrica: escuelas_en_riesgo
+        viz: big_number_total
+        ancho: 3
+        alto: 38
+        subheader: "Índice de riesgo >= 0.6 (R3) · contexto AC-002.5"
+
+      # ----- Fila 2: composición de la intervención ----------------------------
+      - nombre: "Recomendaciones por prioridad"
+        dataset: db09_cubo_recomendaciones
+        metrica: recomendaciones_emitidas
+        viz: pie
+        ancho: 4
+        alto: 55
+        dimensiones: [prioridad]
+
+      - nombre: "Escuelas por driver dominante (KPI-07)"
+        dataset: db09_cubo_recomendaciones
+        metrica: escuelas
+        viz: echarts_timeseries_bar
+        ancho: 8
+        alto: 55
+        eje_x: nombre_driver
+        etiqueta_serie: "Escuelas"
+
+      # ----- Fila 3: nómina de intervención ------------------------------------
+      - nombre: "Escuelas a intervenir (mayor riesgo)"
+        dataset: db09_cubo_recomendaciones
+        metrica: indice_riesgo
+        viz: table
+        ancho: 12
+        alto: 60
+        dimensiones: [nombre_entidad, nombre_municipio, nombre_escuela]
+        row_limit: 50

@@ -1,0 +1,52 @@
+version: 2
+
+models:
+  - name: cubo_driver
+    description: >
+      US-113 / DB-05. Vista materializada a grano
+      driver × municipio × nivel × ciclo. Expande cada grupo observado a D1..D6
+      y distingue cero real de ausencia de recomendaciones mediante
+      cobertura_recomendacion.
+    columns:
+      - name: id_driver
+        data_tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: ['D1', 'D2', 'D3', 'D4', 'D5', 'D6']
+          - relationships:
+              arguments:
+                to: ref('dim_driver')
+                field: id_driver
+      - name: cve_mun
+        data_tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_municipio')
+                field: cve_mun
+      - name: nivel
+        data_tests: [not_null]
+      - name: id_ciclo
+        data_tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_tiempo')
+                field: id_ciclo
+      - name: cve_ent
+        data_tests: [not_null]
+      - name: total_escuelas
+        data_tests: [not_null]
+      - name: escuelas_con_recomendacion
+        data_tests: [not_null]
+      - name: escuelas_sin_recomendacion
+        data_tests: [not_null]
+      - name: cobertura_fuente
+        data_tests: [not_null]
+      - name: cobertura_recomendacion
+        data_tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: ['OK', 'SIN_DATO']

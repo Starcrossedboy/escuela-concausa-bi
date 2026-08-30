@@ -6,7 +6,7 @@ status: approved
 version: "1.0"
 traces_up: ["01_Product/PRD", "02_Requirements/User_Stories"]
 traces_down: ["US-001", "US-002", "US-003", "US-004", "US-005", "US-006"]
-last_reviewed: "2026-07-31"
+last_reviewed: "2026-08-28"
 tags: [sprint, plan, po, nivel-medio]
 ---
 
@@ -305,10 +305,10 @@ Actualiza esta tabla **antes de cada standup**. El PM la revisa para el tablero 
 
 | ID | Historia | Estado | % | Bloqueado por | Fecha compromiso |
 |---|---|---|---|---|---|
-| `US-001` | Crear el repositorio nuevo y adaptar el va | ⬜ Por iniciar | 0% | — | Dom 9 ago |
-| `US-002` | Cargar el PRD del profesor con criterios d | ⬜ Por iniciar | 0% | — | Dom 9 ago |
-| `US-003` | Registrar a los 21 integrantes y crear sus | ⬜ Por iniciar | 0% | — | Dom 9 ago |
-| `US-004` | Sembrar y mantener la Traceability_Matrix | ⬜ Por iniciar | 0% | — | Dom 16 ago |
+| `US-001` | Crear el repositorio nuevo y adaptar el va | ✅ Terminado | 100% | — | Cerrada 10 ago |
+| `US-002` | Cargar el PRD del profesor con criterios d | ✅ Terminado | 100% | — | Cerrada 10 ago |
+| `US-003` | Registrar a los 21 integrantes y crear sus | ✅ Terminado | 100% | — | Cerrada 10 ago |
+| `US-004` | Sembrar y mantener la Traceability_Matrix | 🔵 En revisión | 95% | Cerrar acuerdos del reporte de seguimiento | Junta de cierre |
 | `US-005` | Coordinar la rotacion del Vault Steward | ⬜ Por iniciar | 0% | — | Dom 30 ago |
 | `US-006` | Preparar y ensayar el pitch de la demo en  | ⬜ Por iniciar | 0% | — | Mar 8 sep |
 

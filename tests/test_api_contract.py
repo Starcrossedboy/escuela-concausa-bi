@@ -15,7 +15,12 @@ from fastapi.testclient import TestClient
 from scripts.export_openapi import SALIDA
 from src.api.app import API_PREFIX, app
 from src.api.repositorio_gold import get_repositorio_gold
+from src.api.repositorio_modelos import get_repositorio_modelos
 from tests.fixtures_gold import RepositorioGoldFake
+from tests.fixtures_modelos import (
+    RepositorioModelosFake,
+    RepositorioModelosNoDisponibleFake,
+)
 
 RAIZ = Path(__file__).resolve().parents[1]
 
@@ -24,13 +29,15 @@ RAIZ = Path(__file__).resolve().parents[1]
 def client() -> TestClient:
     """Suite rápida del contrato: corre sin Postgres.
 
-    `/escuelas`, `/municipios` y `/kpis` dependen de `RepositorioGold` (`Depends`), así que aquí
-    se sustituye por `RepositorioGoldFake` (datos en memoria, `tests/fixtures_gold.py`) en vez de
+    `/escuelas`, `/municipios` y `/kpis` dependen de `RepositorioGold` (`Depends`), y
+    `/predicciones/*` de `RepositorioModelos` (`Depends`, US-412), así que aquí se sustituyen por
+    sus fakes en memoria (`tests/fixtures_gold.py`, `tests/fixtures_modelos.py`) en vez de
     conectar a una base real -- patrón acordado con Christian Ruiz (Tech Lead C4) el 2026-08-20
-    para la Decisión 2 de US-411. Las pruebas de integración contra Postgres real viven en US-422
-    (Eloisa González Rubio), nunca aquí.
+    para la Decisión 2 de US-411, extendido a US-412 el 2026-08-26. Las pruebas de integración
+    contra Postgres real viven en US-422 (Eloisa González Rubio), nunca aquí.
     """
     app.dependency_overrides[get_repositorio_gold] = RepositorioGoldFake
+    app.dependency_overrides[get_repositorio_modelos] = RepositorioModelosFake
     try:
         yield TestClient(app)
     finally:
@@ -152,12 +159,21 @@ def test_municipios_order_by_invalido_422(client: TestClient) -> None:
 
 
 def test_prediccion_combina_ml(client: TestClient) -> None:
+    """Lee `RepositorioModelosFake` (US-412, cierra BUG-010) -- ya no `mock_data`."""
     r = client.get(f"{API_PREFIX}/predicciones/09DPR0001A")
     assert r.status_code == 200
     cuerpo = r.json()
     assert cuerpo["driver_dominante"].startswith("D")
     assert cuerpo["recomendacion"]  # ML-02 prescriptivo, no vacío
-    assert isinstance(cuerpo["cluster"], int)  # ML-03
+    # ML-03 sin productor todavía (BUG-010, US-321): None, nunca un entero inventado.
+    assert cuerpo["cluster"] is None
+
+
+def test_prediccion_cct_sin_fila_404(client: TestClient) -> None:
+    """Un CCT sin fila en `gold.predicciones` es 404, no un valor fabricado."""
+    r = client.get(f"{API_PREFIX}/predicciones/00XXXX0000Z")
+    assert r.status_code == 404
+    assert r.json()["error"] == "not_found"
 
 
 def test_prediccion_batch(client: TestClient) -> None:
@@ -169,10 +185,48 @@ def test_prediccion_batch(client: TestClient) -> None:
     assert r.json()["total"] == 2
 
 
+def test_prediccion_batch_omite_ccts_sin_fila(client: TestClient) -> None:
+    """Un CCT sin predicción se omite del resultado -- nunca se inventa una fila para él."""
+    r = client.post(
+        f"{API_PREFIX}/predicciones/batch",
+        json={"ccts": ["09DPR0001A", "00XXXX0000Z"], "id_ciclo": "2024-2025"},
+    )
+    assert r.status_code == 200
+    cuerpo = r.json()
+    assert cuerpo["total"] == 1
+    assert cuerpo["items"][0]["cct"] == "09DPR0001A"
+
+
 def test_prediccion_batch_valida_entrada_422(client: TestClient) -> None:
     r = client.post(f"{API_PREFIX}/predicciones/batch", json={"ccts": [], "id_ciclo": "x"})
     assert r.status_code == 422
     assert r.json()["error"] == "validation_error"
+
+
+def test_prediccion_timeout_postgres_503(client: TestClient) -> None:
+    """Si Postgres no responde a tiempo (US-416), 503 uniforme -- nunca un valor inventado."""
+    app.dependency_overrides[get_repositorio_modelos] = RepositorioModelosNoDisponibleFake
+    try:
+        r = client.get(f"{API_PREFIX}/predicciones/09DPR0001A")
+    finally:
+        app.dependency_overrides[get_repositorio_modelos] = RepositorioModelosFake
+    assert r.status_code == 503
+    cuerpo = r.json()
+    assert cuerpo["error"] == "service_unavailable"
+    assert cuerpo["request_id"]
+
+
+def test_prediccion_batch_timeout_postgres_503(client: TestClient) -> None:
+    app.dependency_overrides[get_repositorio_modelos] = RepositorioModelosNoDisponibleFake
+    try:
+        r = client.post(
+            f"{API_PREFIX}/predicciones/batch",
+            json={"ccts": ["09DPR0001A"], "id_ciclo": "2024-2025"},
+        )
+    finally:
+        app.dependency_overrides[get_repositorio_modelos] = RepositorioModelosFake
+    assert r.status_code == 503
+    assert r.json()["error"] == "service_unavailable"
 
 
 # --------------------------------------------------------------------------- #
@@ -217,7 +271,16 @@ def test_auth_me_requiere_token(client: TestClient) -> None:
 
 
 def test_admin_pipeline_run_202(client: TestClient) -> None:
-    r = client.post(f"{API_PREFIX}/admin/pipeline/run", json={"dag": "bronze", "ciclo": "2024-2025"})
+    # Desde US-403 /admin/* exige rol `analista`. La matriz completa (401/403) vive en test_rbac.py.
+    from src.api.schemas import Rol
+    from src.api.security.jwt import create_access_token
+
+    token = create_access_token(sub="a1", role=Rol.analista, email="ana@faro.mx")
+    r = client.post(
+        f"{API_PREFIX}/admin/pipeline/run",
+        json={"dag": "bronze", "ciclo": "2024-2025"},
+        headers={"Authorization": f"Bearer {token}"},
+    )
     assert r.status_code == 202
     assert r.json()["estado"] == "accepted"
 

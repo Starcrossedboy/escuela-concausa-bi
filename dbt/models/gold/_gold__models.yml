@@ -45,6 +45,18 @@ models:
         data_tests:
           - not_null
 
+      - name: cve_mun
+        description: >
+          Clave INEGI de municipio a 5 caracteres (US-325: expuesta a partir de aquí para
+          análisis geográfico de cobertura parcial; misma fuente que cct, silver.matricula).
+          Ya se usaba internamente como llave de join de D1/D2, nunca antes en el contrato.
+        data_tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_municipio')
+                field: cve_mun
+
       - name: d1_cobertura
         description: "Cobertura de D1 (pobreza/rezago social, CONEVAL)."
         data_tests:
@@ -86,6 +98,20 @@ models:
           - accepted_values:
               arguments:
                 values: ['OK', 'SIN_DATO']
+
+      - name: driver_dominante
+        description: >
+          Etiqueta OPERATIVA (US-302, acordada con Andrés González Habib/C3 el 2026-08-28):
+          argmax entre los drivers con cobertura 'OK'. NO es una observación independiente ni
+          evidencia causal -- es la misma regla que ya usaba `generar_driver_dominante_proxy()`
+          en entrenar_ml02.py, centralizada aquí. Desempate determinista D1 > D2 > D3 > D4 > D5
+          > D6. NULL cuando ninguna fila tiene un driver elegible (nunca un valor artificial) --
+          ver dbt/tests/features_escuela_driver_dominante_*.sql para las pruebas de cobertura,
+          no-nulos y grano.
+        data_tests:
+          - accepted_values:
+              arguments:
+                values: ['D1', 'D2', 'D3', 'D4', 'D5', 'D6']
 
       - name: indice_completitud_drivers
         description: "Fracción (0-1) de los 6 drivers con cobertura OK para este cct x ciclo."

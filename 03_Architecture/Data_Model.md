@@ -123,7 +123,11 @@ erDiagram
   `poblacion`, `indice_rezago_social`, `grado_rezago`, `pobreza_pct`.
 - **`dim_tiempo`** — `id_ciclo` (PK), `ciclo` (`2023-2024`), `anio_inicio`, `anio_fin`.
 - **`dim_driver`** — `id_driver` (`D1`…`D6`), `nombre`, `descripcion`, `fuente`, `cobertura`,
-  `nivel_geografico`.
+  `nivel_geografico`. Catálogo canónico en `dbt/seeds/dim_driver.csv`; `nombre` es siempre uno de
+  `Pobreza` (D1), `Inseguridad` (D2), `Infraestructura` (D3), `Conectividad` (D4), `Agua` (D5),
+  `Aire` (D6) — nombres cortos, exigidos por `accepted_values` en `dbt/seeds/_gold__seeds.yml`
+  (BUG-022). Cualquier otro texto (p.ej. "Pobreza y rezago social") es de un mock desactualizado,
+  no del catálogo real.
 
 ### 4.3 Cubos materializados (para los 10 dashboards)
 Agregaciones precalculadas para que Superset responda rápido. Cada cubo expone su **bandera de
@@ -161,8 +165,14 @@ cobertura**. Mapa cubo → dashboard:
 > Diana Alvarez Varela (Tech Lead Célula 1, regla 7) el 23 ago 2026. Registrada como **DEC-009**.
 
 ### 4.4 `gold.features_escuela` — contrato con la Célula 3
-- **Grano:** una fila por **CCT × ciclo**. Los 6 drivers **normalizados** (0–1) + banderas de cobertura
-  + el target de entrenamiento. Contrato **cerrado y versionado** (ver §5.3).
+- **Grano:** una fila por **CCT × ciclo**. `cve_mun` (clave INEGI, 5 caracteres) + los 6 drivers
+  **normalizados** (0–1) + banderas de cobertura + el target de entrenamiento. Contrato **cerrado
+  y versionado** (ver §5.3).
+- **`cve_mun` (US-325, 2026-08-29):** existía como llave de join interna desde el día 1 (D1/D2 se
+  resuelven por municipio); se expone en el contrato a partir de aquí para el análisis de sesgo
+  por cobertura parcial de Estefany Hernández Loredo (C3). Decisión de esquema tomada por Diana
+  Alvarez Varela (Tech Lead Célula 1, regla 7) — cambio aditivo, un solo productor, no requiere
+  ADR (contrasta con ADR-007, donde dos productores generaban la misma columna).
 
 ### 4.5 Salida de modelos
 - **`gold.predicciones`** — grano **dual** desde DEC-010: `grano` (`escuela` | `municipio_nivel`,
@@ -241,6 +251,7 @@ class FeaturesEscuela(BaseModel):
     model_config = {"extra": "forbid"}         # ninguna columna fuera de contrato
     cct: StrictStr = Field(min_length=10, max_length=10)
     id_ciclo: StrictStr
+    cve_mun: StrictStr | None = None   # US-325, 2026-08-29; default por PRs en paralelo (ver §4.4)
     d1_pobreza: StrictFloat | None = Field(ge=0, le=1)      # None ⇒ ver *_cobertura
     d2_inseguridad: StrictFloat | None = Field(ge=0, le=1)
     d3_infraestructura: StrictFloat | None = Field(ge=0, le=1)
@@ -253,9 +264,22 @@ class FeaturesEscuela(BaseModel):
     d4_cobertura: Cobertura
     d5_cobertura: Cobertura
     d6_cobertura: Cobertura
+    driver_dominante: DriverDominante | None                # etiqueta OPERATIVA, ver nota abajo
     indice_completitud_drivers: StrictFloat = Field(ge=0, le=1)
     target_variacion_matricula: StrictFloat                 # etiqueta (partición temporal)
 ```
+
+> **`driver_dominante` (US-302, acordado con Andrés González Habib/C3 el 2026-08-28):** etiqueta
+> **operativa** derivada por argmax entre los drivers con `*_cobertura = 'OK'` — **no** es una
+> observación independiente ni evidencia causal. Desempate determinista `D1 > D2 > D3 > D4 > D5 >
+> D6`; `NULL` cuando ninguna fila tiene un driver elegible. Es la misma regla que ya vivía como
+> `generar_driver_dominante_proxy()` en `src/modelos/entrenar_ml02.py` (C3), centralizada aquí para
+> que Gold y Python no puedan divergir — hay una prueba de paridad entre ambos en
+> `tests/test_entrenar_ml02.py::test_paridad_driver_dominante_real_contra_proxy`. **No confundir**
+> con el `driver_dominante` de `gold.recomendaciones` (§4.1, nota de `gold.fact_escuela_ciclo`
+> arriba): ese es la *predicción* del clasificador ML-02 ya entrenado, servida por inferencia; este
+> es la *etiqueta de entrenamiento* que hace posible entrenarlo. Son la misma regla de argmax
+> aplicada en dos momentos distintos del pipeline, no el mismo dato.
 
 ### 5.4 Configuración con `pydantic-settings`
 Los parámetros del pipeline se leen de variables de entorno (`.env` nunca se sube), no se hardcodean:

@@ -6,7 +6,7 @@ status: approved
 version: "1.0"
 traces_up: ["01_Product/PRD", "02_Requirements/User_Stories"]
 traces_down: ["US-304b", "US-323", "US-324"]
-last_reviewed: "2026-07-31"
+last_reviewed: "2026-08-28"
 tags: [sprint, plan, celula-3, nivel-bajo]
 ---
 
@@ -285,9 +285,9 @@ Actualiza esta tabla **antes de cada standup**. El PM la revisa para el tablero 
 
 | ID | Historia | Estado | % | Bloqueado por | Fecha compromiso |
 |---|---|---|---|---|---|
-| `US-304b` | Capa de recuperacion del agente (RAG) | ⬜ Por iniciar | 0% | — | Dom 6 sep |
-| `US-323` | Construir el set de evaluacion del agente | ⬜ Por iniciar | 0% | — | Dom 6 sep |
-| `US-324` | Model cards de ML-01, ML-02 y ML-03 | ⬜ Por iniciar | 0% | — | Dom 6 sep |
+| `US-304b` | Capa de recuperacion del agente (RAG) | 🔵 En revisión | 90% | Carga perezosa con logging + prueba en contenedor | Junta de cierre |
+| `US-323` | Construir el set de evaluacion del agente | ✅ Terminado | 100% | — | Cerrada 28 ago |
+| `US-324` | Model cards de ML-01, ML-02 y ML-03 | 🔵 En revisión | 90% | Revisión de dueños y corrección de ficha ML-03 | Junta de cierre |
 
 **Estados válidos:** ⬜ Por iniciar · 🟡 En curso · 🔵 En revisión (PR abierto) · ✅ Terminado · 🔴 Bloqueado
 

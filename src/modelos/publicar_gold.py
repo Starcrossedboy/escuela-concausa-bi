@@ -35,25 +35,46 @@ from enum import Enum
 from pathlib import Path
 
 import pandas as pd
-from pydantic import BaseModel, Field, StrictFloat, StrictStr
+from pydantic import BaseModel, Field, StrictFloat, StrictStr, model_validator
 from sqlalchemy import (
+    CheckConstraint,
     Column,
     DateTime,
     Float,
+    Index,
     MetaData,
     String,
     Table,
     create_engine,
+    text,
 )
 from sqlalchemy.engine import Engine
 
 from src.modelos.contrato import DRIVERS
-from src.modelos.entrenar_ml01 import cargar_features, entrenar_y_evaluar
-from src.modelos.entrenar_ml02 import cargar_features_ml02, predecir_driver
+from src.modelos.entrenar_ml01 import (
+    cargar_features,
+    cargar_features_desde_gold,
+    entrenar_y_evaluar,
+)
+from src.modelos.entrenar_ml02 import (
+    COLUMNA_TARGET_PROXY,
+    COLUMNA_TARGET_REAL,
+    generar_driver_dominante_proxy,
+    predecir_driver,
+)
 from src.modelos.entrenar_ml02 import entrenar_y_evaluar as entrenar_ml02
-from src.modelos.particion_temporal import COLUMNA_CICLO, ciclos_ordenados
+from src.modelos.particion_temporal import (
+    COLUMNA_CICLO,
+    ciclos_ordenados,
+    ventanas_posibles,
+)
 from src.modelos.recomendaciones import CODIGOS_DRIVER, RECOMENDACION_POR_DRIVER
-from src.modelos.riesgo import RIESGO_ESTABLE, RIESGO_UMBRAL, indice_riesgo
+from src.modelos.riesgo import (
+    RIESGO_ESTABLE,
+    RIESGO_UMBRAL,
+    indice_riesgo,
+    verificar_escala_variacion,
+)
 
 ESQUEMA_GOLD = "gold"
 TABLA_PREDICCIONES = "predicciones"
@@ -67,12 +88,27 @@ class Prioridad(str, Enum):
     BAJA = "baja"
 
 
+class Grano(str, Enum):
+    """Discriminador de grano de `gold.predicciones` (DEC-010).
+
+    ML-01 puede predecir a `municipio × nivel` (DEC-007) mientras las features y el driver dominante
+    viven a nivel escuela. En vez de **repartir** el valor del grupo a cada escuela —lo que le
+    atribuiría a una escuela un dato que no se midió ahí—, la fila declara su propio grano.
+    """
+
+    ESCUELA = "escuela"
+    MUNICIPIO_NIVEL = "municipio_nivel"
+
+
 class PrediccionGold(BaseModel):
-    """Contrato ejecutable de una fila de `gold.predicciones` (§4.5)."""
+    """Contrato ejecutable de una fila de `gold.predicciones` (§4.5, grano dual DEC-010)."""
 
     model_config = {"extra": "forbid"}
 
-    cct: StrictStr = Field(min_length=10, max_length=10)
+    grano: Grano
+    cct: StrictStr | None = Field(default=None, min_length=10, max_length=10)
+    cve_mun: StrictStr | None = Field(default=None, min_length=5, max_length=5)
+    nivel: StrictStr | None = None
     id_ciclo: StrictStr
     modelo: StrictStr
     valor: StrictFloat
@@ -80,6 +116,26 @@ class PrediccionGold(BaseModel):
     probabilidad: StrictFloat | None
     mlflow_run_id: StrictStr
     generado_at: datetime
+
+    @model_validator(mode="after")
+    def _llave_coherente_con_el_grano(self) -> PrediccionGold:
+        """Exactamente una llave poblada según el grano — nunca ambas, nunca ninguna.
+
+        Es la restricción textual del `Data_Model` §4.5 convertida en validación ejecutable: una
+        fila con las dos llaves no se sabe a qué se refiere, y una sin ninguna no se sabe de quién
+        habla. Ambas son peores que un error.
+        """
+        if self.grano is Grano.ESCUELA:
+            if self.cct is None:
+                raise ValueError("grano 'escuela' exige `cct`.")
+            if self.cve_mun is not None or self.nivel is not None:
+                raise ValueError("grano 'escuela' no debe traer `cve_mun` ni `nivel`.")
+        else:
+            if self.cve_mun is None or self.nivel is None:
+                raise ValueError("grano 'municipio_nivel' exige `cve_mun` y `nivel`.")
+            if self.cct is not None:
+                raise ValueError("grano 'municipio_nivel' no debe traer `cct`.")
+        return self
 
 
 class RecomendacionGold(BaseModel):
@@ -119,17 +175,48 @@ def prioridad_de_riesgo(riesgo: float) -> Prioridad:
 def _metadatos(esquema: str | None = ESQUEMA_GOLD) -> tuple[MetaData, Table, Table]:
     """Define las dos tablas de Gold. `esquema=None` para motores sin esquemas (SQLite)."""
     metadata = MetaData(schema=esquema)
+    # Grano dual (DEC-010): no hay llave primaria única posible, porque `cct` y `cve_mun`+`nivel`
+    # se excluyen entre sí y una PK no admite nulos. Se usan **dos índices únicos parciales**, uno
+    # por grano, más un CHECK que hace cumplir la exclusión en la propia base de datos.
     predicciones = Table(
         TABLA_PREDICCIONES,
         metadata,
-        Column("cct", String(10), primary_key=True),
-        Column("id_ciclo", String, primary_key=True),
-        Column("modelo", String, primary_key=True),
+        Column("grano", String, nullable=False),
+        Column("cct", String(10), nullable=True),
+        Column("cve_mun", String(5), nullable=True),
+        Column("nivel", String, nullable=True),
+        Column("id_ciclo", String, nullable=False),
+        Column("modelo", String, nullable=False),
         Column("valor", Float, nullable=False),
         Column("indice_riesgo", Float, nullable=False),
         Column("probabilidad", Float, nullable=True),
         Column("mlflow_run_id", String, nullable=False),
         Column("generado_at", DateTime(timezone=True), nullable=False),
+        CheckConstraint(
+            "(grano = 'escuela' AND cct IS NOT NULL AND cve_mun IS NULL AND nivel IS NULL)"
+            " OR (grano = 'municipio_nivel' AND cct IS NULL"
+            " AND cve_mun IS NOT NULL AND nivel IS NOT NULL)",
+            name="ck_predicciones_llave_segun_grano",
+        ),
+        Index(
+            "ux_predicciones_escuela",
+            "cct",
+            "id_ciclo",
+            "modelo",
+            unique=True,
+            sqlite_where=text("grano = 'escuela'"),
+            postgresql_where=text("grano = 'escuela'"),
+        ),
+        Index(
+            "ux_predicciones_municipio_nivel",
+            "cve_mun",
+            "nivel",
+            "id_ciclo",
+            "modelo",
+            unique=True,
+            sqlite_where=text("grano = 'municipio_nivel'"),
+            postgresql_where=text("grano = 'municipio_nivel'"),
+        ),
     )
     recomendaciones = Table(
         TABLA_RECOMENDACIONES,
@@ -175,16 +262,92 @@ def construir_predicciones(
         raise ValueError(f"El ciclo {objetivo!r} no está en las features. Disponibles: {ciclos}.")
 
     corte = features[features[COLUMNA_CICLO] == objetivo]
-    variacion = modelo.predict(corte[list(DRIVERS)])
+    # Las columnas de predicción deben ser las mismas con las que se entrenó: si un driver quedó
+    # 100% SIN_DATO y se excluyó, pasarlo aquí haría fallar el predict por desajuste de forma.
+    columnas = list(getattr(modelo, "feature_names_in_", DRIVERS))
+    variacion = modelo.predict(corte[columnas])
+    # Antes de traducir a indice_riesgo: si las unidades no son fracción la sigmoide no falla,
+    # satura. Un tablero lleno de riesgo 1.00 es peor que una corrida que se detiene.
+    verificar_escala_variacion(variacion, origen="variación predicha por ML-01")
 
     filas = pd.DataFrame(
         {
+            "grano": Grano.ESCUELA.value,
             "cct": corte["cct"].to_numpy(),
+            "cve_mun": None,
+            "nivel": None,
             "id_ciclo": objetivo,
             "modelo": "ML-01",
             "valor": variacion.astype(float),
             "indice_riesgo": indice_riesgo(variacion).astype(float),
             # ML-01 es regresión: no produce probabilidad. NULL explícito, nunca 0.
+            "probabilidad": None,
+            "mlflow_run_id": mlflow_run_id,
+            "generado_at": generado_at or datetime.now(tz=UTC),
+        }
+    )
+    for fila in filas.to_dict(orient="records"):
+        PrediccionGold(**fila)
+    return filas
+
+
+def construir_predicciones_municipio_nivel(
+    agregado: pd.DataFrame,
+    modelo,
+    mlflow_run_id: str,
+    id_ciclo_objetivo: str | None = None,
+    generado_at: datetime | None = None,
+) -> pd.DataFrame:
+    """Genera filas de `gold.predicciones` con `grano = municipio_nivel` (DEC-010 + DEC-007).
+
+    Cierra el circuito del target híbrido: `target_hibrido.agregar_a_municipio_nivel()` produce el
+    agregado y esta función publica su predicción **declarando su grano**, en vez de repartir el
+    valor a cada escuela del grupo.
+
+    `indice_riesgo` se calcula igual, pero conviene leer la advertencia del `Data_Model` §4.5: hoy
+    **sólo tiene sentido pleno a nivel escuela**, porque las anclas del índice se fijaron sobre la
+    variación de una escuela concreta. A nivel municipio × nivel es una lectura agregada, no una
+    alerta por plantel.
+
+    Args:
+        agregado: salida de `agregar_a_municipio_nivel`, con `cve_mun`, `nivel` e `id_ciclo`.
+        modelo: estimador entrenado sobre el grano agregado.
+        mlflow_run_id: corrida que lo produjo.
+        id_ciclo_objetivo: ciclo a predecir; por defecto el más reciente.
+        generado_at: marca de tiempo; por defecto ahora en UTC.
+
+    Returns:
+        DataFrame con las columnas de `gold.predicciones` para el grano agregado.
+
+    Raises:
+        ValueError: si faltan las llaves del grano o el ciclo objetivo no existe.
+    """
+    faltantes = {"cve_mun", "nivel", COLUMNA_CICLO} - set(agregado.columns)
+    if faltantes:
+        raise ValueError(f"El agregado no trae {sorted(faltantes)}; DEC-010 las exige como llave.")
+
+    ciclos = ciclos_ordenados(agregado)
+    objetivo = id_ciclo_objetivo or ciclos[-1]
+    if objetivo not in ciclos:
+        raise ValueError(f"El ciclo {objetivo!r} no está en el agregado. Disponibles: {ciclos}.")
+
+    corte = agregado[agregado[COLUMNA_CICLO] == objetivo]
+    columnas = list(getattr(modelo, "feature_names_in_", DRIVERS))
+    variacion = modelo.predict(corte[columnas])
+    # Antes de traducir a indice_riesgo: si las unidades no son fracción la sigmoide no falla,
+    # satura. Un tablero lleno de riesgo 1.00 es peor que una corrida que se detiene.
+    verificar_escala_variacion(variacion, origen="variación predicha por ML-01")
+
+    filas = pd.DataFrame(
+        {
+            "grano": Grano.MUNICIPIO_NIVEL.value,
+            "cct": None,
+            "cve_mun": corte["cve_mun"].to_numpy(),
+            "nivel": corte["nivel"].to_numpy(),
+            "id_ciclo": objetivo,
+            "modelo": "ML-01",
+            "valor": variacion.astype(float),
+            "indice_riesgo": indice_riesgo(variacion).astype(float),
             "probabilidad": None,
             "mlflow_run_id": mlflow_run_id,
             "generado_at": generado_at or datetime.now(tz=UTC),
@@ -241,6 +404,38 @@ def construir_recomendaciones(
     return filas
 
 
+def filtrar_con_driver_observado(features: pd.DataFrame) -> tuple[pd.DataFrame, int]:
+    """Aparta las filas que no pueden tener driver dominante.
+
+    ML-02 responde "¿cuál de los seis drivers explica el riesgo?". Una fila sin respuesta posible
+    no se fuerza: forzarla sería inventar el diferenciador del proyecto.
+
+    **Cuál es la fila sin respuesta depende de quién produce el target.** Si Gold ya trae la
+    `driver_dominante` real de US-302, ella es la autoridad y basta con mirar dónde quedó `NULL`;
+    inferirlo por nuestra cuenta abre un hueco, porque C1 exige `dN_cobertura = 'OK'` **además** de
+    valor no nulo y nosotros sólo veríamos el valor. Una fila con dato pero cobertura `SIN_DATO`
+    sobreviviría aquí y llegaría a `validar_target_ml02` con la etiqueta en nulo.
+
+    Sin esa columna —fixtures, o Gold anterior a US-302— se cae al criterio del proxy: al menos un
+    driver observado.
+
+    Las apartadas **conservan su predicción de ML-01**: la variación de matrícula no necesita
+    drivers. Lo que no reciben es recomendación, que es la regla de cobertura parcial: `SIN_DATO`
+    explícito, nunca un driver inventado.
+
+    Args:
+        features: tabla conforme al contrato `FeaturesEscuela`.
+
+    Returns:
+        Las filas que sí admiten driver dominante, y cuántas se apartaron.
+    """
+    if COLUMNA_TARGET_REAL in features.columns:
+        utiles = features[COLUMNA_TARGET_REAL].notna()
+    else:
+        utiles = features[list(DRIVERS)].notna().any(axis=1)
+    return features[utiles].copy(), int((~utiles).sum())
+
+
 def construir_recomendaciones_ml02(
     predicciones: pd.DataFrame,
     features: pd.DataFrame,
@@ -264,6 +459,38 @@ def construir_recomendaciones_ml02(
         zip(salida_ml02["cct"], salida_ml02["driver_dominante"], strict=True)
     )
     return construir_recomendaciones(predicciones, drivers)
+
+
+def _objetivo_de_conflicto(df: pd.DataFrame, tabla: Table):
+    """Elige el índice único contra el que hace UPSERT este lote.
+
+    Con grano dual (DEC-010) la tabla no tiene una llave primaria única: tiene **dos índices
+    parciales**, uno por grano. El lote debe ser homogéneo para saber a cuál apuntar; mezclar granos
+    en una sola escritura haría ambiguo el objetivo de conflicto.
+
+    Returns:
+        Tupla (columnas del índice, predicado parcial). `(llaves, None)` si la tabla tiene PK propia
+        —como `gold.recomendaciones`, que sigue a grano escuela.
+
+    Raises:
+        ValueError: si el lote mezcla granos.
+    """
+    if "grano" not in df.columns:
+        return [c.name for c in tabla.primary_key.columns], None
+
+    granos = set(df["grano"].unique())
+    if len(granos) > 1:
+        raise ValueError(
+            f"El lote mezcla granos {sorted(granos)}. Publica un grano por llamada: el objetivo de "
+            "conflicto del UPSERT es distinto para cada uno."
+        )
+
+    grano = granos.pop()
+    if grano == Grano.ESCUELA.value:
+        return ["cct", "id_ciclo", "modelo"], text("grano = 'escuela'")
+    if grano == Grano.MUNICIPIO_NIVEL.value:
+        return ["cve_mun", "nivel", "id_ciclo", "modelo"], text("grano = 'municipio_nivel'")
+    raise ValueError(f"Grano desconocido: {grano!r}. Esperado uno de {[g.value for g in Grano]}.")
 
 
 def escribir(
@@ -300,7 +527,7 @@ def escribir(
     else:  # pragma: no cover - sólo usamos estos dos motores
         raise NotImplementedError(f"UPSERT no implementado para el dialecto {dialecto!r}.")
 
-    llaves = [c.name for c in tabla.primary_key.columns]
+    llaves, filtro = _objetivo_de_conflicto(df, tabla)
     registros = df.to_dict(orient="records")
 
     with engine.begin() as conexion:
@@ -313,7 +540,9 @@ def escribir(
             c.name: sentencia.excluded[c.name] for c in tabla.columns if c.name not in llaves
         }
         conexion.execute(
-            sentencia.on_conflict_do_update(index_elements=llaves, set_=actualizables)
+            sentencia.on_conflict_do_update(
+                index_elements=llaves, index_where=filtro, set_=actualizables
+            )
         )
     return len(registros)
 
@@ -332,11 +561,26 @@ def _motor(url: str | None = None) -> Engine:
 def main() -> int:
     """Entrena ML-01, construye las filas de Gold y las publica."""
     parser = argparse.ArgumentParser(description="Publica predicciones y recomendaciones (US-313).")
-    parser.add_argument("--features", type=Path, default=Path("tests/fixtures/features_escuela_mock.csv"))
+    parser.add_argument(
+        "--features",
+        type=Path,
+        default=Path("tests/fixtures/features_escuela_mock.csv"),
+        help="ruta al fixture; se ignora con --desde-gold",
+    )
+    parser.add_argument(
+        "--desde-gold",
+        action="store_true",
+        help="lee `gold.features_escuela` de la base en vez del fixture (BUG-013)",
+    )
     parser.add_argument("--url", default=None, help="URL SQLAlchemy; por defecto DATABASE_URL")
     parser.add_argument("--run-id", default="local-sin-mlflow", help="mlflow_run_id a registrar")
     parser.add_argument("--esquema", default=ESQUEMA_GOLD)
-    parser.add_argument("--ventanas", type=int, default=3)
+    parser.add_argument(
+        "--ventanas",
+        type=int,
+        default=None,
+        help="ventanas de backtesting; por defecto, el máximo que permitan los ciclos disponibles",
+    )
     parser.add_argument(
         "--solo-predicciones",
         action="store_true",
@@ -344,15 +588,26 @@ def main() -> int:
     )
     args = parser.parse_args()
 
-    features = cargar_features(args.features)
-    resultado = entrenar_y_evaluar(features, n_ventanas=args.ventanas)
+    engine = _motor(args.url)
+    if args.desde_gold:
+        features = cargar_features_desde_gold(engine, esquema=args.esquema)
+        print(
+            f"Features desde gold.features_escuela: {len(features)} filas · "
+            f"{features['cct'].nunique()} escuelas · ciclos {sorted(features['id_ciclo'].unique())}"
+        )
+    else:
+        features = cargar_features(args.features)
+        print(f"Features desde el fixture {args.features} — DATOS SINTÉTICOS")
+    ventanas = args.ventanas or ventanas_posibles(features)
+    if args.ventanas is None:
+        print(f"Ventanas de backtesting: {ventanas} (máximo que permiten los ciclos disponibles)")
+    resultado = entrenar_y_evaluar(features, n_ventanas=ventanas)
     print(f"ML-01 entrenado — MAE {resultado.mae_promedio:.4f} ± {resultado.mae_desviacion:.4f}")
 
     predicciones = construir_predicciones(features, resultado.modelo, args.run_id)
     print(f"Predicciones construidas: {len(predicciones)} filas (ciclo {predicciones['id_ciclo'].iloc[0]})")
 
     metadata, tabla_pred, tabla_rec = _metadatos(args.esquema)
-    engine = _motor(args.url)
     escritas = escribir(predicciones, tabla_pred, engine, metadata)
     print(f"gold.{TABLA_PREDICCIONES}: {escritas} filas publicadas (upsert idempotente)")
 
@@ -360,10 +615,27 @@ def main() -> int:
         print("gold.recomendaciones omitida por --solo-predicciones.")
         return 0
 
-    features_ml02 = cargar_features_ml02(args.features)
-    resultado_ml02 = entrenar_ml02(features_ml02, n_ventanas=args.ventanas)
+    features_ml02, sin_driver = filtrar_con_driver_observado(features)
+    if sin_driver:
+        print(
+            f"⚠️  {sin_driver} filas sin ningún driver observado quedan fuera de ML-02: no puede "
+            "haber driver dominante donde no hay drivers. Conservan su predicción de ML-01; lo que "
+            "no reciben es recomendación (SIN_DATO explícito, nunca un driver inventado)."
+        )
+    if features_ml02.empty:
+        raise ValueError(
+            "Ninguna fila observa algún driver: no hay con qué entrenar ML-02. Revisa la cobertura "
+            "de drivers en `gold.features_escuela`."
+        )
+    if COLUMNA_TARGET_REAL not in features_ml02.columns:
+        features_ml02[COLUMNA_TARGET_PROXY] = generar_driver_dominante_proxy(features_ml02)
+    resultado_ml02 = entrenar_ml02(features_ml02, n_ventanas=ventanas)
+    # Las escuelas apartadas conservan su predicción pero no reciben recomendación. Se excluyen
+    # aquí y no relajando la verificación de sincronía de `construir_recomendaciones_ml02`: esa
+    # verificación debe seguir cazando desajustes de verdad, no el hueco que abrimos a propósito.
+    con_recomendacion = predicciones[predicciones["cct"].isin(set(features_ml02["cct"]))]
     recomendaciones = construir_recomendaciones_ml02(
-        predicciones,
+        con_recomendacion,
         features_ml02,
         resultado_ml02.modelo,
     )

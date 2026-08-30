@@ -1,0 +1,62 @@
+version: 2
+
+sources:
+  - name: gold_ml_runtime
+    schema: gold
+    description: >
+      Relaciones Gold publicadas por la Célula 3 mediante
+      src/modelos/publicar_gold.py. Son tablas físicas runtime, no modelos dbt;
+      US-113 las consume por source() para no duplicar ownership ni lógica ML.
+    tables:
+      - name: predicciones
+        description: >
+          Contrato runtime DEC-010 con grano dual. Para grano=escuela la llave es
+          cct × id_ciclo × modelo; para grano=municipio_nivel la llave es
+          cve_mun × nivel × id_ciclo × modelo. Durante la transición,
+          US-113 admite el esquema legacy sin columna grano y lo interpreta como
+          grano=escuela mediante to_jsonb(), sin inventar columnas físicas.
+        columns:
+          - name: grano
+            description: >
+              Discriminador DEC-010 (escuela o municipio_nivel). Puede no existir
+              temporalmente en el runtime legacy; por eso no lleva data_test directo.
+          - name: cct
+            description: "Llave poblada solo cuando grano=escuela."
+          - name: cve_mun
+            description: "Llave poblada solo cuando grano=municipio_nivel."
+          - name: nivel
+            description: "Llave poblada solo cuando grano=municipio_nivel."
+          - name: id_ciclo
+            data_tests: [not_null]
+          - name: modelo
+            data_tests: [not_null]
+          - name: valor
+            data_tests: [not_null]
+          - name: indice_riesgo
+            data_tests: [not_null]
+          - name: mlflow_run_id
+            data_tests: [not_null]
+          - name: generado_at
+            data_tests: [not_null]
+
+      - name: recomendaciones
+        description: "Llave runtime: cct × id_ciclo."
+        columns:
+          - name: cct
+            data_tests: [not_null]
+          - name: id_ciclo
+            data_tests: [not_null]
+          - name: driver_dominante
+            data_tests:
+              - not_null
+              - accepted_values:
+                  arguments:
+                    values: ['D1', 'D2', 'D3', 'D4', 'D5', 'D6']
+          - name: recomendacion
+            data_tests: [not_null]
+          - name: prioridad
+            data_tests:
+              - not_null
+              - accepted_values:
+                  arguments:
+                    values: ['alta', 'media', 'baja']

@@ -6,7 +6,7 @@ status: approved
 version: "1.0"
 traces_up: ["01_Product/PRD", "02_Requirements/User_Stories"]
 traces_down: ["US-201", "US-202", "US-203", "US-204", "US-205"]
-last_reviewed: "2026-07-31"
+last_reviewed: "2026-08-28"
 tags: [sprint, plan, celula-2, nivel-alto]
 ---
 
@@ -306,9 +306,9 @@ Actualiza esta tabla **antes de cada standup**. El PM la revisa para el tablero 
 | ID | Historia | Estado | % | Bloqueado por | Fecha compromiso |
 |---|---|---|---|---|---|
 | `US-201` | Disenar el portafolio de 10 dashboards y e | ✅ Terminado | 100% | — | Dom 9 ago |
-| `US-202` | Configurar Superset: conexion, datasets y  | 🔵 En revisión | 100% | — | Dom 23 ago |
-| `US-203` | Construir DB-01 Ejecutivo y DB-02 Mapa de  | ⬜ Por iniciar | 0% | — | Dom 30 ago |
-| `US-204` | Construir DB-06 Predicciones y DB-09 Recom | ⬜ Por iniciar | 0% | — | Dom 30 ago |
+| `US-202` | Configurar Superset: conexion, datasets y  | ✅ Terminado | 100% | — | Cerrada 17 ago |
+| `US-203` | Construir DB-01 Ejecutivo y DB-02 Mapa de  | ✅ Terminado | 100% | — | Cerrada 26 ago |
+| `US-204` | Construir DB-06 Predicciones y DB-09 Recom | 🔵 En revisión | 100% | Revalidar con salidas reales de US-313 | Junta de cierre |
 | `US-205` | Integrar y armonizar los 10 dashboards | ⬜ Por iniciar | 0% | — | Dom 6 sep |
 
 **Estados válidos:** ⬜ Por iniciar · 🟡 En curso · 🔵 En revisión (PR abierto) · ✅ Terminado · 🔴 Bloqueado

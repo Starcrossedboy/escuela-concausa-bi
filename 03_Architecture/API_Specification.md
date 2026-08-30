@@ -3,11 +3,11 @@ id: DOC-APISPEC
 title: "API Specification — FARO"
 owner: "Karla Alejandra Monter Benitez"
 status: in_review
-version: "1.0"
+version: "1.1"
 source_of_truth: true
 traces_up: ["REQ-004", "03_Architecture/Data_Model"]
-traces_down: ["US-401", "US-402", "US-403", "US-411", "US-412", "US-415"]
-last_reviewed: "2026-08-20"
+traces_down: ["US-401", "US-402", "US-403", "US-411", "US-412", "US-415", "US-416"]
+last_reviewed: "2026-08-27"
 tags: [architecture, api, contract, fastapi, oauth2]
 ---
 
@@ -131,12 +131,21 @@ C2/C3), no se retoma como pendiente de US-411.
 ### 3.4 Predicciones (inferencia ML)
 | Método | Ruta | Rol | Request | Response | Códigos |
 |---|---|---|---|---|---|
-| GET | `/predicciones/{cct}` | ciudadano | path `cct`, `?ciclo` | `PrediccionOut` | 200, 401, 404 |
-| POST | `/predicciones/batch` | analista | `PrediccionBatchIn` | `Page[PrediccionOut]` | 200, 401, 403, 422 |
+| GET | `/predicciones/{cct}` | ciudadano | path `cct`, `?ciclo` | `PrediccionOut` | 200, 401, 404, 503 |
+| POST | `/predicciones/batch` | analista | `PrediccionBatchIn` | `Page[PrediccionOut]` | 200, 401, 403, 422, 503 |
 | GET | `/predicciones/{cct}/explicacion` | analista | path `cct` | `ExplicacionSHAPOut` | 200, 401, 403, 404 |
 
 - `PrediccionOut` combina **ML-01** (`indice_riesgo`), **ML-02** (`driver_dominante` + recomendación)
-  y **ML-03** (`cluster`). La explicación SHAP completa (ML-02) es solo `analista`.
+  y **ML-03** (`cluster`, `None` mientras ML-03 no exista -- US-321, BUG-010). La explicación SHAP
+  completa (ML-02) es solo `analista`.
+- `/predicciones/{cct}` y `/predicciones/batch` leen `gold.predicciones` + `gold.recomendaciones`
+  (US-412, cierra BUG-010) vía `RepositorioModelos`; un CCT sin fila en `gold.predicciones` es
+  `404`, nunca un valor inventado. `mlflow_run_id` conserva el enlace auditable a la corrida.
+- **Cache y timeouts (US-416):** las lecturas pasan por un cache TTL en memoria por
+  `(cct, id_ciclo)`, compartido entre ambas rutas (`src/api/cache_predicciones.py`). Si Postgres no
+  responde dentro del timeout configurado, la respuesta es `503` `service_unavailable` (§5) —
+  nunca un `500` genérico ni una predicción a medias. El timeout de `/predicciones/batch` es
+  atómico: si falla, falla toda la petición, aunque parte de los CCT ya estuvieran en cache.
 
 ### 3.5 Agente conversacional `/agente/*`
 | Método | Ruta | Rol | Request | Response | Códigos |
@@ -238,7 +247,7 @@ class PrediccionOut(BaseModel):
     indice_riesgo: StrictFloat = Field(ge=0, le=1)   # ML-01
     driver_dominante: StrictStr                       # ML-02
     recomendacion: StrictStr
-    cluster: StrictInt                                # ML-03
+    cluster: StrictInt | None = None                  # ML-03, None sin productor (BUG-010)
     mlflow_run_id: StrictStr
 class PrediccionBatchIn(BaseModel):
     ccts: list[StrictStr] = Field(min_length=1, max_length=1000)
@@ -292,6 +301,7 @@ class ErrorOut(BaseModel):
 | 404 | `not_found` | CCT/municipio inexistente o fuera de `SCOPE_ENTIDADES` |
 | 422 | `validation_error` | Falla la validación Pydantic (formato de entrada) |
 | 429 | `rate_limited` | Exceso de peticiones |
+| 503 | `service_unavailable` | Postgres no respondió a tiempo (timeout de inferencia, US-416) |
 | 500 | `internal_error` | Error interno (detalle solo en logs, nunca en la respuesta) |
 
 ---
@@ -316,3 +326,38 @@ El objetivo del contrato en Semana 1 es que **nadie espere a que la API exista**
 
 > **Definición de "desbloqueado":** C2 y C3 pueden construir y probar end-to-end contra el mock antes
 > de que exista una sola línea de la implementación de la API.
+
+---
+
+## 7. Contrato interno API ↔ modelos (US-415)
+
+> Este contrato es **interno**: no es parte de la superficie REST del §3 ni del `PrediccionOut`
+> público. Define cómo `src/api` traduce entre `gold.features_escuela` (entrada) y las 3 salidas
+> crudas de ML-01/02/03 (Célula 3) **antes** de que `/predicciones/*` (US-412) las combine en la
+> respuesta pública. Vive en código en `src/api/schemas_ml.py`.
+
+1. **Entrada — `FeaturesEscuela`:** se **reutiliza** el contrato canónico de
+   `src/modelos/contrato.py` (dueño Célula 1/3, `Data_Model.md` §5.3); `schemas_ml.py` lo
+   reexporta, nunca lo redefine. Evita la divergencia que `Publicacion_Gold.md` §9 ya señala como
+   riesgo para el catálogo de recomendaciones.
+2. **Salidas crudas por modelo:**
+   - `ML01Salida` — `variacion_predicha` (float con signo, sin cota; mismo dominio que
+     `target_variacion_matricula`). La conversión a `indice_riesgo` ∈ [0,1] es
+     `src/modelos/riesgo.py::indice_riesgo`, capa de presentación de la Célula 3 — este contrato
+     no la reimplementa.
+   - `ML02Salida` — `driver_dominante` restringido a `Literal["D1"…"D6"]` (nunca texto libre) y
+     `probabilidades` opcional por clase.
+   - `ML03Salida` — `cluster` (entero ≥ 0).
+   - Las 3 llevan `cct`, `id_ciclo` y `mlflow_run_id` propios de su corrida.
+3. **`PrediccionModelos`:** combina las 3 salidas de una escuela × ciclo; un `model_validator`
+   rechaza el conjunto si no comparten `cct`/`id_ciclo` — mismo principio que el `CHECK` de
+   `gold.predicciones` (`Publicacion_Gold.md` §2). Es el insumo directo de `PrediccionOut` (§4);
+   `recomendacion` no es salida de ningún modelo, se deriva del catálogo prescriptivo compartido
+   con `src/modelos/recomendaciones.py`.
+
+> **Estado de los modelos en MLflow (26-ago-2026):** en el ambiente local, el registry no tiene
+> ninguno de los 3 modelos publicados todavía (`ML03_ClusteringEscuelas` en particular no tiene
+> aún código de entrenamiento propio — ver `15_ML_Models/_index.md`, US-321 sin entregar). US-412
+> implementa el servicio de inferencia contra este contrato con un *fake* inyectable (mismo patrón
+> `Depends` que `RepositorioGold` en `repositorio_gold.py`, US-411) mientras los 3 registros no
+> estén disponibles, siguiendo la regla de "no bloqueo silencioso" del plan de sprint.

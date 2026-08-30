@@ -3,7 +3,7 @@ id: DOC-ML02-CLASIFICACION-DRIVER
 title: "ML-02 — Clasificación de driver dominante"
 owner: "Andrés González Habib"
 status: in_review
-version: "0.2"
+version: "0.4"
 traces_up: ["US-302", "REQ-003", "15_ML_Models/ML_Strategy"]
 traces_down: ["src/modelos/entrenar_ml02.py", "tests/test_entrenar_ml02.py"]
 tags: [ml, ml-02, clasificacion, shap, celula-3]
@@ -20,7 +20,7 @@ una recomendación prescriptiva alineada con el contrato de la API.
 
 ## Estado actual
 
-El scaffold ejecutable vive en `src/modelos/entrenar_ml02.py` y ya permite avanzar sin esperar a Gold:
+El pipeline ejecutable vive en `src/modelos/entrenar_ml02.py`:
 
 - carga `tests/fixtures/features_escuela_mock.csv` o una tabla compatible con `gold.features_escuela`;
 - reutiliza backtesting temporal (`generar_backtesting` + `verificar_sin_fuga`);
@@ -32,16 +32,19 @@ El scaffold ejecutable vive en `src/modelos/entrenar_ml02.py` y ya permite avanz
 	`contribuciones` (`D1`…`D6`);
 - puede registrar el modelo de producción en MLflow con el nombre canónico `ML02_DriverClasificador`
 	y exige confirmación de la versión creada en el Registry.
+- valida antes de entrenar que el target real o proxy no tenga nulos, use solo `D1`…`D6` y contenga
+	al menos dos clases.
+- evalúa la cobertura dentro de cada ventana y excluye los drivers completamente vacíos antes de
+	entrenar; predicción y SHAP reutilizan las columnas reales de `modelo.feature_names_in_`.
 
-## Target provisional
+## Target operativo
 
-El contrato vigente de `gold.features_escuela` todavía no incluye `driver_dominante`. Para evitar un
-bloqueo, el script deriva `driver_dominante_proxy` con el driver observado de mayor puntaje. Los
-drivers con `SIN_DATO` quedan como `NaN` y no pueden dominar la fila; no se imputan con cero.
+Desde el 28 de agosto, `gold.features_escuela` publica `driver_dominante` mediante el argmax de los
+drivers con cobertura `OK`, desempate determinista D1→D6 y `NULL` si ninguno es elegible. El pipeline
+la prefiere y conserva `driver_dominante_proxy` como fallback para fixtures o fuentes anteriores.
 
-Este proxy sirve para validar pipeline, partición temporal, métricas y forma de salida. No sustituye la
-etiqueta supervisada final: cuando Célula 1 publique `driver_dominante` en Gold, el script la usará de
-forma preferente y el proxy quedará solo como fallback de desarrollo.
+La etiqueta sigue siendo derivada de los mismos drivers, no un ground truth observado de forma
+independiente. Por ello, F1 mide la capacidad de reproducir esa regla operativa y no evidencia causal.
 
 ## Explicabilidad
 
@@ -51,6 +54,12 @@ forma preferente y el proxy quedará solo como fallback de desarrollo.
 con una explicación real de seis contribuciones para una escuela.
 
 ## Validación
+
+El 26 de agosto se validó el flujo completo de registro contra un backend SQLite temporal de MLflow
+3.15.1: el entrenamiento creó una corrida y registró `ML02_DriverClasificador` versión `1`. Esto
+confirma el código cliente y el Registry local; el identificador de corrida es efímero y cambia en
+cada ejecución. Aún falta repetir la prueba contra el servidor Docker compartido para cerrar la
+validación end-to-end de infraestructura.
 
 Pruebas agregadas en `tests/test_entrenar_ml02.py`:
 
@@ -63,11 +72,14 @@ Pruebas agregadas en `tests/test_entrenar_ml02.py`:
 - publicación de una recomendación por escuela y ciclo en Gold;
 - dos escuelas con igual riesgo y distinto driver reciben recomendaciones distintas;
 - nombre MLflow canónico de ML-02.
+- preferencia del target real y rechazo temprano de etiquetas nulas, desconocidas o monoclase.
+- paridad entre la etiqueta de Gold y el proxy Python.
+- regresión de BUG-018: un driver vacío en el entrenamiento de una ventana no rompe sklearn y queda
+	registrado como excluido; la predicción usa las mismas columnas con las que se entrenó el modelo.
 
 ## Pendientes para cerrar US-302
 
-- Confirmar con Célula 1 dónde se publica la etiqueta real `driver_dominante`.
-- Correr métricas sobre `gold.features_escuela` real, no solo fixture sintético.
-- Registrar resultados finales en MLflow y validar el Registry end-to-end cuando el entorno local
-	tenga las variables de Compose configuradas.
+- Correr y registrar métricas sobre `gold.features_escuela` real después de fusionar BUG-018.
+- Validar el Registry contra el servidor Docker compartido cuando el entorno local tenga las
+	variables de Compose configuradas; el Registry local con MLflow 3.15.1 ya fue verificado.
 - Conectar la explicación SHAP completa al endpoint `/predicciones/{cct}/explicacion` de Célula 4.

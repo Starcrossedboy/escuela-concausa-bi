@@ -17,9 +17,22 @@ seeds:
                 values: ['D1', 'D2', 'D3', 'D4', 'D5', 'D6']
 
       - name: nombre
-        description: Nombre del driver
+        description: >
+          Nombre corto del driver -- catálogo canónico (BUG-022, 2026-08-29): estos son los
+          ÚNICOS valores válidos. `superset/mock/gold_estrella_mock.sql` (mock previo a que este
+          seed existiera) crea `gold.dim_driver` con `CREATE TABLE IF NOT EXISTS` + `INSERT ...
+          ON CONFLICT DO NOTHING` usando nombres largos distintos ("Pobreza y rezago social" en
+          vez de "Pobreza"). Si ese mock corre en un entorno donde `dbt seed`/`dbt build` nunca se
+          ejecutó, la tabla se queda con esos nombres viejos y nada lo detecta -- probado que
+          `dbt seed --select dim_driver` sí reemplaza esos datos correctamente en cuanto se corre
+          (con o sin `--full-refresh`), así que el desface real es "seed nunca corrido", no un
+          conflicto de PK. Este test detecta el catálogo divergente en vez de dejarlo fallar en
+          silencio en Superset (HTTP 500 río abajo).
         tests:
           - not_null
+          - accepted_values:
+              arguments:
+                values: ['Pobreza', 'Inseguridad', 'Infraestructura', 'Conectividad', 'Agua', 'Aire']
 
       - name: fuente
         description: DS que alimenta este driver

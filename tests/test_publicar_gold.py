@@ -9,23 +9,31 @@ from __future__ import annotations
 
 from datetime import UTC, datetime
 
+import numpy as np
 import pandas as pd
 import pytest
 from sqlalchemy import create_engine, select
 
+from src.modelos.contrato import DRIVERS
 from src.modelos.entrenar_ml01 import entrenar_y_evaluar
+from src.modelos.entrenar_ml02 import (
+    COLUMNA_TARGET_REAL,
+    generar_driver_dominante_proxy,
+)
 from src.modelos.entrenar_ml02 import entrenar_y_evaluar as entrenar_ml02
-from src.modelos.entrenar_ml02 import generar_driver_dominante_proxy
 from src.modelos.publicar_gold import (
     CODIGOS_DRIVER,
     RECOMENDACION_POR_DRIVER,
+    Grano,
     PrediccionGold,
     Prioridad,
     _metadatos,
     construir_predicciones,
+    construir_predicciones_municipio_nivel,
     construir_recomendaciones,
     construir_recomendaciones_ml02,
     escribir,
+    filtrar_con_driver_observado,
     prioridad_de_riesgo,
 )
 from src.modelos.riesgo import RIESGO_ESTABLE, RIESGO_UMBRAL
@@ -41,6 +49,20 @@ def modelo(features: pd.DataFrame):
 @pytest.fixture(scope="module")
 def predicciones(features: pd.DataFrame, modelo) -> pd.DataFrame:
     return construir_predicciones(features, modelo, mlflow_run_id="run-de-prueba-000")
+
+
+@pytest.fixture(scope="module")
+def modelo_agregado(features: pd.DataFrame):
+    """Modelo entrenado sobre el grano agregado, para publicar con `grano = municipio_nivel`."""
+    from src.modelos.generar_fixture_dim import generar as generar_dim
+    from src.modelos.target_hibrido import agregar_a_municipio_nivel
+
+    agg, _ = agregar_a_municipio_nivel(features, generar_dim(features))
+    # Objetivo simulado: la serie SNIEE real es de la C1 (gate DEC-007). Basta para que el
+    # entrenador corra sobre el grano agregado, que es lo que esta prueba necesita.
+    rng = np.random.default_rng(3)
+    agg = agg.assign(target_variacion_matricula=rng.normal(-0.02, 0.04, len(agg)))
+    return entrenar_y_evaluar(agg, n_ventanas=3).modelo
 
 
 @pytest.fixture
@@ -232,3 +254,289 @@ def test_publica_recomendaciones(predicciones: pd.DataFrame, engine) -> None:
         fila = conexion.execute(select(tabla)).fetchone()
     assert fila.driver_dominante == "D3"
     assert fila.prioridad in {p.value for p in Prioridad}
+
+
+# --------------------------------------------------------------------- grano dual (DEC-010)
+
+
+@pytest.fixture(scope="module")
+def agregado(features: pd.DataFrame):
+    """Agregado a `municipio × nivel × ciclo`, el otro grano que admite la tabla."""
+    from src.modelos.generar_fixture_dim import generar as generar_dim
+    from src.modelos.target_hibrido import agregar_a_municipio_nivel
+
+    agg, _ = agregar_a_municipio_nivel(features, generar_dim(features))
+    return agg
+
+
+def test_las_predicciones_de_escuela_declaran_su_grano(predicciones: pd.DataFrame) -> None:
+    assert (predicciones["grano"] == Grano.ESCUELA.value).all()
+    assert predicciones["cve_mun"].isna().all()
+    assert predicciones["nivel"].isna().all()
+
+
+def test_predice_a_municipio_nivel_sin_repartir_a_escuelas(agregado, modelo_agregado) -> None:
+    """DEC-010: la fila declara su grano en vez de atribuir el valor a cada escuela del grupo."""
+    filas = construir_predicciones_municipio_nivel(agregado, modelo_agregado, "run-agg-000")
+
+    assert (filas["grano"] == Grano.MUNICIPIO_NIVEL.value).all()
+    assert filas["cct"].isna().all()
+    assert filas["cve_mun"].notna().all()
+    assert filas["nivel"].notna().all()
+
+
+def test_falla_si_el_agregado_no_trae_las_llaves(agregado, modelo_agregado) -> None:
+    with pytest.raises(ValueError, match="DEC-010 las exige"):
+        construir_predicciones_municipio_nivel(
+            agregado.drop(columns=["cve_mun"]), modelo_agregado, "run"
+        )
+
+
+def _fila_base(**extra) -> dict:
+    """Fila mínima válida de `gold.predicciones`, para variar sólo lo que cada prueba examina."""
+    fila = {
+        "id_ciclo": "2023-2024",
+        "modelo": "ML-01",
+        "valor": -0.05,
+        "indice_riesgo": 0.6,
+        "probabilidad": None,
+        "mlflow_run_id": "run-000",
+        "generado_at": datetime.now(tz=UTC),
+    }
+    fila.update(extra)
+    return fila
+
+
+def test_el_contrato_exige_cct_en_grano_escuela() -> None:
+    with pytest.raises(ValueError, match="exige `cct`"):
+        PrediccionGold(**_fila_base(grano="escuela"))
+
+
+def test_el_contrato_rechaza_las_dos_llaves_a_la_vez() -> None:
+    """Una fila con ambas llaves no se sabe a qué se refiere: peor que un error."""
+    with pytest.raises(ValueError, match="no debe traer `cve_mun`"):
+        PrediccionGold(
+            **_fila_base(
+                grano="escuela", cct="09DPR0001X", cve_mun="09001", nivel="PRIMARIA"
+            )
+        )
+
+
+def test_el_contrato_exige_municipio_y_nivel_en_grano_agregado() -> None:
+    with pytest.raises(ValueError, match="exige `cve_mun` y `nivel`"):
+        PrediccionGold(**_fila_base(grano="municipio_nivel", cve_mun="09001"))
+
+
+def test_el_contrato_rechaza_cct_en_grano_agregado() -> None:
+    with pytest.raises(ValueError, match="no debe traer `cct`"):
+        PrediccionGold(
+            **_fila_base(
+                grano="municipio_nivel", cct="09DPR0001X", cve_mun="09001", nivel="PRIMARIA"
+            )
+        )
+
+
+def test_escribir_rechaza_un_lote_con_granos_mezclados(
+    predicciones: pd.DataFrame, agregado, modelo_agregado, engine
+) -> None:
+    """Mezclar granos haría ambiguo el objetivo de conflicto del UPSERT."""
+    metadata, tabla, _ = _metadatos(esquema=None)
+    agregadas = construir_predicciones_municipio_nivel(agregado, modelo_agregado, "run-agg-000")
+    mezclado = pd.concat([predicciones, agregadas], ignore_index=True)
+
+    with pytest.raises(ValueError, match="mezcla granos"):
+        escribir(mezclado, tabla, engine, metadata)
+
+
+def test_los_dos_granos_conviven_sin_colisionar(
+    predicciones: pd.DataFrame, agregado, modelo_agregado, engine
+) -> None:
+    """Cada grano usa su propio índice único parcial: no se pisan entre sí."""
+    metadata, tabla, _ = _metadatos(esquema=None)
+    agregadas = construir_predicciones_municipio_nivel(agregado, modelo_agregado, "run-agg-000")
+
+    escribir(predicciones, tabla, engine, metadata)
+    escribir(agregadas, tabla, engine, metadata)
+
+    with engine.connect() as conexion:
+        filas = conexion.execute(select(tabla)).fetchall()
+    assert len(filas) == len(predicciones) + len(agregadas)
+    assert {f.grano for f in filas} == {"escuela", "municipio_nivel"}
+
+
+def test_cada_grano_es_idempotente_por_separado(
+    predicciones: pd.DataFrame, agregado, modelo_agregado, engine
+) -> None:
+    metadata, tabla, _ = _metadatos(esquema=None)
+    agregadas = construir_predicciones_municipio_nivel(agregado, modelo_agregado, "run-agg-000")
+
+    for _ in range(2):
+        escribir(predicciones, tabla, engine, metadata)
+        escribir(agregadas, tabla, engine, metadata)
+
+    with engine.connect() as conexion:
+        assert len(conexion.execute(select(tabla)).fetchall()) == len(predicciones) + len(agregadas)
+
+
+def test_la_base_rechaza_una_fila_con_las_dos_llaves(predicciones: pd.DataFrame, engine) -> None:
+    """El CHECK vive en la base, no sólo en Pydantic.
+
+    La validación del contrato protege al job, pero cualquiera puede escribir en la tabla por SQL.
+    La restricción `ck_predicciones_llave_segun_grano` hace que la base misma rechace una fila con
+    ambas llaves o sin ninguna.
+    """
+    from sqlalchemy.exc import IntegrityError
+
+    metadata, tabla, _ = _metadatos(esquema=None)
+    escribir(predicciones, tabla, engine, metadata)  # crea la tabla con sus restricciones
+
+    with engine.begin() as conexion:
+        conexion.exec_driver_sql("PRAGMA foreign_keys=ON")
+        with pytest.raises(IntegrityError):
+            conexion.execute(
+                tabla.insert().values(
+                    grano="escuela",
+                    cct="09DPR9999Z",
+                    cve_mun="09001",
+                    nivel="PRIMARIA",
+                    id_ciclo="2023-2024",
+                    modelo="ML-01",
+                    valor=0.0,
+                    indice_riesgo=0.5,
+                    probabilidad=None,
+                    mlflow_run_id="r",
+                    generado_at=datetime.now(tz=UTC),
+                )
+            )
+
+
+def test_la_base_rechaza_una_fila_sin_ninguna_llave(predicciones: pd.DataFrame, engine) -> None:
+    from sqlalchemy.exc import IntegrityError
+
+    metadata, tabla, _ = _metadatos(esquema=None)
+    escribir(predicciones, tabla, engine, metadata)
+
+    with engine.begin() as conexion, pytest.raises(IntegrityError):
+        conexion.execute(
+            tabla.insert().values(
+                grano="municipio_nivel",
+                cct=None,
+                cve_mun=None,
+                nivel=None,
+                id_ciclo="2023-2024",
+                modelo="ML-01",
+                valor=0.0,
+                indice_riesgo=0.5,
+                probabilidad=None,
+                mlflow_run_id="r",
+                generado_at=datetime.now(tz=UTC),
+            )
+        )
+
+
+# ------------------------------------------------- filas sin ningún driver (BUG-016)
+
+
+def test_aparta_las_filas_sin_ningun_driver_observado(features: pd.DataFrame) -> None:
+    """El fallo que reportó Diana con Gold real: filas con los 6 drivers en NULL a la vez."""
+    con_hueco = features.copy()
+    con_hueco.loc[con_hueco.index[:7], list(DRIVERS)] = np.nan
+    con_hueco.loc[con_hueco.index[:7], COLUMNA_TARGET_REAL] = None
+
+    quedan, apartadas = filtrar_con_driver_observado(con_hueco)
+
+    assert apartadas == 7
+    assert len(quedan) == len(con_hueco) - 7
+    assert quedan[list(DRIVERS)].notna().any(axis=1).all()
+
+
+def test_una_sola_observacion_basta_para_quedarse(features: pd.DataFrame) -> None:
+    """No se exige cobertura completa: con un driver ya hay un dominante defendible."""
+    apenas = features.copy()
+    apenas.loc[apenas.index[:5], list(DRIVERS)] = np.nan
+    apenas.loc[apenas.index[:5], "d1_pobreza"] = 0.4
+    apenas.loc[apenas.index[:5], COLUMNA_TARGET_REAL] = "D1"
+
+    _, apartadas = filtrar_con_driver_observado(apenas)
+
+    assert apartadas == 0
+
+
+def test_el_proxy_ya_no_truena_tras_filtrar(features: pd.DataFrame) -> None:
+    """Regresión directa del traceback: el proxy falla por diseño, así que se filtra antes."""
+    con_hueco = features.copy()
+    con_hueco.loc[con_hueco.index[:7], list(DRIVERS)] = np.nan
+    con_hueco.loc[con_hueco.index[:7], COLUMNA_TARGET_REAL] = None
+
+    with pytest.raises(ValueError, match="sin ningun driver"):
+        generar_driver_dominante_proxy(con_hueco)
+
+    quedan, _ = filtrar_con_driver_observado(con_hueco)
+    etiquetas = generar_driver_dominante_proxy(quedan)
+
+    assert etiquetas.notna().all()
+    assert len(etiquetas) == len(quedan)
+
+
+def test_las_filas_apartadas_conservan_su_prediccion_de_ml01(
+    features: pd.DataFrame, modelo
+) -> None:
+    """Quedan fuera de la recomendación, no de la predicción: ML-01 no necesita drivers."""
+    con_hueco = features.copy()
+    con_hueco.loc[con_hueco.index[:7], list(DRIVERS)] = np.nan
+    con_hueco.loc[con_hueco.index[:7], COLUMNA_TARGET_REAL] = None
+
+    predicciones = construir_predicciones(con_hueco, modelo, "run-sin-drivers")
+    quedan, apartadas = filtrar_con_driver_observado(con_hueco)
+
+    assert apartadas > 0
+    ciclo = predicciones["id_ciclo"].iloc[0]
+    esperadas = (con_hueco["id_ciclo"] == ciclo).sum()
+    assert len(predicciones) == esperadas, "se predice sobre todas, incluidas las sin drivers"
+    assert len(quedan) < len(con_hueco)
+
+
+def test_la_verificacion_de_sincronia_sigue_viva_tras_el_filtro(
+    features: pd.DataFrame, predicciones: pd.DataFrame
+) -> None:
+    """Apartar filas no debe volverse una excusa para dejar pasar desajustes reales.
+
+    Si en vez de filtrar las predicciones hubiéramos relajado `construir_recomendaciones_ml02`,
+    este caso —un CCT que falta por error, no por diseño— pasaría inadvertido.
+    """
+    features_ml02 = features.copy()
+    features_ml02["driver_dominante_proxy"] = generar_driver_dominante_proxy(features_ml02)
+    modelo_ml02 = entrenar_ml02(features_ml02, n_ventanas=3).modelo
+    incompletas = features_ml02[features_ml02["cct"] != features_ml02["cct"].iloc[0]]
+
+    with pytest.raises(ValueError, match="Faltan features de ML-02"):
+        construir_recomendaciones_ml02(predicciones, incompletas, modelo_ml02)
+
+
+def test_la_etiqueta_real_manda_sobre_lo_que_inferimos(features: pd.DataFrame) -> None:
+    """El hueco que abre inferir la cobertura por nuestra cuenta.
+
+    C1 exige `dN_cobertura = 'OK'` **además** de valor no nulo para elegir driver dominante. Una
+    fila con valores pero cobertura `SIN_DATO` tiene `driver_dominante` en NULL, y si aquí sólo
+    miráramos los valores sobreviviría al filtro para morir después en `validar_target_ml02`.
+    """
+    divergente = features.copy()
+    divergente.loc[divergente.index[:6], COLUMNA_TARGET_REAL] = None
+    # los valores de los drivers siguen ahí, intactos
+    assert divergente.loc[divergente.index[:6], list(DRIVERS)].notna().any(axis=1).all()
+
+    quedan, apartadas = filtrar_con_driver_observado(divergente)
+
+    assert apartadas == 6
+    assert quedan[COLUMNA_TARGET_REAL].notna().all(), "no sobrevive ninguna etiqueta nula"
+
+
+def test_sin_la_columna_real_se_cae_al_criterio_del_proxy(features: pd.DataFrame) -> None:
+    """Fixtures y Gold anterior a US-302 siguen funcionando con la regla de siempre."""
+    sin_columna = features.drop(columns=[COLUMNA_TARGET_REAL])
+    sin_columna.loc[sin_columna.index[:4], list(DRIVERS)] = np.nan
+
+    quedan, apartadas = filtrar_con_driver_observado(sin_columna)
+
+    assert apartadas == 4
+    assert quedan[list(DRIVERS)].notna().any(axis=1).all()

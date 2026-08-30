@@ -1,0 +1,165 @@
+# =============================================================================
+# DB-04 · Comparador de municipios — definicion declarativa (US-212)
+# -----------------------------------------------------------------------------
+# Historia : US-212 (Marina Garcia del Buey, Celula 2 - Analytics & BI)
+# Contrato : 04_UX_Design/Cube_Specs_DB03_DB04.md §4 · Screen_Specs.md §4 (KPI-14)
+# Consumido por : superset/sync_semantic_layer.py (idempotente)
+#
+# Grano del cubo: municipio x nivel x ciclo (DEC-008). Las razones NO vienen
+# precalculadas: el cubo guarda numerador y denominador por separado y la capa
+# semantica las divide, para que cualquier combinacion de filtros reagregue
+# correctamente (Cube_Specs §4.3). Por eso todo % de riesgo se acompaña de
+# `escuelas_con_prediccion` como denominador visible.
+#
+# ⚠️ Construido y validado contra superset/mock/gold_estrella_mock.sql, porque
+#    US-113 (cubos reales, Celula 1) vencio el 2026-08-23 sin entregarse.
+#    La ESTRUCTURA esta validada; los NUMEROS no.
+# =============================================================================
+
+version: "1.0"
+owner: "Marina García del Buey"
+story: US-212
+
+dashboards:
+  - titulo: "DB-04 · Comparador de municipios"
+    slug: db04-comparador-municipio
+    descripcion: >
+      Comparacion lado a lado entre municipios: matricula y su variacion
+      (KPI-01/02), riesgo promedio y escuelas en riesgo (KPI-03/04), perfil de
+      los seis drivers y contexto socioeconomico de CONEVAL/CONAPO (KPI-14).
+      Los promedios de driver excluyen las escuelas SIN_DATO y publican su
+      denominador real.
+    filtros_globales:
+      - columna: id_ciclo
+        etiqueta: "Ciclo escolar"
+        datasets: [db04_cubo_comparador_municipio]
+      - columna: nombre_entidad
+        etiqueta: "Entidad"
+        datasets: [db04_cubo_comparador_municipio]
+      - columna: nombre_municipio
+        etiqueta: "Municipios a comparar"
+        datasets: [db04_cubo_comparador_municipio]
+      - columna: nivel
+        etiqueta: "Nivel educativo"
+        datasets: [db04_cubo_comparador_municipio]
+
+    charts:
+      # ----- Fila 1: tiles KPI --------------------------------------------------
+      - nombre: "KPI-01 · Matrícula de los municipios"
+        dataset: db04_cubo_comparador_municipio
+        metrica: matricula_total
+        viz: big_number_total
+        ancho: 3
+        alto: 38
+        subheader: "Suma de los municipios seleccionados"
+
+      - nombre: "Escuelas comparadas"
+        dataset: db04_cubo_comparador_municipio
+        metrica: escuelas
+        viz: big_number_total
+        ancho: 3
+        alto: 38
+        subheader: "Centros de trabajo en el corte actual"
+
+      - nombre: "KPI-02 · Variación ponderada"
+        dataset: db04_cubo_comparador_municipio
+        metrica: variacion_ponderada_pct
+        viz: big_number_total
+        ancho: 3
+        alto: 38
+        subheader: "Ponderada por matrícula, reagregable con cualquier filtro"
+
+      - nombre: "KPI-04 · % escuelas en riesgo"
+        dataset: db04_cubo_comparador_municipio
+        metrica: pct_escuelas_en_riesgo
+        viz: big_number_total
+        ancho: 3
+        alto: 38
+        subheader: "Sobre escuelas CON predicción, no sobre el total"
+
+      # ----- Fila 2: la comparativa, corazon del tablero -----------------------
+      - nombre: "Comparativa de municipios"
+        dataset: db04_cubo_comparador_municipio
+        metrica: matricula_total
+        viz: table
+        ancho: 12
+        alto: 60
+        dimensiones: [nombre_entidad, nombre_municipio, nivel, escuelas, escuelas_con_prediccion, escuelas_en_riesgo, cobertura_riesgo]
+        row_limit: 100
+
+      # ----- Fila 3: riesgo y contexto -----------------------------------------
+      - nombre: "KPI-03 · Riesgo promedio por municipio"
+        dataset: db04_cubo_comparador_municipio
+        metrica: indice_riesgo_promedio
+        viz: echarts_timeseries_bar
+        ancho: 6
+        alto: 55
+        eje_x: nombre_municipio
+        etiqueta_serie: "Índice de riesgo promedio"
+
+      - nombre: "KPI-14 · Contexto socioeconómico"
+        dataset: db04_cubo_comparador_municipio
+        metrica: matricula_por_escuela
+        viz: table
+        ancho: 6
+        alto: 55
+        dimensiones: [nombre_municipio, poblacion, pobreza_pct, grado_rezago, indice_rezago_social]
+        row_limit: 50
+
+      # ----- Filas 4-5: perfil de los seis drivers -----------------------------
+      # Small multiples: mismo eje y misma escala conceptual (0-1) para poder
+      # leer de un vistazo que driver diferencia a un municipio de otro.
+      # Cada promedio divide entre `escuelas_con_d#`, nunca entre el total.
+      - nombre: "D1 · Pobreza y rezago social"
+        dataset: db04_cubo_comparador_municipio
+        metrica: d1_promedio
+        viz: echarts_timeseries_bar
+        ancho: 4
+        alto: 45
+        eje_x: nombre_municipio
+        etiqueta_serie: "D1 promedio"
+
+      - nombre: "D2 · Inseguridad del entorno"
+        dataset: db04_cubo_comparador_municipio
+        metrica: d2_promedio
+        viz: echarts_timeseries_bar
+        ancho: 4
+        alto: 45
+        eje_x: nombre_municipio
+        etiqueta_serie: "D2 promedio"
+
+      - nombre: "D3 · Infraestructura escolar"
+        dataset: db04_cubo_comparador_municipio
+        metrica: d3_promedio
+        viz: echarts_timeseries_bar
+        ancho: 4
+        alto: 45
+        eje_x: nombre_municipio
+        etiqueta_serie: "D3 promedio"
+
+      - nombre: "D4 · Conectividad digital"
+        dataset: db04_cubo_comparador_municipio
+        metrica: d4_promedio
+        viz: echarts_timeseries_bar
+        ancho: 4
+        alto: 45
+        eje_x: nombre_municipio
+        etiqueta_serie: "D4 promedio"
+
+      - nombre: "D5 · Estrés hídrico"
+        dataset: db04_cubo_comparador_municipio
+        metrica: d5_promedio
+        viz: echarts_timeseries_bar
+        ancho: 4
+        alto: 45
+        eje_x: nombre_municipio
+        etiqueta_serie: "D5 promedio"
+
+      - nombre: "D6 · Calidad del aire"
+        dataset: db04_cubo_comparador_municipio
+        metrica: d6_promedio
+        viz: echarts_timeseries_bar
+        ancho: 4
+        alto: 45
+        eje_x: nombre_municipio
+        etiqueta_serie: "D6 promedio"

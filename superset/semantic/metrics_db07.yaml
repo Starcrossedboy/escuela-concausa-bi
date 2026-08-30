@@ -1,0 +1,133 @@
+# =============================================================================
+# Capa semantica de DB-07 - metricas, jerarquias y filtros
+# -----------------------------------------------------------------------------
+# Historia : US-222 (Oscar Antonio Quiroz Lázaro, Célula 2 - Analytics & BI)
+# Contrato : 04_UX_Design/Screen_Specs.md §4 (KPI-05, KPI-06)
+# Uso      : declaracion de las metricas que se dan de alta en Superset al
+#            construir DB-07 Calidad y cobertura de datos.
+#            Formato propio del proyecto fijado en US-202.
+#
+# Regla transversal: toda razon se expresa como SUM(numerador)/SUM(denominador)
+# para que se pueda reagregar con cualquier combinacion de filtros globales.
+# Ninguna metrica usa COALESCE(<driver>, 0): SIN_DATO nunca se dibuja como cero.
+#
+# Fuente: gold.cubo_completitud (US-113, Diana Alvarez), ya materializado.
+# La formula de cada razon esta fijada explicitamente en el propio contrato
+# dbt (dbt/models/gold/_cubo_completitud.yml) — no se reinterpreta aqui.
+# =============================================================================
+
+version: "1.0"
+owner: "Oscar Antonio Quiroz Lázaro"
+story: US-222
+traces_up: DOC-SCREENSPECS
+
+# -----------------------------------------------------------------------------
+# Filtros globales (AC-002.2)
+# -----------------------------------------------------------------------------
+filtros_globales:
+  - nombre: ciclo
+    columna: id_ciclo
+    etiqueta: "Ciclo escolar"
+    default: ultimo_ciclo
+  - nombre: entidad
+    columna: nombre_entidad
+    etiqueta: "Entidad"
+    nota: >
+      Filtra por nombre legible ('Jalisco', 'Nuevo Leon', ...); `cve_ent` sigue
+      expuesta en todos los datasets como llave canónica del territorio.
+      Acotado a SCOPE_ENTIDADES (09, 15, 19, 14).
+  - nombre: nivel
+    columna: nivel
+    etiqueta: "Nivel educativo"
+    nota: >
+      Solo aplica a db07_cubo_completitud. db07_mapa_vacios está agregado a
+      nivel municipio y no expone esta dimensión (mismo patrón que DB-02).
+
+datasets:
+  # ---------------------------------------------------------------------------
+  # DB-07 - Completitud de drivers detallada (KPI-05, KPI-06)
+  # ---------------------------------------------------------------------------
+  - nombre: db07_cubo_completitud
+    dashboard: DB-07
+    sql: db07_cubo_completitud.sql
+    grano: [cve_mun, nivel, id_driver, id_ciclo]
+    llave_primaria: [cve_mun, nivel, id_driver, id_ciclo]
+    cubo_canonico_futuro: gold.cubo_completitud
+    banderas_cobertura:
+      - cobertura_driver
+
+    jerarquias:
+      - nombre: territorio
+        niveles: [cve_ent, cve_mun]
+      - nombre: tiempo
+        niveles: [anio_inicio, id_ciclo]
+      - nombre: driver
+        niveles: [id_driver]
+
+    metricas:
+      - nombre: total_escuelas
+        etiqueta: "Total de escuelas"
+        expresion: "SUM(total_escuelas)"
+        formato: entero
+      - nombre: completitud_promedio
+        etiqueta: "Índice de completitud de drivers"
+        expresion: "SUM(suma_completitud) / NULLIF(SUM(total_escuelas), 0)"
+        formato: porcentaje_0
+        kpi: KPI-05
+        nota: >
+          Fórmula fijada en dbt/models/gold/_cubo_completitud.yml. Promedia
+          indice_completitud_drivers ponderado por escuela, no por driver.
+      - nombre: pct_sin_dato
+        etiqueta: "% escuelas SIN_DATO por driver"
+        expresion: "SUM(escuelas_sin_dato) / NULLIF(SUM(total_escuelas), 0)"
+        formato: porcentaje_1
+        kpi: KPI-06
+        denominador_visible: total_escuelas
+        cobertura: cobertura_driver
+        nota: >
+          Nunca se muestra como cero: el SIN_DATO es el hallazgo (dónde el
+          Estado no está mirando), no un dato faltante que se rellena.
+      - nombre: escuelas_con_dato
+        etiqueta: "Escuelas con dato"
+        expresion: "SUM(escuelas_con_dato)"
+        formato: entero
+      - nombre: escuelas_sin_dato
+        etiqueta: "Escuelas sin dato"
+        expresion: "SUM(escuelas_sin_dato)"
+        formato: entero
+
+  # ---------------------------------------------------------------------------
+  # DB-07 - Mapa de vacíos (KPI-06, agregado municipal + geometría)
+  # ---------------------------------------------------------------------------
+  - nombre: db07_mapa_vacios
+    dashboard: DB-07
+    sql: db07_mapa_vacios.sql
+    grano: [cve_mun, id_ciclo]
+    llave_primaria: [cve_mun, id_ciclo]
+    nota_geometria: >
+      Requiere gold.geo_municipio (tabla local creada por
+      superset/cargar_geojson_municipios.py). La columna `geometria` viaja
+      como texto GeoJSON para deck_polygon. Sin `nivel` ni `id_driver` en el
+      grano a propósito: evita polígonos superpuestos (mismo patrón DB-02).
+    banderas_cobertura: []
+
+    metricas:
+      - nombre: total_escuelas
+        etiqueta: "Total de escuelas"
+        expresion: "SUM(total_escuelas)"
+        formato: entero
+      - nombre: completitud_promedio
+        etiqueta: "Índice de completitud de drivers"
+        expresion: "SUM(suma_completitud) / NULLIF(SUM(total_escuelas), 0)"
+        formato: porcentaje_0
+        kpi: KPI-05
+        nota: "Color del polígono: completitud agregada de los 6 drivers."
+      - nombre: pct_sin_dato
+        etiqueta: "% escuelas SIN_DATO (total)"
+        expresion: "SUM(escuelas_sin_dato) / NULLIF(SUM(total_escuelas), 0)"
+        formato: porcentaje_1
+        kpi: KPI-06
+        denominador_visible: total_escuelas
+        nota: >
+          Vacío agregado sobre los 6 drivers. Municipios sin datos no deben
+          pintarse en la escala de color mínimo — el vacío es el hallazgo.

@@ -298,7 +298,7 @@ Actualiza esta tabla **antes de cada standup**. El PM la revisa para el tablero 
 | ID | Historia | Estado | % | Bloqueado por | Fecha compromiso |
 |---|---|---|---|---|---|
 | `US-211a` | Cubos y metricas de DB-03 y DB-04 | ✅ Terminado | 100% | — | Dom 23 ago |
-| `US-212` | Construir DB-03 Ficha de escuela y DB-04 C | ⬜ Por iniciar | 0% | **US-113** (cubos de C1, sin entregar) | Dom 30 ago |
+| `US-212` | Construir DB-03 Ficha de escuela y DB-04 C | 🟡 En curso | 95% | **ADR-007** (unidad de `target_variacion_matricula`) | Dom 30 ago |
 | `US-214a` | Filtros y drill-down en DB-03 y DB-04 | ⬜ Por iniciar | 0% | — | Dom 6 sep |
 | `US-215a` | Usabilidad/accesibilidad DB-03 y DB-04 | ⬜ Por iniciar | 0% | — | Dom 6 sep |
 | `US-207` | FARO Web: panel de ML interactivo | ⬜ Por iniciar | 0% | API de inferencia (US-412/US-415) | Dom 6 sep |
@@ -308,9 +308,37 @@ Actualiza esta tabla **antes de cada standup**. El PM la revisa para el tablero 
 > que faltaban ya llegaron: Diana aceptó el cambio de grano a `municipio × nivel × ciclo` (Data_Model §4.3)
 > y Manuel publicó KPI-15…KPI-18 y ratificó el `LEFT JOIN` (Screen_Specs §4).
 >
-> **US-212 espera solo a US-113.** Ya existen la estrella Gold (US-103), Silver (US-111), Superset conectado
-> (US-202) y `gold.predicciones` / `gold.recomendaciones` (US-313). Falta que la Célula 1 materialice
-> `gold.cubo_escuela_360` y `gold.cubo_comparador_municipio`; el SQL de referencia lo tienen desde el 14 ago.
+> **US-212 al 90% (2026-08-27).** US-113 entregó los cubos y resultaron idénticos al contrato de
+> US-211a. DB-03 y DB-04 ya corren sobre el **pipeline real** (bronze→silver→gold), sin mock: los
+> **24 charts devuelven datos** y D5 sale `SIN_DATO` —no cero— porque CONAGUA no está ingerida.
+>
+> **Falta el 10 %, y el bloqueo se movió (2026-08-28).** BUG-013 se resolvió por sus dos mitades:
+> Héctor agregó `--desde-gold` a `publicar_gold.py` (el hueco era que no sabía leer de una tabla) y
+> Diana cargó 4 ciclos reales con la estrella completa en verde. **Lo que impide cerrar es BUG-026:**
+> ningún juego de fixtures del repo ejercita el grano escuela multi-ciclo, así que no puedo verificar
+> AC-002.4 en mi ambiente ni CI cubre esa ruta. Es de C1 y el arreglo no toca ningún modelo dbt.
+>
+> **US-212 al 95 % (2026-08-29).** **BUG-026 lo resolvió el PR #129 de Diana**, que revisé
+> corriéndolo: `features_escuela` pasa de 1 a 3 ciclos, **60/60 CCT** cruzan el catálogo y ML-01
+> entrena (MAE 12.2252). Ella precisó además mi causa raíz —`silver.matricula` nunca lee del camino
+> histórico, así que el hueco es aritmético: `con_target` sacrifica el primer ciclo, luego hacen falta
+> 4 crudos para los 3 que exige `ventanas_posibles()`—. El pipeline ya llega hasta donde debe.
+>
+> **Lo único que falta para el 100 % es ratificar ADR-007**, y no es espera pasiva: **entré como
+> ratificadora** por el PR #128 de Héctor. Mientras la unidad siga siendo alumnos absolutos, la guarda
+> de BUG-017 detiene la publicación —correctamente— y los bloques ML de DB-03 no se pueden verificar.
+> Argumento a llevar a la mesa, que me pasó Héctor: **DEC-006 ya dice "≥ 0.6 ↔ pérdida de ~5 % de
+> matrícula"**, y ese "~5 %" es una fracción. El umbral de mis tableros ya presupone la unidad que
+> ADR-007 propone, así que la alternativa A no es una opción nueva: es reabrir DEC-006.
+>
+> **El criterio de cierre por URL pública NO aplica a US-212** (Edgar, 29-ago): ese gate se escribió
+> para rutas HTTP de la API, por la asimetría entre US-411 y US-412. Un tablero de Superset cierra con
+> evidencia de código más capa de datos validada, sin depender de que C5 despliegue Superset.
+>
+> **BUG-027 quedó `superseded`**, no se arregla: Manuel decidió borrar los `kpi_*.sql` y remapear las
+> tarjetas a los datasets canónicos. Sobrevive el hallazgo de por qué CI no lo veía.
+>
+> BUG-012 (runbook del pipeline local) sigue abierto sin avance.
 
 **Estados válidos:** ⬜ Por iniciar · 🟡 En curso · 🔵 En revisión (PR abierto) · ✅ Terminado · 🔴 Bloqueado
 

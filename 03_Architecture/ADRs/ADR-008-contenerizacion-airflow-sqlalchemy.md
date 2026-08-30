@@ -1,6 +1,6 @@
 ---
-id: ADR-007
-title: "ADR-007 — Contenerización propia de Airflow con SQLAlchemy fijado en 1.4.x"
+id: ADR-008
+title: "ADR-008 — Contenerización propia de Airflow con SQLAlchemy fijado en 1.4.x"
 owner: "Edgar Ulises Jiménez López"
 status: accepted
 traces_up: ["US-522b"]
@@ -9,7 +9,7 @@ tags: [architecture, adr, devops, airflow]
 date: "2026-08-25"
 ---
 
-# ADR-007 — Contenerización propia de Airflow con SQLAlchemy fijado en 1.4.x
+# ADR-008 — Contenerización propia de Airflow con SQLAlchemy fijado en 1.4.x
 
 ## Contexto
 El contenedor `airflow-webserver` entraba en crash loop al iniciar. El diagnóstico mostró una incompatibilidad entre Airflow 2.7.3 y SQLAlchemy 2.0: Airflow en esta versión depende de comportamientos de SQLAlchemy 1.4.x que fueron removidos o cambiados en la 2.0. El `requirements.txt` del proyecto fija SQLAlchemy en 2.0.x porque otros servicios (API, otras células) sí lo requieren, por lo que no era viable bajar la versión globalmente sin romper otras partes del sistema.

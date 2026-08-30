@@ -3,9 +3,9 @@ id: SEC-CREDENTIALS-POLICY
 title: "Política de Credenciales — FARO"
 owner: "Luis Téllez Domínguez"
 status: active
-version: "1.0"
+version: "1.1"
 traces_up: ["REQ-005", "US-502"]
-last_reviewed: "2026-08-15"
+last_reviewed: "2026-08-29"
 tags: [security, credentials, cis-controls, passwords]
 ---
 
@@ -19,11 +19,17 @@ tags: [security, credentials, cis-controls, passwords]
 
 **Nivel alcanzado:** 9/10 (CIS Controls v8 compliant)
 
-| Control CIS | Descripción | Estado |
+| Control CIS v8 | Descripción (nombre oficial) | Estado |
 |---|---|---|
-| **CIS 5.2** | Usar passwords únicos | ✅ CUMPLE |
-| **CIS 5.3** | Políticas de complejidad (14-16+ chars) | ✅ CUMPLE (20 chars) |
-| **CIS 6.5** | Gestión centralizada de accesos | ✅ CUMPLE |
+| **CIS 5.2** | Use Unique Passwords (la guía de longitud ≥14 chars vive aquí, no en 5.3) | ✅ CUMPLE — usuarios y passwords únicos por servicio, 20 chars |
+| **CIS 5.3** | Disable Dormant Accounts | 🔶 N/A en dev local · en prod: rotación 90 días + auditoría de accesos (Cloud Audit Logs / Secret Manager, US-504) |
+| **CIS 6.5** | Require MFA for Administrative Access | 🔶 PARCIAL — MFA en cuentas GCP; IAP para UIs admin (Fase 3) |
+
+> **Corrección (v1.1):** versiones previas etiquetaban **CIS 5.3** como "políticas de
+> complejidad de passwords". Es un error: en CIS Controls v8, la guía de longitud de
+> password pertenece a **5.2 (Use Unique Passwords)**; **5.3 es "Disable Dormant Accounts"**.
+> El **6.5** tampoco es "gestión centralizada" (eso es 5.6 / 6.7), sino "Require MFA for
+> Administrative Access".
 
 ---
 
@@ -74,9 +80,10 @@ cp .env.example .env
 ```
 
 **Output del script:**
-- Airflow Fernet Key (32 bytes base64)
+- Airflow Fernet Key (32 bytes base64, generada con stdlib — sin dependencia de `cryptography`)
 - Airflow Webserver Secret (32 caracteres URL-safe)
 - Superset Secret Key (32 caracteres URL-safe)
+- JWT Secret Key (`JWT_SECRET_KEY`, 48 bytes URL-safe, para OAuth2/JWT del API)
 - PostgreSQL Password (20 caracteres alfanuméricos)
 - Airflow Admin Password (20 caracteres alfanuméricos)
 - Superset Admin Password (20 caracteres alfanuméricos)
@@ -176,10 +183,11 @@ cp .env.example .env
 **CIS Controls v8:**
 - Control 5.2: Use Unique Passwords
 - Control 5.3: Disable Dormant Accounts
-- Control 6.5: Centralize Account Management
+- Control 6.5: Require MFA for Administrative Access
 
 ---
 
 **Creado:** 2026-08-15 por Luis Téllez Domínguez  
-**Sprint:** S2  
+**Actualizado:** 2026-08-29 por Luis Téllez Domínguez (v1.1 — corrección de mapeo CIS v8 5.3/6.5; `JWT_SECRET_KEY` en el output del script)  
+**Sprint:** S2 (creación) · S4 (corrección)  
 **Historia:** US-502

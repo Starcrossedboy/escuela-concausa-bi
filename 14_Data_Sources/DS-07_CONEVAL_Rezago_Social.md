@@ -2,15 +2,14 @@
 id: DS-07
 title: "DS-07 · CONEVAL Rezago Social"
 owner: "Deni Garrido Fragoso"
-status: draft
+status: in_review
 traces_up: ["01_Product/PRD", "12_Roadmap_Sprints/PLAN_MAESTRO"]
 tags: [data-source, bronze, driver-d1]
 ---
 
 # DS-07 · CONEVAL Rezago Social y Pobreza Municipal
 
-> → [[14_Data_Sources/_index]] · Diseño y URLs oficiales confirmados; prueba de descarga real
-> **PENDIENTE DE EJECUCIÓN** antes de pasar la ficha a `in_review`.
+> → [[14_Data_Sources/_index]] · Descarga real oficial ejecutada y auditada; ficha en `in_review`.
 
 ## 1. Identificación
 - **Institución responsable:** CONEVAL (Consejo Nacional de Evaluación de la Política de Desarrollo Social).
@@ -64,17 +63,22 @@ Metadatos obligatorios en ambos:
 
 No se realizan joins, renombres de negocio, cálculo de claves ni selección de métricas en Bronze.
 
-## 6. Esquema semántico esperado
-### IRS
-El producto oficial aporta, entre otros: entidad, municipio, población total, indicadores componentes de rezago, Índice de Rezago Social y Grado de Rezago Social.
-
-Los nombres físicos exactos de hoja/columnas deben confirmarse en la prueba real; el extractor debe fallar explícitamente si no reconoce de forma inequívoca el contrato publicado.
+## 6. Esquema físico confirmado en descarga real
+### IRS 2020
+- Workbook: `IRS_entidades_mpios_2020.xlsx`.
+- Hoja: `Municipios`.
+- Encabezado jerárquico: filas Excel 5-6 (`header=[4,5]` en pandas).
+- Clave entidad: `Clave entidad`.
+- Clave municipio: `Clave municipio`.
+- Índice: `Índice de rezago social`.
+- Grado: `Grado de rezago social`.
 
 ### Pobreza municipal
-El manual oficial de CONEVAL documenta, entre otras, variables `ent`, `cve_mun`, `pobtot`, `pobreza`, `pobreza_pob` e indicadores adicionales de pobreza/carencias.
-
-Para FARO, `pobreza_pct` se deriva en Silver desde la variable oficial `pobreza`; Bronze conserva el nombre y valor originales.
-
+- Workbook: `Concentrado_indicadores_de_pobreza_2020.xlsx`.
+- Hoja: `Concentrado municipal`.
+- Encabezado jerárquico: filas Excel 5-6 (`header=[4,5]` en pandas).
+- El concentrado conserva 2010, 2015 y 2020 en columnas.
+- Pobreza 2020: `Pobreza | Porcentaje 2020`.
 ## 7. Llave de unión y conformación Silver
 - **Llave canónica FARO:** clave INEGI municipal de 5 dígitos.
 - La homologación a 5 dígitos y el join entre IRS y pobreza son responsabilidad de `silver.rezago_municipio`.
@@ -85,20 +89,19 @@ El contrato downstream actual de `silver.rezago_municipio` se mantiene para no r
 ## 8. Driver que alimenta
 - **D1 · Pobreza y rezago social** (junto con DS-08 / CONAPO).
 
-## 9. Prueba de descarga real — PENDIENTE DE EJECUCIÓN
-Antes de cambiar `status: draft` → `in_review`:
-- [ ] Descargar ambos ZIP directamente desde `www.coneval.org.mx`.
-- [ ] Verificar HTTP/redirect final y archivo ZIP válido/no vacío.
-- [ ] Registrar SHA-256 de cada ZIP.
-- [ ] Identificar workbook(s), hoja(s) y fila(s) de encabezado reales.
-- [ ] Contar registros municipales y contrastar cobertura nacional.
-- [ ] Verificar clave municipal y duplicados.
-- [ ] Confirmar períodos reales presentes.
-- [ ] Confirmar columnas físicas IRS y pobreza.
-- [ ] Generar Parquet Bronze 1:1 con metadatos.
+## 9. Prueba de descarga real — EJECUTADA
+- [x] Ambos ZIP descargados directamente desde `www.coneval.org.mx` por HTTPS.
+- [x] ZIP y rutas internas validadas; sin redirects fuera del dominio oficial.
+- [x] SHA-256 IRS: `9191f6c16ec22452aa970a0fb9a5bbc5cde2057cf48eb81a68d66140289d1cfb`.
+- [x] SHA-256 pobreza: `644d19a9ff6df37908df2f63117bac8ba2cb1f5389d97df03f62fc2c5118d975`.
+- [x] IRS: **2469 municipios únicos** de 2469.
+- [x] Pobreza: **2469 municipios únicos** de 2469.
+- [x] Overlap IRS/pobreza: **2469 municipios**.
+- [x] IRS: 2469 índices y 2469 grados no nulos.
+- [x] Pobreza 2020: 2466 numéricos; **3 ausencias oficiales** a preservar como `SIN_DATO`.
+- [x] Bronze Parquet separado para IRS y pobreza con metadatos de ingesta.
 - **Responsable:** Deni Garrido Fragoso.
-- **Fecha de ejecución:** pendiente.
-
+- **Fecha:** 2026-08-30.
 ## 10. Riesgos conocidos
 - Cambios de estructura, nombres de hoja o encabezados entre ediciones oficiales.
 - Claves municipales leídas como numéricas y pérdida de ceros a la izquierda.

@@ -48,11 +48,11 @@ predicha por ML-01 al `indice_riesgo` ∈ [0,1]. Incluye un caso que construye u
 real de la Célula 4: si alguien recalibra la sigmoide fuera de rango, el CI lo detiene antes de que
 falle la API. Su especificación vive en [[15_ML_Models/Indice_Riesgo_ML01]].
 
-`TEST-007` (`tests/test_evaluar.py`, 13 casos) respalda
+`TEST-007` (`tests/test_evaluar.py`, 26 casos) respalda
 [[06_Quality_Testing/Automated/Evaluacion_Modelos]], que **se genera desde el código** con
 `python -m src.modelos.evaluar` y no se edita a mano. La prueba clave verifica que el reporte sea
 determinista: así las cifras publicadas en el vault no pueden divergir de las que produce el
-pipeline, que es lo que AC-003.2 exige al pedir métricas reproducibles.
+pipeline, que es lo que AC-003.2 exige al pedir métricas reproducibles. Desde el 2026-08-29 cubre los **tres** modelos: al integrarse ML-03 (US-321) el reporte pasó a contrastar cada métrica contra su umbral y a **afirmar si se cumple**, en vez de enunciar umbral y cifra por separado y dejar la comparación al lector.
 
 `TEST-008` (`tests/test_contrato_features.py`, 4 casos) vigila el contrato
 `gold.features_escuela` entre la Célula 1 y la Célula 3: compara el modelo dbt de US-104 contra el

@@ -1,9 +1,13 @@
 ---
+id: DEVLOG-2026-08-27-ELOISA-US422-BUG008
 fecha: 2026-08-27
-autor: Eloisa Gonzalez Rubio
+owner: "Eloisa Gonzalez Rubio"
+status: done
 historia: US-422
 bug: BUG-008
 herramienta_ia: Claude (Copilot)
+traces_up: ["US-422"]
+traces_down: ["BUG-008"]
 ---
 
 # DevLog — US-422: guarda de regresion para BUG-008

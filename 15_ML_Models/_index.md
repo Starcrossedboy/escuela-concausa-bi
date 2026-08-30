@@ -16,9 +16,9 @@ tags: [index, moc, ml]
 
 | ID | Modelo | Tipo | Predice | Métrica | Estado |
 |---|---|---|---|---|---|
-| ML-01 | Regresión de matrícula | Supervisado · regresión | Variación de matrícula por escuela | MAE / RMSE | pendiente |
+| ML-01 | Regresión de matrícula | Supervisado · regresión | Variación de matrícula por escuela | MAE / RMSE | entrenado · cumple umbrales en fixture |
 | ML-02 | Clasificación de driver | Supervisado · multiclase | Cuál de los 6 drivers explica el riesgo | F1 macro | en progreso |
-| ML-03 | Clustering de escuelas | No supervisado | Grupos de perfil similar | Silhouette | pendiente |
+| ML-03 | Clustering de escuelas | No supervisado | Grupos de perfil similar | Silhouette | entrenado · umbral no alcanzado en fixture |
 
 **ML-02 es el corazón prescriptivo del proyecto**: permite que dos escuelas con el mismo riesgo
 reciban recomendaciones distintas.

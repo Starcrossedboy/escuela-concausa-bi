@@ -2,6 +2,7 @@
   "components": {
     "schemas": {
       "AgenteConsultaIn": {
+        "additionalProperties": false,
         "properties": {
           "pregunta": {
             "maxLength": 500,
@@ -543,6 +544,7 @@
         "type": "object"
       },
       "PipelineRunIn": {
+        "additionalProperties": false,
         "properties": {
           "ciclo": {
             "title": "Ciclo",
@@ -579,6 +581,7 @@
         "type": "object"
       },
       "PrediccionBatchIn": {
+        "additionalProperties": false,
         "properties": {
           "ccts": {
             "items": {
@@ -655,6 +658,7 @@
         "type": "object"
       },
       "RefreshIn": {
+        "additionalProperties": false,
         "properties": {
           "refresh_token": {
             "title": "Refresh Token",

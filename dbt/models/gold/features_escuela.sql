@@ -68,8 +68,13 @@ base as (
         id_ciclo,
         cve_mun,
         matricula_total,
-        cast(matricula_total - matricula_ciclo_anterior as double precision)
-            as target_variacion_matricula
+        -- ADR-007 (accepted 2026-08-29): el target es FRACCIÓN del ciclo anterior,
+        -- no alumnos absolutos. No usamos NULLIF: si matricula_ciclo_anterior = 0,
+        -- PostgreSQL debe rechazar explícitamente la división en vez de convertirla
+        -- silenciosamente en NULL/SIN_DATO.
+        cast(matricula_total as double precision)
+            / cast(matricula_ciclo_anterior as double precision)
+            - 1.0 as target_variacion_matricula
     from con_target
     where matricula_ciclo_anterior is not null
 

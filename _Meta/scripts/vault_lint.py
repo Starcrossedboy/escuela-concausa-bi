@@ -41,10 +41,12 @@ PERMITIR_MOJIBAKE = "vault-lint: permitir-mojibake"
 # cachés locales (ya en .gitignore). Se excluyen del linter para no reportar, p. ej., cada
 # LICENSE.md dentro de .venv/site-packages/ como problema del vault.
 # .github/ contiene configuración de GitHub, no artefactos del vault.
+# _local/ son notas de trabajo/handoff personales por sprint (ya en .gitignore), no del vault.
 EXCLUDED_DIRS = (
     "/.git", "/.obsidian", "/graphify-out", "/.github",
     "/.venv", "/venv", "/node_modules",
     "/.pytest_cache", "/.ruff_cache", "/__pycache__",
+    "/_local",
 )
 
 

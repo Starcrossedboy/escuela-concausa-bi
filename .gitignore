@@ -67,3 +67,8 @@ graphify-out/20??-??-??/
 13_Reports/data/github-activity.json
 !dbt/seeds/*.csv
 tests/fixtures/*.db
+
+# ---- Notas de trabajo locales (NO versionar) ----
+# Documentos de referencia/handoff personales por sprint. Viven solo en la
+# máquina, sirven para retomar contexto entre sesiones de IA. Ver _local/.
+_local/

@@ -181,3 +181,9 @@ tags: [requirements, traceability, matrix]
 | REQ | Historias | Evidencia de prueba | DevLog | Estado |
 |---|---|---|---|---|
 | `REQ-003` | `US-312`, `US-321` | **AC-003.2 cubierto**: los tres modelos reportan métrica en `Evaluacion_Modelos.md` ✅ · ML-03 sin baseline fingido (`NaN`, no `0`) ✅ · §6 contrasta cada métrica contra su umbral y **afirma** si cumple — ML-03 no llega (0.1086 vs ≥0.30) ⚠️ · guarda de sincronía extendida a ML-03 ✅ · 6 pruebas nuevas · suite 595 ✅ | [[_DevLog/2026-08-29-hector-morales-ml03-en-evaluacion]] | 🟡 En progreso |
+
+## Evidencia incremental — 2026-08-29 · ratificación de ADR-007
+
+| REQ | Historias | Evidencia de prueba | DevLog | Estado |
+|---|---|---|---|---|
+| `REQ-003` | `US-311`, `US-313` | **ADR-007 `accepted`** (29-ago) con la tabla de lo que falta para que surta efecto ✅ · `DOC-INDICE-RIESGO` reducido a una sola decisión abierta —el ancla `0.30`— tras cerrar el umbral (`DEC-006`) y la doble columna `valor`/`indice_riesgo` ✅ · **BUG-032** registrado: `Data_Model` §5.3 contradice a §4.5 ⬜ · suite 643 ✅ | [[_DevLog/2026-08-29-hector-morales-adr007-ratificado]] | 🟡 En progreso |

@@ -2,7 +2,7 @@
 id: ADR-007
 title: "ADR-007 — Unidad de target_variacion_matricula: fracción, no diferencia absoluta"
 owner: "Héctor Rafael Morales Marbán"
-status: proposed
+status: accepted
 traces_up: ["REQ-003", "ADR-003", "DEC-006"]
 traces_down: ["US-104", "US-311", "US-313", "US-212", "15_ML_Models/Indice_Riesgo_ML01", "03_Architecture/Data_Model", "DEC-006"]
 supersedes: []
@@ -12,18 +12,32 @@ date: "2026-08-28"
 
 # ADR-007 — Unidad de `target_variacion_matricula`: fracción, no diferencia absoluta
 
-> **Estatus: propuesta.** Requiere ratificación de Andrés González Habib (ADR-003, modelado),
-> Christian Ruiz (contrato de la API), Diana Alvarez (producción en Gold) y **Marina García**
-> (consumo en los tableros). Convoca: Edgar Coronel.
+> **Estatus: ratificado el 2026-08-29.** Se adopta la fracción como unidad de
+> `target_variacion_matricula`.
 >
-> Marina se agrega el 2026-08-28 a petición suya y con razón: el rechazo de la alternativa B más
-> abajo se apoya en que **Superset lee Gold directo**, así que su área es la que sostiene el
-> argumento. Usar a un equipo como razón para descartar una opción y no sentarlo en la mesa era un
-> defecto de esta propuesta, no una omisión de cortesía.
+> La propuesta requería ratificación de Andrés González Habib (ADR-003, modelado), Christian Ruiz
+> (contrato de la API), Diana Alvarez (producción en Gold) y Marina García (consumo en los
+> tableros), con Edgar Coronel convocando. **El registro de asistencia lo confirma el PM**: aquí se
+> asienta el acuerdo, no quiénes estuvieron.
 >
-> El costo de la decisión es asimétrico y conviene tenerlo a la vista: si se ratifica fracción,
-> `DEC-006` y el umbral 0.6 siguen válidos sin tocar nada; si no, hay que rehacer §5.1 del contrato
-> de DB-03/DB-04. Cinco minutos para Célula 3, medio sprint para Célula 2.
+> Marina se sumó el 2026-08-28 a petición suya y con razón: el rechazo de la alternativa B se apoya
+> en que **Superset lee Gold directo**, así que su área sostenía el argumento. Usar a un equipo como
+> razón para descartar una opción sin sentarlo en la mesa era un defecto de esta propuesta.
+
+## Qué falta para que la ratificación surta efecto
+
+Ratificar no cambia el dato. Al 2026-08-29 el pipeline **sigue produciendo alumnos absolutos**:
+`features_escuela.sql:71` calcula `matricula_total - matricula_ciclo_anterior`. Mientras esa línea no
+cambie, `verificar_escala_variacion()` seguirá deteniendo la publicación — correctamente.
+
+| # | Acción | Dueño |
+|---|---|---|
+| 1 | Normalizar el target a fracción en `features_escuela.sql` y **reprocesar** Gold | Célula 1 |
+| 2 | Rechazar explícitamente `matricula_previa == 0` en vez de un `NULLIF` silencioso | Célula 1 |
+| 3 | Regenerar las 45 249 filas de `gold.predicciones`, calculadas con la unidad vieja | Célula 3 |
+| 4 | Reentrenar ML-01: el MAE deja de leerse en alumnos y pasa a fracción | Célula 3 |
+
+El paso 1 es el único que bloquea a los demás, y hoy no tiene responsable asignado.
 
 ## Contexto
 

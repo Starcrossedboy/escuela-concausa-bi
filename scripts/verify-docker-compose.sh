@@ -12,7 +12,15 @@
 # Historia: US-502
 # ═══════════════════════════════════════════════════════════════════════
 
-set -e  # Detener si algún comando falla
+# NOTA: sin `set -e` a propósito — este script corre TODAS las verificaciones y
+# resume al final con exit 0/1 (ALL_OK). Con `set -e` abortaría al primer
+# servicio caído y no veríamos el panorama completo.
+
+# Ubicarse en la raíz del repo (donde vive docker-compose.yml) para que
+# `docker compose` resuelva el proyecto correcto sin importar el CWD desde el
+# que se invoque el script.
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+cd "$SCRIPT_DIR/.." || { echo "No se pudo ubicar la raíz del repo"; exit 1; }
 
 # Colores para output
 RED='\033[0;31m'
@@ -65,27 +73,34 @@ check_port() {
 }
 
 # ═══════════════════════════════════════════════════════════════════════
-# FUNCIÓN: Verificar contenedor Docker
+# FUNCIÓN: Verificar contenedor Docker (por NOMBRE DE SERVICIO de Compose)
 # ═══════════════════════════════════════════════════════════════════════
+# Resuelve el contenedor vía `docker compose ps` en lugar de un nombre fijo,
+# de modo que funciona con el nombre real `<proyecto>-<servicio>-<N>` que
+# Compose asigna (los `container_name` fijos se eliminaron; ver docker-compose.yml).
 check_container() {
-    local name=$1
+    local service=$1
+    local cid
+    cid=$(docker compose ps -q "$service" 2>/dev/null | head -n1)
 
-    if docker ps --format '{{.Names}}' | grep -q "^$name$"; then
-        local status=$(docker inspect --format='{{.State.Health.Status}}' "$name" 2>/dev/null || echo "no-healthcheck")
+    # ¿Existe y está corriendo?
+    if [ -z "$cid" ] || ! docker ps -q --no-trunc | grep -q "^$cid"; then
+        echo -e "${RED}❌ $service${NC} — not running"
+        ALL_OK=false
+        return 1
+    fi
 
-        if [ "$status" = "healthy" ]; then
-            echo -e "${GREEN}✅ $name${NC} — healthy"
-            return 0
-        elif [ "$status" = "no-healthcheck" ]; then
-            echo -e "${YELLOW}⚠️  $name${NC} — running (no healthcheck)"
-            return 0
-        else
-            echo -e "${RED}❌ $name${NC} — unhealthy (status: $status)"
-            ALL_OK=false
-            return 1
-        fi
+    local status
+    status=$(docker inspect --format='{{if .State.Health}}{{.State.Health.Status}}{{else}}no-healthcheck{{end}}' "$cid" 2>/dev/null)
+
+    if [ "$status" = "healthy" ]; then
+        echo -e "${GREEN}✅ $service${NC} — healthy"
+        return 0
+    elif [ "$status" = "no-healthcheck" ] || [ -z "$status" ]; then
+        echo -e "${YELLOW}⚠️  $service${NC} — running (no healthcheck)"
+        return 0
     else
-        echo -e "${RED}❌ $name${NC} — not running"
+        echo -e "${RED}❌ $service${NC} — unhealthy (status: $status)"
         ALL_OK=false
         return 1
     fi
@@ -97,19 +112,20 @@ check_container() {
 echo -e "${BLUE}📦 Verificando contenedores...${NC}"
 echo ""
 
-check_container "faro-postgres"
-check_container "faro-api"
-check_container "faro-airflow-webserver"
-check_container "faro-airflow-scheduler"
-check_container "faro-mlflow"
-check_container "faro-superset"
-check_container "faro-chromadb"
+check_container "db"
+check_container "api"
+check_container "airflow-webserver"
+check_container "airflow-scheduler"
+check_container "mlflow"
+check_container "superset"
+check_container "chromadb"
 
-# Verificar que airflow-init terminó correctamente
-if docker ps -a --format '{{.Names}}\t{{.Status}}' | grep "faro-airflow-init" | grep -q "Exited (0)"; then
-    echo -e "${GREEN}✅ faro-airflow-init${NC} — exited successfully"
+# Verificar que airflow-init terminó correctamente (salió con código 0)
+INIT_CID=$(docker compose ps -aq airflow-init 2>/dev/null | head -n1)
+if [ -n "$INIT_CID" ] && docker inspect --format='{{.State.Status}} {{.State.ExitCode}}' "$INIT_CID" 2>/dev/null | grep -q "^exited 0$"; then
+    echo -e "${GREEN}✅ airflow-init${NC} — exited successfully"
 else
-    echo -e "${RED}❌ faro-airflow-init${NC} — did not exit cleanly"
+    echo -e "${RED}❌ airflow-init${NC} — did not exit cleanly"
     ALL_OK=false
 fi
 
@@ -121,8 +137,11 @@ echo ""
 echo -e "${BLUE}🌐 Verificando endpoints HTTP...${NC}"
 echo ""
 
-check_http "Postgres (TCP)" "localhost" 5432 || check_port "Postgres" 5432
-check_http "API FastAPI" "http://localhost:8000/health" 5
+# Postgres no habla HTTP: se verifica solo el puerto TCP (evita un ❌ espurio que
+# antes envenenaba ALL_OK al llamar check_http contra un puerto no-HTTP).
+check_port "Postgres" 5432
+# La ruta de salud del API es /api/v1/health (200); /health devuelve 404.
+check_http "API FastAPI" "http://localhost:8000/api/v1/health" 5
 check_http "Airflow Webserver" "http://localhost:8080/health" 10
 check_http "MLflow" "http://localhost:5001/health" 10
 check_http "Superset" "http://localhost:8088/health" 15
@@ -139,7 +158,7 @@ echo ""
 DATABASES=("escuela_concausa_db" "airflow" "mlflow" "superset")
 
 for db in "${DATABASES[@]}"; do
-    if docker exec faro-postgres psql -U postgres -lqt 2>/dev/null | cut -d \| -f 1 | grep -qw "$db"; then
+    if docker compose exec -T db psql -U postgres -lqt 2>/dev/null | cut -d \| -f 1 | grep -qw "$db"; then
         echo -e "${GREEN}✅ Base de datos: $db${NC} — existe"
     else
         echo -e "${RED}❌ Base de datos: $db${NC} — NO existe"

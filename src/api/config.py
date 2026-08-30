@@ -60,6 +60,17 @@ class Settings(BaseSettings):
     postgres_user: str = "postgres"
     postgres_password: str = ""
 
+    # ---- Hardening HTTP (US-404) ----
+    # CORS: orígenes permitidos (CSV). Default = frontends locales de desarrollo (React, Streamlit,
+    # Superset). Los orígenes reales de despliegue los añade C5 por variable de entorno. Vacío =>
+    # no se habilita CORS (la API solo responde a same-origin / clientes no-navegador).
+    cors_origins: str = "http://localhost:3000,http://localhost:8501,http://localhost:8088"
+    # Rate limiting (slowapi). Formato de la librería `limits`: "<n>/<periodo>", p.ej. "120/minute".
+    # Se desactiva en pruebas que no lo ejercitan. Es por-proceso/en-memoria (1 instancia); para
+    # prod multi-instancia se migra a un backend compartido (Redis) — follow-up documentado en ADR-004.
+    rate_limit_enabled: bool = True
+    rate_limit_default: str = "120/minute"
+
     # ---- Inferencia ML: cache y timeouts (US-416) ----
     # `/predicciones/*` ya no invoca MLflow en vivo (US-412): lee `gold.predicciones` precalculada.
     # Un timeout aquí es "Postgres no respondió a tiempo", no "MLflow tardó". Ver
@@ -78,6 +89,11 @@ class Settings(BaseSettings):
     @property
     def analista_email_set(self) -> set[str]:
         return {e.strip().lower() for e in self.analista_emails.split(",") if e.strip()}
+
+    @property
+    def cors_origin_list(self) -> list[str]:
+        """Orígenes CORS permitidos, parseados del CSV (sin vacíos)."""
+        return [o.strip() for o in self.cors_origins.split(",") if o.strip()]
 
     @property
     def secret_es_inseguro(self) -> bool:

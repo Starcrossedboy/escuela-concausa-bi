@@ -1,70 +1,64 @@
 -- =============================================================================
--- db06_predicciones_escuela (virtual)  ·  DB-06 Predicciones, grano de detalle
+-- db06_predicciones_escuela  ·  DB-06 Predicciones (tab de escuela)
 -- -----------------------------------------------------------------------------
--- Historia : US-204  (Manuel Alejandro Serrania Reinada, Celula 2 - Analytics & BI)
--- Contrato : 04_UX_Design/Cube_Specs_DB06_DB09.md §4
--- Grano    : una fila por cct x id_ciclo (grano del hecho, sin agregar)
+-- Historia : US-204  (Manuel Alejandro Serrania Reinada, Celula 2)
+--            Repunteo US-205 (Manuel Alejandro Serrania Reinada, C2)
+-- Contrato : 04_UX_Design/Cube_Specs_DB06_DB09.md §3.2
+--            Filtros: cct, nombre, nivel, sostenimiento, cve_mun (AC-005.x).
+-- Grano    : una fila por cct x id_ciclo (detalle, sin agregar)
 --
--- Capa de detalle de DB-06: cada escuela con su riesgo y variacion proyectada
--- por ML-01. Alimenta la distribucion de riesgo (cubetas `rango_riesgo`), el
--- semaforo en el umbral R3 y los conteos globales del tablero.
+-- REPUNTEO A CUBOS FISICOS (US-205 / US-113): passthrough 1:1 de
+--   gold.cubo_escuela_360 (C1), que ya trae la salida ML-01 resuelta por
+--   LEFT JOIN (llave cct-id_ciclo, modelo 'ML-01', grano escuela, umbral R3).
+--   La unica logica restante es el BUCKET del indice de riesgo (rango_riesgo),
+--   que la toxicologia de Superset no expone y los tableros piden al detalle
+--   granular (superset/dashboards/db06_predicciones.yaml -> rango_riesgo).
 --
--- R1: indice_riesgo / variacion_proyectada / probabilidad por LEFT JOIN a
---     gold.predicciones filtrando modelo = 'ML-01' con la llave completa
---     (cct, id_ciclo) y el grano escuela (DEC-010). Una escuela sin prediccion
---     NO desaparece: viaja con cobertura_prediccion = 'SIN_DATO' y en_riesgo
---     nulo (desconocido, no falso).
--- R2: SIN_DATO nunca cero. R3: umbral 0.6.
+-- PEQUEÑA DESVIACION A R3 (ratificada 2026-08-19): en_riesgo es una DERIVADA
+--   del cubo, no una salida cruda de ML; el cubo la calcula con las mismas
+--   cotas del contrato (>= 0.6) y aqui se re-etiqueta solo la columna. La
+--   columna cruda indice_riesgo continua intacta. (La razon 'en_riesgo' de
+--   metrics_db06_db09.yaml la recalcula el motor por KPI-03.)
+--
+-- Reglas aplicadas: R2 (SIN_DATO nunca cero -- cobertura_prediccion del cubo),
+--                   R5 (Gold ya viene acotado). R1/R3 viven en C1.
+-- Sin GROUP BY: se esta al grano del detalle.
 -- =============================================================================
 
 SELECT
-    -- ---------- identidad ------------------------------------------------------
-    f.cct,
-    e.nombre                                    AS nombre_escuela,
-    e.nivel,                                     -- filtro global: nivel educativo
-    e.sostenimiento,
-
-    -- ---------- territorio y tiempo --------------------------------------------
-    f.cve_mun,
-    dm.cve_ent,                                  -- filtro global: entidad
-    dm.nombre_municipio,
-    dm.nombre_entidad,
-    f.id_ciclo,                                  -- filtro global: ciclo
-    dt.ciclo,
-    dt.anio_inicio,
+    -- ---------- identificadores -------------------------------------------------
+    s.cct,
+    s.id_ciclo,                               -- filtro global: ciclo
+    s.ciclo,
+    s.anio_inicio,
+    s.nombre_escuela,
+    s.nivel,                                  -- filtro global: nivel educativo
+    s.sostenimiento,
+    s.cve_ent,                                -- filtro global: entidad
+    s.cve_mun,                                -- filtro: municipio
+    s.nombre_municipio,
+    s.nombre_entidad,
 
     -- ---------- hechos observados ----------------------------------------------
-    f.matricula_total,
-    f.variacion_matricula,
-    f.indice_completitud_drivers,
+    s.matricula_total,
+    s.variacion_matricula,
+    s.indice_completitud_drivers,
 
-    -- ---------- proyeccion y riesgo (ML-01, por JOIN, grano escuela) ----------
-    p.indice_riesgo,
-    p.valor                                     AS variacion_proyectada,
-    p.probabilidad,
+    -- ---------- salida ML-01 (del cubo C1) ---------------------------------------
+    s.indice_riesgo,
+    s.variacion_proyectada,
+    s.probabilidad,
+    s.en_riesgo,                              -- nulo sin prediccion, nunca FALSE
+    s.cobertura_prediccion,
+
+    -- ---------- bucket de riesgo (para dashboards por rango) ---------------------
     CASE
-        WHEN p.indice_riesgo IS NULL THEN NULL
-        WHEN p.indice_riesgo >= 0.6 THEN TRUE      -- R3
-        ELSE FALSE
-    END                                         AS en_riesgo,
-    CASE
-        WHEN p.indice_riesgo IS NULL THEN NULL
-        WHEN p.indice_riesgo < 0.2 THEN '0.00 - 0.19'
-        WHEN p.indice_riesgo < 0.4 THEN '0.20 - 0.39'
-        WHEN p.indice_riesgo < 0.6 THEN '0.40 - 0.59'
-        WHEN p.indice_riesgo < 0.8 THEN '0.60 - 0.79'
+        WHEN s.indice_riesgo IS NULL THEN NULL
+        WHEN s.indice_riesgo < 0.2  THEN '0.00 - 0.19'
+        WHEN s.indice_riesgo < 0.4  THEN '0.20 - 0.39'
+        WHEN s.indice_riesgo < 0.6  THEN '0.40 - 0.59'
+        WHEN s.indice_riesgo < 0.8  THEN '0.60 - 0.79'
         ELSE '0.80 - 1.00'
-    END                                         AS rango_riesgo,
-    CASE
-        WHEN p.cct IS NULL THEN 'SIN_DATO'
-        ELSE 'OK'
-    END                                         AS cobertura_prediccion
+    END AS rango_riesgo
 
-FROM gold.fact_escuela_ciclo f
-JOIN      gold.dim_escuela   e  ON f.cct      = e.cct
-JOIN      gold.dim_tiempo    dt ON f.id_ciclo = dt.id_ciclo
-JOIN      gold.dim_municipio dm ON f.cve_mun  = dm.cve_mun
-LEFT JOIN gold.predicciones  p  ON f.cct      = p.cct
-                               AND f.id_ciclo = p.id_ciclo
-                               AND p.modelo   = 'ML-01'
-                               AND (p.grano IS NULL OR p.grano = 'escuela')
+FROM gold.cubo_escuela_360 s

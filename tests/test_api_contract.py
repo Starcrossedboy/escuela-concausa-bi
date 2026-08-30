@@ -241,11 +241,28 @@ def test_agente_responde(client: TestClient) -> None:
 
 
 def test_agente_rechaza_escritura(client: TestClient) -> None:
-    r = client.post(f"{API_PREFIX}/agente/consulta", json={"pregunta": "DROP table escuelas"})
+    # BUG-025: el endpoint ya usa los guardarraíles reales. La protección contra escritura vive en
+    # la capa SQL (preparar_sql_seguro), no en el filtro de lenguaje natural: aunque el LLM generara
+    # un DROP, se rechaza y el ejecutor jamás se llama. La matriz completa vive en
+    # tests/test_agente_endpoint.py.
+    from src.api.v1 import agente as agente_mod
+
+    ejecutado: list[str] = []
+    app.dependency_overrides[agente_mod.get_recuperar_contexto] = lambda: (
+        lambda pregunta: "gold.escuelas(cct)"
+    )
+    app.dependency_overrides[agente_mod.get_generar_sql] = lambda: (
+        lambda prompt, pregunta: "DROP TABLE gold.escuelas"
+    )
+    app.dependency_overrides[agente_mod.get_ejecutar_sql] = lambda: (
+        lambda sql: ejecutado.append(sql) or []
+    )
+    r = client.post(f"{API_PREFIX}/agente/consulta", json={"pregunta": "borra las escuelas"})
     assert r.status_code == 200
     cuerpo = r.json()
     assert cuerpo["fuera_de_alcance"] is True
     assert cuerpo["sql_generado"] is None
+    assert ejecutado == []
 
 
 # --------------------------------------------------------------------------- #

@@ -5,7 +5,7 @@ author_human: "Deni Garrido Fragoso"
 agent: "ChatGPT"
 model: "GPT-5.6 Sol"
 session_duration: "cierre runtime real US-113"
-touches: ["US-113", "DS-06", "DS-07", "ADR-007", "DB-10"]
+touches: ["US-113", "DS-06", "DS-07", "ADR-007", "DB-10", "BUG-031"]
 tags: [devlog, us113, runtime, gold, cubos, datos-reales]
 ---
 
@@ -52,6 +52,18 @@ fuentes reales por datos sintéticos.
 Cierre emitido por la automatización:
 
 `OK_US113_RUNTIME_REAL`
+
+## Corrección BUG-031
+
+- `fact_escuela_ciclo.sql` expone `matricula_ciclo_anterior` sin cambiar la semántica de
+  `variacion_matricula`.
+- `cubo_escuela_360.sql` propaga la matrícula anterior a nivel escuela y ciclo.
+- `cubo_comparador_municipio.sql` reemplaza `variacion_x_matricula` por el componente aditivo
+  `suma_matricula_anterior`.
+- `dbt compile` selectivo: PASS; tests dbt asociados: **84/84 PASS**;
+  `pytest tests/test_semantic_db03_db04.py -q`: **28/28 PASS**.
+- Runtime read-only: matrícula actual **32,312**, anterior **32,374** y variación
+  `SUM(actual) / NULLIF(SUM(anterior), 0) - 1` = **-0.191512 %**.
 
 ## Alcance y transparencia
 

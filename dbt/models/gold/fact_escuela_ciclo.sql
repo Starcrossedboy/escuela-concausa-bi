@@ -46,6 +46,7 @@ base as (
         cct,
         id_ciclo,
         matricula_total,
+        matricula_ciclo_anterior,
         cast(matricula_total - matricula_ciclo_anterior as double precision)
             as variacion_matricula
     from con_anterior
@@ -68,6 +69,7 @@ con_municipio as (
         b.id_ciclo,
         e.cve_mun,
         b.matricula_total,
+        b.matricula_ciclo_anterior,
         b.variacion_matricula
     from base b
     inner join escuela_scope e on e.cct = b.cct
@@ -286,6 +288,7 @@ ensamblado as (
         cm.id_ciclo,
         cm.cve_mun,
         cm.matricula_total,
+        cm.matricula_ciclo_anterior,
         cm.variacion_matricula,
         d1.d1,
         coalesce(d1.d1_cobertura, 'SIN_DATO') as d1_cobertura,
@@ -312,6 +315,7 @@ select
     id_ciclo,
     cve_mun,
     matricula_total,
+    matricula_ciclo_anterior,
     variacion_matricula,
     (
         (case when d1_cobertura = 'OK' then 1 else 0 end)

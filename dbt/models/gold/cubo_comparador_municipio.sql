@@ -26,7 +26,7 @@ with observado as (
 
         count(distinct f.cct) as escuelas,
         sum(f.matricula_total) as matricula_total,
-        sum(f.variacion_matricula * f.matricula_total) as variacion_x_matricula,
+        sum(f.matricula_ciclo_anterior) as suma_matricula_anterior,
         sum(f.indice_completitud_drivers) as suma_completitud,
 
         sum(case when f.d1_cobertura = 'OK' then f.d1 end) as suma_d1,

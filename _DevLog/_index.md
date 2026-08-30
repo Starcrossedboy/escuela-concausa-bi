@@ -69,6 +69,7 @@ Toda sesión con IA **debe** generar una entrada de DevLog **antes del push** (p
 | [[_DevLog/2026-08-30-deni-garrido-ds07-contrato-bronze-coneval\|2026-08-30]] | DS-07: contrato Bronze 1:1 para IRS y Pobreza Municipal oficiales de CONEVAL; downstream Silver/Gold intacto | Deni Garrido Fragoso | ChatGPT / GPT-5.6 Sol | DS-07, DOC-DATAMODEL, US-113, RISK-008 |
 | [[_DevLog/2026-08-30-deni-garrido-ds07-probe-esquema-real\|2026-08-30]] | DS-07: probe seguro del esquema físico oficial CONEVAL tras fallo defensivo del parser | Deni Garrido Fragoso | ChatGPT / GPT-5.6 Sol | DS-07, US-113, RISK-008 |
 | [[_DevLog/2026-08-30-deni-garrido-ds07-extractor-real\|2026-08-30]] | DS-07: extractor oficial CONEVAL y auditoría nacional real; ficha a in_review | Deni Garrido Fragoso | ChatGPT / GPT-5.6 Sol | DS-07, US-113, RISK-008 |
+| [[_DevLog/2026-08-30-deni-garrido-ds07-silver-real\|2026-08-30]] | DS-07: Bronze Postgres real y conformación Silver nacional; elimina coneval_v2/placeholder | Deni Garrido Fragoso | ChatGPT / GPT-5.6 Sol | DS-07, US-113, RISK-008, US-111 |
 
 | [[_DevLog/2026-08-15-deni-garrido-us111-bronze-silver|2026-08-15]] | US-111: avance Bronze→Silver; configuración dbt, macros, sources y modelos iniciales | Deni Garrido Fragoso | ChatGPT / GPT-5.6 Sol | US-111, REQ-001, DS-01, DS-02, DS-03 |
 | [[_DevLog/2026-08-16-deni-garrido-us111-bronze-silver-cierre|2026-08-16]] | US-111: cierre técnico dbt; 8 modelos Silver, 51 tests y compilación global | Deni Garrido Fragoso | ChatGPT / GPT-5.6 Sol | US-111, REQ-001, DS-01–DS-08 |

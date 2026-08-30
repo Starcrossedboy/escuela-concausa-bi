@@ -332,6 +332,8 @@ def _guardar_bronze(
         if out[columna].dtype == "object":
             out[columna] = out[columna].astype("string")
 
+    # Metadato técnico de procedencia temporal del artefacto oficial seleccionado.
+    out["_periodo_medicion"] = PERIODO_OBJETIVO
     out["_ingested_at"] = ingested_at
     out["_source"] = SOURCE_NAME
     out["_source_url"] = source_url

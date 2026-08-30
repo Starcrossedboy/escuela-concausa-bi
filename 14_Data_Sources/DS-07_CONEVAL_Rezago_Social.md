@@ -56,7 +56,8 @@ DS-07 conserva dos artefactos crudos separados:
 | `bronze.coneval_irs_<aaaa>` | Índice de Rezago Social | Copia 1:1 + metadatos de ingesta |
 | `bronze.coneval_pobreza_<aaaa>` | Medición de Pobreza Municipal | Copia 1:1 + metadatos de ingesta |
 
-Metadatos obligatorios en ambos:
+Metadatos técnicos en ambos:
+- `_periodo_medicion = 2020`, derivado del artefacto/medición oficial seleccionado por el extractor
 - `_ingested_at`
 - `_source = DS-07_CONEVAL`
 - `_source_url` con la URL oficial exacta descargada
@@ -85,6 +86,12 @@ No se realizan joins, renombres de negocio, cálculo de claves ni selección de 
 - El período debe provenir de los datos/producto oficial; no debe inventarse mediante un placeholder silencioso.
 
 El contrato downstream actual de `silver.rezago_municipio` se mantiene para no romper Gold: `cve_mun`, `entidad`, `municipio`, `periodo_medicion`, `indice_rezago_social`, `indice_rezago_social_cobertura`, `grado_rezago`, `pobreza_pct`, `pobreza_pct_cobertura` y metadatos.
+
+La implementación Silver real consume `bronze.coneval_irs_2020` y
+`bronze.coneval_pobreza_2020`, deduplica el snapshot más reciente por
+`cve_mun + periodo_medicion` y hace `FULL OUTER JOIN` para preservar cobertura explícita.
+Las ausencias oficiales de pobreza (`n.d.`) se convierten a valor nulo +
+`pobreza_pct_cobertura='SIN_DATO'`; nunca a cero.
 
 ## 8. Driver que alimenta
 - **D1 · Pobreza y rezago social** (junto con DS-08 / CONAPO).

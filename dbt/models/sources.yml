@@ -49,15 +49,18 @@ sources:
           explícito hasta que alguien materialice esta fuente. Al ingerirla, cambiar este default
           por el nombre real de la tabla.
 
-      - name: coneval
-        identifier: "{{ var('bronze_coneval_identifier', 'coneval_v2') }}"
-        description: >
-          DS-07 · CONEVAL Rezago Social y Pobreza Municipal. Mediciones periódicas nacionales a
-          nivel municipio.
-          Existe también `coneval_test`, que trae `entidad` como código crudo en vez de nombre y
-          parece una ingesta de prueba anterior; se elige `coneval_v2` (BUG-009). Pendiente de
-          confirmar por Deni Garrido Fragoso, dueña de DS-07.
 
+      - name: coneval_irs
+        identifier: "{{ var('bronze_coneval_irs_identifier', 'coneval_irs_2020') }}"
+        description: >
+          DS-07 · CONEVAL Índice de Rezago Social municipal 2020. Bronze real nacional,
+          descargado automáticamente desde la fuente oficial y preservado 1:1.
+
+      - name: coneval_pobreza
+        identifier: "{{ var('bronze_coneval_pobreza_identifier', 'coneval_pobreza_2020') }}"
+        description: >
+          DS-07 · CONEVAL Medición de Pobreza Municipal, concentrado oficial 2010-2020.
+          Bronze real nacional; Silver selecciona explícitamente Pobreza | Porcentaje 2020.
       - name: conapo
         identifier: "{{ var('bronze_conapo_identifier', 'conapo_sample') }}"
         description: "DS-08 · CONAPO Proyecciones de Población. Serie anual nacional por municipio y grupo de edad."

@@ -270,6 +270,42 @@ def test_los_porcentajes_no_se_multiplican_dos_veces(metricas: dict) -> None:
             )
 
 
+
+def test_una_metrica_de_porcentaje_no_multiplica_dos_medidas(metricas: dict) -> None:
+    """Una razón se calcula como razón de sumas, no como promedio ponderado de razones.
+
+    Regresión de BUG-031. `variacion_ponderada_pct` era
+    `SUM(variacion_matricula * matricula_total) / NULLIF(SUM(matricula_total), 0)`: un promedio
+    de `variacion_matricula` ponderado por matrícula, que solo tendría sentido si esa columna
+    fuera una razón. Son alumnos absolutos, así que el tablero pintó **-54.5%** durante dos
+    semanas donde el valor real era **-0.19%**.
+
+    La firma del defecto es el **producto de dos columnas dentro de un agregado**: delata que se
+    está promediando una razón que no es razón, y que el numerador y el denominador reales no
+    existen por separado. La prueba hermana —la del `* 100`— no lo detectaba porque esta
+    expresión nunca tuvo `* 100`: cubría la *forma* del error de US-203/US-211b/US-212, no su
+    *clase*. Esa confianza falsa es lo que esta prueba viene a cerrar.
+
+    Nota deliberada sobre el alcance: esto es verificable sin base de datos, así que corre en
+    CI. Lo que NO sustituye es mirar el número — "devuelve datos" no es "devuelve el dato
+    correcto".
+    """
+    producto_de_columnas = re.compile(
+        r"(?:SUM|AVG)\s*\(\s*[A-Za-z_][A-Za-z0-9_]*\s*\*\s*[A-Za-z_][A-Za-z0-9_]*",
+        re.IGNORECASE,
+    )
+    for dataset in metricas["datasets"]:
+        for metrica in dataset["metricas"]:
+            if not str(metrica.get("formato", "")).startswith("porcentaje"):
+                continue
+            expresion = metrica.get("expresion", "")
+            assert not producto_de_columnas.search(expresion), (
+                f"{dataset['nombre']}.{metrica['nombre']}: la expresión multiplica dos medidas "
+                f"dentro de un agregado ({expresion!r}) y se renderiza como porcentaje. "
+                "Guarda numerador y denominador por separado y divide sumas de una sola "
+                "columna (Cube_Specs_DB03_DB04 §4.4, BUG-031)."
+            )
+
 def test_ninguna_metrica_rellena_con_cero(metricas: dict) -> None:
     for dataset in metricas["datasets"]:
         for metrica in dataset["metricas"]:

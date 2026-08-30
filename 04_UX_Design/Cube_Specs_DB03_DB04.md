@@ -160,7 +160,7 @@ Coinciden con la tabla de navegación cruzada de [[04_UX_Design/Screen_Specs]] �
 | Métrica | Expresión | Formato |
 |---|---|---|
 | `matricula_total` | `SUM(matricula_total)` | entero |
-| `variacion_ponderada_pct` | `SUM(variacion_matricula * matricula_total) / NULLIF(SUM(matricula_total), 0)` | % 1 decimal |
+| `variacion_ponderada_pct` | `SUM(matricula_total) / NULLIF(SUM(matricula_ciclo_anterior), 0) - 1` | % 1 decimal |
 | `completitud_promedio` | `AVG(indice_completitud_drivers)` | % 0 decimales |
 | `indice_riesgo` | `AVG(indice_riesgo)` | 0.00 |
 | `escuelas_en_riesgo` | `COUNT(*) FILTER (WHERE en_riesgo)` | entero |
@@ -210,7 +210,7 @@ Coinciden con la tabla de navegación cruzada de [[04_UX_Design/Screen_Specs]] �
 |---|---|---|
 | `escuelas` | int | `COUNT(DISTINCT cct)` |
 | `matricula_total` | int | `SUM(matricula_total)` |
-| `variacion_x_matricula` | float | `SUM(variacion_matricula * matricula_total)` — numerador de la variación ponderada |
+| `suma_matricula_anterior` | bigint | `SUM(matricula_ciclo_anterior)` — **denominador** de la variación. Nunca guardar el producto ya ponderado: ver BUG-031 |
 | `suma_completitud` | float | `SUM(indice_completitud_drivers)` |
 | `suma_d1`…`suma_d6` | float | `SUM(d#)` **solo sobre `d#_cobertura = 'OK'`** |
 | `escuelas_con_d1`…`escuelas_con_d6` | int | Denominador real de cada driver |
@@ -230,12 +230,26 @@ recalcula bien:
 
 ```
 indice_riesgo_promedio  = SUM(suma_indice_riesgo)  / NULLIF(SUM(escuelas_con_prediccion), 0)
-variacion_ponderada_pct = SUM(variacion_x_matricula) / NULLIF(SUM(matricula_total), 0)
+variacion_ponderada_pct = SUM(matricula_total)       / NULLIF(SUM(suma_matricula_anterior), 0) - 1
 d1_promedio             = SUM(suma_d1)             / NULLIF(SUM(escuelas_con_d1), 0)
 ```
 
 Las dos primeras fórmulas son **idénticas** a KPI-03 y KPI-02 de [[04_UX_Design/Screen_Specs]]: el cubo
 solo las precalcula, no las redefine.
+
+> ⚠️ **Un componente aditivo es una suma simple, nunca un producto ya ponderado.** La versión
+> original de §4.4 declaraba `variacion_x_matricula = SUM(variacion_matricula * matricula_total)`, y
+> eso resultó ser **BUG-031**: el producto congela dos supuestos que el contrato no había declarado
+> —que `variacion_matricula` es una razón, cuando son alumnos absolutos, y que la agregación correcta
+> es un promedio ponderado de razones, cuando es una razón de sumas— y una vez materializado en el
+> cubo ya **no se puede corregir desde la capa semántica**, porque el numerador y el denominador
+> reales dejaron de existir como columnas. KPI-02 pintó **−54.5 %** durante dos semanas donde el valor
+> real era **−0.19 %**.
+>
+> La regla que se sigue de aquí: **toda razón se guarda como numerador y denominador por separado, y
+> ambos son sumas de una sola columna.** Si hace falta multiplicar dos medidas para construir un
+> componente, la métrica está mal planteada. Formulada así, además, KPI-02 solo depende de matrículas
+> —que son alumnos y lo seguirán siendo— y por tanto **es inmune al resultado de ADR-007**.
 
 ### 4.4 Métricas derivadas (capa semántica de Superset)
 
@@ -243,7 +257,7 @@ solo las precalcula, no las redefine.
 |---|---|---|
 | `escuelas` | `SUM(escuelas)` | entero |
 | `matricula_total` | `SUM(matricula_total)` | entero |
-| `variacion_ponderada_pct` | `SUM(variacion_x_matricula) / NULLIF(SUM(matricula_total), 0)` | % 1 decimal |
+| `variacion_ponderada_pct` | `SUM(matricula_total) / NULLIF(SUM(suma_matricula_anterior), 0) - 1` | % 1 decimal |
 | `matricula_por_escuela` | `SUM(matricula_total) / NULLIF(SUM(escuelas), 0)` | 1 decimal |
 | `indice_riesgo_promedio` | `SUM(suma_indice_riesgo) / NULLIF(SUM(escuelas_con_prediccion), 0)` | 0.00 |
 | `escuelas_en_riesgo` | `SUM(escuelas_en_riesgo)` | entero |

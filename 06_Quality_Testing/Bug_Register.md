@@ -44,6 +44,7 @@ tags: [qa, bugs]
 | BUG-028 | `cargar_features()` leía el CSV **sin `dtype`**, así que pandas infería `int64` en `cve_mun` y se comía el cero de la izquierda: `"09001"` llegaba como `9001`. El join contra `dim_municipio` y la agregación de DEC-007 fallaban **en silencio** para las 9 entidades cuya clave INEGI empieza en cero — **CDMX (09) incluida, que es la entidad principal del alcance**. Diana lo había previsto y lo cubrió en `tests/conftest.py`, pero el lector de producción seguía sin ello, así que las pruebas veían la clave correcta y el pipeline no | high | **fixed** | US-325 / US-311 / DEC-007 / REQ-003 | **PR #127** — `dtype={"cve_mun": str}` en `cargar_features()` (`src/modelos/entrenar_ml01.py`). Detectado por la guarda de coherencia entidad↔municipio que el mismo PR agregó a `generar_fixture_dim.py`: reventó de inmediato con `'9001' contradice la entidad '09'` | la guarda misma es la regresión — `generar()` falla si `cve_mun` no empieza con la entidad que codifica el CCT, así que el cero perdido no puede volver a pasar inadvertido |
 | BUG-029 | **RESERVADO — Oscar Quiroz (C2).** `superset/sync_semantic_layer.py` recorre alfabéticamente los `.sql` de `superset/semantic/` y **aborta toda la corrida** al llegar a `db09_cubo_recomendaciones.sql` si `gold.recomendaciones` no existe. No es error del SQL: en un ambiente sin la cadena Bronze→Gold materializada, nadie que sincronice después de `db09` alfabéticamente puede registrar sus datasets. Detectado por Oscar al construir DB-07 (US-222) | medium | open | US-222 / US-205 / REQ-002 | pendiente (**C2**) — mitigación inmediata: cargar `superset/mock/gold_ml_outputs_mock.sql`, mismo patrón de US-203/204/211b/212; solución de fondo: la resiliencia del sync que Manuel agrega en US-205, para que un dataset con tabla ausente no tumbe la corrida completa | — (propuesto: que el sync reporte y continúe en vez de abortar) |
 | BUG-030 | **El esquema real de DS-06 no es el que `silver/agua_region.sql` espera, y el riesgo no es que D5 siga en `SIN_DATO` sino que alguien lo saque con la columna equivocada.** El extractor entrega `id_presa, nombre_oficial, corriente, estado, anio_term, alt_cort, cap_name, cap_namo`; el modelo espera `id_punto, region_hidrologica, latitud, longitud, indicador, valor, fecha`. **Ninguna de las cuatro columnas que importan existe** — no es renombrar, son dos estructuras distintas. Dos huecos: (1) sin `lat`/`lon` no hay interpolación IDW, que `Data_Model.md` §3 exige para D5; (2) `cap_name`/`cap_namo` son la **capacidad máxima** de la presa, no el volumen actual, así que conectarlas produciría un indicador constante en el tiempo que mide el tamaño de la presa y no la disponibilidad hídrica — un número creíble y falso, misma familia que el `indice_riesgo` saturado y el `*100`. Hoy no rompe nada porque BUG-009 mantiene el identifier falso y D5 sigue `SIN_DATO` explícito. Reportado por Diana Alvarez (C1) el 30-ago al revisar los metadatos de DS-06/DS-08, que **sí** están limpios | high | open | US-122a / US-112 / REQ-001 / DS-06 | pendiente (**C1 + Emilio Galnares**) — la solución ya está documentada en la ficha DS-06 §64-70 (endpoint «Detalle por presa: Presa, Año, Vol. de almacenamiento (hm3) — SERIE DE TIEMPO») y §74 (georreferencia vía datos.gob.mx). El extractor de US-122a jaló el listado general porque eso pedía la historia. **Decisión pendiente del PM:** ampliar el extractor, o documentar D5 como cobertura parcial explícita para la demo | — (propuesto: aserción de contrato entre las columnas de `bronze.conagua` y las que `agua_region.sql` consume) |
+| BUG-031 | **KPI-02 «Variación de matrícula» pinta −54.5 % donde el valor real es −0.19 %, en SEIS tableros: DB-01, DB-02, DB-03, DB-04, DB-06 y DB-09.** La métrica es `SUM(variacion_matricula * matricula_total) / NULLIF(SUM(matricula_total), 0)` con `formato: porcentaje_1`, es decir un **promedio ponderado de razones**… salvo que `variacion_matricula` no es una razón: `fact_escuela_ciclo.sql` la produce como `matricula_total - matricula_ciclo_anterior`, **alumnos absolutos** (rango observado −24 a 24). El resultado se renderiza como porcentaje, que multiplica por 100 otra vez. Verificado contra Postgres: 32 312 alumnos contra 32 374 del ciclo anterior = **−0.19 %**; los dos tableros dicen **−54.5 %**, factor 287 | **critical** | open | US-203 / US-204 / US-211a / US-212 / US-221 / REQ-002 / AC-002.4 | pendiente (**C2 · Marina García del Buey**, reportante y autora del defecto) — el origen es §4.4 de [[04_UX_Design/Cube_Specs_DB03_DB04]]: especifiqué `variacion_x_matricula` como componente aditivo, y Deni Garrido lo implementó fielmente. La implementación es correcta; **la especificación no** | `tests/test_semantic_db03_db04.py::test_una_metrica_de_porcentaje_no_multiplica_dos_medidas` |
 
 ## BUG-016 — Filas sin ningún driver rompían la publicación de ML-02
 
@@ -1054,3 +1055,129 @@ que alguien deba acordarse de correr: es una condición que el generador no pued
 Una hipótesis correcta escrita en un comentario no protege nada si la corrección se aplica del lado
 equivocado. Cuando alguien documente un riesgo de tipos, la pregunta siguiente es **cuántos lectores
 tiene ese archivo**, no si el test pasa.
+
+## BUG-031 — KPI-02 muestra −54.5 % donde el valor real es −0.19 %
+
+Encontrado por Marina García del Buey el 2026-08-29, auditando sus propias métricas antes de la mesa
+de ADR-007. **El defecto es mío**, no de quien lo implementó.
+
+### Descripción
+
+La tarjeta «Variación de matrícula» (KPI-02) aparece en DB-03 y DB-04. Su métrica es:
+
+```
+SUM(variacion_matricula * matricula_total) / NULLIF(SUM(matricula_total), 0)     formato: porcentaje_1
+```
+
+Eso es un promedio de `variacion_matricula` ponderado por matrícula, y solo tiene sentido si
+`variacion_matricula` ya es una razón. **No lo es.** `fact_escuela_ciclo.sql:49` la produce como
+`matricula_total - matricula_ciclo_anterior`: alumnos absolutos, rango observado −24 a 24. El
+promedio ponderado da −0.545 «alumnos», y `porcentaje_1` lo multiplica por 100 al renderizar.
+
+Verificado contra Postgres:
+
+| | |
+|---|---|
+| Matrícula del ciclo | 32 312 |
+| Matrícula del ciclo anterior | 32 374 |
+| Variación real | **−0.19 %** |
+| Lo que pintan DB-03 y DB-04 | **−54.5 %** |
+
+Factor de error: 287. No es una degradación sutil: el tablero afirma que las escuelas perdieron más
+de la mitad de su matrícula en un ciclo.
+
+### Alcance real: seis tableros, no dos
+
+Encontrado al buscar referencias colgantes después de corregir DB-03 y DB-04. **El componente
+defectuoso se reutilizó en toda la Célula 2.** Expresión idéntica, formato de porcentaje idéntico:
+
+| Archivo | Línea | Tableros |
+|---|---|---|
+| `metrics_db01_db02.yaml` | 74 | DB-01 Ejecutivo |
+| `metrics_db01_db02.yaml` | 177 | DB-02 Mapa de riesgo |
+| `metrics_db03_db04.yaml` | 70 · 154 | DB-03 · DB-04 |
+| `metrics_db06_db09.yaml` | 73 | DB-06 · DB-09 |
+
+Verificado contra Postgres: `gold.cubo_matricula`, que alimenta DB-01 y DB-02, también da
+**−54.5 %**. Es el mismo número equivocado en todos.
+
+**Y hay dos pruebas que exigen el defecto como si fuera un requisito:**
+
+```
+tests/test_semantic_db01_db02.py:251   assert re.search(r"variacion_x_matricula", sql)
+tests/test_semantic_db06_db09.py:268   assert re.search(r"variacion_x_matricula", db06_cubo)
+```
+
+Mientras esas aserciones existan, quitar el componente **reprueba CI**. Cualquier corrección tiene
+que retirarlas en el mismo cambio. Esos dos archivos son de Manuel Serranía (C2, Tech Lead): no se
+tocan desde aquí, se le escalan.
+
+Por eso la severidad sube a **critical**: no es una tarjeta de dos tableros, es la métrica KPI-02 del
+catálogo canónico, mal en seis de los diez tableros, y con pruebas que la sostienen.
+
+### Causa raíz
+
+Está en la especificación, no en el código. §4.4 de [[04_UX_Design/Cube_Specs_DB03_DB04]] declaró
+`variacion_x_matricula = sum(variacion_matricula * matricula_total)` como componente aditivo del cubo
+de DB-04, y Deni Garrido lo implementó exactamente así en `cubo_comparador_municipio.sql`. **La
+implementación es fiel; la especificación estaba mal.**
+
+Ese componente carga dos errores a la vez:
+
+1. **Asume una unidad que el contrato nunca declaró.** Es el mismo hueco de BUG-019 y ADR-007, esta
+   vez en el frontend en lugar del ML.
+2. **Congela la agregación equivocada.** Una razón se calcula como razón de sumas, no como promedio
+   ponderado de razones por escuela. Guardar el producto ya ponderado impide corregirlo desde la capa
+   semántica: DB-04 **no se puede arreglar sin tocar el cubo**, porque `sum(variacion_matricula)` y la
+   matrícula anterior agregada no existen como columnas.
+
+### Por qué la prueba de regresión no lo vio
+
+`test_los_porcentajes_no_se_multiplican_dos_veces` (US-212) busca la cadena `100` en el texto de la
+expresión. Esta métrica **nunca tuvo `* 100`**, así que pasó en verde. La prueba detectaba la *forma*
+del error que Edgar Coronel encontró en `pct_escuelas_en_riesgo`, no la *clase* de error. Dio
+confianza falsa, que es peor que no tener prueba.
+
+Tampoco lo vio la validación de US-212 —«24/24 charts devuelven datos reales»—, porque **«devuelve
+datos» no es «devuelve el dato correcto»**.
+
+### Fix
+
+La corrección **no depende de ADR-007**: se expresa solo con matrículas, que son alumnos y lo seguirán
+siendo se ratifique lo que se ratifique.
+
+```
+SUM(matricula_total) / NULLIF(SUM(matricula_ciclo_anterior), 0) - 1
+```
+
+- **DB-03**: aplicable hoy derivando el denominador (`matricula_total - variacion_matricula`), y
+  migra a `matricula_ciclo_anterior` cuando C1 la exponga.
+- **DB-04**: requiere cambio en el cubo. Se retira la tarjeta mientras tanto — un tablero con una
+  métrica menos es defendible; con una métrica falsa, no.
+- **§4.4 del contrato**: `suma_matricula_anterior` reemplaza a `variacion_x_matricula`.
+
+**Fuera del alcance de este PR, escalado a C2 (Manuel Serranía):** `metrics_db01_db02.yaml`,
+`metrics_db06_db09.yaml` y las dos aserciones de `test_semantic_db01_db02.py` /
+`test_semantic_db06_db09.py`. La corrección es la misma expresión y depende del mismo cambio de cubo,
+así que conviene que vaya coordinada, no en cinco PR sueltos.
+
+Lo que hace falta de **C1**, cuatro líneas que conviene meter en el mismo PR de la normalización de
+ADR-007, porque ya van a tocar esos archivos:
+
+```sql
+-- fact_escuela_ciclo.sql:48 — el dato ya existe en el CTE con_anterior, solo se está tirando
+        matricula_ciclo_anterior,
+
+-- cubo_escuela_360.sql:25
+    f.matricula_ciclo_anterior,
+
+-- cubo_comparador_municipio.sql:29 — sustituye a variacion_x_matricula
+        sum(f.matricula_ciclo_anterior) as suma_matricula_anterior,
+```
+
+### Test de regresión
+
+`test_una_metrica_de_porcentaje_no_multiplica_dos_medidas`: una métrica con formato de porcentaje no
+puede multiplicar dos columnas de medida dentro de un agregado. Ese producto es la firma del defecto
+—delata que se está promediando una razón que no es razón— y es verificable sin base de datos. Se
+conserva la prueba del `* 100`.

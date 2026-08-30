@@ -1,17 +1,20 @@
-"""Pruebas del contrato semántico de los cubos de DB-05 y DB-08 (US-211b).
+"""Pruebas del contrato semántico de los cubos de DB-05 y DB-08 (US-211b, US-205).
 
 Mismas reglas que `test_semantic_db03_db04.py`, ahora para el análisis por driver y el
-explorador del cubo, más las reglas propias de este contrato (formato largo/unpivot y v1 sin
-salidas de ML):
+explorador del cubo, más las reglas propias de este contrato (formato largo y repunteo a
+cubos físicos):
 
 * **`SIN_DATO` nunca es cero.** Si alguien —persona o IA— "arregla" un hueco con
-  `COALESCE(d1, 0)` o con `COALESCE(valor, 0)`, el tablero afirmaría "aquí no hay problema"
-  justo donde el Estado no está midiendo (D5/agua hoy es `SIN_DATO` al 100%). Estas pruebas
-  fallan si eso aparece.
-* **v1 no lee salidas de ML.** `cubo_driver` y `cubo_pivot` analizan el driver observado, no la
-  predicción — a diferencia de los cubos de DB-03/DB-04 (Cube_Specs §2.1).
-* **Formato largo (unpivot):** una fila por driver, no columnas `d1..d6`. Toda métrica que se
-  sume debe agruparse o filtrarse por `id_driver`, o se infla ×6 (Cube_Specs §2.2/§3.6).
+  `COALESCE(<driver>, 0)` o con `COALESCE(valor, 0)`, el tablero afirmaría "aquí no hay
+  problema" justo donde el Estado no está midiendo. Estas pruebas fallan si eso aparece.
+* **Repunteo a cubos físicos (US-205):** `db05_cubo_driver` lee `gold.cubo_driver` (ML-02,
+  re-escala US-205) y `db08_cubo_pivot` lee `gold.cubo_pivot` + `gold.dim_driver` — la
+  capa semántica no agrega el hecho ni toca tablas crudas de ML.
+* **DB-05 re-escalado a KPI-07:** analiza el **driver dominante de ML-02** con los
+  denominadores reales del cubo (`escuelas_con_recomendacion` / `escuelas_sin_recomendacion`).
+  El KPI-19 propuesto (driver observado) queda fuera de v1.
+* **Formato largo:** una fila por driver (`id_driver`), ya armado por el cubo C1. Toda métrica
+  que se sume debe agruparse o filtrarse por `id_driver`, o se infla ×6 (Cube_Specs §2.2/§3.6).
 * **Las razones se guardan como numerador y denominador**, para que se puedan reagregar con
   cualquier combinación de los filtros globales (AC-002.2).
 
@@ -19,7 +22,7 @@ Validación **estática**: no necesita base de datos ni dependencias fuera de `r
 La validación contra datos reales queda pendiente de `gold.cubo_driver`/`gold.cubo_pivot`
 (US-113, Célula 1).
 
-Contrato: `04_UX_Design/Cube_Specs_DB05_DB08.md` (DOC-CUBESPEC-DB0508).
+Contrato: `04_UX_Design/Cube_Specs_DB05_DB08.md` (DOC-CUBESPEC-DB0508, v1.1).
 """
 
 from __future__ import annotations
@@ -39,7 +42,6 @@ SQL_DB08 = SEMANTIC / "db08_cubo_pivot.sql"
 YAML_METRICAS = SEMANTIC / "metrics_db05_db08.yaml"
 
 DRIVERS = ("d1", "d2", "d3", "d4", "d5", "d6")
-DRIVER_IDS = ("D1", "D2", "D3", "D4", "D5", "D6")
 
 # Salidas de ML: viven en gold.predicciones / gold.recomendaciones. v1 de estos dos cubos no
 # las lee (Cube_Specs §2.1) -- a diferencia de DB-03/DB-04.
@@ -97,16 +99,14 @@ def test_ningun_valor_agregado_se_rellena_con_cero(cubo: str, request: pytest.Fi
         )
 
 
-def test_db05_publica_el_denominador_real_del_driver(db05: str) -> None:
-    """El promedio del driver se calcula sobre las escuelas con cobertura OK, no sobre el total."""
-    assert "escuelas_con_dato" in db05, (
-        "Falta el denominador `escuelas_con_dato`: sin él, el promedio del driver se "
-        "calcularía sobre escuelas que nunca se midieron."
-    )
-    patron = r"sum\s*\(\s*\w*\.?valor\s*\)\s*filter\s*\(\s*where\s+\w*\.?cobertura\s*=\s*'OK'"
-    assert re.search(patron, db05, re.IGNORECASE), (
-        "`suma_valor` debe sumar solo sobre cobertura = 'OK'."
-    )
+def test_db05_publica_los_denominadores_reales_del_driver(db05: str) -> None:
+    """El KPI-07 se calcula sobre los denominadores reales de ML-02 (cubo C1): nunca sobre
+    un total que incluya escuelas que no tienen recomendación."""
+    for columna in ("escuelas_con_recomendacion", "escuelas_sin_recomendacion", "escuelas_driver", "total_escuelas"):
+        assert columna in db05, (
+            f"Falta `{columna}`: sin el denominador real, el % del driver se calcularía "
+            "sobre escuelas sin recomendación."
+        )
 
 
 def test_db05_no_guarda_promedio_ya_calculado(db05: str) -> None:
@@ -118,63 +118,83 @@ def test_db05_no_guarda_promedio_ya_calculado(db05: str) -> None:
 
 
 def test_db05_expone_la_bandera_de_cobertura(db05: str) -> None:
-    assert "cobertura_driver" in db05, "Falta `cobertura_driver` en DB-05."
+    assert "cobertura_recomendacion" in db05, "Falta `cobertura_recomendacion` en DB-05 (ML-02)."
 
 
 def test_db08_expone_la_bandera_de_cobertura(db08: str) -> None:
     assert "cobertura_driver" in db08, "Falta `cobertura_driver` en DB-08."
 
 
-# --------------------------------------------------------------------------- v1: sin salidas de ML
+# --------------------------------------------------------------------------- repunteo a cubos (US-205)
 
 
 @pytest.mark.parametrize("cubo", ["db05", "db08"])
-def test_v1_no_depende_de_salidas_de_ml(cubo: str, request: pytest.FixtureRequest) -> None:
-    """A diferencia de DB-03/DB-04, v1 de estos cubos analiza el driver observado, no la
-    predicción (Cube_Specs §2.1). Si una iteración futura agrega ML, debe ser por LEFT JOIN."""
+def test_lee_el_cubo_fisico_del_c1(cubo: str, request: pytest.FixtureRequest) -> None:
+    """Repunteo US-205: la capa semántica sirve los cubos físicos C1, no el hecho."""
     sql = request.getfixturevalue(cubo)
-    for tabla in SALIDAS_ML_TABLAS:
-        assert tabla not in sql.lower(), (
-            f"{cubo}: v1 no debe leer {tabla} (Cube_Specs §2.1). Si esto cambió, actualiza "
-            "también esta prueba para exigir LEFT JOIN con la llave completa (cct, id_ciclo)."
+    fuentes = {
+        "db05": ("gold.cubo_driver",),
+        "db08": ("gold.cubo_pivot", "gold.dim_driver"),
+    }[cubo]
+    for fuente in fuentes:
+        assert re.search(rf"\b{re.escape(fuente)}\b", sql, re.IGNORECASE), (
+            f"{cubo}: falta la fuente {fuente}."
         )
 
 
-# --------------------------------------------------------------------------- formato largo (unpivot)
+@pytest.mark.parametrize("cubo", ["db05", "db08"])
+def test_no_toca_tablas_crudas_de_ml(cubo: str, request: pytest.FixtureRequest) -> None:
+    """Las salidas de ML se materializan dentro del cubo C1; aquí no se leen en crudo."""
+    sql = request.getfixturevalue(cubo)
+    for tabla in SALIDAS_ML_TABLAS:
+        assert tabla not in sql.lower(), f"{cubo}: no debe leer {tabla} (vive en el cubo C1)."
+
+
+def test_db08_enriquece_con_el_catalogo_dim_driver(db08: str) -> None:
+    """fuente_driver / driver_nivel_geografico no viven en el cubo: vienen de gold.dim_driver."""
+    assert re.search(r"left\s+join\s+gold\.dim_driver\b", db08, re.IGNORECASE), (
+        "db08: debe unir gold.dim_driver para enrich fuente/nivel_geografico."
+    )
+    assert "fuente_driver" in db08 and "driver_nivel_geografico" in db08
+
+
+# --------------------------------------------------------------------------- formato largo
 
 
 @pytest.mark.parametrize("cubo", ["db05", "db08"])
-def test_unpivotea_los_seis_drivers(cubo: str, request: pytest.FixtureRequest) -> None:
-    """Formato largo: cada uno de los 6 drivers debe aparecer como literal (Cube_Specs §2.2)."""
+def test_el_formato_largo_lo_arma_el_cubo(cubo: str, request: pytest.FixtureRequest) -> None:
+    """Formato largo: el cubo C1 ya apila D1..D6; la capa semántica no repite el unpivot."""
     sql = request.getfixturevalue(cubo)
-    for id_driver in DRIVER_IDS:
-        assert f"'{id_driver}'" in sql, f"{cubo}: falta el bloque unpivot de {id_driver}."
+    assert not re.search(r"union\s+all", sql, re.IGNORECASE), (
+        f"{cubo}: el formato largo ya lo resuelve el cubo C1; no se repite el unpivot."
+    )
 
 
-@pytest.mark.parametrize("cubo", ["db05", "db08"])
-def test_usa_union_all_para_apilar_los_drivers(cubo: str, request: pytest.FixtureRequest) -> None:
-    """6 bloques (uno por driver) requieren al menos 5 `UNION ALL`."""
-    sql = request.getfixturevalue(cubo)
-    ocurrencias = len(re.findall(r"union\s+all", sql, re.IGNORECASE))
-    assert ocurrencias >= 5, f"{cubo}: se esperaban >= 5 `UNION ALL` (6 drivers), hay {ocurrencias}."
+def test_el_yaml_declara_formato_largo(metricas: dict) -> None:
+    for dataset in metricas["datasets"]:
+        assert dataset.get("formato") == "largo", (
+            f"{dataset['nombre']}: debe declarar formato: largo."
+        )
 
 
 # --------------------------------------------------------------------------- grano y filtros globales
 
 
-def test_db05_agrupa_al_grano_declarado(db05: str) -> None:
-    """Grano id_driver × cve_mun × nivel × ciclo: sin `nivel` no se puede cumplir AC-002.2."""
-    group_by = db05.lower().split("group by", 1)
-    assert len(group_by) == 2, "DB-05 debe agregar con GROUP BY."
-    clausula = group_by[1]
-    for columna in ("id_driver", "cve_mun", "nivel", "id_ciclo"):
-        assert columna in clausula, f"Falta `{columna}` en el GROUP BY de DB-05."
+def test_db05_lee_el_grano_declarado(db05: str, metricas: dict) -> None:
+    """Grano id_driver × cve_mun × nivel × ciclo, servido por gold.cubo_driver (C1)."""
+    cubo_driver = next(d for d in metricas["datasets"] if d["nombre"] == "cubo_driver")
+    assert cubo_driver["grano"] == ["id_driver", "cve_mun", "nivel", "id_ciclo"]
+    assert re.search(r"\bgold\.cubo_driver\b", db05, re.IGNORECASE)
+    assert not re.search(r"\bgroup\s+by\b", db05, re.IGNORECASE), (
+        "db05: el cubo C1 ya viene al grano; no se reagrega en la capa semántica."
+    )
 
 
-def test_db08_no_agrega_al_grano_del_hecho(db08: str) -> None:
+def test_db08_no_agrega_al_grano_de_detalle(db08: str) -> None:
     """DB-08 está al grano de detalle (cct × driver × ciclo): no debe agregar."""
+    assert re.search(r"\bcct\b", db08), "db08: falta la columna cct del detalle."
     assert not re.search(r"\bgroup\s+by\b", db08, re.IGNORECASE), (
-        "DB-08 está al grano del hecho: no debe agregar."
+        "DB-08 está al grano del detalle: no debe agregar."
     )
 
 
@@ -239,27 +259,37 @@ def test_ninguna_metrica_rellena_con_cero(metricas: dict) -> None:
             )
 
 
-def test_kpi19_y_kpi20_estan_propuestos(metricas: dict) -> None:
-    """KPI-19 (DB-05) y KPI-20 (DB-08) están libres en el catálogo: se registran como propuesta,
-    no como IDs ya ratificados (Cube_Specs §5.1/§8.3)."""
+def test_kpi07_es_la_metrica_principal_de_db05(metricas: dict) -> None:
+    """Re-escala US-205: DB-05 reusa KPI-07 (driver dominante ML-02, oficial del catálogo);
+    el KPI-19 propuesto (driver observado) queda fuera de v1."""
+    cubo_driver = next(d for d in metricas["datasets"] if d["nombre"] == "cubo_driver")
+    por_nombre = {m["nombre"]: m for m in cubo_driver["metricas"]}
+    metrica = por_nombre["pct_escuelas_por_driver"]
+    assert metrica["kpi"] == "KPI-07"
+    assert metrica["cobertura"] == "cobertura_recomendacion"
+
     propuestos = {
         kpi["id"]
         for dataset in metricas["datasets"]
         for kpi in dataset.get("kpis_propuestos", [])
     }
-    assert {"KPI-19", "KPI-20"} <= propuestos
+    assert "KPI-20" in propuestos, "KPI-20 (db08) sigue propuesto."
+    assert "KPI-19" not in propuestos, "KPI-19 quedó fuera de v1 por la re-escala US-205."
 
 
-def test_pct_sin_dato_reusa_kpi06(metricas: dict) -> None:
-    """El % de escuelas sin dato del driver reusa KPI-06 (dueño DB-07): no se inventa un ID nuevo."""
+def test_db05_no_usa_la_metrica_de_driver_observado(metricas: dict) -> None:
+    """No debe sobrevivir la semántica del driver observado (valor_promedio_driver /
+    pct_escuelas_sin_dato de KPI-19/KPI-06) en el dataset re-escalado."""
     cubo_driver = next(d for d in metricas["datasets"] if d["nombre"] == "cubo_driver")
-    metrica = next(m for m in cubo_driver["metricas"] if m["nombre"] == "pct_escuelas_sin_dato")
-    assert metrica["kpi"] == "KPI-06"
+    nombres = {m["nombre"] for m in cubo_driver["metricas"]}
+    assert not {"valor_promedio_driver", "pct_escuelas_sin_dato"} & nombres, (
+        "db05: métricas del driver observado fuera de v1."
+    )
 
 
 def test_cubo_driver_declara_grano_canonico_y_cambio_solicitado(metricas: dict) -> None:
-    """Sólo `cubo_driver` necesita el cambio de grano estilo DEC-008 (Cube_Specs §8.1); `cubo_pivot`
-    no lo necesita (Cube_Specs §8.2)."""
+    """`cubo_driver` documenta el grano canónico y el cambio solicitado (resuelto en US-205);
+    `cubo_pivot` no lo necesita (Cube_Specs §8.2)."""
     cubo_driver = next(d for d in metricas["datasets"] if d["nombre"] == "cubo_driver")
     assert cubo_driver.get("grano_canonico_actual") == ["id_driver", "cve_mun", "id_ciclo"]
     assert cubo_driver.get("cambio_de_grano_solicitado_a"), (
@@ -286,9 +316,11 @@ def test_ninguna_metrica_porcentaje_duplica_el_escalado(metricas: dict) -> None:
 
 
 def test_cada_metrica_de_valor_declara_su_cobertura(metricas: dict) -> None:
+    """Toda métrica que dependa de ML-02/driver expone su bandera de cobertura (R2)."""
     cubo_driver = next(d for d in metricas["datasets"] if d["nombre"] == "cubo_driver")
-    metrica_driver = next(m for m in cubo_driver["metricas"] if m["nombre"] == "valor_promedio_driver")
-    assert metrica_driver["cobertura"] == "cobertura_driver"
+    por_nombre = {m["nombre"]: m for m in cubo_driver["metricas"]}
+    assert por_nombre["pct_escuelas_por_driver"]["cobertura"] == "cobertura_recomendacion"
+    assert por_nombre["escuelas_por_driver"]["cobertura"] == "cobertura_recomendacion"
 
     cubo_pivot = next(d for d in metricas["datasets"] if d["nombre"] == "cubo_pivot")
     metrica_pivot = next(m for m in cubo_pivot["metricas"] if m["nombre"] == "valor_driver")

@@ -3,8 +3,8 @@ id: DOC-CLOUD-RUN-DEPLOY
 title: "Procedimiento de Deploy a Cloud Run"
 owner: "Luis Téllez Domínguez"
 status: active
-version: "1.1"
-traces_up: ["US-501", "US-505", "REQ-005"]
+version: "1.2"
+traces_up: ["US-501", "US-505", "US-402", "REQ-005"]
 tags: [devops, gcp, cloud-run, deployment, sprint-1, fase-2]
 date: "2026-08-09"
 ---
@@ -248,6 +248,78 @@ hizo rebuild). Se reconstruyó como **`v0.2.2-bug025`** y se desplegó → revis
 seguro, `sql_generado:null`, la frase destructiva ya no se acepta) y `/escuelas` sigue 200 con
 25 escuelas. El RAG real sigue pendiente de C3 (LLM) + añadir `chromadb`/`sentence-transformers`
 a la imagen. Detalle en [[_DevLog/2026-08-29-luis-tellez-bug025-redeploy-agente-prod]].
+
+### 4.5 Credenciales OAuth de Google (US-402 · desbloquea el login de C4)
+
+El núcleo OAuth2/JWT de C4 (US-402) requiere un **cliente OAuth real de Google**. Crear ese cliente
+es la parte **C5 (deploy)**; sin sus credenciales `RealGoogleVerifier` levanta `GoogleNotConfigured`
+y el callback responde 500.
+
+**Qué es público y qué es secreto (regla de oro):**
+
+| Credencial | Naturaleza | Dónde vive |
+|---|---|---|
+| `GOOGLE_CLIENT_ID` | **público** (viaja en la URL de consentimiento del navegador) | `--set-env-vars` |
+| `GOOGLE_REDIRECT_URI` | **público** (URL del callback) | `--set-env-vars` |
+| `GOOGLE_CLIENT_SECRET` | **secreto** | Secret Manager (`google-client-secret`), `--set-secrets` |
+
+**Alta del cliente (una sola vez, en la consola — NO por gcloud):** Google no expone la creación de
+clientes OAuth "Web" ni la pantalla de consentimiento por `gcloud` para este caso (`gcloud iap
+oauth-*` sólo crea marcas IAP internas, que aquí no aplican). Se crea en
+`APIs y servicios → Credenciales → Crear ID de cliente de OAuth → Aplicación web`:
+
+- **Pantalla de consentimiento: External + modo "Prueba" (Testing).** El proyecto vive en una org
+  **personal** (`luis-g-roses-org`), así que "Internal" sólo dejaría entrar al dominio del dueño y
+  excluiría al equipo + evaluadores. Testing admite hasta 100 test users, no exige verificación de
+  Google (los scopes `openid email profile` no son sensibles) y cada correo se da de alta como
+  **usuario de prueba**.
+- **URI de redireccionamiento autorizado = la URL canónica del servicio** + `/api/v1/auth/callback`:
+  ```
+  https://faro-api-eanzfglvyq-uc.a.run.app/api/v1/auth/callback
+  ```
+  Debe ser la URL **canónica** (`status.url`), no un alias, o Google devuelve `redirect_uri_mismatch`.
+
+**Guardar el secreto en Secret Manager (el valor nunca se versiona ni se imprime):**
+
+```bash
+# Se pega el client_secret de la consola por stdin; el valor no queda en el historial del shell
+printf '%s' 'PEGAR_CLIENT_SECRET_AQUI' | gcloud secrets create google-client-secret \
+  --data-file=- --replication-policy=automatic
+# (si el secreto ya existe: gcloud secrets versions add google-client-secret --data-file=-)
+```
+
+**Cablear en el deploy:** el script `deploy-cloud-run.sh` ya lleva `GOOGLE_CLIENT_ID` /
+`GOOGLE_REDIRECT_URI` en `--set-env-vars` y `GOOGLE_CLIENT_SECRET=google-client-secret:latest` en
+`--set-secrets` (overridables por env var del mismo nombre). Un redeploy normal los aplica:
+
+```bash
+./08_CICD_DevOps/scripts/deploy-cloud-run.sh <TAG>
+```
+
+**Validación manual del login (e2e):**
+
+```bash
+# 1) Abrir el inicio de sesión (redirige a la pantalla de consentimiento de Google)
+open https://faro-api-eanzfglvyq-uc.a.run.app/api/v1/auth/login
+```
+
+Tras aceptar con un **test user dado de alta**, Google regresa al `/callback`. Mientras
+`RealGoogleVerifier.verify()` siga sin implementar (parte de C4), el callback responde **401**
+(`{"error":"unauthorized", ...}`), **no 500** — eso confirma que las credenciales están bien
+cableadas (ya no hay `GoogleNotConfigured`) y que sólo falta el verifier de C4.
+
+**Allowlist del rol `analista` (US-403):** la variable `ANALISTA_EMAILS` (vacía hoy ⇒ todos
+`ciudadano`) tiene dueño pendiente (PO). Cuando C4 cierre el verifier, se puede probar el rol
+seteándola **efímera, sin versionar ningún correo**:
+
+```bash
+gcloud run services update faro-api --region=us-central1 \
+  --update-env-vars=ANALISTA_EMAILS=<correo1,correo2>
+```
+
+> **Pendiente de C4:** implementar `RealGoogleVerifier.verify()` y, cuando el login e2e funcione,
+> el flip `AUTH_LECTURA_PUBLICA=true → false` (hoy la lectura es pública para la demo). Detalle en
+> [[_DevLog/2026-08-30-luis-tellez-oauth-creds-deploy]].
 
 ---
 
@@ -514,7 +586,7 @@ gcloud run services update faro-api \
 
 ---
 
-**Última actualización:** 2026-08-29 (v1.1 · §4.3 deploy productivo Fase 2, US-505)  
+**Última actualización:** 2026-08-30 (v1.2 · §4.5 credenciales OAuth de Google, US-402)  
 **Sprint:** S1 (base) · S4 (Fase 2)  
 **Owner:** Luis Téllez Domínguez  
 **Status:** ✅ Completado y verificado (BUG-020 curado en prod)

@@ -71,6 +71,7 @@ Toda sesión con IA **debe** generar una entrada de DevLog **antes del push** (p
 | [[_DevLog/2026-08-30-deni-garrido-ds07-extractor-real\|2026-08-30]] | DS-07: extractor oficial CONEVAL y auditoría nacional real; ficha a in_review | Deni Garrido Fragoso | ChatGPT / GPT-5.6 Sol | DS-07, US-113, RISK-008 |
 | [[_DevLog/2026-08-30-deni-garrido-ds07-silver-real\|2026-08-30]] | DS-07: Bronze Postgres real y conformación Silver nacional; elimina coneval_v2/placeholder | Deni Garrido Fragoso | ChatGPT / GPT-5.6 Sol | DS-07, US-113, RISK-008, US-111 |
 | [[_DevLog/2026-08-30-deni-garrido-adr007-target-fraccion\|2026-08-30]] | ADR-007: normaliza target de matrícula a fracción y agrega tests ejecutables | Deni Garrido Fragoso | ChatGPT / GPT-5.6 Sol | ADR-007, US-112, US-113, US-313, BUG-017 |
+| [[_DevLog/2026-08-30-deni-garrido-ds06-bronze-pipeline\|2026-08-30]] | DS-06 real: Bronze/Postgres + DB-10 sin fabricar D5 | Deni Garrido Fragoso | ChatGPT / GPT-5.6 Sol | DS-06, US-113, DB-10 |
 
 | [[_DevLog/2026-08-15-deni-garrido-us111-bronze-silver|2026-08-15]] | US-111: avance Bronze→Silver; configuración dbt, macros, sources y modelos iniciales | Deni Garrido Fragoso | ChatGPT / GPT-5.6 Sol | US-111, REQ-001, DS-01, DS-02, DS-03 |
 | [[_DevLog/2026-08-16-deni-garrido-us111-bronze-silver-cierre|2026-08-16]] | US-111: cierre técnico dbt; 8 modelos Silver, 51 tests y compilación global | Deni Garrido Fragoso | ChatGPT / GPT-5.6 Sol | US-111, REQ-001, DS-01–DS-08 |

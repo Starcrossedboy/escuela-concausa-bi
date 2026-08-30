@@ -5,7 +5,7 @@ with esperado as (
     union all select 'DS-03', count(*)::bigint from {{ ref('cemabe') }} where _source = 'DS-03_CEMABE'
     union all select 'DS-04', count(*)::bigint from {{ ref('delitos_municipio') }} where _source = 'DS-04_SESNSP'
     union all select 'DS-05', count(*)::bigint from {{ ref('aire_estacion') }} where _source = 'DS-05_SINAICA'
-    union all select 'DS-06', count(*)::bigint from {{ ref('agua_region') }} where _source = 'DS-06_CONAGUA_SINA'
+    union all select 'DS-06', count(*)::bigint from {{ source('bronze', 'conagua_presas') }} where _source = 'DS-06_CONAGUA_SINA'
     union all select 'DS-07', count(*)::bigint from {{ ref('rezago_municipio') }} where _source = 'DS-07_CONEVAL'
     union all select 'DS-08', count(*)::bigint from {{ ref('poblacion_municipio') }} where _source = 'DS-08_CONAPO'
 ),

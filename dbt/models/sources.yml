@@ -39,15 +39,13 @@ sources:
       - name: conagua
         identifier: "{{ var('bronze_conagua_identifier', 'conagua_no_ingerido') }}"
         description: >
-          DS-06 · CONAGUA SINA. Observaciones diarias de disponibilidad hídrica a nivel
-          estación/presa o región hidrológica.
-          ATENCIÓN: `conagua_no_ingerido` es un default deliberadamente falso (BUG-009). Hoy no
-          existe ninguna tabla `conagua*` real en `bronze`. El nombre inventado deja pasar el parse
-          del proyecto — para que un `dbt build --select <otro_modelo>` no falle por una fuente que
-          no consume — y hace que `agua_region` falle en runtime de forma visible, en vez de
-          resolver a algo que parezca real en un log. D5 (estrés hídrico) se mantiene `SIN_DATO`
-          explícito hasta que alguien materialice esta fuente. Al ingerirla, cambiar este default
-          por el nombre real de la tabla.
+          DS-06 · contrato Silver histórico pendiente de reconciliar con el esquema real de presas.
+          Se conserva el default falso para impedir consumo silencioso incompatible.
+      - name: conagua_presas
+        identifier: "{{ var('bronze_conagua_presas_identifier', 'conagua_presas') }}"
+        description: >
+          DS-06 · CONAGUA/IMTA real. Snapshot 1:1 de presas de extractor_conagua.py.
+          DB-10 usa esta fuente solo para trazabilidad de ingesta; D5 sigue SIN_DATO.
 
 
       - name: coneval_irs

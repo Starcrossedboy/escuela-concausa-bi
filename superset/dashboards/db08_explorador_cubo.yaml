@@ -66,6 +66,12 @@ dashboards:
       - columna: nivel
         etiqueta: "Nivel educativo"
         datasets: [db08_cubo_pivot]
+      - columna: cve_mun
+        etiqueta: "Municipio"
+        datasets: [db08_cubo_pivot]
+      - columna: id_driver
+        etiqueta: "Driver"
+        datasets: [db08_cubo_pivot]
 
     charts:
       # ----- Fila 1: tiles de contexto (seguros sin agrupar por id_driver) ------

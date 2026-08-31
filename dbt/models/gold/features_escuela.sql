@@ -63,12 +63,21 @@ base as (
 
     -- Sin ciclo anterior no hay target que entrenar (es la primera observación del cct);
     -- se excluye aquí, no se rellena con 0 (evitaría una fuga de "variación cero" falsa).
+    -- FIX (2026-08-31, Diana/BUG-017/BUG-019, ADR-007 ratificado 2026-08-29): target_variacion_
+    -- matricula es FRACCIÓN (matricula_total/matricula_ciclo_anterior - 1.0), no diferencia
+    -- absoluta de alumnos -- mismo patrón que src/modelos/target_hibrido.py::variacion_desde_serie
+    -- (C3). El cast a double precision es necesario ANTES de dividir: matricula_total y
+    -- matricula_ciclo_anterior son integer (silver/matricula.sql), y una división integer/integer
+    -- trunca en vez de dar el decimal esperado. matricula_ciclo_anterior = 0 se rechaza EXPLÍCITO
+    -- vía la división nativa de Postgres (sin nullif) -- si aparece, dbt run truena aquí en vez de
+    -- convertirse en un SIN_DATO invisible (así lo pide el ADR, igual que variacion_desde_serie ya
+    -- hace raise ValueError en Python).
     select
         cct,
         id_ciclo,
         cve_mun,
         matricula_total,
-        cast(matricula_total - matricula_ciclo_anterior as double precision)
+        (cast(matricula_total as double precision) / matricula_ciclo_anterior) - 1.0
             as target_variacion_matricula
     from con_target
     where matricula_ciclo_anterior is not null

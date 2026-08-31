@@ -187,3 +187,9 @@ tags: [requirements, traceability, matrix]
 | REQ | Historias | Evidencia de prueba | DevLog | Estado |
 |---|---|---|---|---|
 | `REQ-003` | `US-311`, `US-313` | **ADR-007 `accepted`** (29-ago) con la tabla de lo que falta para que surta efecto ✅ · `DOC-INDICE-RIESGO` reducido a una sola decisión abierta —el ancla `0.30`— tras cerrar el umbral (`DEC-006`) y la doble columna `valor`/`indice_riesgo` ✅ · **BUG-032** registrado: `Data_Model` §5.3 contradice a §4.5 ⬜ · suite 643 ✅ | [[_DevLog/2026-08-29-hector-morales-adr007-ratificado]] | 🟡 En progreso |
+
+## Evidencia incremental — 2026-08-31 · cierre de BUG-017/BUG-019
+
+| REQ | Historias | Evidencia de prueba | DevLog | Estado |
+|---|---|---|---|---|
+| `REQ-003` | `US-104`, `US-311`, `US-313` | **BUG-017/BUG-019 cerrados**: `target_variacion_matricula` pasa a **fracción** en `features_escuela.sql`, ratifica [[03_Architecture/ADRs/ADR-007-unidad-target-variacion-matricula\|ADR-007]] (2026-08-29) — unidad declarada por primera vez en `contrato.py`/`Data_Model.md` §5.3 · verificado real: sin división por cero, dbt test nuevo de escala ✅, 643/643 suite ✅ · pendiente C3: regenerar 45 249 predicciones y reentrenar ML-01 | [[_DevLog/2026-08-31-diana-alvarez-bug017-bug019-target-fraccion]] | 🟡 En progreso |

@@ -45,12 +45,12 @@ de Superset, no propios) y "Respeta `prefers-reduced-motion`" (shell de FARO Web
 
 | Caso | Pasos | Esperado | Resultado (✅/⚠️/❌/⏳) | Bug |
 |---|---|---|---|---|
-| 1.1 | Abrir DB-05, confirmar que carga en el tab D1 | El dashboard abre sin error, tab D1 activo por default | ⏳ | |
-| 1.2 | Cambiar entre los 6 tabs (D1 → D6) | Cada tab muestra sus propios KPI tiles y tabla, filtrados por su `id_driver` | ⏳ | |
-| 1.3 | Aplicar los filtros globales (Ciclo, Entidad, Nivel) | Los tiles y la tabla recalculan según el filtro aplicado | ⏳ | |
+| 1.1 | Abrir DB-05, confirmar que carga en el tab D1 | El dashboard abre sin error, tab D1 activo por default | ✅ (2026-08-30) — confirmado, aunque hoy es el único tab visible por BUG-034; re-probar cuando se arregle | |
+| 1.2 | Cambiar entre los 6 tabs (D1 → D6) | Cada tab muestra sus propios KPI tiles y tabla, filtrados por su `id_driver` | ❌ (2026-08-30) | BUG-034 |
+| 1.3 | Aplicar los filtros globales (Ciclo, Entidad, Nivel) | Los tiles y la tabla recalculan según el filtro aplicado | ❌ (2026-08-30) — quitar un valor de Entidad y dar "Apply filters", o usar "Clear all", no cambia los datos visibles. Probado directo contra `/api/v1/chart/data` (sin navegador): el filtro sí funciona ahí, así que es un defecto de scope del filtro nativo, no del SQL | BUG-034 |
 | 1.4 | En la tabla "Municipios · driver dominante y cobertura" de cualquier tab, localizar la columna del link | La columna se ve como texto de link (no HTML crudo), rotulada "Ver detalle del municipio →" | ✅ (2026-08-30) | |
 | 1.5 | Hacer clic en el link de una fila | Abre DB-08 en pestaña nueva, con Municipio y Driver de esa fila pre-seleccionados | ✅ (2026-08-30) — confirmado con 2 filas distintas (municipio 09003→19039), el chart "Valor promedio del driver" de DB-08 cambió de valor entre una y otra (0.10 → 0.90), evidencia de que el filtro sí llegó aplicado | |
-| 1.6 | Revisar legibilidad de números grandes en los KPI tiles | Formato consistente (separador de miles, decimales según `formato` de la métrica) | ⏳ | |
+| 1.6 | Revisar legibilidad de números grandes en los KPI tiles | Formato consistente (separador de miles, decimales según `formato` de la métrica) | ✅ (2026-08-30) — contraste correcto en dark y light mode. Hallazgo aparte (no de formato numérico): el mensaje "sin datos" es inconsistente entre tiles y está en inglés — documentado como punto 5 de UX pendiente en `db08_explorador_cubo.yaml`, no se resuelve hoy (limitación de Superset) | |
 
 ### §2 — Usabilidad DB-08
 

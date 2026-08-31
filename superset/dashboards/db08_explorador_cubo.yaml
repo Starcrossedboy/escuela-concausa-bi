@@ -43,6 +43,23 @@
 #      driver no existe" en vez de "existe sin dato"). La tabla de detalle SI
 #      lo muestra bien (N/A + SIN_DATO). Evaluar una señal visual mejor en el
 #      pivote mismo.
+#   4. El filtro global "Driver" (agregado en US-214b) solo muestra el codigo
+#      crudo (D1..D6) en su dropdown, no la etiqueta legible ("D1 · Pobreza y
+#      rezago social") -- mismo patron que el punto 2 (cct). El dataset ya
+#      trae 'nombre_driver' (usado en el pivote), pero _filtros_nativos() en
+#      sync_semantic_layer.py no soporta hoy una columna de label distinta a
+#      la columna de valor del filtro -- requeriria extender esa funcion
+#      (script compartido). Encontrado 30-ago validando US-214b/US-215b en
+#      vivo.
+#   5. El mensaje "No data" (y su variante larga en ingles) es texto propio de
+#      Superset para viz sin filas -- no es configurable por dashboard, y
+#      activar su traduccion al espanol requeriria fijar LANGUAGES a nivel de
+#      todo el despliegue (afecta los 9 tableros, no solo este). Se evaluo
+#      agregar un `subheader` fijo a los tiles que no lo tenian para
+#      unificar la apariencia sin datos, pero el subheader de Superset es
+#      estatico (se muestra igual con o sin datos, confirmado en vivo contra
+#      DB-01/KPI-01) -- se revirtio, el mensaje "sin datos" sigue distinto
+#      entre tiles. Encontrado 30-ago validando US-214b/US-215b en vivo.
 # =============================================================================
 
 version: "1.0"

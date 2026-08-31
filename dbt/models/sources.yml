@@ -10,9 +10,12 @@ sources:
         identifier: "{{ var('bronze_formato911_identifier', 'formato911_2024_2025') }}"
         description: "DS-01 · SEP Formato 911. Datos crudos de matrícula, docentes y grupos por CCT y ciclo escolar."
       - name: cct
-        identifier: "{{ var('bronze_cct_identifier', 'cct_sample') }}"
-        description: "DS-02 · SEP Catálogo CCT. Identidad y georreferencia nacional de cada escuela."
-
+        identifier: "{{ var('bronze_cct_identifier', 'cct_siged_202608') }}"
+        description: >
+          DS-02 · SEP Catálogo CCT. Identidad y georreferencia nacional de cada escuela de
+          educación básica (preescolar/primaria/secundaria). Bronze real, descargado a mano por
+          Diana Alvarez Varela desde SIGED (dos partes, entidades 01-16 y 17-32).
+      
       - name: formato911_historico
         identifier: "{{ var('bronze_formato911_historico_identifier', 'formato911_historico') }}"
         description: >

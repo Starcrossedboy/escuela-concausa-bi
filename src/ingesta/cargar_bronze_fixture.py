@@ -310,13 +310,24 @@ def cargar_fixture(fixture_path: str, tabla: str, esquema: str = "formato911") -
     with psycopg2.connect(_dsn()) as conn:
         with conn.cursor() as cur:
             cur.execute(ddl.format(tabla=tabla))
-            execute_values(
+            # FIX (2026-08-30, Diana/BUG-034): cur.rowcount después de execute_values() solo
+            # refleja el ÚLTIMO lote interno (execute_values pagina en grupos de page_size=100
+            # por default), no el total acumulado -- psycopg2 no suma el rowcount entre
+            # páginas. Verificado real: una carga real de 385,175 filas nuevas (DS-02, ver
+            # DevLog de esta sesión) reportó "75 insertadas" -- exactamente 385175 % 100, el
+            # tamaño del último lote, no el total real (confirmado aparte con un COUNT(*)
+            # directo en Postgres). Fix: RETURNING + fetch=True, que sí agrega los resultados
+            # de TODAS las páginas -- ON CONFLICT DO NOTHING no emite fila para las que ya
+            # existían, así que len(resultado) es el conteo real de filas nuevas insertadas.
+            resultado = execute_values(
                 cur,
                 f"INSERT INTO bronze.{tabla} ({', '.join(columnas_sql)}) VALUES %s "
-                f"ON CONFLICT ({', '.join(conflicto_sql)}) DO NOTHING",
+                f"ON CONFLICT ({', '.join(conflicto_sql)}) DO NOTHING "
+                f"RETURNING 1",
                 registros,
+                fetch=True,
             )
-            insertadas = cur.rowcount
+            insertadas = len(resultado)
         conn.commit()
 
     logger.info("bronze.%s: %d filas en el fixture, %d insertadas (resto ya existía)",

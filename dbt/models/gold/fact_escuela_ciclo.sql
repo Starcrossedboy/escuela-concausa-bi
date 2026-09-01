@@ -42,10 +42,15 @@ con_anterior as (
 
 base as (
 
+    -- FIX (2026-08-31, Diana/BUG-031): se expone matricula_ciclo_anterior -- ya se calculaba en
+    -- con_anterior pero se descartaba aquí. C2 (Marina/Manuel) lo necesita para corregir KPI-02
+    -- (DB-01/02/03/04/06/09) a razón de sumas -- SUM(matricula_total)/SUM(matricula_ciclo_anterior)
+    -- - 1 -- en vez del promedio ponderado de "alumnos absolutos" que hoy renderiza mal como %.
     select
         cct,
         id_ciclo,
         matricula_total,
+        matricula_ciclo_anterior,
         cast(matricula_total - matricula_ciclo_anterior as double precision)
             as variacion_matricula
     from con_anterior
@@ -63,15 +68,15 @@ escuela_scope as (
 
 con_municipio as (
 
-    select
+        select
         b.cct,
         b.id_ciclo,
         e.cve_mun,
         b.matricula_total,
+        b.matricula_ciclo_anterior,
         b.variacion_matricula
     from base b
     inner join escuela_scope e on e.cct = b.cct
-
 ),
 
 -- D3/D4: infraestructura y conectividad, CEMABE por CCT (ADR-005)
@@ -341,6 +346,7 @@ ensamblado as (
         cm.id_ciclo,
         cm.cve_mun,
         cm.matricula_total,
+        cm.matricula_ciclo_anterior,
         cm.variacion_matricula,
         d1.d1,
         coalesce(d1.d1_cobertura, 'SIN_DATO') as d1_cobertura,
@@ -367,6 +373,7 @@ select
     id_ciclo,
     cve_mun,
     matricula_total,
+    matricula_ciclo_anterior,
     variacion_matricula,
     (
         (case when d1_cobertura = 'OK' then 1 else 0 end)

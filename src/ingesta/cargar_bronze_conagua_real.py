@@ -1,7 +1,6 @@
 """Carga DS-06 real a bronze.conagua_presas sin conformar D5."""
 from __future__ import annotations
 import argparse, os
-from pathlib import Path
 import numpy as np
 import pandas as pd
 import psycopg2
@@ -41,7 +40,8 @@ def _py(v):
     if v is None: return None
     try:
         if pd.isna(v): return None
-    except Exception:
+    except (TypeError, ValueError):
+        # pd.isna lanza sobre array-like/tipos no escalares: no es nulo, se conserva v
         pass
     if isinstance(v, np.generic): return v.item()
     if isinstance(v, pd.Timestamp): return v.to_pydatetime()

@@ -120,6 +120,70 @@ en la red del navegador; las SQL corren en milisegundos directo contra Postgres.
 - Regenerable: `python superset/generar_geojson_municipios.py --descargar <dir>` + `--generar <dir>`.
 - La llave de cada feature es `cve_mun` (CVEGEO de 5 dígitos) = `gold.dim_municipio.cve_mun`.
 
+## Promoción a producción (pendiente · C5 con autorización del PM)
+
+> Este README documenta **qué haría falta** para promover Superset; **el deploy no lo ejecuta este PR
+> ni ningún agente.** Promoverlo es tarea de C5 (Cloud & DevOps) y requiere autorización explícita del
+> PM (CLAUDE.md §2.7). El endurecimiento HTTP (TLS, rate-limit en login, WAF/Cloud Armor, rotación) vive
+> en `docker/README-SECURITY.md` y ya lo resume la advertencia de `docker/superset-init.sh`.
+
+### 1. Metadata DB — ya es PostgreSQL; apuntarla a Cloud SQL
+
+- **La metadata de Superset NO es SQLite.** El servicio `superset` de `docker-compose.yml` fija
+  `DATABASE_DIALECT=postgresql` + `DATABASE_DB=superset`; la imagen oficial arma su
+  `SQLALCHEMY_DATABASE_URI` con esos `DATABASE_*`, así que en local la metadata vive en la base
+  `superset` del **mismo contenedor `db`**. El volumen `superset-data` solo guarda `superset_home`
+  (caché/archivos), **no** la metadata.
+- Para prod: los mismos `DATABASE_*` deben apuntar a una **base `superset` en Cloud SQL** (vía Cloud SQL
+  Auth Proxy o IP privada), preferentemente **separada** de la base analítica (`escuela_concausa_db`)
+  para acotar el radio de impacto. Host/usuario/password desde **Secret Manager**, nunca en la imagen.
+- `superset-init.sh` ya corre `superset db upgrade` al arrancar: crea/migra el esquema de metadata en
+  Cloud SQL en el primer boot. Cloud Run es **stateless** → esto es válido justamente porque la metadata
+  persiste en Cloud SQL, no en el volumen efímero.
+
+### 2. SECRET_KEY — Secret Manager y cuidado al rotar
+
+- `SUPERSET_SECRET_KEY` hoy sale de `.env` (`scripts/generate-keys.py`, ≥32 chars). En prod: valor
+  fuerte y **estable** inyectado desde **Secret Manager** como variable de entorno del servicio.
+- **Cuidado al rotar:** la SECRET_KEY firma las sesiones **y cifra las contraseñas de las conexiones a
+  bases** guardadas en la metadata. Rotarla **invalida las sesiones activas** y, si hay conexiones
+  guardadas, hay que re-cifrarlas con `superset re-encrypt-secrets` **en la misma promoción**, o esas
+  conexiones dejan de abrir. Tratar la rotación como paso operativo, no como cambio de env "en caliente".
+
+### 3. Rol invitado de solo lectura (demo pública)
+
+- La demo se enseña sin login (misma postura que `AUTH_LECTURA_PUBLICA=true` en la API, aunque Superset
+  tiene su **propio** auth, independiente del RBAC de FastAPI). Para eso, dar de alta un rol
+  **`faro_invitado`** (o usar el rol `Public`) con permisos **mínimos de solo lectura**:
+  - `can read` sobre `Dashboard`, `Chart` y `Dataset`, con acceso **solo** a los datasets del alcance.
+  - **Sin** SQL Lab, **sin** "Upload CSV/Excel", **sin** acceso a *Database connections* ni a *Security*.
+  - Acceso explícito a DB-01…DB-10; nada más.
+- Marcar los tableros como *published*; si se usa el rol `Public`, activar `PUBLIC_ROLE_LIKE` con cuidado
+  (otorga permisos a **todo** anónimo). **La decisión de hacer públicos los tableros es del PO** (misma
+  compuerta que la allowlist / `ANALISTA_EMAILS`).
+
+### Prerequisitos de datos y de servidor (antes del primer deploy)
+
+- **Orden de build P-03:** cargar geometrías **antes** de construir Gold. Si dbt corre primero,
+  `gold.geo_municipio` queda como *stub* y el coroplético de DB-02 (KPI-10) truena. Secuencia:
+  `cargar_geojson_municipios.py` → `dbt run` (Gold) → `sync_semantic_layer.py`.
+- **Cubos C1 materializados (US-205):** los datasets virtuales leen `gold.cubo_*` (incl. `cubo_pivot` y
+  `cubo_escuela_360`). Un cubo faltante hace fallar el `sync` **completo**: importa todos los
+  `semantic/*.sql` en bloque y un solo 500 aborta todo.
+- **Servidor de prod:** arrancar con **gunicorn** (la imagen oficial trae `run-server.sh`), no con
+  `superset run --reload` (servidor de desarrollo, el que usa `superset-init.sh` hoy).
+- **Caché:** backend de resultados externo (**Redis** / `DATA_CACHE_CONFIG`) — ver el workaround de
+  "Waiting on…" arriba; en prod evita el cuelgue de charts.
+
+### Checklist de promoción (C5)
+
+- [ ] Cloud SQL con base `superset` (metadata) + `DATABASE_*` desde Secret Manager
+- [ ] `SUPERSET_SECRET_KEY` estable desde Secret Manager (plan de rotación con `re-encrypt-secrets`)
+- [ ] Rol `faro_invitado` / `Public` de solo lectura con acceso solo a DB-01…DB-10 (aprueba PO)
+- [ ] geo → dbt Gold → sync en ese orden (P-03); cubos `gold.cubo_*` materializados
+- [ ] gunicorn (no `superset run`) + Redis para caché de resultados
+- [ ] `CORS_ORIGINS` y dominio público configurados; TLS/rate-limit/WAF por `docker/README-SECURITY.md`
+
 ## Responsables
 
 - **Convención (US-202):** Manuel Alejandro Serranía Reinada (Tech Lead C2).

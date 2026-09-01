@@ -5,7 +5,7 @@ author_human: "Diana Aracely Alvarez Varela"
 agent: "Claude"
 model: "sonnet-5"
 session_duration: "~4h"
-touches: ["DS-02", "BUG-033", "BUG-034"]
+touches: ["DS-02", "BUG-034", "BUG-036"]
 tags: [devlog, bronze, cct, ds02, prueba-descarga-real]
 ---
 
@@ -37,14 +37,14 @@ inicial, CAM y formación para el trabajo) — el filtro real de básica es
 `cargar_fixture()` (esquema `"cct"`). `dbt/models/sources.yml`: default de
 `bronze_cct_identifier` de `cct_sample` a `cct_siged_202608`.
 
-**BUG-033 (corregido en esta rama).** El diccionario ya anticipaba coordenadas erróneas; 6 de
+**BUG-034 (corregido en esta rama).** El diccionario ya anticipaba coordenadas erróneas; 6 de
 77,712 escuelas de básica en las 4 `SCOPE_ENTIDADES` traían `latitud`/`longitud` en `0.0`, y
 `silver/escuela.sql` solo nulificaba cadenas vacías, nunca ceros literales — esas 6 escuelas
 pasaban con georreferencia "válida" a la interpolación IDW de D5/D6 (ADR-006). Fix:
 `nullif(nullif(..., '')::double precision, 0)` sobre `latitud`/`longitud`, con guarda de
 regresión `dbt/tests/valid_escuela_georreferencia.sql`.
 
-**BUG-034 (corregido en esta rama, código compartido).** Al cargar las 385,175 filas reales,
+**BUG-036 (corregido en esta rama, código compartido).** Al cargar las 385,175 filas reales,
 `cargar_fixture()` reportó "75 insertadas" — falso, confirmado con un `COUNT(*)` directo en
 Postgres (385,175 reales). Causa: `cur.rowcount` después de `execute_values()` solo refleja el
 último lote interno (`page_size=100` por default): `385175 % 100 = 75`. Afecta a todos los
@@ -70,7 +70,7 @@ dbt run --select escuela+ --full-refresh
 
 dbt test --select escuela
   → 6 passed, 1 error (mismo hueco preexistente de DS-06)
-  → valid_escuela_georreferencia (guarda de BUG-033) PASS contra datos reales
+  → valid_escuela_georreferencia (guarda de BUG-034) PASS contra datos reales
   → not_null_escuela_cct/cve_ent/cve_mun, unique_escuela_cct, valid_escuela_keys: PASS
 
 Carga real ejecutada contra Postgres local (`docker compose up -d db`), con las dos partes del
@@ -80,13 +80,13 @@ catálogo ya descargadas por Diana Alvarez Varela.
 
 - `src/ingesta/cargar_bronze_cct_real.py` (nuevo)
 - `tests/test_cargar_bronze_cct_real.py` (nuevo)
-- `tests/test_cargar_bronze_fixture_conteo.py` (nuevo, BUG-034)
+- `tests/test_cargar_bronze_fixture_conteo.py` (nuevo, BUG-036)
 - `dbt/models/sources.yml` (default de `bronze_cct_identifier`)
-- `dbt/models/silver/escuela.sql` (BUG-033)
-- `dbt/tests/valid_escuela_georreferencia.sql` (nuevo, BUG-033)
-- `src/ingesta/cargar_bronze_fixture.py` (BUG-034)
+- `dbt/models/silver/escuela.sql` (BUG-034)
+- `dbt/tests/valid_escuela_georreferencia.sql` (nuevo, BUG-034)
+- `src/ingesta/cargar_bronze_fixture.py` (BUG-036)
 - `14_Data_Sources/DS-02_Catalogo_CCT.md` (§2, §5, §9, §10 — `status: draft` → `in_review`)
-- `06_Quality_Testing/Bug_Register.md` (BUG-033 y BUG-034 → `fixed`)
+- `06_Quality_Testing/Bug_Register.md` (BUG-034 y BUG-036 → `fixed`)
 
 ## Pendiente
 

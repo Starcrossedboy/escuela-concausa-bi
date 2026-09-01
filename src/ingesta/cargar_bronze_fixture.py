@@ -310,7 +310,7 @@ def cargar_fixture(fixture_path: str, tabla: str, esquema: str = "formato911") -
     with psycopg2.connect(_dsn()) as conn:
         with conn.cursor() as cur:
             cur.execute(ddl.format(tabla=tabla))
-            # FIX (2026-08-30, Diana/BUG-034): cur.rowcount después de execute_values() solo
+            # FIX (2026-08-30, Diana/BUG-036): cur.rowcount después de execute_values() solo
             # refleja el ÚLTIMO lote interno (execute_values pagina en grupos de page_size=100
             # por default), no el total acumulado -- psycopg2 no suma el rowcount entre
             # páginas. Verificado real: una carga real de 385,175 filas nuevas (DS-02, ver

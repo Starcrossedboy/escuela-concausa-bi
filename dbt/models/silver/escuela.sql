@@ -12,7 +12,7 @@ with source_data as (
         -- esperado, no un error. El cast directo sin nullif() tronaba con "" (invalid input
         -- syntax for type double precision), en vez de producir NULL. Mismo patrón que ya
         -- se usa arriba para nombre/nivel/sostenimiento.
-        -- FIX (2026-08-30, Diana/BUG-033): la descarga real de DS-02 (SIGED) trae 6 filas con
+        -- FIX (2026-08-30, Diana/BUG-034): la descarga real de DS-02 (SIGED) trae 6 filas con
         -- coordenadas "0.000000" -- georreferencia ausente disfrazada de válida, no una
         -- escuela real en 0,0 (ninguna escuela mexicana del alcance está ahí). Se nulifica
         -- también el 0 numérico, no solo la cadena vacía -- ver DS-02_Catalogo_CCT.md §10.

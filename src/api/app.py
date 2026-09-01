@@ -130,6 +130,28 @@ def create_app() -> FastAPI:
 
     app.include_router(api_v1_router, prefix=API_PREFIX)
 
+    # --- Ejecutor SQL read-only del agente (US-404 / BUG-025) ---
+    # Solo se cablea si hay DSN read-only configurado (C5 en Secret Manager). Sin él, el agente usa el
+    # default seguro del seam (degrada) y CI/local no tocan Postgres.
+    if settings.database_url_read_only:
+        from src.api.ejecutor_gold import ejecutar_sql_read_only
+        from src.api.v1.agente import get_ejecutar_sql
+
+        app.dependency_overrides[get_ejecutar_sql] = lambda: ejecutar_sql_read_only
+
+    # --- LLM del agente: text-to-SQL + redactor (BUG-025 / P-13) ---
+    # Solo se cablea si hay ANTHROPIC_API_KEY (C5 en Secret Manager). Sin ella, el agente usa los
+    # defaults seguros del seam (degrada "no configurado") y CI/local no llaman a Anthropic. El SQL
+    # que genere el LLM pasa SIEMPRE por el filtro de intención de la pregunta (P-13) y por
+    # `preparar_sql_seguro` (solo-lectura) antes de tocar la BD: el LLM nunca es la única capa.
+    # Las firmas del adaptador (prompt, pregunta) y (pregunta, filas) ya casan con el seam.
+    if settings.anthropic_api_key:
+        from src.agente.llm import generar_sql_con_llm, redactar_respuesta_con_llm
+        from src.api.v1.agente import get_generar_sql, get_redactar_respuesta
+
+        app.dependency_overrides[get_generar_sql] = lambda: generar_sql_con_llm
+        app.dependency_overrides[get_redactar_respuesta] = lambda: redactar_respuesta_con_llm
+
     @app.exception_handler(StarletteHTTPException)
     async def _http_exc(request: Request, exc: StarletteHTTPException) -> JSONResponse:
         error = _ERROR_POR_STATUS.get(exc.status_code, "internal_error")

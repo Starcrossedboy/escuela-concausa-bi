@@ -85,7 +85,7 @@ del proyecto (confirmado contra el fixture real de DS-01: solo trae PREESCOLAR/P
 - CCT dados de baja o reactivados (planteles que cierran/abren) — no medible desde una sola
   descarga puntual, requiere comparar snapshots en el tiempo.
 - **Coordenadas erróneas (0,0):** existían, 6 filas verificadas en las 4 `SCOPE_ENTIDADES`
-  (fracción mínima de 77,712). **Corregido (BUG-033, 30-ago-2026):** `silver/escuela.sql`
+  (fracción mínima de 77,712). **Corregido (BUG-034, 30-ago-2026):** `silver/escuela.sql`
   ahora nulifica también el 0 numérico, no solo la cadena vacía —
   `nullif(nullif(trim(cast(latitud as text)), '')::double precision, 0)` — con guarda de
   regresión en `dbt/tests/valid_escuela_georreferencia.sql`.

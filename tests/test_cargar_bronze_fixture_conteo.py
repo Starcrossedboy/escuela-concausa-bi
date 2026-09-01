@@ -1,4 +1,4 @@
-"""Regresión de BUG-034: `cargar_fixture()` (src/ingesta/cargar_bronze_fixture.py) contaba las
+"""Regresión de BUG-036: `cargar_fixture()` (src/ingesta/cargar_bronze_fixture.py) contaba las
 filas insertadas leyendo `cur.rowcount` justo después de `execute_values()` -- pero
 `execute_values()` pagina el INSERT en lotes (page_size=100 por default) y `cur.rowcount`
 después de la llamada solo refleja el ÚLTIMO lote, no el total. Real: una carga de 385,175 filas

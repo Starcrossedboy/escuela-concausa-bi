@@ -65,7 +65,11 @@ def test_kpi03_indice_riesgo_promedio_excluye_escuelas_sin_prediccion(conn):
     sql = load_sql("kpi_03_indice_riesgo_promedio.sql")
     rows = conn.execute(sql).fetchall()
     assert len(rows) > 0
-    for cve_mun, indice_riesgo_promedio in rows:
+    # Grano municipio × ciclo (Screen_Specs.md §4): cada fila trae su ciclo, para que
+    # el filtro global de ciclo tenga sobre qué actuar. Antes (P-14) agrupaba solo por
+    # municipio y promediaba el riesgo de todos los ciclos juntos.
+    for cve_mun, ciclo, indice_riesgo_promedio in rows:
+        assert ciclo is not None, "El grano debe incluir el ciclo (municipio × ciclo)"
         assert indice_riesgo_promedio is not None, (
             "El JOIN interno a predicciones nunca debe devolver un promedio en 0 "
             "por escuelas SIN_DATO: esas filas se excluyen, no se cuentan como 0"
@@ -75,18 +79,27 @@ def test_kpi03_indice_riesgo_promedio_excluye_escuelas_sin_prediccion(conn):
 
 def test_kpi04_escuelas_en_riesgo_usa_umbral_060(conn):
     sql = load_sql("kpi_04_escuelas_en_riesgo.sql")
-    escuelas_en_riesgo, total_escuelas = conn.execute(sql).fetchone()
-    assert total_escuelas > 0
-    # 'total_escuelas' cuenta solo las que SÍ tienen predicción (JOIN interno) —
-    # por diseño, nunca debe ser igual al total de escuelas de dim_escuela si
-    # las fixtures dejaron escuelas sin puntuar (regla SIN_DATO, ver fixtures).
+    rows = conn.execute(sql).fetchall()
     total_dim_escuela = conn.execute("SELECT COUNT(*) FROM dim_escuela").fetchone()[0]
     total_ciclos = conn.execute("SELECT COUNT(*) FROM dim_tiempo").fetchone()[0]
-    assert total_escuelas < total_dim_escuela * total_ciclos, (
+    # Grano escuela × ciclo (Screen_Specs.md §4): una fila por ciclo. Antes (P-14) no
+    # tenía GROUP BY y colapsaba todos los ciclos en un solo conteo, ignorando el filtro.
+    assert len(rows) > 0, "KPI-04 debe devolver al menos una fila por ciclo"
+    assert len(rows) <= total_ciclos, "Nunca más de una fila por ciclo"
+    suma_total_escuelas = 0
+    for ciclo, escuelas_en_riesgo, total_escuelas in rows:
+        assert ciclo is not None, "El grano debe incluir el ciclo (escuela × ciclo)"
+        assert total_escuelas > 0
+        assert 0 <= escuelas_en_riesgo <= total_escuelas
+        suma_total_escuelas += total_escuelas
+    # 'total_escuelas' cuenta solo las que SÍ tienen predicción (JOIN interno) — por
+    # diseño, ni sumando todos los ciclos se llega al total de dim_escuela × ciclos si
+    # las fixtures dejaron escuelas sin puntuar (regla SIN_DATO, ver fixtures). Misma
+    # aserción que el contrato previo, ahora sobre la suma de las filas por ciclo.
+    assert suma_total_escuelas < total_dim_escuela * total_ciclos, (
         "Si esto falla, revisa que las fixtures sigan dejando escuelas sin "
         "predicción (SIN_DATO real) — si no, este test ya no prueba nada"
     )
-    assert 0 <= escuelas_en_riesgo <= total_escuelas
 
 
 def test_kpi08_escuelas_por_nivel_cubre_los_4_niveles(conn):

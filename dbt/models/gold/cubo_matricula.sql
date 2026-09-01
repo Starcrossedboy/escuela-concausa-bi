@@ -26,9 +26,10 @@ with observado as (
 
         count(distinct f.cct) as escuelas,
         sum(f.matricula_total) as matricula_total,
-        sum(f.variacion_matricula * f.matricula_total) as variacion_x_matricula,
+        -- FIX (2026-08-31, Diana/BUG-031): mismo defecto y mismo fix que cubo_comparador_municipio
+        -- (ver ese archivo) -- este cubo alimenta DB-01/DB-06, también listados como afectados.
+        sum(f.matricula_ciclo_anterior) as suma_matricula_anterior,
         sum(f.indice_completitud_drivers) as suma_completitud
-
     from {{ ref('fact_escuela_ciclo') }} f
     inner join {{ ref('dim_escuela') }} e
         on f.cct = e.cct

@@ -39,7 +39,7 @@ SELECT
     -- ---------- contexto para tooltips / ranking (del cubo C1) ---------------
     rt.escuelas,
     rt.matricula_total,
-    rt.variacion_x_matricula,
+    rt.suma_matricula_anterior,                -- SUM(matricula_ciclo_anterior); denominador de KPI-02 (BUG-031)
 
     -- ---------- componentes aditivos: riesgo (ML-01, resuelto por C1) --------
     rt.suma_indice_riesgo,

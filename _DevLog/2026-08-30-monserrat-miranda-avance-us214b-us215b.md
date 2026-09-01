@@ -5,7 +5,7 @@ author_human: "Monserrat Xcaret Miranda Olivas"
 agent: "Claude Code"
 model: "claude-sonnet-5"
 session_duration: "sesión larga: avance de US-214b (drill-down DB-05→DB-08) y US-215b (plan de pruebas de usabilidad/accesibilidad), validado en vivo contra Superset 6.1.0 real en Docker local"
-touches: ["US-214b", "US-215b", "REQ-002", "BUG-027", "BUG-033"]
+touches: ["US-214b", "US-215b", "REQ-002", "BUG-027", "BUG-037"]
 tags: [devlog, bi, dashboards, superset, celula-2]
 ---
 
@@ -73,13 +73,13 @@ en git, a la carpeta temporal de la sesión, y se devolvió a su lugar antes de 
 - `04_UX_Design/Cube_Specs_DB05_DB08.md` §3.4: ruta DB-05→DB-08 pasa de "⬜ Propuesta" a "✅
   Ratificada". `metrics_db05_db08.yaml`: bloque `drill_down:` gana la entrada DB-05→DB-08.
 
-### 5. BUG-033 — hallazgo nuevo durante la validación
+### 5. BUG-037 — hallazgo nuevo durante la validación
 
 Al agregar `link_db08` y volver a sincronizar, el chart de la tabla municipal reventó con `Columns
 missing in dataset` — para `link_db08` **y** para 3 columnas preexistentes. Causa: `PUT
 /api/v1/dataset/<id>` actualiza el texto del SQL pero Superset nunca vuelve a leer las columnas; solo
 lo hace al crear el dataset. Mitigado a mano con `PUT /api/v1/dataset/<id>/refresh` (endpoint que
-Superset ya expone). Registrado como **BUG-033**; el fix de fondo (llamar ese endpoint automáticamente
+Superset ya expone). Registrado como **BUG-037**; el fix de fondo (llamar ese endpoint automáticamente
 tras cada actualización de SQL en `ensure_datasets()`) queda propuesto, no aplicado hoy — es
 `sync_semantic_layer.py`, herramienta compartida.
 
@@ -112,7 +112,7 @@ python superset/sync_semantic_layer.py                 # 9 dashboards, 19 datase
 - `superset/semantic/metrics_db05_db08.yaml` — `drill_down:` +DB-05→DB-08
 - `06_Quality_Testing/Usability_Accessibility_Test_Plan_DB05_DB08.md` (nuevo)
 - `06_Quality_Testing/_index.md`
-- `06_Quality_Testing/Bug_Register.md` — nota fechada en BUG-027 (severidad low→medium), BUG-033 nuevo
+- `06_Quality_Testing/Bug_Register.md` — nota fechada en BUG-027 (severidad low→medium), BUG-037 nuevo
 - `12_Roadmap_Sprints/Sprints/2-monserrat-xcaret-miranda-olivas.md` — §9 actualizado
 - `02_Requirements/Traceability_Matrix.md` — fila REQ-002, evidencia de US-214b/US-215b
 - `_DevLog/_index.md`
@@ -123,7 +123,7 @@ python superset/sync_semantic_layer.py                 # 9 dashboards, 19 datase
 - **Decisiones autónomas de fondo:** ninguna sin aprobación explícita. Cada archivo se mostró como
   diff antes de escribirse; el hallazgo de `kpi_01_matricula_total.sql` (de Manuel) se resolvió
   apartando el archivo solo en disco local, nunca en git, con autorización explícita previa; el
-  hallazgo de BUG-033 (fix de fondo en `sync_semantic_layer.py`, herramienta compartida) se dejó
+  hallazgo de BUG-037 (fix de fondo en `sync_semantic_layer.py`, herramienta compartida) se dejó
   solo documentado, sin tocar el script, por decisión explícita de la reportante.
 - **Manejo de secretos:** credenciales de `.env` usadas solo para autenticar contra el Superset local
   de Docker; no se hardcodearon en ningún archivo del repo.
@@ -140,7 +140,7 @@ python superset/sync_semantic_layer.py                 # 9 dashboards, 19 datase
 
 ## Bloqueantes
 
-- Ninguno de fondo. BUG-027 (pendiente de Oscar Quiroz/C2) y BUG-033 (pendiente de dueño de
+- Ninguno de fondo. BUG-027 (pendiente de Oscar Quiroz/C2) y BUG-037 (pendiente de dueño de
   `sync_semantic_layer.py`) no bloquean este PR — se mitigaron localmente para poder validar.
 
 ## Próximos pasos

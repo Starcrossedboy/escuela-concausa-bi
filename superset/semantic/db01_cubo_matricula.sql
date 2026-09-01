@@ -39,7 +39,7 @@ SELECT
     -- ---------- componentes aditivos (pre-agregados por el cubo C1) ----------
     cm.escuelas,
     cm.matricula_total,
-    cm.variacion_x_matricula,                  -- SUM(variacion * matricula), ponderado
+    cm.suma_matricula_anterior,                -- SUM(matricula_ciclo_anterior); denominador de KPI-02 (BUG-031)
     cm.suma_completitud
 
 FROM gold.cubo_matricula cm

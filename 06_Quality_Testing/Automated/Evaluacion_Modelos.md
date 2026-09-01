@@ -25,7 +25,7 @@ tags: [qa, ml, celula-3, metricas]
 | modelo | tipo | metrica | valor | desviacion | baseline | mejora | ventanas |
 |---|---|---|---|---|---|---|---|
 | ML-01 | regresión | MAE | 0.0141 | 0.0012 | 0.0291 | 0.5155 | 3 |
-| ML-02 | clasificación | F1 macro | 0.7945 | 0.0241 | 0.0699 | 10.5571 | 3 |
+| ML-02 | clasificación | F1 macro | 0.7731 | 0.0434 | 0.0534 | 13.8908 | 3 |
 | ML-03 | no supervisado | Silhouette (k=2) | 0.1086 | 0.0454 | nan | nan | 3 |
 
 Los tres optimizan cosas distintas —error absoluto, F1 y separación de grupos—, así que **sus
@@ -47,9 +47,9 @@ la cifra se vuelve significativa cuando Gold publique la etiqueta real.
 | 1 | ML-01 | 2021-2022 | MAE | 0.0128 | 0.0294 | 0.5654 | 160 |
 | 2 | ML-01 | 2022-2023 | MAE | 0.0138 | 0.0283 | 0.5128 | 240 |
 | 3 | ML-01 | 2023-2024 | MAE | 0.0157 | 0.0295 | 0.4682 | 320 |
-| 1 | ML-02 | 2021-2022 | F1 macro | 0.7874 | 0.0612 | 11.8601 | 160 |
-| 2 | ML-02 | 2022-2023 | F1 macro | 0.7693 | 0.0818 | 8.4085 | 240 |
-| 3 | ML-02 | 2023-2024 | F1 macro | 0.8269 | 0.0667 | 11.4028 | 320 |
+| 1 | ML-02 | 2021-2022 | F1 macro | 0.7475 | 0.0612 | 11.2094 | 160 |
+| 2 | ML-02 | 2022-2023 | F1 macro | 0.7376 | 0.0556 | 12.2763 | 240 |
+| 3 | ML-02 | 2023-2024 | F1 macro | 0.8342 | 0.0435 | 18.1867 | 320 |
 | 1 | ML-03 | 2021-2022 | Silhouette | 0.0610 | nan | nan | 44 |
 | 2 | ML-03 | 2022-2023 | Silhouette | 0.0950 | nan | nan | 63 |
 | 3 | ML-03 | 2023-2024 | Silhouette | 0.1697 | nan | nan | 80 |
@@ -138,7 +138,7 @@ RMSE < 0.05 (5 puntos porcentuales); ML-02 F1 macro ≥
 |---|---|---|---|---|
 | ML-01 | MAE | 0.0141 | < 0.03 | ✅ sí |
 | ML-01 | RMSE | 0.0177 | < 0.05 | ✅ sí |
-| ML-02 | F1 macro | 0.7945 | ≥ 0.6 | ✅ sí |
+| ML-02 | F1 macro | 0.7731 | ≥ 0.6 | ✅ sí |
 | ML-03 | Silhouette | 0.1086 | ≥ 0.3 | ❌ **no** |
 
 > [!warning] Umbral no alcanzado: ML-03 (Silhouette = 0.1086)

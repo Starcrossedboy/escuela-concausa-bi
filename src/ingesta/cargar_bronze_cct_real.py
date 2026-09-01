@@ -180,5 +180,5 @@ if __name__ == "__main__":
     parser.add_argument("--tabla", default="cct_siged_202608")
     args = parser.parse_args()
 
-    n = cargar(getattr(args, "csv_01_16"), getattr(args, "csv_17_32"), args.tabla)
+    n = cargar(args.csv_01_16, args.csv_17_32, args.tabla)
     print(f"OK: {n} filas nuevas cargadas en bronze.{args.tabla}")

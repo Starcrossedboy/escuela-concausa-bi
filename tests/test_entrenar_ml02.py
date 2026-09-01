@@ -57,9 +57,12 @@ def test_paridad_driver_dominante_real_contra_proxy(features: pd.DataFrame) -> N
     REAL que ahora publica Gold (`dbt/models/gold/features_escuela.sql`, CTE
     `con_driver_dominante`) debe coincidir con `generar_driver_dominante_proxy()` en las filas
     donde el proxy sí puede calcularse (al menos un driver observado). Ambas implementan la
-    misma regla de argmax con el mismo desempate (primer driver en orden D1..D6) -- una en SQL,
-    otra en Python. Si llegaran a divergir, Gold y ML-02 estarían entrenando/reportando sobre
-    etiquetas distintas sin que nadie se diera cuenta."""
+    misma regla de argmax con el mismo desempate (primer driver en orden D1..D6) y con D3/D4
+    invertidos como (1 - valor), porque miden servicios presentes y suben cuando la escuela está
+    mejor (P-05, 2026-08-31) -- una en SQL, otra en Python. El fixture
+    tests/fixtures/features_escuela_mock.csv ya trae la columna driver_dominante con esa misma
+    regla. Si llegaran a divergir, Gold y ML-02 estarían entrenando/reportando sobre etiquetas
+    distintas sin que nadie se diera cuenta."""
     con_al_menos_un_driver = features[features[list(DRIVERS)].notna().any(axis=1)]
     proxy = generar_driver_dominante_proxy(con_al_menos_un_driver).reset_index(drop=True)
     real = con_al_menos_un_driver["driver_dominante"].reset_index(drop=True)

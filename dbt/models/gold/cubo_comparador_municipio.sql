@@ -26,6 +26,11 @@ with observado as (
 
         count(distinct f.cct) as escuelas,
         sum(f.matricula_total) as matricula_total,
+        -- FIX (2026-08-31, Diana/BUG-031): variacion_x_matricula era sum(variacion_matricula *
+        -- matricula_total) -- promedio ponderado de una columna que no es razón (alumnos
+        -- absolutos), Superset la renderizaba como % y salía 287x el valor real (−54.5% vs
+        -- −0.19%). Se reemplaza por el componente aditivo correcto: suma_matricula_anterior, para
+        -- que C2 arme la razón de sumas SUM(matricula_total)/SUM(suma_matricula_anterior) - 1.
         sum(f.matricula_ciclo_anterior) as suma_matricula_anterior,
         sum(f.indice_completitud_drivers) as suma_completitud,
 

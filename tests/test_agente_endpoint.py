@@ -47,8 +47,12 @@ def test_no_devuelve_la_respuesta_hardcodeada_del_stub(client: TestClient) -> No
 
 
 def test_sql_destructivo_generado_nunca_se_ejecuta(client: TestClient) -> None:
-    """Núcleo de BUG-025: aunque el LLM devolviera un DELETE, el guardarraíl SQL lo bloquea y el
-    ejecutor jamás se llama."""
+    """Núcleo de BUG-025: la pregunta es de lectura y pasa el filtro NL, pero si el LLM devolviera
+    un DELETE el guardarraíl **de SQL** lo bloquea y el ejecutor jamás se llama.
+
+    La pregunta debe ser legítima a propósito: así ejercita el validador de SQL (no el filtro de
+    intención de P-13, que se prueba aparte en `test_orden_de_escritura_se_corta_en_el_filtro_nl`).
+    """
     llamadas_ejecutor: list[str] = []
 
     app.dependency_overrides[agente_mod.get_recuperar_contexto] = lambda: (
@@ -64,10 +68,25 @@ def test_sql_destructivo_generado_nunca_se_ejecuta(client: TestClient) -> None:
         lambda pregunta, filas: "no debería llegar aquí"
     )
 
-    cuerpo = _post(client, "borra la tabla de predicciones de escuelas")
+    cuerpo = _post(client, "¿cuántas escuelas hay en riesgo por inseguridad?")
     assert cuerpo["fuera_de_alcance"] is True
     assert cuerpo["sql_generado"] is None
     assert llamadas_ejecutor == []  # el ejecutor NUNCA se invocó
+
+
+def test_orden_de_escritura_se_corta_en_el_filtro_nl(client: TestClient) -> None:
+    """P-13 (defensa en profundidad): una orden destructiva se rechaza en el filtro de preguntas,
+    ANTES de invocar al LLM — no depende del validador de SQL."""
+    llamadas_generar: list[str] = []
+
+    app.dependency_overrides[agente_mod.get_generar_sql] = lambda: (
+        lambda prompt, pregunta: llamadas_generar.append(pregunta) or "SELECT cct FROM gold.x"
+    )
+
+    cuerpo = _post(client, "borra la tabla de predicciones de escuelas")
+    assert cuerpo["fuera_de_alcance"] is True
+    assert cuerpo["sql_generado"] is None
+    assert llamadas_generar == []  # el LLM nunca se invocó: cortó el filtro NL
 
 
 def test_happy_path_por_el_seam_di(client: TestClient) -> None:

@@ -1,0 +1,67 @@
+# ═══════════════════════════════════════════════════════════════════════════
+# ruff.toml — Gate de lint del proyecto FARO
+# ═══════════════════════════════════════════════════════════════════════════
+# CI corre `ruff check .` sobre TODO el repo (.github/workflows/ci.yml, job
+# "Calidad de codigo y vault"). El PR #165 (US-523b) quita el `|| true` de ese
+# paso: a partir de ahí, si ruff encuentra errores, BLOQUEA el merge.
+#
+# Sin esta configuración, `ruff check .` reporta 58 errores preexistentes en `main`
+# y #165 la pondría en rojo. De esos 58, **21 son B008** (function-call-in-default-
+# argument) dentro de `src/api/`: son `Depends()` / `Query()` de FastAPI en argumentos
+# por defecto —el idioma estándar del framework, no deuda—, así que se ignoran SOLO
+# ahí. Endurecer el gate sin esta config obligaría a mutilar los endpoints.
+#
+# ── Por qué NO fijamos [lint].select ────────────────────────────────────────
+# Heredamos el ruleset DEFAULT de ruff, que es EXACTAMENTE lo que corre hoy en CI
+# (`ruff check .` → esos 58). Fijar un `select` propio arriesga activar reglas más
+# estrictas que el default (E402/E731/E741/B007/B905…) e introducir hallazgos nuevos
+# que hoy no existen: probado y descartado. Solo exoneramos, no ampliamos.
+#   Riesgo conocido (fuera de este PR): CI instala `ruff` sin fijar versión; si un
+#   release futuro cambia el default, el set puede moverse. Endurecerlo (fijar versión
+#   de ruff, o `select` explícito tras limpiar la deuda) es trabajo de una fase 2.
+#
+# ── Por qué NO fijamos target-version ────────────────────────────────────────
+# Dejarlo en el default conservador de ruff (no asume py3.11) evita activar reglas
+# de modernización UP solo-py3.11 —p.ej. UP017 `timezone.utc` -> `datetime.UTC`—, que
+# hoy sumarían ~29 hallazgos de estilo NUEVOS en código preexistente de varias células
+# (probado). El proyecto ES py3.11 (Dockerfile), pero eso no cambia el núcleo E9/F/B
+# que este gate hace cumplir; adoptar esas modernizaciones es trabajo de fase 2.
+#
+# ── Fase 1 (ESTA config): gate en VERDE sin tocar código de nadie ────────────
+# Se exonera POR CARPETA la deuda de estilo/opinión preexistente, para no editar
+# archivos de otras células (§4 de la remediación). Cada exoneración es deuda
+# EXPLÍCITA y con dueño; la fase 2 la limpia y sube la regla al gate. Reglas:
+#   I001   import-sorting            · DTZ001/005/011 datetime sin tz (REVISAR: Airflow)
+#   EXE001 shebang no ejecutable     · SIM115 open sin context manager
+#   UP045  Optional -> X | None      · RUF013 implicit-Optional · RUF100 noqa sin uso
+# El detalle por archivo/dueño vive en el DevLog y en el reporte de consolidación.
+
+[lint.per-file-ignores]
+
+# ── src/api (MÍO) ── 26 hallazgos ────────────────────────────────────────────
+# B008 es PERMANENTE: idioma FastAPI (Depends/Query en defaults), no deuda.
+# I001/DTZ005/RUF100 son deuda mía de fase 2 (no los "arreglo" aquí para no meter
+# cambios de comportamiento —DTZ005 son timestamps de respuesta en main.py:66,88—
+# ni ampliar este PR de solo-config más allá del gate).
+"src/api/**" = ["B008", "DTZ005", "I001", "RUF100"]
+
+# ── dags (Carril A / Airflow) ── 13 ──────────────────────────────────────────
+# DTZ001: `datetime()` sin tzinfo en 6 DAGs. REVISAR en fase 2: Airflow es sensible
+# a la zona horaria del schedule; puede ser latente, no solo estilo.
+"dags/**" = ["I001", "DTZ001"]
+
+# ── _Meta/scripts (tooling del vault) ── 9 ───────────────────────────────────
+# SIM115: posible fuga de descriptor en vault_lint.py:118 — vale revisarla en fase 2.
+"_Meta/**" = ["I001", "EXE001", "DTZ011", "SIM115"]
+
+# ── scripts (apoyo) ── 2 ──────────────────────────────────────────────────────
+"scripts/**" = ["I001", "EXE001"]
+
+# ── src/frontend ── 2 ──────────────────────────────────────────────────────────
+"src/frontend/**" = ["I001", "UP045"]
+
+# ── src/ingesta (Carril A) ── 3 ────────────────────────────────────────────────
+"src/ingesta/**" = ["I001", "RUF013"]
+
+# ── tests ── 3 (I001 en 2 archivos de Carril A + 1 de ML) ──────────────────────
+"tests/**" = ["I001"]

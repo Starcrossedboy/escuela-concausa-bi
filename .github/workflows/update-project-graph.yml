@@ -1,8 +1,11 @@
 name: Update Project Graph
 
-# Corre cuando un PR se acepta (merge a main) o manualmente.
-# NOTA: activar este workflow hasta que exista codigo real en src/.
-# Con el repo solo-documentacion no aporta valor y consume minutos de Actions.
+# Corre en cada merge a main que toque codigo/arquitectura, o manualmente.
+# NO commitea a main: la branch protection exige PR + revision de code owner
+# (DEC-003), asi que un push directo del bot siempre se rechaza (GH013). En su
+# lugar regenera el grafo, valida que no filtre secretos y lo publica como
+# artefacto descargable de Actions. El grafo versionado en graphify-out/ se
+# actualiza a mano por PR cuando se necesite.
 
 on:
   push:
@@ -15,7 +18,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: write
+  contents: read
 
 concurrency:
   group: project-graph
@@ -25,8 +28,6 @@ jobs:
   update-graph:
     runs-on: ubuntu-latest
     timeout-minutes: 15
-    # Evita ciclo infinito: ignora los commits del propio bot
-    if: "!contains(github.event.head_commit.message, 'update project graph')"
 
     steps:
       - uses: actions/checkout@v4
@@ -63,14 +64,17 @@ jobs:
           fi
           echo "OK"
 
-      - name: Commitear cambios del grafo
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add graphify-out/graph.json graphify-out/GRAPH_REPORT.md
-          if git diff --cached --quiet; then
-            echo "Sin cambios en el grafo"
-          else
-            git commit -m "docs: update project graph [skip ci]"
-            git push
-          fi
+      - name: Publicar grafo como artefacto descargable
+        # Sustituye al viejo `git push` a main (rechazado por la branch protection).
+        # Para actualizar el grafo versionado en el repo: regeneralo en local
+        # (`graphify . --code-only && graphify cluster-only .`) y subelo por PR.
+        uses: actions/upload-artifact@v4
+        with:
+          name: project-graph
+          path: |
+            graphify-out/graph.json
+            graphify-out/graph.html
+            graphify-out/GRAPH_REPORT.md
+            graphify-out/manifest.json
+          retention-days: 30
+          if-no-files-found: error

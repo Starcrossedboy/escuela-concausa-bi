@@ -266,6 +266,14 @@ models:
         data_tests:
           - not_null
 
+      - name: matricula_ciclo_anterior
+        description: >
+          Matrícula del ciclo anterior del mismo cct, alumnos absolutos (BUG-031, 2026-08-31).
+          Componente aditivo para que C2 arme razones de suma en lugar de promedios ponderados
+          de una columna que no es razón.
+        data_tests:
+          - not_null
+
       - name: variacion_matricula
         data_tests:
           - not_null

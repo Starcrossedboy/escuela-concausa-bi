@@ -59,7 +59,8 @@ def build_schema(conn: sqlite3.Connection) -> None:
             id_ciclo INTEGER NOT NULL REFERENCES dim_tiempo(id_ciclo),
             cve_mun TEXT NOT NULL REFERENCES dim_municipio(cve_mun),
             matricula_total INTEGER NOT NULL,
-            variacion_matricula REAL NOT NULL,
+            matricula_ciclo_anterior INTEGER NOT NULL,  -- denominador directo de KPI-02 (BUG-031)
+            variacion_matricula REAL NOT NULL,          -- alumnos absolutos = total - anterior
             PRIMARY KEY (cct, id_ciclo)
         );
 
@@ -109,11 +110,17 @@ def seed(conn: sqlite3.Connection) -> None:
 
     for id_ciclo, _ in enumerate(CICLOS, start=1):
         for cct, _nivel, _sost, cve_mun in escuelas:
-            matricula = random.randint(80, 900)
-            variacion = round(random.uniform(-0.15, 0.10), 4)
+            # Tras BUG-031 el fact guarda alumnos ABSOLUTOS, no una fracción: se genera la
+            # matrícula del ciclo anterior como base y la del ciclo actual aplicándole una
+            # tasa realista (±15/10 %); variacion_matricula es la diferencia en alumnos.
+            # KPI-02 = SUM(matricula_total)/SUM(matricula_ciclo_anterior)-1 cae así en [-1, 1].
+            matricula_anterior = random.randint(80, 900)
+            tasa = random.uniform(-0.15, 0.10)
+            matricula = max(1, round(matricula_anterior * (1 + tasa)))
+            variacion = matricula - matricula_anterior
             cur.execute(
-                "INSERT INTO fact_escuela_ciclo VALUES (?, ?, ?, ?, ?)",
-                (cct, id_ciclo, cve_mun, matricula, variacion),
+                "INSERT INTO fact_escuela_ciclo VALUES (?, ?, ?, ?, ?, ?)",
+                (cct, id_ciclo, cve_mun, matricula, matricula_anterior, variacion),
             )
 
             # ML-01 aún no puntúa a todas las escuelas (llega en S4) -> SIN_DATO real.

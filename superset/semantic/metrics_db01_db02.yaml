@@ -71,7 +71,7 @@ datasets:
         kpi: KPI-01
       - nombre: variacion_ponderada_pct
         etiqueta: "Variación de matrícula"
-        expresion: "SUM(variacion_x_matricula) / NULLIF(SUM(matricula_total), 0)"
+        expresion: "SUM(matricula_total) / NULLIF(SUM(suma_matricula_anterior), 0) - 1"
         formato: porcentaje_1
         kpi: KPI-02
       - nombre: completitud_promedio
@@ -174,7 +174,7 @@ datasets:
         kpi: KPI-01
       - nombre: variacion_ponderada_pct
         etiqueta: "Variación de matrícula"
-        expresion: "SUM(variacion_x_matricula) / NULLIF(SUM(matricula_total), 0)"
+        expresion: "SUM(matricula_total) / NULLIF(SUM(suma_matricula_anterior), 0) - 1"
         formato: porcentaje_1
         kpi: KPI-02
 

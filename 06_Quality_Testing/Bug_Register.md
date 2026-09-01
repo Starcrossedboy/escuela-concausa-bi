@@ -46,6 +46,7 @@ tags: [qa, bugs]
 | BUG-030 | **El esquema real de DS-06 no es el que `silver/agua_region.sql` espera, y el riesgo no es que D5 siga en `SIN_DATO` sino que alguien lo saque con la columna equivocada.** El extractor entrega `id_presa, nombre_oficial, corriente, estado, anio_term, alt_cort, cap_name, cap_namo`; el modelo espera `id_punto, region_hidrologica, latitud, longitud, indicador, valor, fecha`. **Ninguna de las cuatro columnas que importan existe** — no es renombrar, son dos estructuras distintas. Dos huecos: (1) sin `lat`/`lon` no hay interpolación IDW, que `Data_Model.md` §3 exige para D5; (2) `cap_name`/`cap_namo` son la **capacidad máxima** de la presa, no el volumen actual, así que conectarlas produciría un indicador constante en el tiempo que mide el tamaño de la presa y no la disponibilidad hídrica — un número creíble y falso, misma familia que el `indice_riesgo` saturado y el `*100`. Hoy no rompe nada porque BUG-009 mantiene el identifier falso y D5 sigue `SIN_DATO` explícito. Reportado por Diana Alvarez (C1) el 30-ago al revisar los metadatos de DS-06/DS-08, que **sí** están limpios | high | open | US-122a / US-112 / REQ-001 / DS-06 | pendiente (**C1 + Emilio Galnares**) — la solución ya está documentada en la ficha DS-06 §64-70 (endpoint «Detalle por presa: Presa, Año, Vol. de almacenamiento (hm3) — SERIE DE TIEMPO») y §74 (georreferencia vía datos.gob.mx). El extractor de US-122a jaló el listado general porque eso pedía la historia. **Decisión pendiente del PM:** ampliar el extractor, o documentar D5 como cobertura parcial explícita para la demo | — (propuesto: aserción de contrato entre las columnas de `bronze.conagua` y las que `agua_region.sql` consume) |
 | BUG-031 | **KPI-02 «Variación de matrícula» pinta −54.5 % donde el valor real es −0.19 %, en SEIS tableros: DB-01, DB-02, DB-03, DB-04, DB-06 y DB-09.** La métrica es `SUM(variacion_matricula * matricula_total) / NULLIF(SUM(matricula_total), 0)` con `formato: porcentaje_1`, es decir un **promedio ponderado de razones**… salvo que `variacion_matricula` no es una razón: `fact_escuela_ciclo.sql` la produce como `matricula_total - matricula_ciclo_anterior`, **alumnos absolutos** (rango observado −24 a 24). El resultado se renderiza como porcentaje, que multiplica por 100 otra vez. Verificado contra Postgres: 32 312 alumnos contra 32 374 del ciclo anterior = **−0.19 %**; los dos tableros dicen **−54.5 %**, factor 287 | **critical** | open | US-203 / US-204 / US-211a / US-212 / US-221 / REQ-002 / AC-002.4 | **C1 (Diana Alvarez) fixed** — `matricula_ciclo_anterior` expuesta en `fact_escuela_ciclo.sql`, `cubo_escuela_360.sql`, `cubo_comparador_municipio.sql` y, ampliando el alcance tras encontrar el mismo defecto en el repo, también `cubo_matricula.sql` (DB-01/DB-06) y `cubo_riesgo_territorial.sql` (DB-02) — rama `fix/diana-varela-bug031-matricula-anterior`, verificado contra Postgres real (`dbt run --full-refresh` + `dbt test`, `cubo_matricula_fact_parity` y `not_null_fact_escuela_ciclo_matricula_ciclo_anterior` en verde). Pendiente **C2 · Manuel Serranía**: migrar `metrics_db01_db02.yaml`, `metrics_db03_db04.yaml`, `metrics_db06_db09.yaml` a razón de sumas y retirar `variacion_x_matricula` + las dos aserciones que la exigen (`test_semantic_db01_db02.py`, `test_semantic_db06_db09.py`) — el origen es §4.4 de [[04_UX_Design/Cube_Specs_DB03_DB04]]: Marina especificó el componente aditivo y Deni Garrido lo implementó fielmente; la implementación es correcta, la especificación no | `tests/test_semantic_db03_db04.py::test_una_metrica_de_porcentaje_no_multiplica_dos_medidas` |
 | BUG-032 | `Data_Model.md` se contradice a sí mismo sobre dónde vive `indice_riesgo`: la línea 181 (§4.5) describe correctamente `valor` (variación cruda) e `indice_riesgo` como **columnas distintas** —que es lo implementado y lo que consume la API—, pero la nota de la línea 313 afirma que `indice_riesgo` vive *"en la columna `valor`"*. Quien lea §5.3 consultaría `valor` esperando un `[0,1]` y recibiría la variación cruda, hoy en alumnos absolutos: números como `-20` donde espera `0.6` | medium | open | US-313 / US-411 / REQ-003 | — | Diana Alvarez (C1) | ver detalle |
+| BUG-033 | El workflow **"Update Project Graph"** falla en **cada** merge a `main`: su paso final regenera `graphify-out/` y hace `git commit` + `git push` **directo a `main`**, que la branch protection rechaza (`GH013` — exige PR + revisión de code owner, DEC-003). Ningún commit del bot entró nunca; el grafo versionado solo se actualiza a mano. No bloquea merges (no es required check) pero deja **rojo cada run** y el grafo desactualizado desde el 25-ago | low | fixed | REQ-007 | `fix/luis-tellez-bug033-update-graph-artifact` (Luis Téllez, **C5**) — el workflow deja de commitear a main y **publica el grafo como artefacto de Actions**; `permissions` baja a `contents: read` | `workflow_dispatch` sobre la rama: el run genera el artefacto sin intentar push (ver detalle) |
 
 ## BUG-016 — Filas sin ningún driver rompían la publicación de ML-02
 
@@ -1225,3 +1226,76 @@ aditivo, no toca ese filtro ni ningún JOIN). Sigue pendiente C2 (ver arriba).
 puede multiplicar dos columnas de medida dentro de un agregado. Ese producto es la firma del defecto
 —delata que se está promediando una razón que no es razón— y es verificable sin base de datos. Se
 conserva la prueba del `* 100`.
+
+## BUG-033 — «Update Project Graph» falla en cada merge por push directo a `main`
+
+| | |
+|---|---|
+| **Severidad** | low — no bloquea merges (no es required check); deja rojo cada run y el grafo desactualizado |
+| **Estado** | `fixed` |
+| **Detectado** | 2026-08-31, revisando por qué todos los merges recientes marcan un check en rojo |
+| **Owner** | **Célula 5** (`.github/workflows/`) — Luis Téllez |
+| **traces_up** | REQ-007 |
+
+### Qué pasa
+
+`.github/workflows/update-project-graph.yml` corre en cada `push` a `main` que toque
+`src/`, `dbt/`, `dags/` o `03_Architecture/`. Su último paso regeneraba el grafo y lo subía a `main`:
+
+```
+git add graphify-out/graph.json graphify-out/GRAPH_REPORT.md
+git commit -m "docs: update project graph [skip ci]"
+git push
+```
+
+La branch protection de `main` rechaza el push (log del run `33470181062`):
+
+```
+remote: error: GH013: Repository rule violations found for refs/heads/main
+- Changes must be made through a pull request.
+- 2 of 2 required status checks are expected.
+! [remote rejected] main -> main (push declined due to repository rule violations)
+```
+
+### Causa raíz
+
+El workflow presupone que puede escribir a `main` con el `GITHUB_TOKEN`, pero las repository rules
+exigen **PR + 1 aprobación de code owner** (`* @edgarcoroneln`, DEC-003) y 2 status checks. Un push
+directo del bot es exactamente lo que esas reglas prohíben (regla 5 del vault). Confirmado: **no
+existe ni un commit del bot** en el historial — el auto-refresh nunca funcionó desde que se activó;
+el grafo versionado se actualizó siempre a mano (último cambio: `86fc37c`, 25-ago, en un commit de
+feature humano).
+
+### Por qué no se resuelve dándole push al bot
+
+Lograr un push realmente automático exigiría **debilitar la branch protection** (agregar el bot o un
+PAT/GitHub App a la bypass-list del ruleset) o abrir **un PR-de-bot por cada merge** que solo el PM
+—code owner único— podría aprobar y mergear. Ambas requieren decisión de Edgar (regla 7) y tienen
+mala relación costo/beneficio para un artefacto derivado que se regenera con dos comandos. Se
+descartaron a favor de no escribir a `main` en absoluto.
+
+### Fix
+
+El workflow deja de commitear. Regenera el grafo, valida que no filtre secretos y lo **publica como
+artefacto descargable de Actions** (`actions/upload-artifact@v4`, 30 días). Cambios:
+
+- se elimina el paso `git commit`/`git push`;
+- `permissions` baja de `contents: write` a `contents: read` (mínimo privilegio: ya solo hace checkout);
+- se retira el guard anti-ciclo `if: !contains(... 'update project graph')`, que solo existía para
+  no re-disparar el commit del bot que ya no ocurre.
+
+El grafo versionado en `graphify-out/` se sigue actualizando a mano por PR cuando haga falta
+(`graphify . --code-only && graphify cluster-only .`). No se toca la lógica de generación.
+
+### Test de regresión
+
+No hay prueba unitaria de workflows. Verificación: disparar el workflow con `workflow_dispatch` sobre
+la rama del fix y confirmar que el run **termina en verde** y publica el artefacto `project-graph`
+**sin intentar ningún push**. Cierre definitivo: el primer merge a `main` que toque los paths ya no
+deja el check en rojo.
+
+### Nota
+
+Los dos checks **requeridos** por `main` son «Calidad de codigo y vault» y «Generar y validar
+tablero PM» — viven en `ci.yml` y `pm-dashboard.yml`, no en este workflow, así que el cambio no los
+altera. («Contrato dbt» corre en cada PR pero **no** es required.)

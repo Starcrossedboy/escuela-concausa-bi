@@ -51,11 +51,14 @@ Carpetas de soporte: `_Templates` (plantillas), `_DevLog` (bitácora única), `_
 
 **API Principal:** [https://faro-api-eanzfglvyq-uc.a.run.app](https://faro-api-eanzfglvyq-uc.a.run.app)
 
-**Endpoints disponibles:**
-- `GET /` — Hello World from FARO
-- `GET /health` — Health check
-- `GET /info` — Información del proyecto
-- `GET /docs` — Documentación interactiva (Swagger UI)
+**Endpoints disponibles** (todos bajo el prefijo `/api/v1/`):
+- `GET /api/v1/health` — Health check
+- `GET /api/v1/version` — Versión de la API (`api`, `commit`)
+- `GET /api/v1/kpis` — KPIs del tablero
+- `GET /api/v1/escuelas` · `GET /api/v1/escuelas/{cct}` — Escuelas
+- `GET /api/v1/municipios` · `GET /api/v1/municipios/{cve_mun}` — Municipios
+- `GET /api/v1/predicciones/{cct}` — Predicción de matrícula de una escuela
+- `GET /api/v1/docs` — Documentación interactiva (Swagger UI) con el catálogo completo
 
 **Infraestructura:**
 - Platform: Google Cloud Run
@@ -67,10 +70,10 @@ Carpetas de soporte: `_Templates` (plantillas), `_DevLog` (bitácora única), `_
 **Deploy manual:**
 ```bash
 # Build y push
-./infra/build-and-push.sh v0.1.0-s1
+./08_CICD_DevOps/scripts/build-and-push.sh v0.1.0-s1
 
 # Deploy a Cloud Run
-./infra/deploy-cloud-run.sh v0.1.0-s1
+./08_CICD_DevOps/scripts/deploy-cloud-run.sh v0.1.0-s1
 ```
 
 Ver procedimiento completo: [[08_CICD_DevOps/Cloud_Run_Deploy]]

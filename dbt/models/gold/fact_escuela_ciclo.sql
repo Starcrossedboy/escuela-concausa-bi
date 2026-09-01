@@ -218,7 +218,8 @@ escuela_geo as (
 ),
 
 -- Haversine: distancia en km entre cada escuela georreferenciada y cada estación con PM2.5
--- válido. cross join es barato aquí: decenas de escuelas x un puñado de estaciones.
+-- válido. El join se acota por caja geográfica (ver el `join ... between` de abajo) para no
+-- materializar el producto cruzado completo cuando entren los datos reales.
 distancias_aire as (
 
     select
@@ -230,7 +231,14 @@ distancias_aire as (
             + sin(radians(e.latitud)) * sin(radians(a.latitud))
         ))) as distancia_km
     from escuela_geo e
-    cross join aire_pm25 a
+    -- Acota por caja de ±0.2° lat/lon ANTES del Haversine: con datos reales el producto cruzado
+    -- (~230 000 escuelas × 384 estaciones ≈ 88 M de pares) no termina. La caja es un superconjunto
+    -- EXACTO del disco de 15 km en todo México (a 33°N, 0.2° de longitud ≈ 18.7 km > 15 km), así
+    -- que el `where distancia_km <= 15` de dentro_radio_aire da un resultado idéntico al del cross
+    -- join, evaluando muchísimos menos pares.
+    join aire_pm25 a
+        on a.latitud between e.latitud - 0.2 and e.latitud + 0.2
+        and a.longitud between e.longitud - 0.2 and e.longitud + 0.2
 
 ),
 

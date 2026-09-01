@@ -276,7 +276,14 @@ distancias_aire as (
             + sin(radians(e.latitud)) * sin(radians(a.latitud))
         ))) as distancia_km
     from escuela_geo e
-    cross join aire_pm25 a
+    -- Acota por caja de ±0.2° lat/lon ANTES del Haversine: con datos reales el producto cruzado
+    -- (~230 000 escuelas × 384 estaciones ≈ 88 M de pares) no termina. La caja es un superconjunto
+    -- EXACTO del disco de 15 km en todo México (a 33°N, 0.2° de longitud ≈ 18.7 km > 15 km), así
+    -- que el `where distancia_km <= 15` de dentro_radio_aire da un resultado idéntico al del cross
+    -- join, evaluando muchísimos menos pares.
+    join aire_pm25 a
+        on a.latitud between e.latitud - 0.2 and e.latitud + 0.2
+        and a.longitud between e.longitud - 0.2 and e.longitud + 0.2
 
 ),
 
@@ -366,6 +373,14 @@ ensamblado as (
 --   3. Si ninguna fila tiene un driver elegible, driver_dominante queda NULL (nunca un driver
 --      artificial) -- LEFT JOIN LATERAL preserva la fila con NULL cuando la subconsulta no
 --      devuelve nada.
+--   4. D3 (infraestructura) y D4 (conectividad) miden SERVICIOS PRESENTES: suben cuando la
+--      escuela está MEJOR, al revés que D1/D2/D6 (que suben cuando la situación empeora). Para
+--      que el argmax corone al driver que más PRESIONA (la peor situación) y no al mejor
+--      servicio, D3 y D4 entran al argmax INVERTIDOS como (1 - valor). Esto SOLO afecta la
+--      elección del dominante; las columnas publicadas d3_infraestructura/d4_conectividad
+--      conservan su escala original (P-05, 2026-08-31). Mismo arreglo en
+--      generar_driver_dominante_proxy() de entrenar_ml02.py y en el perfilado de
+--      clústers de entrenar_ml03.py.
 con_driver_dominante as (
 
     select
@@ -379,8 +394,11 @@ con_driver_dominante as (
             array[
                 case when e.d1_cobertura = 'OK' then e.d1_pobreza::double precision end,
                 case when e.d2_cobertura = 'OK' then e.d2_inseguridad::double precision end,
-                case when e.d3_cobertura = 'OK' then e.d3_infraestructura::double precision end,
-                case when e.d4_cobertura = 'OK' then e.d4_conectividad::double precision end,
+                -- D3/D4 invertidos (1 - valor): miden servicios presentes (alto = mejor); el
+                -- argmax busca el driver que MÁS presiona, así que entra su complemento. Solo
+                -- afecta la elección del dominante, no las columnas publicadas (regla 4, P-05).
+                case when e.d3_cobertura = 'OK' then (1 - e.d3_infraestructura)::double precision end,
+                case when e.d4_cobertura = 'OK' then (1 - e.d4_conectividad)::double precision end,
                 case when e.d5_cobertura = 'OK' then e.d5_agua::double precision end,
                 case when e.d6_cobertura = 'OK' then e.d6_aire::double precision end
             ]

@@ -233,10 +233,13 @@ class RepositorioGoldPostgres:
     @staticmethod
     def _municipio_dict(fila) -> dict:
         """`gold.dim_municipio.poblacion` es `numeric` en Postgres (llega como `Decimal` por
-        SQLAlchemy); `MunicipioOut.poblacion` es `StrictInt` — se normaliza aquí, en la frontera
-        con la BD, en vez de relajar el contrato."""
+        SQLAlchemy); `MunicipioOut.poblacion` es `StrictInt | None` — se normaliza aquí, en la
+        frontera con la BD, en vez de relajar el contrato. El NULL es legítimo (SIN_DATO, P-03):
+        con el universo INEGI de municipios, los que no tienen fila CONAPO llegan sin población;
+        se preserva el `None` explícito en vez de coaccionar `int(None)` (que rompía con 500)."""
         datos = dict(fila)
-        datos["poblacion"] = int(datos["poblacion"])
+        poblacion = datos["poblacion"]
+        datos["poblacion"] = int(poblacion) if poblacion is not None else None
         return datos
 
     def obtener_kpis(

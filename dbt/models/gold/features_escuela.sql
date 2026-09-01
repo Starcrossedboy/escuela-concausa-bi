@@ -157,34 +157,81 @@ d1 as (
 
 ),
 
--- D2: inseguridad, SESNSP por municipio. Suma de todos los delitos disponibles (todavía
--- sin alinear meses al ciclo escolar; simplificación a refinar cuando haya datos reales)
+-- D2: inseguridad, SESNSP por municipio.
+-- FIX (P-10, 2026-08-31, Luis): antes se normalizaba min-max sobre `sum(conteo)` CRUDO, así que
+-- el índice ordenaba TAMAÑO de municipio (más habitantes -> más delitos absolutos), no
+-- inseguridad. Ahora se convierte a una TASA comparable ANTES de normalizar: delitos por 100 000
+-- habitantes y por mes observado. Se divide entre la población municipal (DS-08 CONAPO, sumada
+-- sobre grupo_edad y último año disponible, mismo criterio que dim_municipio.sql) y entre los
+-- meses con datos de ese municipio (así un municipio con 12 meses observados no se ve "más
+-- inseguro" que uno con 3 sólo por acumular más meses). El factor 100 000 es cosmético: el
+-- min-max es invariante a un escalado positivo constante -- no cambia d2_inseguridad, sólo hace
+-- legible la tasa intermedia. Un municipio sin población CONAPO -> SIN_DATO explícito (nunca cero
+-- ni tasa silenciosa), mismo criterio que D1 con rezago. Sigue sin alinear meses al ciclo escolar
+-- (simplificación documentada, a refinar cuando haya datos reales).
+poblacion_municipal as (
+
+    -- Población total del municipio: se suma sobre grupo_edad y se toma el último año disponible
+    -- (mismo criterio que dim_municipio.sql).
+    select cve_mun, poblacion_anio as poblacion
+    from (
+        select
+            cve_mun,
+            anio,
+            sum(poblacion) as poblacion_anio,
+            max(anio) over (partition by cve_mun) as anio_max
+        from {{ ref('poblacion_municipio') }}
+        group by cve_mun, anio
+    ) t
+    where anio = anio_max
+
+),
+
 delitos_por_municipio as (
 
-    select cve_mun, sum(conteo) as conteo_total
+    select
+        cve_mun,
+        sum(conteo) as conteo_total,
+        count(distinct (anio, mes)) as meses_con_datos
     from {{ ref('delitos_municipio') }}
     group by cve_mun
 
 ),
 
+delitos_tasa as (
+
+    -- delitos por 100 000 habitantes por mes observado; NULL = SIN_DATO (sin población o sin meses)
+    select
+        d.cve_mun,
+        case
+            when p.poblacion > 0 and d.meses_con_datos > 0
+                then d.conteo_total * 100000.0 / p.poblacion / d.meses_con_datos
+        end as tasa
+    from delitos_por_municipio d
+    left join poblacion_municipal p on p.cve_mun = d.cve_mun
+
+),
+
 delitos_rango as (
 
-    select min(conteo_total) as min_val, max(conteo_total) as max_val
-    from delitos_por_municipio
+    select min(tasa) as min_val, max(tasa) as max_val
+    from delitos_tasa
+    where tasa is not null
 
 ),
 
 d2 as (
 
     select
-        d.cve_mun,
+        t.cve_mun,
         case
+            when t.tasa is null then null
             when dr.max_val > dr.min_val
-                then (d.conteo_total - dr.min_val) / cast(dr.max_val - dr.min_val as double precision)
+                then (t.tasa - dr.min_val) / cast(dr.max_val - dr.min_val as double precision)
             else 0.5
         end as d2_inseguridad,
-        'OK' as d2_cobertura
-    from delitos_por_municipio d
+        case when t.tasa is null then 'SIN_DATO' else 'OK' end as d2_cobertura
+    from delitos_tasa t
     cross join delitos_rango dr
 
 ),

@@ -1,8 +1,8 @@
 {
   "meta": {
-    "generated_at": "2026-09-01T15:22:41+00:00",
+    "generated_at": "2026-09-01T17:05:50+00:00",
     "generated_date": "2026-09-01",
-    "commit": "e39b80f",
+    "commit": "bd8742e",
     "branch": "main",
     "working_tree": "clean",
     "source_fingerprint": "c577e34b9d15",
@@ -2173,9 +2173,9 @@
         "US-504",
         "US-505"
       ],
-      "pr_count": 28,
+      "pr_count": 29,
       "pr_open": 2,
-      "pr_merged": 25,
+      "pr_merged": 26,
       "stories": 5,
       "done": 3,
       "wip": 2,
@@ -2967,8 +2967,8 @@
         "name": "Luis Téllez Domínguez",
         "cell": "Célula 5",
         "engagement": 74.0,
-        "commits": 45,
-        "prs_merged": 25,
+        "commits": 46,
+        "prs_merged": 26,
         "prs_open": 2,
         "risk": "en_tiempo",
         "by_sprint": {
@@ -3213,7 +3213,7 @@
         "name": "Edgar Edmundo Coronel Navarrete",
         "cell": "PO",
         "engagement": 60.8,
-        "commits": 314,
+        "commits": 315,
         "prs_merged": 24,
         "prs_open": 1,
         "risk": "retraso",
@@ -3594,6 +3594,17 @@
         "signal": "24 PR · 35 DevLog · 4 US activas"
       },
       {
+        "name": "Luis Téllez Domínguez",
+        "cell": "Célula 5",
+        "cell_group": "Célula 5 · Cloud Infrastructure & DevOps",
+        "active": true,
+        "prs_merged": 26,
+        "devlogs": 17,
+        "active_us": 5,
+        "activity": 48,
+        "signal": "26 PR · 17 DevLog · 5 US activas"
+      },
+      {
         "name": "Héctor Rafael Morales Marbán",
         "cell": "Célula 3",
         "cell_group": "Célula 3 · Machine Learning & Agente IA",
@@ -3603,17 +3614,6 @@
         "active_us": 3,
         "activity": 47,
         "signal": "19 PR · 25 DevLog · 3 US activas"
-      },
-      {
-        "name": "Luis Téllez Domínguez",
-        "cell": "Célula 5",
-        "cell_group": "Célula 5 · Cloud Infrastructure & DevOps",
-        "active": true,
-        "prs_merged": 25,
-        "devlogs": 16,
-        "active_us": 5,
-        "activity": 46,
-        "signal": "25 PR · 16 DevLog · 5 US activas"
       },
       {
         "name": "Diana Aracely Alvarez Varela",
@@ -4508,9 +4508,21 @@
   "git_activity": {
     "available": true,
     "repository": "edgarcoroneln/escuela-concausa-bi",
-    "generated_at": "2026-09-01T15:22:41+00:00",
+    "generated_at": "2026-09-01T17:05:50+00:00",
     "scope": "Todos los PR del repositorio, hasta 2,000 por ejecución",
     "prs": [
+      {
+        "number": 182,
+        "title": "fix(tests): fixtures_gold calcula KPI-02 como razón de sumas, no promedio ponderado (BUG-031)",
+        "state": "merged",
+        "author": "LuisTellez03",
+        "created_at": "2026-09-01T16:52:57Z",
+        "merged_at": "2026-09-01T17:04:46Z",
+        "url": "https://github.com/edgarcoroneln/escuela-concausa-bi/pull/182",
+        "story_ids": [
+          "US-411"
+        ]
+      },
       {
         "number": 181,
         "title": "chore(ci): ruff.toml deja el gate de lint en verde sin mutilar la API (US-523b)",
@@ -6995,13 +7007,13 @@
     "commits": [
       {
         "author": "edgarcoroneln",
-        "count": 314,
-        "last_at": "2026-09-01T15:21:55Z"
+        "count": 315,
+        "last_at": "2026-09-01T17:04:45Z"
       },
       {
         "author": "github-actions[bot]",
-        "count": 128,
-        "last_at": "2026-09-01T13:56:05Z"
+        "count": 129,
+        "last_at": "2026-09-01T15:22:41Z"
       },
       {
         "author": "DianaVarela96",
@@ -7010,8 +7022,8 @@
       },
       {
         "author": "LuisTellez03",
-        "count": 45,
-        "last_at": "2026-09-01T14:57:19Z"
+        "count": 46,
+        "last_at": "2026-09-01T16:51:47Z"
       },
       {
         "author": "hector677-mm",
@@ -7104,12 +7116,42 @@
         "name": "CI",
         "status": "in_progress",
         "conclusion": null,
-        "url": "https://github.com/edgarcoroneln/escuela-concausa-bi/actions/runs/33525288048"
+        "url": "https://github.com/edgarcoroneln/escuela-concausa-bi/actions/runs/33535641927"
       },
       {
         "name": "Refresh PM Dashboard",
         "status": "in_progress",
         "conclusion": null,
+        "url": "https://github.com/edgarcoroneln/escuela-concausa-bi/actions/runs/33535641858"
+      },
+      {
+        "name": "PM Dashboard",
+        "status": "completed",
+        "conclusion": "success",
+        "url": "https://github.com/edgarcoroneln/escuela-concausa-bi/actions/runs/33534462399"
+      },
+      {
+        "name": "CI",
+        "status": "completed",
+        "conclusion": "success",
+        "url": "https://github.com/edgarcoroneln/escuela-concausa-bi/actions/runs/33534462383"
+      },
+      {
+        "name": "PR Quality Gate",
+        "status": "completed",
+        "conclusion": "success",
+        "url": "https://github.com/edgarcoroneln/escuela-concausa-bi/actions/runs/33534462339"
+      },
+      {
+        "name": "CI",
+        "status": "completed",
+        "conclusion": "success",
+        "url": "https://github.com/edgarcoroneln/escuela-concausa-bi/actions/runs/33525288048"
+      },
+      {
+        "name": "Refresh PM Dashboard",
+        "status": "completed",
+        "conclusion": "success",
         "url": "https://github.com/edgarcoroneln/escuela-concausa-bi/actions/runs/33525288046"
       },
       {
@@ -7189,36 +7231,6 @@
         "status": "completed",
         "conclusion": "success",
         "url": "https://github.com/edgarcoroneln/escuela-concausa-bi/actions/runs/33477757712"
-      },
-      {
-        "name": "CI",
-        "status": "completed",
-        "conclusion": "success",
-        "url": "https://github.com/edgarcoroneln/escuela-concausa-bi/actions/runs/33474687193"
-      },
-      {
-        "name": "Refresh PM Dashboard",
-        "status": "completed",
-        "conclusion": "success",
-        "url": "https://github.com/edgarcoroneln/escuela-concausa-bi/actions/runs/33474687183"
-      },
-      {
-        "name": "Update Project Graph",
-        "status": "completed",
-        "conclusion": "success",
-        "url": "https://github.com/edgarcoroneln/escuela-concausa-bi/actions/runs/33474687099"
-      },
-      {
-        "name": "PM Dashboard",
-        "status": "completed",
-        "conclusion": "success",
-        "url": "https://github.com/edgarcoroneln/escuela-concausa-bi/actions/runs/33474455015"
-      },
-      {
-        "name": "CI",
-        "status": "completed",
-        "conclusion": "success",
-        "url": "https://github.com/edgarcoroneln/escuela-concausa-bi/actions/runs/33474454971"
       }
     ],
     "note": "Actividad agregada; no determina Done ni se usa como ranking individual."

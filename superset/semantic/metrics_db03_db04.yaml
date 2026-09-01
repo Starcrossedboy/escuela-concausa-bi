@@ -67,19 +67,18 @@ datasets:
         kpi: KPI-01
       - nombre: variacion_ponderada_pct
         etiqueta: "Variación de matrícula"
-        expresion: "SUM(matricula_total) / NULLIF(SUM(matricula_total - variacion_matricula), 0) - 1"
+        expresion: "SUM(matricula_total) * 1.0 / NULLIF(SUM(matricula_ciclo_anterior), 0) - 1"
         formato: porcentaje_1
         kpi: KPI-02
         nota: >
-          Razón de sumas, NO promedio ponderado de razones. La versión anterior era
-          SUM(variacion_matricula * matricula_total) / SUM(matricula_total), que trata
-          `variacion_matricula` como si fuera una fracción: son alumnos absolutos
-          (`matricula_total - matricula_ciclo_anterior`). Pintaba -54.5% donde el valor real
-          es -0.19%: BUG-031.
-          `matricula_total - variacion_matricula` es la matrícula del ciclo anterior. En cuanto
-          C1 exponga `matricula_ciclo_anterior` en el cubo (mismo PR de ADR-007), esta expresión
-          pasa a `SUM(matricula_total) / NULLIF(SUM(matricula_ciclo_anterior), 0) - 1` y deja de
-          depender de la unidad de ninguna columna de variación.
+          Razón de sumas, NO promedio ponderado de razones. Usa la columna directa
+          `matricula_ciclo_anterior`, que C1 ya expone en gold.cubo_escuela_360 (BUG-031, ADR-007);
+          antes se rodeaba con `matricula_total - variacion_matricula` porque la columna aún no
+          existía. La versión original —SUM(variacion_matricula * matricula_total) /
+          SUM(matricula_total)— trataba `variacion_matricula` como una fracción cuando son alumnos
+          absolutos (`matricula_total - matricula_ciclo_anterior`): pintaba -54.5% donde el valor
+          real es -0.19%. El `* 1.0` fuerza la división real (SUM(integer) es bigint y bigint/bigint
+          truncaría a entero) y es portable, sin meter un token de tipo en la expresión.
       - nombre: completitud_promedio
         etiqueta: "Completitud de drivers"
         expresion: "AVG(indice_completitud_drivers)"
@@ -159,14 +158,15 @@ datasets:
         expresion: "SUM(matricula_total)"
         formato: entero
         kpi: KPI-01
-      # RETIRADA por BUG-031 hasta que C1 exponga `suma_matricula_anterior` en el cubo.
-      # `variacion_x_matricula` es un producto ya ponderado: el numerador y el denominador
-      # reales no existen como columnas, así que esta métrica NO se puede corregir desde aquí.
-      # Se retira en vez de dejarla mal: pintaba -54.5% donde el valor real es -0.19%.
-      # Restituir como:
-      #   expresion: "SUM(matricula_total) / NULLIF(SUM(suma_matricula_anterior), 0) - 1"
-      #   formato: porcentaje_1
-      #   kpi: KPI-02
+      # RESTITUIDA (BUG-031/P-09): C1 ya expone `suma_matricula_anterior` en el cubo
+      # (SUM de matricula_ciclo_anterior, bigint). Razón de sumas, no promedio ponderado de
+      # razones: la versión con `variacion_x_matricula` pintaba -54.5% donde el real es -0.19%.
+      # No lleva `::numeric`: SUM(bigint) ya devuelve numeric, la división es real.
+      - nombre: variacion_ponderada_pct
+        etiqueta: "Variación de matrícula"
+        expresion: "SUM(matricula_total) / NULLIF(SUM(suma_matricula_anterior), 0) - 1"
+        formato: porcentaje_1
+        kpi: KPI-02
       - nombre: matricula_por_escuela
         etiqueta: "Matrícula por escuela"
         expresion: "SUM(matricula_total) / NULLIF(SUM(escuelas), 0)"

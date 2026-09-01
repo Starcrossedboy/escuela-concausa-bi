@@ -42,10 +42,15 @@ con_anterior as (
 
 base as (
 
+    -- FIX (2026-08-31, Diana/BUG-031): se expone matricula_ciclo_anterior -- ya se calculaba en
+    -- con_anterior pero se descartaba aquí. C2 (Marina/Manuel) lo necesita para corregir KPI-02
+    -- (DB-01/02/03/04/06/09) a razón de sumas -- SUM(matricula_total)/SUM(matricula_ciclo_anterior)
+    -- - 1 -- en vez del promedio ponderado de "alumnos absolutos" que hoy renderiza mal como %.
     select
         cct,
         id_ciclo,
         matricula_total,
+        matricula_ciclo_anterior,
         cast(matricula_total - matricula_ciclo_anterior as double precision)
             as variacion_matricula
     from con_anterior
@@ -63,15 +68,15 @@ escuela_scope as (
 
 con_municipio as (
 
-    select
+        select
         b.cct,
         b.id_ciclo,
         e.cve_mun,
         b.matricula_total,
+        b.matricula_ciclo_anterior,
         b.variacion_matricula
     from base b
     inner join escuela_scope e on e.cct = b.cct
-
 ),
 
 -- D3/D4: infraestructura y conectividad, CEMABE por CCT (ADR-005)
@@ -156,34 +161,81 @@ d1 as (
 
 ),
 
--- D2: inseguridad, SESNSP por municipio. Suma de todos los delitos disponibles (todavía
--- sin alinear meses al ciclo escolar; misma simplificación documentada en features_escuela)
+-- D2: inseguridad, SESNSP por municipio.
+-- FIX (P-10, 2026-08-31, Luis): antes se normalizaba min-max sobre `sum(conteo)` CRUDO, así que
+-- el índice ordenaba TAMAÑO de municipio (más habitantes -> más delitos absolutos), no
+-- inseguridad. Ahora se convierte a una TASA comparable ANTES de normalizar: delitos por 100 000
+-- habitantes y por mes observado. Se divide entre la población municipal (DS-08 CONAPO, sumada
+-- sobre grupo_edad y último año disponible, mismo criterio que dim_municipio.sql) y entre los
+-- meses con datos de ese municipio (así un municipio con 12 meses observados no se ve "más
+-- inseguro" que uno con 3 sólo por acumular más meses). El factor 100 000 es cosmético: el
+-- min-max es invariante a un escalado positivo constante -- no cambia d2, sólo hace legible la
+-- tasa intermedia. Un municipio sin población CONAPO -> SIN_DATO explícito (nunca cero ni tasa
+-- silenciosa), mismo criterio que D1 con rezago. Sigue sin alinear meses al ciclo escolar (misma
+-- simplificación documentada en features_escuela).
+poblacion_municipal as (
+
+    -- Población total del municipio: se suma sobre grupo_edad y se toma el último año disponible
+    -- (mismo criterio que dim_municipio.sql).
+    select cve_mun, poblacion_anio as poblacion
+    from (
+        select
+            cve_mun,
+            anio,
+            sum(poblacion) as poblacion_anio,
+            max(anio) over (partition by cve_mun) as anio_max
+        from {{ ref('poblacion_municipio') }}
+        group by cve_mun, anio
+    ) t
+    where anio = anio_max
+
+),
+
 delitos_por_municipio as (
 
-    select cve_mun, sum(conteo) as conteo_total
+    select
+        cve_mun,
+        sum(conteo) as conteo_total,
+        count(distinct (anio, mes)) as meses_con_datos
     from {{ ref('delitos_municipio') }}
     group by cve_mun
 
 ),
 
+delitos_tasa as (
+
+    -- delitos por 100 000 habitantes por mes observado; NULL = SIN_DATO (sin población o sin meses)
+    select
+        d.cve_mun,
+        case
+            when p.poblacion > 0 and d.meses_con_datos > 0
+                then d.conteo_total * 100000.0 / p.poblacion / d.meses_con_datos
+        end as tasa
+    from delitos_por_municipio d
+    left join poblacion_municipal p on p.cve_mun = d.cve_mun
+
+),
+
 delitos_rango as (
 
-    select min(conteo_total) as min_val, max(conteo_total) as max_val
-    from delitos_por_municipio
+    select min(tasa) as min_val, max(tasa) as max_val
+    from delitos_tasa
+    where tasa is not null
 
 ),
 
 d2 as (
 
     select
-        d.cve_mun,
+        t.cve_mun,
         case
+            when t.tasa is null then null
             when dr.max_val > dr.min_val
-                then (d.conteo_total - dr.min_val) / cast(dr.max_val - dr.min_val as double precision)
+                then (t.tasa - dr.min_val) / cast(dr.max_val - dr.min_val as double precision)
             else 0.5
         end as d2,
-        'OK' as d2_cobertura
-    from delitos_por_municipio d
+        case when t.tasa is null then 'SIN_DATO' else 'OK' end as d2_cobertura
+    from delitos_tasa t
     cross join delitos_rango dr
 
 ),
@@ -218,7 +270,8 @@ escuela_geo as (
 ),
 
 -- Haversine: distancia en km entre cada escuela georreferenciada y cada estación con PM2.5
--- válido. cross join es barato aquí: decenas de escuelas x un puñado de estaciones.
+-- válido. El join se acota por caja geográfica (ver el `join ... between` de abajo) para no
+-- materializar el producto cruzado completo cuando entren los datos reales.
 distancias_aire as (
 
     select
@@ -230,7 +283,14 @@ distancias_aire as (
             + sin(radians(e.latitud)) * sin(radians(a.latitud))
         ))) as distancia_km
     from escuela_geo e
-    cross join aire_pm25 a
+    -- Acota por caja de ±0.2° lat/lon ANTES del Haversine: con datos reales el producto cruzado
+    -- (~230 000 escuelas × 384 estaciones ≈ 88 M de pares) no termina. La caja es un superconjunto
+    -- EXACTO del disco de 15 km en todo México (a 33°N, 0.2° de longitud ≈ 18.7 km > 15 km), así
+    -- que el `where distancia_km <= 15` de dentro_radio_aire da un resultado idéntico al del cross
+    -- join, evaluando muchísimos menos pares.
+    join aire_pm25 a
+        on a.latitud between e.latitud - 0.2 and e.latitud + 0.2
+        and a.longitud between e.longitud - 0.2 and e.longitud + 0.2
 
 ),
 
@@ -286,6 +346,7 @@ ensamblado as (
         cm.id_ciclo,
         cm.cve_mun,
         cm.matricula_total,
+        cm.matricula_ciclo_anterior,
         cm.variacion_matricula,
         d1.d1,
         coalesce(d1.d1_cobertura, 'SIN_DATO') as d1_cobertura,
@@ -312,6 +373,7 @@ select
     id_ciclo,
     cve_mun,
     matricula_total,
+    matricula_ciclo_anterior,
     variacion_matricula,
     (
         (case when d1_cobertura = 'OK' then 1 else 0 end)

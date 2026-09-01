@@ -130,6 +130,15 @@ def create_app() -> FastAPI:
 
     app.include_router(api_v1_router, prefix=API_PREFIX)
 
+    # --- Ejecutor SQL read-only del agente (US-404 / BUG-025) ---
+    # Solo se cablea si hay DSN read-only configurado (C5 en Secret Manager). Sin él, el agente usa el
+    # default seguro del seam (degrada) y CI/local no tocan Postgres.
+    if settings.database_url_read_only:
+        from src.api.ejecutor_gold import ejecutar_sql_read_only
+        from src.api.v1.agente import get_ejecutar_sql
+
+        app.dependency_overrides[get_ejecutar_sql] = lambda: ejecutar_sql_read_only
+
     @app.exception_handler(StarletteHTTPException)
     async def _http_exc(request: Request, exc: StarletteHTTPException) -> JSONResponse:
         error = _ERROR_POR_STATUS.get(exc.status_code, "internal_error")

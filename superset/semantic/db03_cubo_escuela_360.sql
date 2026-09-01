@@ -40,7 +40,8 @@ SELECT
 
     -- ---------- metricas observadas ------------------------------------------
     s.matricula_total,
-    s.variacion_matricula,
+    s.matricula_ciclo_anterior,                -- denominador directo de KPI-02 (BUG-031/ADR-007)
+    s.variacion_matricula,                     -- alumnos absolutos observados (perfil), no la razón
     s.indice_completitud_drivers,
 
     -- ---------- los 6 drivers con su bandera de cobertura --------------------

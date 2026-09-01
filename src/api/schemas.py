@@ -129,7 +129,11 @@ class MunicipioOut(BaseModel):
 
 class KpisOut(BaseModel):
     matricula_total: StrictInt
-    variacion_matricula: StrictFloat
+    # KPI-02 es una razón de sumas en [-1, 1]: -1 es la cota matemática (matrícula_total=0) y
+    # +1 duplicar la matrícula agregada de todo un filtro (irreal). Field(ge=-1, le=1) es la
+    # guardia de BUG-031: si la fórmula volviera a devolver alumnos absolutos (p. ej. -54.5),
+    # Pydantic rechaza con 500 en vez de pintar -5450% en el tablero.
+    variacion_matricula: StrictFloat = Field(ge=-1, le=1)
     escuelas_en_riesgo: StrictInt
     indice_completitud_drivers: StrictFloat = Field(ge=0, le=1)
 

@@ -67,7 +67,7 @@ datasets:
         kpi: KPI-01
       - nombre: variacion_ponderada_pct
         etiqueta: "Variación de matrícula"
-        expresion: "SUM(matricula_total)::numeric / NULLIF(SUM(matricula_ciclo_anterior), 0) - 1"
+        expresion: "SUM(matricula_total) * 1.0 / NULLIF(SUM(matricula_ciclo_anterior), 0) - 1"
         formato: porcentaje_1
         kpi: KPI-02
         nota: >
@@ -77,8 +77,8 @@ datasets:
           existía. La versión original —SUM(variacion_matricula * matricula_total) /
           SUM(matricula_total)— trataba `variacion_matricula` como una fracción cuando son alumnos
           absolutos (`matricula_total - matricula_ciclo_anterior`): pintaba -54.5% donde el valor
-          real es -0.19%. El `::numeric` fuerza la división real: SUM(integer) es bigint y
-          bigint/bigint truncaría a entero.
+          real es -0.19%. El `* 1.0` fuerza la división real (SUM(integer) es bigint y bigint/bigint
+          truncaría a entero) y es portable, sin meter un token de tipo en la expresión.
       - nombre: completitud_promedio
         etiqueta: "Completitud de drivers"
         expresion: "AVG(indice_completitud_drivers)"

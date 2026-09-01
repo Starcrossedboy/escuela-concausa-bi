@@ -140,9 +140,9 @@ datasets:
       - nombre: variacion_ponderada_pct
         etiqueta: "Variación de matrícula (observada)"
         # Grano cct × ciclo sobre cubo_escuela_360, que expone matricula_ciclo_anterior como
-        # columna directa `integer` (passthrough del hecho). El `::numeric` fuerza la división
-        # real: SUM(integer) es bigint y bigint/bigint truncaría a entero (daría -1). BUG-031.
-        expresion: "SUM(matricula_total)::numeric / NULLIF(SUM(matricula_ciclo_anterior), 0) - 1"
+        # columna directa `integer` (passthrough del hecho). El `* 1.0` fuerza la división real
+        # (SUM(integer) es bigint y bigint/bigint truncaría a entero, daría -1) y es portable. BUG-031.
+        expresion: "SUM(matricula_total) * 1.0 / NULLIF(SUM(matricula_ciclo_anterior), 0) - 1"
         formato: porcentaje_1
         kpi: KPI-02
       - nombre: indice_riesgo

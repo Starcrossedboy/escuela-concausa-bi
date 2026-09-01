@@ -266,8 +266,14 @@ class FeaturesEscuela(BaseModel):
     d6_cobertura: Cobertura
     driver_dominante: DriverDominante | None                # etiqueta OPERATIVA, ver nota abajo
     indice_completitud_drivers: StrictFloat = Field(ge=0, le=1)
-    target_variacion_matricula: StrictFloat                 # etiqueta (partición temporal)
+    target_variacion_matricula: StrictFloat                 # FRACCIÓN vs ciclo anterior (ADR-007)
 ```
+> **`target_variacion_matricula` (ADR-007, ratificado 2026-08-29, cierra BUG-017/BUG-019):**
+> unidad **fracción** de matrícula vs el ciclo anterior del mismo cct
+> (`matricula_total/matricula_ciclo_anterior - 1.0`), **no** alumnos absolutos. Ej.: `-0.05` =
+> pierde 5 % de su matrícula. Mismo patrón que `target_hibrido.py::variacion_desde_serie` (C3).
+> `matricula_ciclo_anterior == 0` se rechaza explícito (división nativa de Postgres, sin
+> `nullif`), no se silencia como `SIN_DATO`.
 
 > **`driver_dominante` (US-302, acordado con Andrés González Habib/C3 el 2026-08-28):** etiqueta
 > **operativa** derivada por argmax entre los drivers con `*_cobertura = 'OK'` — **no** es una

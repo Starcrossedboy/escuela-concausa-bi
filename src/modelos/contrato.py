@@ -86,8 +86,12 @@ class FeaturesEscuela(BaseModel):
     driver_dominante: DriverDominante | None
 
     indice_completitud_drivers: Annotated[StrictFloat, Field(ge=0, le=1)]
-    target_variacion_matricula: StrictFloat  # etiqueta (partición temporal)
 
+    #: Etiqueta (partición temporal), unidad declarada por ADR-007 (ratificado 2026-08-29,
+    #: BUG-017/BUG-019): FRACCIÓN de matrícula vs el ciclo anterior del mismo cct
+    #: (matricula_total/matricula_ciclo_anterior - 1.0), NO alumnos absolutos. Ej.: -0.05 = pierde
+    #: 5 % de su matrícula. Mismo patrón/unidad que target_hibrido.py::variacion_desde_serie (C3).
+    target_variacion_matricula: StrictFloat
 
 def columna_cobertura(driver: str) -> str:
     """Devuelve el nombre de la bandera de cobertura de un driver.

@@ -106,11 +106,12 @@ dashboards:
             viz: table
             ancho: 6
             alto: 60
-            dimensiones: [nombre_entidad, nombre_municipio, nivel, total_escuelas, escuelas_con_recomendacion, cobertura_recomendacion]
+            dimensiones: [nombre_entidad, nombre_municipio, nivel, total_escuelas, escuelas_con_recomendacion, cobertura_recomendacion, link_db08]
             row_limit: 100
             params_extra:
               adhoc_filters:
                 - {expressionType: SIMPLE, subject: id_driver, operator: "==", comparator: "D1", clause: WHERE}
+              allow_render_html: true
 
       - id: D2
         etiqueta: "D2 · Inseguridad del entorno"
@@ -175,11 +176,12 @@ dashboards:
             viz: table
             ancho: 6
             alto: 60
-            dimensiones: [nombre_entidad, nombre_municipio, nivel, total_escuelas, escuelas_con_recomendacion, cobertura_recomendacion]
+            dimensiones: [nombre_entidad, nombre_municipio, nivel, total_escuelas, escuelas_con_recomendacion, cobertura_recomendacion, link_db08]
             row_limit: 100
             params_extra:
               adhoc_filters:
                 - {expressionType: SIMPLE, subject: id_driver, operator: "==", comparator: "D2", clause: WHERE}
+              allow_render_html: true
 
       - id: D3
         etiqueta: "D3 · Infraestructura escolar"
@@ -244,11 +246,12 @@ dashboards:
             viz: table
             ancho: 6
             alto: 60
-            dimensiones: [nombre_entidad, nombre_municipio, nivel, total_escuelas, escuelas_con_recomendacion, cobertura_recomendacion]
+            dimensiones: [nombre_entidad, nombre_municipio, nivel, total_escuelas, escuelas_con_recomendacion, cobertura_recomendacion, link_db08]
             row_limit: 100
             params_extra:
               adhoc_filters:
                 - {expressionType: SIMPLE, subject: id_driver, operator: "==", comparator: "D3", clause: WHERE}
+              allow_render_html: true
 
       - id: D4
         etiqueta: "D4 · Conectividad digital"
@@ -313,11 +316,12 @@ dashboards:
             viz: table
             ancho: 6
             alto: 60
-            dimensiones: [nombre_entidad, nombre_municipio, nivel, total_escuelas, escuelas_con_recomendacion, cobertura_recomendacion]
+            dimensiones: [nombre_entidad, nombre_municipio, nivel, total_escuelas, escuelas_con_recomendacion, cobertura_recomendacion, link_db08]
             row_limit: 100
             params_extra:
               adhoc_filters:
                 - {expressionType: SIMPLE, subject: id_driver, operator: "==", comparator: "D4", clause: WHERE}
+              allow_render_html: true
 
       - id: D5
         etiqueta: "D5 · Estrés hídrico"
@@ -382,11 +386,12 @@ dashboards:
             viz: table
             ancho: 6
             alto: 60
-            dimensiones: [nombre_entidad, nombre_municipio, nivel, total_escuelas, escuelas_con_recomendacion, cobertura_recomendacion]
+            dimensiones: [nombre_entidad, nombre_municipio, nivel, total_escuelas, escuelas_con_recomendacion, cobertura_recomendacion, link_db08]
             row_limit: 100
             params_extra:
               adhoc_filters:
                 - {expressionType: SIMPLE, subject: id_driver, operator: "==", comparator: "D5", clause: WHERE}
+              allow_render_html: true
 
       - id: D6
         etiqueta: "D6 · Calidad del aire"
@@ -451,8 +456,9 @@ dashboards:
             viz: table
             ancho: 6
             alto: 60
-            dimensiones: [nombre_entidad, nombre_municipio, nivel, total_escuelas, escuelas_con_recomendacion, cobertura_recomendacion]
+            dimensiones: [nombre_entidad, nombre_municipio, nivel, total_escuelas, escuelas_con_recomendacion, cobertura_recomendacion, link_db08]
             row_limit: 100
             params_extra:
               adhoc_filters:
                 - {expressionType: SIMPLE, subject: id_driver, operator: "==", comparator: "D6", clause: WHERE}
+              allow_render_html: true

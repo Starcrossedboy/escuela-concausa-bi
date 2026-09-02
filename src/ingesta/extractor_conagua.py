@@ -13,6 +13,7 @@ pestaña Network). Detalle en 14_Data_Sources/DS-06_CONAGUA_SINA.md.
 """
 import logging
 from datetime import datetime, timezone
+from pathlib import Path
 
 import pandas as pd
 import requests
@@ -60,6 +61,7 @@ def extraer_conagua() -> str:
     df["_source_url"] = SOURCE_URL
 
     timestamp = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
+    Path(BRONZE_PATH).mkdir(parents=True, exist_ok=True)
     output_path = f"{BRONZE_PATH}/conagua_{timestamp}.parquet"
 
     df.to_parquet(output_path, index=False)

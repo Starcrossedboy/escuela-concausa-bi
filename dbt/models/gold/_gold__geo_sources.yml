@@ -1,0 +1,23 @@
+version: 2
+
+sources:
+  - name: gold_geo
+    schema: gold
+    description: >
+      Catálogo geográfico municipal con nombres oficiales INEGI, publicado por Carril B
+      (Célula 2) mediante superset/cargar_geojson_municipios.py. Es una tabla física runtime,
+      no un modelo dbt. gold.dim_municipio (US-103) la consume por source() como catálogo INEGI
+      canónico del universo de municipios, para dejar de servir nombres de relleno y no duplicar
+      el catálogo. El grafo de build asume que Carril B carga geo_municipio antes del dbt build
+      de Gold (P-03, 2026-08-31).
+    tables:
+      - name: geo_municipio
+        description: >
+          Universo de municipios (CVEGEO INEGI de 5 dígitos) con su nombre oficial. En prod
+          incluye además cve_ent, nombre_entidad y geometria; dim_municipio solo consume cve_mun
+          y nombre_municipio (columnas presentes en todos los entornos, incluido el fixture local).
+        columns:
+          - name: cve_mun
+            description: Clave INEGI de municipio (5 dígitos); llave del catálogo.
+          - name: nombre_municipio
+            description: Nombre oficial INEGI del municipio.

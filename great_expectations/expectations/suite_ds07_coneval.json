@@ -1,0 +1,207 @@
+{
+  "expectations": [
+    {
+      "id": "a4e74025-6e93-4a30-a05a-5a726253619d",
+      "kwargs": {
+        "column": "cve_mun"
+      },
+      "meta": {},
+      "severity": "critical",
+      "type": "expect_column_values_to_not_be_null"
+    },
+    {
+      "id": "730908cd-78fd-4780-9d8c-4534154be0d8",
+      "kwargs": {
+        "column": "periodo_medicion"
+      },
+      "meta": {},
+      "severity": "critical",
+      "type": "expect_column_values_to_not_be_null"
+    },
+    {
+      "id": "c2ceb45b-66cd-4cce-a808-f4146bd3b5ac",
+      "kwargs": {
+        "column_list": [
+          "cve_mun",
+          "periodo_medicion"
+        ]
+      },
+      "meta": {},
+      "severity": "critical",
+      "type": "expect_compound_columns_to_be_unique"
+    },
+    {
+      "id": "0e9364e0-6eb2-422b-9e31-cd61e6ce6371",
+      "kwargs": {
+        "column": "cve_mun",
+        "regex": "^[0-9]{5}$"
+      },
+      "meta": {},
+      "severity": "critical",
+      "type": "expect_column_values_to_match_regex"
+    },
+    {
+      "id": "c040d975-c4ca-4c1f-8f71-7ff3b3436bc1",
+      "kwargs": {
+        "column": "grado_rezago"
+      },
+      "meta": {},
+      "severity": "critical",
+      "type": "expect_column_values_to_not_be_null"
+    },
+    {
+      "id": "97cb1e76-f467-44cf-851f-a68e5bc37c8b",
+      "kwargs": {
+        "column": "grado_rezago",
+        "value_set": [
+          "MUY BAJO",
+          "BAJO",
+          "MEDIO",
+          "ALTO",
+          "MUY ALTO",
+          "SIN_DATO"
+        ]
+      },
+      "meta": {},
+      "severity": "critical",
+      "type": "expect_column_values_to_be_in_set"
+    },
+    {
+      "id": "b81e8898-a569-431a-af87-111bcf8be038",
+      "kwargs": {
+        "column": "indice_rezago_social_cobertura"
+      },
+      "meta": {},
+      "severity": "critical",
+      "type": "expect_column_values_to_not_be_null"
+    },
+    {
+      "id": "eeda22a2-0c90-4fea-b03c-9deac59f2f70",
+      "kwargs": {
+        "column": "indice_rezago_social_cobertura",
+        "value_set": [
+          "OK",
+          "SIN_DATO"
+        ]
+      },
+      "meta": {},
+      "severity": "critical",
+      "type": "expect_column_values_to_be_in_set"
+    },
+    {
+      "id": "35b4d1d3-8118-48a2-a0a2-1003940dae05",
+      "kwargs": {
+        "column": "pobreza_pct_cobertura"
+      },
+      "meta": {},
+      "severity": "critical",
+      "type": "expect_column_values_to_not_be_null"
+    },
+    {
+      "id": "920f8485-9b96-4a84-972f-b64096ef197d",
+      "kwargs": {
+        "column": "pobreza_pct_cobertura",
+        "value_set": [
+          "OK",
+          "SIN_DATO"
+        ]
+      },
+      "meta": {},
+      "severity": "critical",
+      "type": "expect_column_values_to_be_in_set"
+    },
+    {
+      "id": "b13a1f21-b2b5-4d58-a103-c799296e0cff",
+      "kwargs": {
+        "column": "pobreza_pct",
+        "max_value": 100.0,
+        "min_value": 0.0,
+        "row_condition": {
+          "column": {
+            "name": "pobreza_pct_cobertura"
+          },
+          "operator": "==",
+          "parameter": "OK",
+          "type": "comparison"
+        }
+      },
+      "meta": {},
+      "severity": "critical",
+      "type": "expect_column_values_to_be_between"
+    },
+    {
+      "id": "61fc76f5-1872-496c-a7d1-4540619f690f",
+      "kwargs": {
+        "column": "indice_rezago_social",
+        "row_condition": {
+          "column": {
+            "name": "indice_rezago_social_cobertura"
+          },
+          "operator": "==",
+          "parameter": "OK",
+          "type": "comparison"
+        }
+      },
+      "meta": {},
+      "severity": "critical",
+      "type": "expect_column_values_to_not_be_null"
+    },
+    {
+      "id": "069dd48b-f06a-407d-ba4c-d4f0237cdc85",
+      "kwargs": {
+        "column": "indice_rezago_social",
+        "row_condition": {
+          "column": {
+            "name": "indice_rezago_social_cobertura"
+          },
+          "operator": "==",
+          "parameter": "SIN_DATO",
+          "type": "comparison"
+        }
+      },
+      "meta": {},
+      "severity": "critical",
+      "type": "expect_column_values_to_be_null"
+    },
+    {
+      "id": "c5b4bfe4-e6f5-41e2-8bc8-b35834168f40",
+      "kwargs": {
+        "column": "pobreza_pct",
+        "row_condition": {
+          "column": {
+            "name": "pobreza_pct_cobertura"
+          },
+          "operator": "==",
+          "parameter": "OK",
+          "type": "comparison"
+        }
+      },
+      "meta": {},
+      "severity": "critical",
+      "type": "expect_column_values_to_not_be_null"
+    },
+    {
+      "id": "968a70f5-4a95-4402-8522-223243cd5c05",
+      "kwargs": {
+        "column": "pobreza_pct",
+        "row_condition": {
+          "column": {
+            "name": "pobreza_pct_cobertura"
+          },
+          "operator": "==",
+          "parameter": "SIN_DATO",
+          "type": "comparison"
+        }
+      },
+      "meta": {},
+      "severity": "critical",
+      "type": "expect_column_values_to_be_null"
+    }
+  ],
+  "id": "2ba613cc-55b5-4bfa-b4c9-74ad4a82b4aa",
+  "meta": {
+    "great_expectations_version": "1.20.0"
+  },
+  "name": "suite_ds07_coneval",
+  "notes": null
+}

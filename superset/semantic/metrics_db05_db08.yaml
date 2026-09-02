@@ -171,3 +171,9 @@ drill_down:
   - desde: DB-07
     hacia: DB-05
     llave: id_driver
+  - desde: DB-05
+    hacia: DB-08
+    llave: [cve_mun, id_driver]
+    nota: >
+      Columna calculada link_db08 en db05_cubo_driver.sql (native_filters
+      RISON, US-214b). Solo lado Superset -- sin boton en FARO Web.

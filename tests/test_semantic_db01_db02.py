@@ -244,12 +244,18 @@ def test_los_componentes_son_aditivos_no_promedios(db01_cubo: str, db02_cubo: st
         )
 
 
-def test_variacion_es_ponderada_por_matricula(db01_cubo: str, db02_cubo: str) -> None:
-    """KPI-02 pondera por matrícula: el cubo C1 ya guarda variacion_x_matricula
-    (producto variacion × matricula), nunca un AVG(variacion)."""
+def test_variacion_usa_suma_matricula_anterior(db01_cubo: str, db02_cubo: str) -> None:
+    """KPI-02 es una razón de sumas (BUG-031/P-09): el cubo C1 ya guarda
+    suma_matricula_anterior = SUM(matricula_ciclo_anterior) como denominador directo;
+    la razón SUM(matricula_total)/SUM(suma_matricula_anterior)-1 vive en el YAML.
+    El componente ponderado variacion_x_matricula fue eliminado por Diana/C1 y no debe
+    reaparecer: promediaba alumnos absolutos como si fueran una fracción."""
     for nombre, sql in (("db01_cubo", db01_cubo), ("db02_cubo", db02_cubo)):
-        assert re.search(r"\bvariacion_x_matricula\b", sql), (
-            f"{nombre}: falta el componente ponderado variacion_x_matricula."
+        assert re.search(r"\bsuma_matricula_anterior\b", sql), (
+            f"{nombre}: falta el denominador directo suma_matricula_anterior (KPI-02)."
+        )
+        assert not re.search(r"\bvariacion_x_matricula\b", sql), (
+            f"{nombre}: reaparece variacion_x_matricula, columna eliminada en BUG-031."
         )
 
 

@@ -1,110 +1,118 @@
 """
-TEST-US221-01 · Valida los 5 KPIs de US-221 (matrícula, distribución por nivel,
-tarjetas reutilizables) contra las fixtures sintéticas.
+TEST-US221 · Guarda antiduplicación de KPIs globales.
 
-Importante: este test NO reescribe el SQL a mano. Lee los archivos .sql reales de
-../sql/ (los mismos que se copian línea por línea del catálogo canónico de Manuel,
-Screen_Specs.md §4) y solo les quita el prefijo de esquema "gold." para poder
-correrlos contra SQLite en local. Así, si alguien edita el SQL de producción sin
-actualizar el test, el test lo refleja automáticamente en vez de quedar
-desincronizado.
+Tras la ratificación de Manuel Serranía (dueño del catálogo, US-201), US-221 ya no
+crea datasets ni SQL por KPI: las tarjetas globales (AC-002.5) consumen las
+métricas canónicas de los datasets existentes. Este test lo garantiza:
 
-Correr con:
-    cd tests && pytest test_kpis_us221.py -q
+* **No debe existir ningún `kpi_*.sql`** en `superset/semantic/`: todo KPI del
+  catálogo (Screen_Specs.md §4) se implementa en el SQL del tablero que lo
+  expone, nunca en un archivo suelto (regla 1 del vault; el `*100` duplicado
+  reapareció 3 veces en DB-01, DB-03/04 y US-211b).
+
+* **El mapeo `metrics_kpis_base_us221.yaml` solo referencia datasets, métricas
+  y archivos de métricas que existen**: si alguien renombra la métrica canónica
+  o borra el dataset, el mapeo de tarjetas falla aquí, no en el demo.
+
+Validación estática: no necesita base de datos.
+
+Contrato: `04_UX_Design/Screen_Specs.md` §2/§4 · `metrics_kpis_base_us221.yaml`.
 """
-import sqlite3
+
+from __future__ import annotations
+
 from pathlib import Path
 
-import pytest
+SEMANTIC = Path(__file__).resolve().parents[1] / "superset" / "semantic"
+MAPPING = SEMANTIC / "metrics_kpis_base_us221.yaml"
 
-FIXTURES_DB = Path(__file__).parent / "fixtures" / "fixtures.db"
-SQL_DIR = Path(__file__).parent.parent / "superset" / "semantic"
-
-SCOPE_ENTIDADES = {"09", "15", "19", "14"}
+KPI_GLOBALES = {"KPI-01", "KPI-02", "KPI-03", "KPI-04", "KPI-08"}
 
 
-def load_sql(filename: str) -> str:
-    """Lee un .sql de producción y lo adapta solo para poder correrlo en SQLite
-    (quita el prefijo de esquema 'gold.'). El texto de la consulta en sí no se toca."""
-    raw = (SQL_DIR / filename).read_text(encoding="utf-8")
-    # quita comentarios -- y el prefijo de esquema, sin tocar la lógica de la query
-    lines = [l for l in raw.splitlines() if not l.strip().startswith("--")]
-    sql = "\n".join(lines).replace("gold.", "")
-    return sql
+def _load_yaml(path: Path) -> dict:
+    import yaml
+
+    with path.open(encoding="utf-8") as fh:
+        return yaml.safe_load(fh)
 
 
-@pytest.fixture(scope="module")
-def conn():
-    if not FIXTURES_DB.exists():
-        from tests.fixtures.generate_fixtures import main as generar
-        generar()
-    connection = sqlite3.connect(FIXTURES_DB)
-    yield connection
-    connection.close()
+def _dataset_metricas(nombre_dataset: str, yaml_metricas: str) -> list[dict]:
+    """Devuelve las métricas declaradas para un dataset en un metrics_*.yaml."""
+    ruta = SEMANTIC / yaml_metricas
+    assert ruta.exists(), (
+        f"El mapeo de tarjetas referencia {yaml_metricas}, que no existe."
+    )
+    data = _load_yaml(ruta)
+    datasets = data.get("datasets", [])
+    coincidencias = [ds for ds in datasets if ds.get("nombre") == nombre_dataset]
+    assert coincidencias, (
+        f"El dataset '{nombre_dataset}' no está declarado en {yaml_metricas}."
+    )
+    assert len(coincidencias) == 1, (
+        f"Dataset '{nombre_dataset}' duplicado en {yaml_metricas}."
+    )
+    return coincidencias[0].get("metricas", [])
 
 
-def test_kpi01_matricula_total_suma_por_municipio_y_ciclo(conn):
-    sql = load_sql("kpi_01_matricula_total.sql")
-    # KPI-01 filtra por :nivel; probamos con un nivel real de las fixtures
-    rows = conn.execute(sql, {"nivel": "Primaria"}).fetchall()
-    assert len(rows) > 0, "KPI-01 debe devolver al menos una fila para Primaria"
-    for cve_mun, ciclo, matricula_total in rows:
-        assert matricula_total > 0, "La matrícula agregada nunca debe ser 0 ni negativa"
+def test_no_hay_sql_kpi_duplicado():
+    """Los KPIs del catálogo se implementan en el dataset de su tablero, nunca en
+    un `kpi_*.sql` suelto. Si este test falla, alguien reintrodujo duplicación."""
+    duplicados = sorted(p.name for p in SEMANTIC.glob("kpi_*.sql"))
+    assert duplicados == [], (
+        f"Existen SQL por KPI duplicando la capa de datasets: {duplicados}. "
+        "Bórralos y referencia la métrica canónica del dataset del tablero "
+        "(ver metrics_kpis_base_us221.yaml)."
+    )
 
 
-def test_kpi02_variacion_ponderada_por_ciclo(conn):
-    sql = load_sql("kpi_02_variacion_matricula.sql")
-    rows = conn.execute(sql).fetchall()
-    assert len(rows) == 3, "Debe haber una fila por cada uno de los 3 ciclos de fixtures"
-    for ciclo, matricula_total, variacion_ponderada_pct in rows:
-        assert matricula_total > 0
-        assert -1 <= variacion_ponderada_pct <= 1, "La variación ponderada debe ser una razón, no un porcentaje ya *100"
+def test_mapeo_cubre_las_kpis_globales():
+    mapping = _load_yaml(MAPPING)
+    kpis = {tarjeta["kpi"] for tarjeta in mapping["tarjetas"]}
+    assert kpis == KPI_GLOBALES, (
+        f"El mapeo de tarjetas debe cubrir exactamente {sorted(KPI_GLOBALES)}"
+    )
 
 
-def test_kpi03_indice_riesgo_promedio_excluye_escuelas_sin_prediccion(conn):
-    sql = load_sql("kpi_03_indice_riesgo_promedio.sql")
-    rows = conn.execute(sql).fetchall()
-    assert len(rows) > 0
-    for cve_mun, indice_riesgo_promedio in rows:
-        assert indice_riesgo_promedio is not None, (
-            "El JOIN interno a predicciones nunca debe devolver un promedio en 0 "
-            "por escuelas SIN_DATO: esas filas se excluyen, no se cuentan como 0"
+def test_cada_tarjeta_apunta_a_metrica_canonica_existente():
+    """Cada tarjeta referencia un dataset+metrica real, declarado en el
+    metrics_*.yaml correspondiente, y esa métrica lleva el tag `kpi` correcto."""
+    mapping = _load_yaml(MAPPING)
+
+    for tarjeta in mapping["tarjetas"]:
+        kpi = tarjeta["kpi"]
+        fuente = tarjeta.get("fuente")
+        assert fuente, f"KPI {kpi}: falta el bloque 'fuente' con dataset/métrica."
+
+        dataset = fuente.get("dataset")
+        metrica = fuente.get("metrica")
+        yaml_metricas = fuente.get("yaml_metricas")
+        assert dataset and metrica and yaml_metricas, (
+            f"KPI {kpi}: 'fuente' incompleto (dataset, metrica, yaml_metricas)."
         )
-        assert 0 <= indice_riesgo_promedio <= 1
+
+        metricas = _dataset_metricas(dataset, yaml_metricas)
+        coincidencia = [m for m in metricas if m.get("nombre") == metrica]
+        assert coincidencia, (
+            f"KPI {kpi}: la métrica '{metrica}' no está declarada para "
+            f"'{dataset}' en {yaml_metricas}."
+        )
+        etiqueta_kpi = coincidencia[0].get("kpi")
+        assert etiqueta_kpi == kpi, (
+            f"KPI {kpi}: la métrica '{metrica}' está declarada con `kpi: "
+            f"{etiqueta_kpi}` en {yaml_metricas}. El mapeo debe apuntar a la "
+            "métrica canónica del KPI correspondiente."
+        )
 
 
-def test_kpi04_escuelas_en_riesgo_usa_umbral_060(conn):
-    sql = load_sql("kpi_04_escuelas_en_riesgo.sql")
-    escuelas_en_riesgo, total_escuelas = conn.execute(sql).fetchone()
-    assert total_escuelas > 0
-    # 'total_escuelas' cuenta solo las que SÍ tienen predicción (JOIN interno) —
-    # por diseño, nunca debe ser igual al total de escuelas de dim_escuela si
-    # las fixtures dejaron escuelas sin puntuar (regla SIN_DATO, ver fixtures).
-    total_dim_escuela = conn.execute("SELECT COUNT(*) FROM dim_escuela").fetchone()[0]
-    total_ciclos = conn.execute("SELECT COUNT(*) FROM dim_tiempo").fetchone()[0]
-    assert total_escuelas < total_dim_escuela * total_ciclos, (
-        "Si esto falla, revisa que las fixtures sigan dejando escuelas sin "
-        "predicción (SIN_DATO real) — si no, este test ya no prueba nada"
-    )
-    assert 0 <= escuelas_en_riesgo <= total_escuelas
+def test_no_se_redefine_filtros_globales_fuera_del_scope():
+    """Los filtros globales del mapeo respetan AC-002.2 y el alcance geográfico."""
+    mapping = _load_yaml(MAPPING)
+    columnas = {f["columna"] for f in mapping["filtros_globales"]}
+    assert {"id_ciclo", "cve_ent", "nivel"} <= columnas
 
-
-def test_kpi08_escuelas_por_nivel_cubre_los_4_niveles(conn):
-    sql = load_sql("kpi_08_escuelas_por_nivel.sql")
-    rows = conn.execute(sql).fetchall()
-    niveles = {nivel for nivel, _escuelas in rows}
-    assert niveles == {"Preescolar", "Primaria", "Secundaria", "Media Superior"}
-    for _nivel, escuelas in rows:
-        assert escuelas > 0
-
-
-def test_alcance_geografico_respeta_scope_entidades(conn):
-    """No es un KPI del catálogo, pero sí una regla dura de Screen_Specs.md §5:
-    todos los tableros están acotados a SCOPE_ENTIDADES (09, 15, 19, 14)."""
-    entidades = {
-        row[0]
-        for row in conn.execute("SELECT DISTINCT cve_ent FROM dim_municipio").fetchall()
-    }
-    assert entidades == SCOPE_ENTIDADES, (
-        "Las fixtures no deben incluir entidades fuera del alcance de FARO"
-    )
+    for f in mapping["filtros_globales"]:
+        dominio = f.get("dominio")
+        if f["columna"] == "cve_ent" and dominio is not None:
+            assert set(dominio) == {"09", "15", "19", "14"}, (
+                "El dominio geográfico debe ser exactamente SCOPE_ENTIDADES."
+            )

@@ -1,5 +1,4 @@
 name: CI
-
 on:
   pull_request:
     branches: [main]
@@ -57,6 +56,16 @@ jobs:
         run: |
           dbt parse --target ci --no-partial-parse
 
+  # ═══════════════════════════════════════════════════════════════════
+  # Quality gate: lint, pruebas y vault (US-523b)
+  # ═══════════════════════════════════════════════════════════════════
+  # NOTA (US-523b, Edgar Ulises Jiménez López):
+  # Se removió el `|| true` que traía el paso de Ruff. Con `|| true` el step
+  # de lint NUNCA hacía fallar el job, aunque hubiera errores de estilo o
+  # sintaxis — es decir, el "gate" no bloqueaba nada en la práctica. Ahora,
+  # si Ruff encuentra errores, el step falla, el job se pone en rojo y el PR
+  # queda bloqueado para merge, que es justamente el objetivo de la historia:
+  # "Configurar el gate de CI que corre lint y pytest; bloquea el merge si falla."
   quality:
     name: Calidad de codigo y vault
     runs-on: ubuntu-latest
@@ -64,7 +73,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          fetch-depth: 0  # GitLeaks necesita historial completo
+          fetch-depth: 0 # GitLeaks necesita historial completo
       - uses: actions/setup-python@v5
         with:
           python-version: "3.11"
@@ -79,7 +88,8 @@ jobs:
       - name: Validar tablero PM
         run: python _Meta/scripts/validate_pm_dashboard.py .
       - name: Ruff
-        run: ruff check . --output-format=github || true
+        # US-523b: se quita "|| true" — si Ruff falla, el job falla y bloquea el merge.
+        run: ruff check . --output-format=github
       - name: Pytest
         run: |
           if [ -d tests ] && [ -n "$(find tests -name 'test_*.py' 2>/dev/null)" ]; then
@@ -104,15 +114,15 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: G6 Dependency audit con pip-audit
         run: |
-          echo "🔍 Escaneando dependencias contra CVE database..."
+          echo "Escaneando dependencias contra CVE database..."
           pip-audit --desc on --format json > audit-report.json || true
           if [ -f audit-report.json ]; then
             VULNS=$(cat audit-report.json | grep -o '"id":' | wc -l || echo 0)
             if [ "$VULNS" -gt 0 ]; then
-              echo "⚠️ Se encontraron $VULNS vulnerabilidades"
+              echo "Se encontraron $VULNS vulnerabilidades"
               cat audit-report.json
-              echo "⚠️ Revisar vulnerabilidades antes de merge"
+              echo "Revisar vulnerabilidades antes de merge"
             else
-              echo "✅ Sin vulnerabilidades detectadas"
+              echo "Sin vulnerabilidades detectadas"
             fi
           fi

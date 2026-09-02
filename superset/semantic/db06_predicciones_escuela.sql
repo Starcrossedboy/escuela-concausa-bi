@@ -41,7 +41,8 @@ SELECT
 
     -- ---------- hechos observados ----------------------------------------------
     s.matricula_total,
-    s.variacion_matricula,
+    s.matricula_ciclo_anterior,               -- denominador directo de KPI-02 (BUG-031/ADR-007)
+    s.variacion_matricula,                    -- alumnos absolutos observados, no la razón
     s.indice_completitud_drivers,
 
     -- ---------- salida ML-01 (del cubo C1) ---------------------------------------

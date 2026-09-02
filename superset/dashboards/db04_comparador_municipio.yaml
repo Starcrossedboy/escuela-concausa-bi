@@ -61,10 +61,16 @@ dashboards:
         alto: 38
         subheader: "Centros de trabajo en el corte actual"
 
-      # KPI-02 RETIRADA por BUG-031: la métrica pintaba -54.5% donde el valor real es -0.19%,
-      # y no se puede corregir sin que C1 exponga `suma_matricula_anterior` en el cubo.
-      # Un tablero con una tarjeta menos es defendible; con una tarjeta falsa, no.
-      # Restituir junto con la métrica de metrics_db03_db04.yaml.
+      # KPI-02 RESTITUIDA (BUG-031/P-09): C1 ya expone `suma_matricula_anterior` en el cubo, así
+      # que la métrica variacion_ponderada_pct de metrics_db03_db04.yaml vuelve a ser una razón de
+      # sumas correcta (SUM(matricula_total)/SUM(suma_matricula_anterior)-1), no el -54.5% falso.
+      - nombre: "KPI-02 · Variación de matrícula"
+        dataset: db04_cubo_comparador_municipio
+        metrica: variacion_ponderada_pct
+        viz: big_number_total
+        ancho: 3
+        alto: 38
+        subheader: "Δ% agregada de los municipios seleccionados"
 
       - nombre: "KPI-04 · % escuelas en riesgo"
         dataset: db04_cubo_comparador_municipio

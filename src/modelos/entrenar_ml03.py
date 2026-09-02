@@ -44,6 +44,21 @@ NOMBRES_NEGOCIO = {
     "d6_aire": "calidad del aire",
 }
 
+#: D3/D4 miden servicios presentes (alto = escuela mejor); su "presión" es el complemento, igual
+#: que la inversión del argmax de `driver_dominante` (P-05, 2026-08-31). Ver el CTE
+#: `con_driver_dominante` en features_escuela.sql y generar_driver_dominante_proxy en
+#: entrenar_ml02.py. Por eso NOMBRES_NEGOCIO ya nombra D3/D4 como "carencias"/"brecha".
+DRIVERS_INVERTIDOS: tuple[str, ...] = ("d3_infraestructura", "d4_conectividad")
+
+
+def _presion_driver(driver: str, valor: float) -> float:
+    """Convierte el valor medio de un driver en 'presión' (mayor = peor situación).
+
+    D3/D4 suben cuando la escuela está mejor, así que su presión es `1 - valor`; el resto ya viene
+    en escala de presión (mayor = peor situación).
+    """
+    return 1 - valor if driver in DRIVERS_INVERTIDOS else valor
+
 
 @dataclass(frozen=True)
 class ResultadoML03:
@@ -197,7 +212,11 @@ def _perfilar(asignaciones: pd.DataFrame) -> pd.DataFrame:
 
     descripciones: list[str] = []
     for _, fila in perfiles.iterrows():
-        orden = sorted(DRIVERS, key=lambda driver: (-fila[driver], driver))
+        # D3/D4 miden servicios presentes (alto = mejor); su PRESIÓN es el complemento (1 - media),
+        # igual que la inversión del argmax en features_escuela.sql y entrenar_ml02.py (P-05).
+        orden = sorted(
+            DRIVERS, key=lambda driver: (-_presion_driver(driver, fila[driver]), driver)
+        )
         principal, secundaria = orden[:2]
         descripciones.append(
             f"Presión principal: {NOMBRES_NEGOCIO[principal]}; "

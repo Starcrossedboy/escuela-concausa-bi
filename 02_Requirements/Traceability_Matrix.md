@@ -188,6 +188,13 @@ tags: [requirements, traceability, matrix]
 |---|---|---|---|---|
 | `REQ-003` | `US-311`, `US-313` | **ADR-007 `accepted`** (29-ago) con la tabla de lo que falta para que surta efecto ✅ · `DOC-INDICE-RIESGO` reducido a una sola decisión abierta —el ancla `0.30`— tras cerrar el umbral (`DEC-006`) y la doble columna `valor`/`indice_riesgo` ✅ · **BUG-032** registrado: `Data_Model` §5.3 contradice a §4.5 ⬜ · suite 643 ✅ | [[_DevLog/2026-08-29-hector-morales-adr007-ratificado]] | 🟡 En progreso |
 
+## Evidencia incremental — 2026-08-30 · avance de US-214b/US-215b (C2)
+
+| REQ | Historias | Evidencia de prueba | DevLog | Estado |
+|---|---|---|---|---|
+| `REQ-002` | `US-214b` | Drill-down DB-05→DB-08 implementado (link HTML + `native_filters` RISON) y **validado en navegador real** contra Superset 6.1.0 en Docker local: filtro de Municipio/Driver preseleccionado correctamente, confirmado con 2 municipios distintos (el chart "Valor promedio del driver" de DB-08 cambió de 0.10 a 0.90 entre uno y otro) ✅ · `Cube_Specs_DB05_DB08.md` §3.4 pasa de "⬜ Propuesta" a "✅ Ratificada" ✅ | [[_DevLog/2026-08-30-monserrat-miranda-avance-us214b-us215b]] | 🟡 En progreso |
+| `REQ-002` | `US-215b` | Plan de pruebas de usabilidad/accesibilidad (`DOC-USABILIDAD-DB0508`) creado y filado en `06_Quality_Testing/_index.md` ✅ · 3 casos ejecutados hoy (el link y su filtro en DB-08), el resto queda `⏳ pendiente` para siguiente pasada | [[_DevLog/2026-08-30-monserrat-miranda-avance-us214b-us215b]] | 🟡 En progreso |
+
 ## Evidencia incremental — 2026-08-31 · cierre de BUG-017/BUG-019
 
 | REQ | Historias | Evidencia de prueba | DevLog | Estado |

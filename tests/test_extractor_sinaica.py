@@ -1,6 +1,6 @@
 """Pruebas del extractor de DS-05 SINAICA (`src/ingesta/extractor_sinaica.py`), con
 datos sintéticos que reproducen la ESTRUCTURA real verificada en vivo el 2026-08-14/21
-(ver `14_Data_Sources/DS-05_SINAICA_Calidad_Aire.md` sección 9), no suposiciones:
+(ver `vault/14_Data_Sources/DS-05_SINAICA_Calidad_Aire.md` sección 9), no suposiciones:
 
 - `datGrafs.php` no devuelve JSON puro: los datos vienen embebidos en una línea
   `var dat = [...]` dentro de HTML+JS. El caso que más importa proteger aquí es que el

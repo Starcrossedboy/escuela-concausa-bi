@@ -25,7 +25,7 @@ def extraer_formato911() -> str:
     if SOURCE_URL == "PENDIENTE-CONFIRMAR":
         raise ValueError(
             f"{SOURCE_NAME}: URL aún no confirmada por el dueño de la fuente (Diana Aracely Alvarez Varela). "
-            "Ver 14_Data_Sources/DS-01_Formato911.md"
+            "Ver vault/14_Data_Sources/DS-01_Formato911.md"
         )
 
     logger.info("Iniciando extracción de %s", SOURCE_NAME)

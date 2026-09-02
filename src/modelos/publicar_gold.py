@@ -6,7 +6,7 @@ inferencia de la Célula 4.
 
 ## Contrato
 
-Definido en `03_Architecture/Data_Model.md` §4.5, tras **DEC-005/006**:
+Definido en `vault/03_Architecture/Data_Model.md` §4.5, tras **DEC-005/006**:
 
 - `gold.predicciones` — `cct`, `id_ciclo`, `modelo`, `valor` (variación cruda, la que conserva la
   unidad para MAE/RMSE), `indice_riesgo` (derivado, ver `src/modelos/riesgo.py`), `probabilidad`,

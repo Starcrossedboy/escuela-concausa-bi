@@ -15,14 +15,14 @@ on:
   push:
     branches: [main]
     paths:
-      - '00_Start_Here/Developer_Onboarding.md'
-      - '02_Requirements/**'
-      - '10_Risk_Governance/**'
-      - '12_Roadmap_Sprints/**'
-      - '13_Reports/**'
-      - '14_Data_Sources/**'
-      - '_Meta/scripts/*pm_dashboard.py'
-      - '_Meta/scripts/collect_github_activity.py'
+      - 'vault/00_Start_Here/Developer_Onboarding.md'
+      - 'vault/02_Requirements/**'
+      - 'vault/10_Risk_Governance/**'
+      - 'vault/12_Roadmap_Sprints/**'
+      - 'vault/13_Reports/**'
+      - 'vault/14_Data_Sources/**'
+      - 'vault/_Meta/scripts/*pm_dashboard.py'
+      - 'vault/_Meta/scripts/collect_github_activity.py'
   schedule:
     - cron: '15 13 * * 1-5'
   workflow_dispatch:
@@ -54,25 +54,25 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ github.token }}
           GITHUB_REPOSITORY: ${{ github.repository }}
-        run: python3 _Meta/scripts/collect_github_activity.py
+        run: python3 vault/_Meta/scripts/collect_github_activity.py
 
       - name: Generar tablero desde fuentes canónicas
-        run: python3 _Meta/scripts/generate_pm_dashboard.py .
+        run: python3 vault/_Meta/scripts/generate_pm_dashboard.py .
 
       - name: Validar contrato del tablero
-        run: python3 _Meta/scripts/validate_pm_dashboard.py .
+        run: python3 vault/_Meta/scripts/validate_pm_dashboard.py .
 
       - name: Validar salud del vault
-        run: python3 _Meta/scripts/vault_lint.py .
+        run: python3 vault/_Meta/scripts/vault_lint.py .
 
       - name: Publicar tablero auditable
         uses: actions/upload-artifact@v4
         with:
           name: faro-pm-dashboard-${{ github.run_number }}
           path: |
-            13_Reports/TABLERO_CONTROL_PM.html
-            13_Reports/data/pm-dashboard.json
-            13_Reports/data/pm-dashboard-history.json
-            13_Reports/data/github-activity.json
+            vault/13_Reports/TABLERO_CONTROL_PM.html
+            vault/13_Reports/data/pm-dashboard.json
+            vault/13_Reports/data/pm-dashboard-history.json
+            vault/13_Reports/data/github-activity.json
           if-no-files-found: error
           retention-days: 30

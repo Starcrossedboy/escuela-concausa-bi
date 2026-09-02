@@ -3,7 +3,7 @@
 > Vault estándar para gestionar **todo el ciclo de vida de desarrollo de software asistido por IA**,
 > con trazabilidad total entre requerimientos, código, pruebas, seguridad y releases.
 >
-> **Cómo empezar:** abre [[00_Start_Here/PROJECT_INDEX]].
+> **Cómo empezar:** abre [[vault/00_Start_Here/PROJECT_INDEX]].
 
 ---
 
@@ -17,7 +17,7 @@ lo que lo implementa.
 Está diseñado para equipos que trabajan con agentes de IA (Claude Code, Codex, Gemini, etc.) y
 necesitan **auditar qué hizo la IA**, **cumplir un PRD** y **pasar quality gates** antes de release.
 
-## Principios (ver [[_Meta/Vault_Rules]])
+## Principios (ver [[vault/_Meta/Vault_Rules]])
 
 1. **Todo tiene ID y dueño** — `REQ-`, `US-`, `ADR-`, `RISK-`, `SEC-`, `TEST-`, `BUG-`, `TASK-`.
 2. **Una sola fuente de verdad por tema** — sin copias duplicadas.
@@ -29,21 +29,21 @@ necesitan **auditar qué hizo la IA**, **cumplir un PRD** y **pasar quality gate
 
 | Fase | Carpeta |
 |---|---|
-| Producto / visión | `01_Product` |
-| Requerimientos (general + detallado) + **trazabilidad** | `02_Requirements` |
-| Arquitectura + decisiones (ADR) | `03_Architecture` |
-| UX / Diseño | `04_UX_Design` |
-| Ingeniería (git, DoD, PR, estándares) | `05_Engineering` |
-| **Pruebas** (automáticas + físicas/manuales) | `06_Quality_Testing` |
-| **Ciberseguridad** | `07_Security` |
-| CI/CD & DevOps | `08_CICD_DevOps` |
-| **Gobernanza de IA** | `09_AI_Governance` |
-| Riesgos / decisiones / incidentes | `10_Risk_Governance` |
-| Operación / runbooks / SLOs | `11_Operations` |
-| Roadmap & Sprints | `12_Roadmap_Sprints` |
-| Reportes ejecutivos & auditorías | `13_Reports` |
+| Producto / visión | `vault/01_Product` |
+| Requerimientos (general + detallado) + **trazabilidad** | `vault/02_Requirements` |
+| Arquitectura + decisiones (ADR) | `vault/03_Architecture` |
+| UX / Diseño | `vault/04_UX_Design` |
+| Ingeniería (git, DoD, PR, estándares) | `vault/05_Engineering` |
+| **Pruebas** (automáticas + físicas/manuales) | `vault/06_Quality_Testing` |
+| **Ciberseguridad** | `vault/07_Security` |
+| CI/CD & DevOps | `vault/08_CICD_DevOps` |
+| **Gobernanza de IA** | `vault/09_AI_Governance` |
+| Riesgos / decisiones / incidentes | `vault/10_Risk_Governance` |
+| Operación / runbooks / SLOs | `vault/11_Operations` |
+| Roadmap & Sprints | `vault/12_Roadmap_Sprints` |
+| Reportes ejecutivos & auditorías | `vault/13_Reports` |
 
-Carpetas de soporte: `_Templates` (plantillas), `_DevLog` (bitácora única), `_Meta` (reglas del vault).
+Carpetas de soporte: `vault/_Templates` (plantillas), `vault/_DevLog` (bitácora única), `vault/_Meta` (reglas del vault).
 
 ## 🚀 Despliegue
 
@@ -76,13 +76,13 @@ Carpetas de soporte: `_Templates` (plantillas), `_DevLog` (bitácora única), `_
 ./08_CICD_DevOps/scripts/deploy-cloud-run.sh v0.1.0-s1
 ```
 
-Ver procedimiento completo: [[08_CICD_DevOps/Cloud_Run_Deploy]]
+Ver procedimiento completo: [[vault/08_CICD_DevOps/Cloud_Run_Deploy]]
 
 ---
 
 ## Cómo adoptar este vault en tu proyecto
 
-Ver [[_Meta/Adoption_Guide]] — reemplaza los placeholders `{{...}}`, asigna dueños y crea tu primer PRD.
+Ver [[vault/_Meta/Adoption_Guide]] — reemplaza los placeholders `{{...}}`, asigna dueños y crea tu primer PRD.
 
 ---
 

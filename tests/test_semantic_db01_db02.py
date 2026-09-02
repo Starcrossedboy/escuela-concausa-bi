@@ -19,7 +19,7 @@ el mapa de riesgo territorial, leídos desde los cubos físicos C1:
 Validación estática: no necesita base de datos. La validación contra datos
 corre en local vía `superset/sync_semantic_layer.py --validar-datos`.
 
-Contratos: `04_UX_Design/Screen_Specs.md` §2/§4 y `Cube_Specs_DB03_DB04.md` §4.3.
+Contratos: `vault/04_UX_Design/Screen_Specs.md` §2/§4 y `Cube_Specs_DB03_DB04.md` §4.3.
 """
 
 from __future__ import annotations

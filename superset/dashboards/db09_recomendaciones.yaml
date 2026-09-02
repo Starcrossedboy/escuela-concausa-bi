@@ -2,7 +2,7 @@
 # DB-09 - Tablero Recomendaciones prescriptivas · definicion declarativa (US-204)
 # -----------------------------------------------------------------------------
 # Historia : US-204 (Manuel Alejandro Serrania Reinada, Celula 2 - Analytics & BI)
-# Contrato : 04_UX_Design/Cube_Specs_DB06_DB09.md §5
+# Contrato : vault/04_UX_Design/Cube_Specs_DB06_DB09.md §5
 # Consumido por : superset/sync_semantic_layer.py (idempotente)
 #
 # El diferenciador prescriptivo del proyecto: cada escuela con su driver

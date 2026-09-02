@@ -47,7 +47,7 @@ vars:
   bronze_sesnsp_count_column: "conteo"
 
   # Nombre esperado de la columna identificadora en `bronze.conagua` (DS-06 · Emilio
-  # Galnares Ruiz), según el esquema documentado en 14_Data_Sources/DS-06_CONAGUA_SINA.md
+  # Galnares Ruiz), según el esquema documentado en vault/14_Data_Sources/DS-06_CONAGUA_SINA.md
   # y src/ingesta/extractor_conagua.py. NO verificado contra datos reales: la fuente
   # todavía no se ingiere (ver el default falso `conagua_no_ingerido` en sources.yml).
   # Usada por models/silver/agua_region.sql.
@@ -61,7 +61,7 @@ vars:
 # conflicto — el de Deni en main (name/profile 'faro', capa silver) y el mío en esta
 # rama (name/profile 'faro_gold', capa gold). Se consolidan aquí en un solo proyecto
 # 'faro' con ambas capas. Si tu ~/.dbt/profiles.yml todavía tiene un target 'faro_gold',
-# necesitas agregar/renombrar a un target 'faro' (ver _DevLog del merge).
+# necesitas agregar/renombrar a un target 'faro' (ver vault/_DevLog del merge).
 models:
   faro:
     silver:

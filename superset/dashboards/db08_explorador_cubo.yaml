@@ -2,7 +2,7 @@
 # DB-08 - Tablero Explorador del cubo · definicion declarativa (US-213)
 # -----------------------------------------------------------------------------
 # Historia : US-213 (Monserrat Xcaret Miranda Olivas, Celula 2 - Analytics & BI)
-# Contrato : 04_UX_Design/Cube_Specs_DB05_DB08.md §4
+# Contrato : vault/04_UX_Design/Cube_Specs_DB05_DB08.md §4
 # Consumido por : superset/sync_semantic_layer.py (idempotente)
 #
 # Publico: analistas avanzados (Screen_Specs). El elemento central es la tabla
@@ -72,7 +72,7 @@ dashboards:
     descripcion: >
       Exploración libre del driver observado por escuela: tabla dinámica con
       filas/columnas configurables sobre gold.cubo_pivot. Contrato:
-      04_UX_Design/Cube_Specs_DB05_DB08.md §4.
+      vault/04_UX_Design/Cube_Specs_DB05_DB08.md §4.
     filtros_globales:
       - columna: id_ciclo
         etiqueta: "Ciclo escolar"

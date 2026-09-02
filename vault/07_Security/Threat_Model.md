@@ -1,0 +1,279 @@
+---
+id: SEC-THREAT-MODEL
+title: "Threat Model & Security Policy — FARO"
+owner: "Luis Téllez Domínguez"
+co_owners: ["Christian Ruiz"]
+status: approved
+version: "1.0.1"
+traces_up: ["US-502"]
+traces_down: ["SEC-HARDENING-S3", "SEC-HARDENING-S4"]
+last_reviewed: "2026-08-29"
+tags: [security, threat-model, cis-controls, vulnerabilities, audit]
+---
+
+# 🔒 Threat Model & Security Policy — Proyecto FARO
+
+> **Nivel actual:** Desarrollo Local (Score CIS: 7.0/10)  
+> → [[vault/07_Security/_index|Volver a Security]]
+
+---
+
+## 📋 Tabla de Contenidos
+
+1. [Modelo de Amenazas](#modelo-de-amenazas)
+2. [Superficie de Ataque](#superficie-de-ataque)
+3. [Vulnerabilidades Conocidas](#vulnerabilidades-conocidas)
+4. [Mitigaciones Implementadas](#mitigaciones-implementadas)
+5. [Roadmap de Seguridad](#roadmap-de-seguridad)
+6. [Reporte de Vulnerabilidades](#reporte-de-vulnerabilidades)
+
+---
+
+## 🎯 Modelo de Amenazas
+
+### Actores de Amenaza
+
+| Actor | Motivación | Capacidad | Probabilidad |
+|-------|------------|-----------|--------------|
+| **Desarrollador malicioso** | Exfiltrar datos de prueba | Media | Baja |
+| **Atacante en red local** | Acceso no autorizado | Media | Media |
+| **Malware en laptop** | Escalación de privilegios | Alta | Media |
+| **Insider threat** | Sabotaje/robo de IP | Alta | Baja |
+
+### Activos Críticos
+
+1. **Datos de prueba** (sensibilidad: baja)
+   - Fixtures anonimizados del Formato 911
+   - Sin datos reales de estudiantes
+   
+2. **Modelos ML** (sensibilidad: media)
+   - Experimentos y métricas en MLflow
+   - Artifacts de modelos entrenados
+   
+3. **Credenciales** (sensibilidad: alta)
+   - Passwords de servicios
+   - Tokens de API (cuando se implementen)
+   - Secret keys de aplicaciones
+
+4. **Código fuente** (sensibilidad: media)
+   - Algoritmos de ML
+   - Lógica de negocio
+   - Configuración de infraestructura
+
+---
+
+## 🌐 Superficie de Ataque
+
+### Puertos Expuestos (localhost:*)
+
+| Puerto | Servicio | Autenticación | Cifrado | Riesgo |
+|--------|----------|---------------|---------|--------|
+| 5432 | PostgreSQL | ✅ Sí (password) | ❌ No | Media |
+| 8000 | FastAPI | ⚠️ Opcional | ❌ No | Media |
+| 8080 | Airflow | ✅ Sí (login) | ❌ No | Media |
+| 5001 | MLflow | ❌ No | ❌ No | **Alta** |
+| 8088 | Superset | ✅ Sí (login) | ❌ No | Media |
+| 8001 | ChromaDB | ❌ No | ❌ No | **Alta** |
+
+### Vectores de Ataque
+
+#### 1. Network-based
+- ✅ **Mitigado:** Puertos vinculados solo a `127.0.0.1` (desde commit actual)
+- ⚠️ **Riesgo residual:** Malware en host puede acceder a localhost
+- 🔮 **Mitigación futura:** Nginx reverse proxy + SSL/TLS (Sprint 3)
+
+#### 2. Credential-based
+- ⚠️ **Riesgo:** Passwords en `.env` accesibles por `docker inspect`
+- ⚠️ **Riesgo:** Sin rotación automática de credenciales
+- 🔮 **Mitigación futura:** GCP Secret Manager (Sprint 4)
+
+#### 3. Application-based
+- ⚠️ **Riesgo:** MLflow y ChromaDB sin autenticación
+- ⚠️ **Riesgo:** Sin rate limiting (vulnerable a brute force)
+- 🔮 **Mitigación futura:** Auth obligatorio (Sprint 3)
+
+#### 4. Data-based
+- ✅ **Mitigado:** Solo datos de prueba (no sensibles)
+- ⚠️ **Riesgo:** Volúmenes Docker sin cifrado en reposo
+- 🔮 **Mitigación futura:** Cloud SQL cifrado (Sprint 4)
+
+---
+
+## 🐛 Vulnerabilidades Conocidas
+
+### Críticas (1)
+
+**V8: ChromaDB sin autenticación**
+- **CWE:** CWE-306 (Missing Authentication for Critical Function)
+- **CVSS:** 9.1 (Critical)
+- **Impacto:** Acceso completo al vector store
+- **Estado:** Aceptado para desarrollo, mitigación en Sprint 3
+- **CIS Control:** 6.1, 6.8
+
+### Altas (5)
+
+**V1: MLflow sin autenticación**
+- **CWE:** CWE-306
+- **CVSS:** 7.5 (High)
+- **Impacto:** Lectura/modificación de experimentos ML
+- **Estado:** Aceptado para desarrollo, mitigación en Sprint 3
+
+**V2: Credenciales de BD en texto plano**
+- **CWE:** CWE-312 (Cleartext Storage of Sensitive Information)
+- **CVSS:** 7.5 (High)
+- **Estado:** Aceptado para desarrollo, mitigación en Sprint 4
+
+**V4: Superset SECRET_KEY estático**
+- **CWE:** CWE-798 (Use of Hard-coded Credentials)
+- **CVSS:** 7.5 (High)
+- **Estado:** Aceptado para desarrollo, rotación en Sprint 3
+
+**V6: Tráfico HTTP sin cifrar**
+- **CWE:** CWE-319 (Cleartext Transmission of Sensitive Information)
+- **CVSS:** 7.5 (High)
+- **Estado:** Aceptado para desarrollo, SSL/TLS en Sprint 3
+
+**V10: Datos sin cifrar en reposo**
+- **CWE:** CWE-311 (Missing Encryption of Sensitive Data)
+- **CVSS:** 7.5 (High)
+- **Estado:** Aceptado para desarrollo, CMEK en Sprint 4
+
+### Medias (5)
+
+- V3, V5, V7, V9, V11 (ver `docker/README-SECURITY.md` para detalles)
+
+### Bajas (2)
+
+- V12, V13 (logs y healthchecks)
+
+**Total:** 13 vulnerabilidades → 7 mitigadas en Nivel 1, 6 pendientes para Sprints 3-4
+
+---
+
+## ✅ Mitigaciones Implementadas (Nivel 1)
+
+### M1: Documentación de riesgos
+- ✅ `SECURITY.md` (este archivo)
+- ✅ `docker/README-SECURITY.md`
+- ✅ Comentarios en `.env`
+- **CIS Control:** 5.4 (Documentation)
+
+### M2: Reducción de superficie de ataque
+- ✅ Bind de puertos solo a `127.0.0.1`
+- ✅ Sin acceso desde red local
+- **CIS Control:** 12.4 (Port Security)
+
+### M3: Separación de ambientes
+- ✅ Variable `ENVIRONMENT=local`
+- ✅ Warnings al arrancar servicios
+- **CIS Control:** 4.1 (Secure Configuration)
+
+### M4: Gestión de credenciales
+- ✅ Script de generación seguro (`scripts/generate-keys.py`)
+- ✅ Política documentada (`vault/07_Security/Credentials_Policy.md`)
+- ✅ Passwords de 20 caracteres
+- **CIS Control:** 5.2 (Use Unique Passwords) · _(antes citaba 5.3 por error: 5.3 es "Disable Dormant Accounts")_
+
+### M5: Control de acceso a código
+- ✅ `.env` en `.gitignore`
+- ✅ Pull requests obligatorios
+- ✅ Sin credenciales en código
+- **CIS Control:** 3.12 (Code Security)
+
+---
+
+## 🗺️ Roadmap de Seguridad
+
+### Sprint 2 (Actual) — Score: 7.0/10
+- [x] Documentación de amenazas
+- [x] Bind localhost only
+- [x] Warnings de seguridad
+- [x] Política de credenciales
+
+> **Nota (v1.0.1):** los US IDs de este roadmap se reconciliaron con el catálogo real de
+> Célula 5 (US-501..505); antes usaban IDs incorrectos (US-503/504/505 cruzados y el
+> fantasma US-601). La entrega vigente se rige por las **Fases** del plan de despliegue
+> GCP: Fase 1 = US-504 (ya aprovisionada ✅); Fases 3-4 = US-505.
+
+### Sprint 3 (Staging) — Score: 8.5/10
+- [ ] Autenticación en MLflow — IAP delante de la UI admin (US-505, Fase 3)
+- [ ] Token auth en ChromaDB — IAP delante de la UI admin (US-505, Fase 3)
+- [ ] Reverse proxy / TLS en el borde: Cloud Load Balancing (HTTPS) + Cloud Armor (US-505, Fase 3/4)
+- [ ] SSL/TLS gestionado por Cloud LB (certificados administrados; no self-signed en prod)
+- [ ] Rate limiting (reglas Cloud Armor) (US-505, Fase 4)
+- [ ] Segmentación de red: VPC + Cloud SQL IP privada + Serverless VPC Connector (US-504, Fase 1 ✅)
+- [ ] Rotación de SECRET_KEYs vía Secret Manager (US-504)
+
+### Sprint 4 (Producción) — Score: 9.5/10
+- [ ] GCP Secret Manager (US-504, Fase 1 ✅)
+- [ ] Cloud SQL cifrado at-rest (default) (US-504, Fase 1 ✅)
+- [ ] Cloud Armor WAF (US-505, Fase 4)
+- [ ] Identity-Aware Proxy (OAuth2) para UIs admin (US-505, Fase 3)
+- [ ] Security Command Center (US-505)
+- [ ] Cloud Logging / Audit Logs centralizado (US-504, Fase 1 ✅ — Data Access)
+- [ ] Alertas de seguridad (Cloud Monitoring) (US-505)
+
+---
+
+## 🚨 Reporte de Vulnerabilidades
+
+### Para el Equipo Interno
+
+Si encuentras una vulnerabilidad de seguridad:
+
+1. **NO la reportes en issues públicos de GitHub**
+2. Contacta directamente a:
+   - **Security Lead:** Christian Ruiz (Célula 4)
+   - **DevOps Lead:** Luis Téllez (Célula 5)
+   - **PO:** Edgar Coronel
+
+3. Envía correo a: `security@faro.local` (interno)
+
+4. Incluye:
+   - Descripción de la vulnerabilidad
+   - Pasos para reproducir
+   - Impacto potencial
+   - Sugerencias de mitigación (opcional)
+
+### Tiempo de Respuesta
+
+- **Críticas (CVSS 9.0-10.0):** 24 horas
+- **Altas (CVSS 7.0-8.9):** 72 horas
+- **Medias (CVSS 4.0-6.9):** 1 semana
+- **Bajas (CVSS 0.1-3.9):** 1 sprint
+
+### Divulgación Responsable
+
+- **Embargo:** 90 días después de fix
+- **Crédito:** Se reconocerá al reportero (con permiso)
+- **Hall of Fame:** `SECURITY-CREDITS.md`
+
+---
+
+## 📚 Referencias
+
+- [CIS Controls v8](https://www.cisecurity.org/controls)
+- [OWASP Top 10](https://owasp.org/www-project-top-ten/)
+- [NIST Cybersecurity Framework](https://www.nist.gov/cyberframework)
+- [Docker Security Best Practices](https://docs.docker.com/engine/security/)
+
+---
+
+## 📝 Change Log
+
+| Fecha | Versión | Cambios | Autor |
+|-------|---------|---------|-------|
+| 2026-08-16 | 1.0 | Creación inicial, threat model, 13 vulnerabilidades documentadas | Luis Téllez |
+| 2026-08-29 | 1.0.1 | Reconciliación de US IDs del roadmap con el catálogo real (US-501..505; elimina el fantasma US-601); corrige tech stale (nginx/self-signed → Cloud LB/Armor + certs administrados); corrige cita CIS 5.3→5.2 en M4 | Luis Téllez |
+| TBD | 1.1 | Actualización post-Sprint 3 (auth implementado) | Christian Ruiz |
+| TBD | 2.0 | Actualización post-Sprint 4 (GCP production) | Luis Téllez |
+
+---
+
+**Este documento es revisado cada sprint y actualizado cuando:**
+- Se descubre una nueva vulnerabilidad
+- Se implementa una mitigación
+- Cambia el modelo de amenazas
+- Se despliega a un nuevo ambiente
+
+**Próxima revisión:** Sprint 3 kickoff (2026-08-26)

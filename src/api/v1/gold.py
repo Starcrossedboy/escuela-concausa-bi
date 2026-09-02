@@ -125,7 +125,7 @@ def obtener_kpis(
 ) -> KpisOut:
     """KPIs agregados del tablero (rol mínimo: ciudadano).
 
-    Fórmulas tomadas literalmente de `04_UX_Design/Screen_Specs.md` (KPI-02 variación ponderada,
+    Fórmulas tomadas literalmente de `vault/04_UX_Design/Screen_Specs.md` (KPI-02 variación ponderada,
     KPI-04 escuelas en riesgo vía JOIN a `gold.predicciones` con umbral 0.6 ratificado, KPI-05
     completitud promedio) — no son agregaciones inventadas para este endpoint.
     """

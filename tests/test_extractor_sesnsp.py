@@ -1,6 +1,6 @@
 """Pruebas del extractor de DS-04 SESNSP (`src/ingesta/extractor_sesnsp.py`), con datos
 sintéticos que reproducen la ESTRUCTURA real verificada a mano el 2026-08-24 (ver
-DevLog y `14_Data_Sources/DS-04_SESNSP_Incidencia_Delictiva.md`), no suposiciones:
+DevLog y `vault/14_Data_Sources/DS-04_SESNSP_Incidencia_Delictiva.md`), no suposiciones:
 
 - El grano nativo de la fuente incluye subtipo y modalidad de delito; el modelo Silver
   (`delitos_municipio.sql`) espera (municipio, año, mes, tipo_delito) y deduplica por

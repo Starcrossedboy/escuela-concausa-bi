@@ -27,15 +27,15 @@ data/
 # NOTA: el vault son ~150 archivos .md. Procesarlos consume tokens del LLM
 # (tree-sitter solo es gratis para CODIGO). Se excluyen las carpetas de
 # proceso y se mantienen solo las que aportan contexto arquitectonico.
-04_UX_Design/
-06_Quality_Testing/
-10_Risk_Governance/
-11_Operations/
-12_Roadmap_Sprints/
-13_Reports/
-_DevLog/
-_Templates/
-09_AI_Governance/Agent_Contexts/
+vault/04_UX_Design/
+vault/06_Quality_Testing/
+vault/10_Risk_Governance/
+vault/11_Operations/
+vault/12_Roadmap_Sprints/
+vault/13_Reports/
+vault/_DevLog/
+vault/_Templates/
+vault/09_AI_Governance/Agent_Contexts/
 
 # ---- Sistema ----
 .DS_Store

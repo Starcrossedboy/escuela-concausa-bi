@@ -1,7 +1,7 @@
 """Fábrica de la app del **contrato v1** de FARO (US-401).
 
 Esta app es la **implementación de referencia / stub** del contrato descrito en
-`03_Architecture/API_Specification.md`. Su propósito es doble:
+`vault/03_Architecture/API_Specification.md`. Su propósito es doble:
 
 1. Generar el `openapi.json` estable que se publica en `api/openapi.v1.json` (§6) y del que las
    Células 2 y 3 levantan sus mocks.
@@ -88,7 +88,7 @@ def create_app() -> FastAPI:
         title="FARO API — Contrato v1",
         description=(
             "Contrato REST de FARO (Escuela como Sensor Social). Fuente de verdad: "
-            "03_Architecture/API_Specification.md. Este servicio publica el OpenAPI que "
+            "vault/03_Architecture/API_Specification.md. Este servicio publica el OpenAPI que "
             "consumen los mocks de las Células 2 y 3 (US-401)."
         ),
         version="1.0.0",

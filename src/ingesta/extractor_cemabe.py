@@ -30,7 +30,7 @@ def extraer_cemabe() -> str:
     if SOURCE_URL == "PENDIENTE-CONFIRMAR":
         raise ValueError(
             f"{SOURCE_NAME}: URL aún no confirmada por el dueño de la fuente (Deni Garrido Fragoso). "
-            "Ver 14_Data_Sources/DS-03_CEMABE.md"
+            "Ver vault/14_Data_Sources/DS-03_CEMABE.md"
         )
 
     logger.info("Iniciando extracción de %s", SOURCE_NAME)

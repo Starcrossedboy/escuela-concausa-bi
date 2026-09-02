@@ -4,7 +4,7 @@ name: Refresh PM Dashboard
 # fuente canónica, regenera el tablero + historial + actividad y los commitea
 # de vuelta. Así nadie tiene que correr el generador a mano (DEC-004).
 #
-# Prevención de loop: el disparador NO incluye 13_Reports/** (lo único que
+# Prevención de loop: el disparador NO incluye vault/13_Reports/** (lo único que
 # commitea el bot), y el commit lleva [skip ci]. El push directo a main lo
 # permite el bypass del ruleset (ver DEC-004): requiere el secreto
 # DASHBOARD_PAT (PAT fine-grained de un admin con contents:write). Sin ese
@@ -14,15 +14,15 @@ on:
   push:
     branches: [main]
     paths:
-      - '00_Start_Here/Developer_Onboarding.md'
-      - '02_Requirements/**'
-      - '05_Engineering/Definition_of_Done.md'
-      - '10_Risk_Governance/**'
-      - '12_Roadmap_Sprints/**'
-      - '14_Data_Sources/**'
-      - '_DevLog/**'
-      - '_Meta/scripts/*pm_dashboard.py'
-      - '_Meta/scripts/collect_github_activity.py'
+      - 'vault/00_Start_Here/Developer_Onboarding.md'
+      - 'vault/02_Requirements/**'
+      - 'vault/05_Engineering/Definition_of_Done.md'
+      - 'vault/10_Risk_Governance/**'
+      - 'vault/12_Roadmap_Sprints/**'
+      - 'vault/14_Data_Sources/**'
+      - 'vault/_DevLog/**'
+      - 'vault/_Meta/scripts/*pm_dashboard.py'
+      - 'vault/_Meta/scripts/collect_github_activity.py'
       - '.github/workflows/refresh-dashboard.yml'
   workflow_dispatch:
 
@@ -60,13 +60,13 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ github.token }}
           GITHUB_REPOSITORY: ${{ github.repository }}
-        run: python3 _Meta/scripts/collect_github_activity.py
+        run: python3 vault/_Meta/scripts/collect_github_activity.py
 
       - name: Regenerar tablero desde fuentes canónicas
-        run: python3 _Meta/scripts/generate_pm_dashboard.py .
+        run: python3 vault/_Meta/scripts/generate_pm_dashboard.py .
 
       - name: Validar contrato del tablero (TEST-002)
-        run: python3 _Meta/scripts/validate_pm_dashboard.py .
+        run: python3 vault/_Meta/scripts/validate_pm_dashboard.py .
 
       - name: Commitear tablero regenerado
         # No bloquea el run si el push es rechazado (p. ej. bypass aún sin configurar).
@@ -74,7 +74,7 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add 13_Reports/TABLERO_CONTROL_PM.html 13_Reports/data/
+          git add vault/13_Reports/TABLERO_CONTROL_PM.html vault/13_Reports/data/
           if git diff --cached --quiet; then
             echo "Tablero sin cambios; nada que commitear."
           else

@@ -1,6 +1,6 @@
 """Partición temporal y backtesting para ML-01 (US-311).
 
-Regla no negociable del proyecto (`15_ML_Models/_index.md`, AC-003.3): la validación de ML-01 y
+Regla no negociable del proyecto (`vault/15_ML_Models/_index.md`, AC-003.3): la validación de ML-01 y
 ML-02 usa partición **temporal, nunca aleatoria**. Una partición aleatoria mete filas del ciclo
 2023-2024 en entrenamiento y filas del mismo ciclo en prueba: el modelo ve el futuro y la métrica
 sale inflada. Es fuga de información, y con una llave CCT × ciclo es especialmente fácil de

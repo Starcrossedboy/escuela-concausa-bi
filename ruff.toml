@@ -50,9 +50,9 @@
 # a la zona horaria del schedule; puede ser latente, no solo estilo.
 "dags/**" = ["I001", "DTZ001"]
 
-# ── _Meta/scripts (tooling del vault) ── 9 ───────────────────────────────────
+# ── vault/_Meta/scripts (tooling del vault) ── 9 ───────────────────────────────────
 # SIM115: posible fuga de descriptor en vault_lint.py:118 — vale revisarla en fase 2.
-"_Meta/**" = ["I001", "EXE001", "DTZ011", "SIM115"]
+"vault/_Meta/**" = ["I001", "EXE001", "DTZ011", "SIM115"]
 
 # ── scripts (apoyo) ── 2 ──────────────────────────────────────────────────────
 "scripts/**" = ["I001", "EXE001"]

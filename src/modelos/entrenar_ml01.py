@@ -6,7 +6,7 @@ y registrarlo en MLflow con parámetros, métricas y artefacto (AC-003.2 y AC-00
 ## Decisiones y por qué
 
 **`HistGradientBoostingRegressor`.** Maneja `NaN` de forma nativa, así que un driver `SIN_DATO`
-llega al modelo **como ausencia real y nunca se imputa a cero** (regla 4 de `15_ML_Models/_index`).
+llega al modelo **como ausencia real y nunca se imputa a cero** (regla 4 de `vault/15_ML_Models/_index`).
 El estimador aprende a qué lado del árbol mandar las ausencias, que es justo la señal que queremos
 conservar: no tener dato de aire es información, no un cero.
 

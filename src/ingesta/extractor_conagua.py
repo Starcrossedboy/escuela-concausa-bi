@@ -9,7 +9,7 @@ endpoint mapa.php, que responde en JSON con el listado completo de presas y sus
 volúmenes (cap_name, cap_namo). El payload replica exactamente el que arma el
 formulario web al seleccionar todos los estados (id_estado=1..33) — ver el DevLog
 de la sesión para el detalle de cómo se capturó (Herramientas de Desarrollador,
-pestaña Network). Detalle en 14_Data_Sources/DS-06_CONAGUA_SINA.md.
+pestaña Network). Detalle en vault/14_Data_Sources/DS-06_CONAGUA_SINA.md.
 """
 import logging
 from datetime import datetime, timezone

@@ -3,10 +3,10 @@
 Artefactos de **US-211a** (Marina García del Buey, **US-204** y **US-211b** (Manuel Serranía),
 **US-221/222** (Oscar Quiroz), **US-213** (Monserrat Miranda) y el **repunteo US-205**.
 Contratos canónicos:
-[`04_UX_Design/Cube_Specs_DB03_DB04.md`](../../04_UX_Design/Cube_Specs_DB03_DB04.md)
-(`DOC-CUBESPEC-DB0304`) · [`Cube_Specs_DB05_DB08.md`](../../04_UX_Design/Cube_Specs_DB05_DB08.md)
-(`${DOC-CUBESPEC-DB0508}`) · [`Cube_Specs_DB06_DB09.md`](../../04_UX_Design/Cube_Specs_DB06_DB09.md)
-· [`Cube_Specs_DB07.md`](../../04_UX_Design/Cube_Specs_DB07.md).
+[`vault/04_UX_Design/Cube_Specs_DB03_DB04.md`](../../vault/04_UX_Design/Cube_Specs_DB03_DB04.md)
+(`DOC-CUBESPEC-DB0304`) · [`Cube_Specs_DB05_DB08.md`](../../vault/04_UX_Design/Cube_Specs_DB05_DB08.md)
+(`${DOC-CUBESPEC-DB0508}`) · [`Cube_Specs_DB06_DB09.md`](../../vault/04_UX_Design/Cube_Specs_DB06_DB09.md)
+· [`Cube_Specs_DB07.md`](../../vault/04_UX_Design/Cube_Specs_DB07.md).
 Convención canónica: [`../README.md`](../README.md) (US-202).
 
 | Archivo | Qué es |

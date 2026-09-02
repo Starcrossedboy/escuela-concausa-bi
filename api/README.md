@@ -3,7 +3,7 @@
 Este directorio publica el **artefacto estable del contrato**: [`openapi.v1.json`](openapi.v1.json).
 Es el OpenAPI que consumen los **mocks** de las Células 2 (BI) y 3 (ML/Agente) para trabajar
 **desacopladas** de la implementación real (§6 de
-[`03_Architecture/API_Specification.md`](../03_Architecture/API_Specification.md), que es la fuente de verdad del contrato).
+[`vault/03_Architecture/API_Specification.md`](../vault/03_Architecture/API_Specification.md), que es la fuente de verdad del contrato).
 
 > **Regla de oro:** cambiar una ruta o un modelo = editar el contrato, **regenerar** este JSON y
 > avisar a C2 y C3. Nunca romper el contrato en silencio.

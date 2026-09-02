@@ -2,7 +2,7 @@
 # Capa semantica de DB-03 y DB-04 - metricas, jerarquias y filtros
 # -----------------------------------------------------------------------------
 # Historia : US-211a (Marina Garcia del Buey, Celula 2 - Analytics & BI)
-# Contrato : 04_UX_Design/Cube_Specs_DB03_DB04.md (DOC-CUBESPEC-DB0304)
+# Contrato : vault/04_UX_Design/Cube_Specs_DB03_DB04.md (DOC-CUBESPEC-DB0304)
 # Uso      : declaracion de las metricas que se dan de alta en Superset al
 #            construir DB-03 y DB-04 (US-212). Formato propio del proyecto,
 #            no un export nativo de Superset: la convencion definitiva la fija
@@ -102,7 +102,7 @@ datasets:
         expresion: "6 - ROUND(AVG(indice_completitud_drivers) * 6)"
         formato: entero
 
-    # Publicados por Manuel en 04_UX_Design/Screen_Specs.md §4 el 2026-08-15
+    # Publicados por Manuel en vault/04_UX_Design/Screen_Specs.md §4 el 2026-08-15
     # (US-201). El catalogo de Manuel es la fuente canonica; esta lista queda
     # como registro del origen de la propuesta (Cube_Specs §5.1).
     kpis_canonicos:

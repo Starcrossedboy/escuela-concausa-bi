@@ -2,7 +2,7 @@
 # Capa semantica de DB-01 y DB-02 - metricas, jerarquias y filtros
 # -----------------------------------------------------------------------------
 # Historia : US-203 (Manuel Alejandro Serrania Reinada, Celula 2 - Analytics & BI)
-# Contrato : 04_UX_Design/Screen_Specs.md §2 y §4
+# Contrato : vault/04_UX_Design/Screen_Specs.md §2 y §4
 # Uso      : declaracion de las metricas que se dan de alta en Superset al
 #            construir DB-01 Ejecutivo y DB-02 Mapa de riesgo territorial.
 #            Mismo formato propio del proyecto fijado en US-202/US-211a

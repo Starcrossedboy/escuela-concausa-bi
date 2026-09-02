@@ -4,7 +4,7 @@ localmente mientras la URL real de Formato 911 sigue bloqueada para descarga aut
 
 No sustituye la ingesta real (src/ingesta/extractor_formato911.py): es solo fixture de
 prueba, <=500 filas, sin datos personales (grano escuela, nunca alumno), por
-_Meta/Vault_Rules.md / CLAUDE.md §3 "Nunca subas datos reales pesados".
+vault/_Meta/Vault_Rules.md / CLAUDE.md §3 "Nunca subas datos reales pesados".
 
 A propósito incluye "suciedad" real que Silver debe resolver (Data_Model.md §3):
 - CCT en minúsculas y con menos de 10 caracteres (homologación: lpad + upper)

@@ -2,7 +2,7 @@
 
 Cierra AC-003.2: *"cada modelo reporta su métrica, documentadas y **reproducibles**"*. El énfasis
 está en lo último — este módulo genera el reporte de
-`06_Quality_Testing/Automated/Evaluacion_Modelos.md` desde el código, no a mano, para que las
+`vault/06_Quality_Testing/Automated/Evaluacion_Modelos.md` desde el código, no a mano, para que las
 cifras del vault nunca se desincronicen de las que produce el pipeline.
 
 ## Qué evalúa
@@ -45,9 +45,9 @@ from src.modelos.entrenar_ml02 import cargar_features_ml02, columna_target_dispo
 from src.modelos.entrenar_ml02 import entrenar_y_evaluar as entrenar_ml02
 from src.modelos.entrenar_ml03 import entrenar_y_evaluar as entrenar_ml03
 
-REPORTE_POR_DEFECTO = Path("06_Quality_Testing/Automated/Evaluacion_Modelos.md")
+REPORTE_POR_DEFECTO = Path("vault/06_Quality_Testing/Automated/Evaluacion_Modelos.md")
 
-#: Umbrales provisionales de aceptación de `15_ML_Models/ML_Strategy` §5.
+#: Umbrales provisionales de aceptación de `vault/15_ML_Models/ML_Strategy` §5.
 UMBRALES: dict[str, float] = {
     "ML-01_mae": 0.03,
     "ML-01_rmse": 0.05,
@@ -426,7 +426,7 @@ id: DOC-EVALUACION-MODELOS
 title: "Evaluación comparativa de modelos y análisis de error"
 owner: "Héctor Rafael Morales Marbán"
 status: in_review
-traces_up: ["02_Requirements/Requirements_Detailed", "15_ML_Models/ML_Strategy"]
+traces_up: ["vault/02_Requirements/Requirements_Detailed", "vault/15_ML_Models/ML_Strategy"]
 traces_down: ["US-312"]
 tags: [qa, ml, celula-3, metricas]
 ---
@@ -436,7 +436,7 @@ tags: [qa, ml, celula-3, metricas]
 > **Documento generado por `src/modelos/evaluar.py`. No editar a mano.**
 > Regenerar con `python -m src.modelos.evaluar`. Así las cifras del vault no se desincronizan de
 > las que produce el pipeline, que es lo que exige AC-003.2 al pedir métricas *reproducibles*.
-> → [[06_Quality_Testing/Automated/_index]] · [[15_ML_Models/ML01_Entrenamiento]] · [[15_ML_Models/ML_Strategy]]
+> → [[vault/06_Quality_Testing/Automated/_index]] · [[vault/15_ML_Models/ML01_Entrenamiento]] · [[vault/15_ML_Models/ML_Strategy]]
 
 > [!warning] Métricas sobre datos sintéticos
 > Se evalúa contra `tests/fixtures/features_escuela_mock.csv`. Las cifras validan que el pipeline
@@ -523,7 +523,7 @@ apenas empieza— se resuelve solo conforme se carguen más ciclos.
 
 ## 6. Umbrales de aceptación
 
-`15_ML_Models/ML_Strategy` §5 fija: ML-01 MAE < {UMBRALES["ML-01_mae"]} (3 puntos porcentuales) y
+`vault/15_ML_Models/ML_Strategy` §5 fija: ML-01 MAE < {UMBRALES["ML-01_mae"]} (3 puntos porcentuales) y
 RMSE < {UMBRALES["ML-01_rmse"]} (5 puntos porcentuales); ML-02 F1 macro ≥
 {UMBRALES["ML-02_f1_macro"]}; ML-03 Silhouette ≥ {UMBRALES["ML-03_silhouette"]}.
 

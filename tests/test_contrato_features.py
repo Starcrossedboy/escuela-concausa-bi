@@ -77,6 +77,6 @@ def test_cada_driver_conserva_su_bandera_de_cobertura() -> None:
 
 @pytest.mark.skipif(not MODELO_SQL.exists(), reason="la Célula 1 aún no publica el modelo dbt")
 def test_la_ausencia_se_marca_sin_dato_y_no_con_cero() -> None:
-    """Regla 4 de `15_ML_Models/_index`: nunca cero, nunca nulo silencioso."""
+    """Regla 4 de `vault/15_ML_Models/_index`: nunca cero, nunca nulo silencioso."""
     sql = MODELO_SQL.read_text(encoding="utf-8")
     assert "SIN_DATO" in sql, "el modelo de la C1 no usa el centinela SIN_DATO"

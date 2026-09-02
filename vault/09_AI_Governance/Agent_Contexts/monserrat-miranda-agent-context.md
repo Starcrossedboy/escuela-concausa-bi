@@ -1,0 +1,132 @@
+---
+id: AGENTCTX-MONSERRAT-MIRANDA
+title: "Agent Context — Monserrat Xcaret Miranda Olivas"
+owner: "Monserrat Xcaret Miranda Olivas"
+status: approved
+traces_up: ["vault/12_Roadmap_Sprints/Sprints/2-monserrat-xcaret-miranda-olivas"]
+tags: [ai, agent-context, ownership, celula-2]
+---
+
+# Agent Context — Monserrat Xcaret Miranda Olivas
+
+> El agente IA de esta persona **debe leer este archivo al inicio de cada sesión**.
+> Define qué puede tocar. Si va a modificar un archivo 🔴, **debe detenerse y avisar**.
+> → [[vault/09_AI_Governance/AI_Agent_Governance]] · Plan: [[vault/12_Roadmap_Sprints/Sprints/2-monserrat-xcaret-miranda-olivas]]
+
+---
+
+## 1. Identificación
+
+| | |
+|---|---|
+| **Nombre** | Monserrat Xcaret Miranda Olivas |
+| **Identidad** | `monserrat-miranda` |
+| **Rama fija** | `dev/monserrat-miranda` — permanente, no se borra al mergear |
+| **Célula** | Celula 2 — Analytics & Business Intelligence |
+| **Nivel** | Medio |
+| **Rol** | Analista BI · Modelado semantico y cubos |
+| **Tech Lead de la célula** | Manuel Alejandro Serranía Reinada |
+| **Quién revisa su código** | Edgar Edmundo Coronel Navarrete (PM) — compuerta única (DEC-003). Manuel Alejandro Serranía Reinada (Tech Lead) revisa como apoyo, no bloquea |
+| **Requisito(s) que cubre** | REQ-002 (Frontend BI interactivo) |
+
+---
+
+## 2. 🟢 Alcance permitido (crear y modificar con IA libremente)
+
+- `superset/**` (dashboards y capa semántica)
+- `vault/04_UX_Design/**`
+- Su propio plan de sprint y su DevLog en `vault/_DevLog/`.
+
+> Definido en `vault/_Meta/ownership.yml`, que es lo que el CI verifica en cada PR.
+> Si esta lista y ese archivo no coinciden, **manda el archivo**.
+
+---
+
+## 3. 🟡 Compartidos (coordinar con el dueño antes de tocar)
+
+| Archivo / artefacto | Dueño | Protocolo |
+|---|---|---|
+| `tests/**` | dueño del área | cambio acotado; avisar en el PR |
+| Cubos de Gold | Diana Alvarez (C1) | consumir el contrato; pedir cambios de grano |
+| Tabla de predicciones | Andrés González Habib (C3) | acordar formato de salida |
+| Contrato de datos de la API | Christian Ruiz (C4) | alinear campos que consumen los dashboards |
+| `vault/02_Requirements/Traceability_Matrix.md` | PM — Edgar Coronel | actualiza su fila; el PM consolida |
+| `_index.md` de las carpetas que toca | PM / dueño de carpeta | registrar cada artefacto nuevo |
+
+---
+
+## 4. 🔴 Fuera de alcance (nunca tocar con IA sin autorización)
+
+| Ruta / área | Dueño | A quién pedir |
+|---|---|---|
+| `src/ingesta/**`, `dbt/**`, `dags/**` | C1 — Diana Alvarez | pedir a Data Eng |
+| `src/api/**` | C4 — Christian Ruiz | pedir a Backend |
+| `src/modelos/**` | C3 — Andrés González Habib | pedir a ML |
+| `.github/**` | C5 — Luis Téllez | pedir a DevOps |
+| `vault/_Meta/**` | PM — Edgar Coronel | pedir al PO |
+| `vault/07_Security/**` | C4 — Christian Ruiz | pedir a Seguridad |
+
+> **Regla 7 del vault:** todo cambio de **esquema, seguridad o CI/CD** requiere **revisión
+> humana explícita** antes de mergear.
+
+---
+
+## 5. Historias asignadas
+
+| ID | Sprint | Objetivo |
+|---|---|---|
+| US-211b | S3 | Cubos y capa semantica que alimentan DB-05 (analisis por driver) y DB-08 (explorador del cubo/pivot): metricas, jerarquias y granos. |
+| US-213 | S4 | Un tab por driver D1-D6 y una tabla dinamica libre sobre Gold. |
+| US-214b | S5 | Filtros globales (ciclo, entidad, nivel) y drill-down cruzado aplicados a DB-05 y DB-08. |
+| US-215b | S5 | Pruebas de usabilidad y accesibilidad sobre DB-05 y DB-08. |
+
+---
+
+## 6. Reglas de uso de IA que aplican
+
+- **DevLog obligatorio por sesión con IA**, antes del push (`vault/_DevLog/YYYY-MM-DD-monserrat-miranda-*.md`).
+- **Revisión línea por línea** de todo código generado por IA: es responsable de lo que sube.
+- **Prohibido pegar en un prompt**: `.env`, datos reales, credenciales o tokens.
+- **Nunca commit directo a `main`**: todo entra por PR desde su rama fija `dev/monserrat-miranda`.
+- **Una sola rama, permanente.** No se abre otra por historia, sprint ni tema; no se borra
+  al mergear. Se sincroniza con `git merge origin/main` antes de trabajar y antes del PR.
+- **Nunca `rebase` ni `--force`** sobre `dev/monserrat-miranda`.
+- Commits en Conventional Commits con el ID de la historia.
+- No trabajar fuera de este alcance: el CI reprueba el PR que toca archivos ajenos.
+  Para cambiar algo de otra persona, pedírselo a su dueño y que lo lleve en su rama.
+
+---
+
+## 7. Contexto técnico específico
+
+- **10 dashboards** DB-01…DB-10 en **Apache Superset** (NO Power BI), sobre Gold acotado a 4 entidades.
+- Filtros por **ciclo, entidad y nivel educativo** que apliquen al conjunto de tableros.
+- DB-07 mapea `indice_completitud_drivers` y los territorios `SIN_DATO`.
+- Llaves de cruce: **CCT** y **clave INEGI de 5 dígitos**. Nunca mostrar cero donde hay `SIN_DATO`.
+
+---
+
+## 8. Prompts iniciales sugeridos (agnósticos de LLM)
+
+> Funcionan en Claude Code, ChatGPT, Gemini o Copilot. Todo lo generado se revisa antes de
+> commitear, y cada sesión genera DevLog.
+
+**Contexto para pegar al inicio de la sesión:**
+```
+Soy de Analytics & BI en FARO. Construyo dashboards en Apache Superset (NO Power BI) sobre la capa Gold. Filtros por ciclo, entidad y nivel. Responde en espanol y explica tus decisiones de visualizacion.
+```
+
+**Dashboard Superset:**
+```
+Diseña el dashboard <DB-xx> en Superset: KPIs, graficos e interactividad. Filtros por ciclo, entidad y nivel. Explica el mapeo a los cubos de Gold.
+```
+
+**Mapa:**
+```
+Propon como visualizar el mapa de riesgo territorial (coropletico municipal + puntos de escuela) evitando mostrar cero donde hay SIN_DATO.
+```
+
+**KPIs:**
+```
+Define el catalogo de KPIs de matricula y riesgo, con su formula y el grano del cubo que los alimenta.
+```

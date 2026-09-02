@@ -2,7 +2,7 @@
 # DB-05 - Tablero Analisis por driver · definicion declarativa (US-213)
 # -----------------------------------------------------------------------------
 # Historia : US-213 (Monserrat Xcaret Miranda Olivas, Celula 2 - Analytics & BI)
-# Contrato : 04_UX_Design/Cube_Specs_DB05_DB08.md §3-§4
+# Contrato : vault/04_UX_Design/Cube_Specs_DB05_DB08.md §3-§4
 # Consumido por : superset/sync_semantic_layer.py (idempotente)
 #
 # Un tab por driver (D1-D6): driver dominante de ML-02 (KPI-07), cobertura y evolucion por ciclo,
@@ -26,7 +26,7 @@ dashboards:
     slug: db05-analisis-driver
     descripcion: >
       Un tab por driver (D1-D6): % de escuelas por driver dominante (KPI-07) y cobertura, evolución por ciclo,
-      con desglose municipal. Contrato: 04_UX_Design/Cube_Specs_DB05_DB08.md.
+      con desglose municipal. Contrato: vault/04_UX_Design/Cube_Specs_DB05_DB08.md.
     filtros_globales:
       - columna: id_ciclo
         etiqueta: "Ciclo escolar"

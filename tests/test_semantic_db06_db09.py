@@ -26,7 +26,7 @@ ahora para el par prescriptivo: el tablero de **Predicciones** (DB-06) y el de
 Validación estática: no necesita base de datos. La validación contra datos
 corre en local vía `superset/sync_semantic_layer.py --validar-datos`.
 
-Contratos: `04_UX_Design/Cube_Specs_DB06_DB09.md` (§2-§5) y `Screen_Specs.md` §4.
+Contratos: `vault/04_UX_Design/Cube_Specs_DB06_DB09.md` (§2-§5) y `Screen_Specs.md` §4.
 """
 
 from __future__ import annotations

@@ -15,7 +15,7 @@ permitirse romper en la capa de BI:
 Validación **estática**: no necesita base de datos ni dependencias fuera de `requirements.txt`.
 La validación contra datos reales queda pendiente de `gold.*` (US-112 / US-113, Célula 1).
 
-Contrato: `04_UX_Design/Cube_Specs_DB03_DB04.md` (DOC-CUBESPEC-DB0304).
+Contrato: `vault/04_UX_Design/Cube_Specs_DB03_DB04.md` (DOC-CUBESPEC-DB0304).
 """
 
 from __future__ import annotations

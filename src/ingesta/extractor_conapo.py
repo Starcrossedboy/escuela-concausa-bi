@@ -17,7 +17,7 @@ BRONZE_PATH = "data/bronze/conapo"
 # NOTA (US-121a, Emilio Galnares Ruiz): CONAPO distribuye este dataset vía una
 # aplicación web con sesiones temporales (sin URL de descarga permanente), por lo
 # que este extractor parte del archivo ya descargado en SOURCE_FILE en vez de una
-# descarga automática por internet. Ver 14_Data_Sources/DS-08_CONAPO_Proyecciones.md,
+# descarga automática por internet. Ver vault/14_Data_Sources/DS-08_CONAPO_Proyecciones.md,
 # sección 10 (Riesgos conocidos).
 
 

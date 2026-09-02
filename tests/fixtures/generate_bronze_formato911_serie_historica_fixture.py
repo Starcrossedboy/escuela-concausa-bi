@@ -8,7 +8,7 @@ ciclo de cada cct siempre se sacrifica como referencia del LAG (`con_target` en
 features_escuela.sql), así que hacen falta **4 ciclos crudos en Bronze**, no 2. Con solo
 `bronze_formato911_sample.csv` + `..._ciclo_anterior_sample.csv`, `gold.features_escuela` sale con
 un único `id_ciclo` (2024-2025, 25 filas) — verificado en este dev el 2026-08-29. Ver BUG-026
-(Marina García del Buey, 06_Quality_Testing/Bug_Register.md).
+(Marina García del Buey, vault/06_Quality_Testing/Bug_Register.md).
 
 `bronze_formato911_historico_sample.csv` (US-1xx, 6 ciclos reales) NO sirve para tapar este hueco:
 se generó sobre su propio universo de CCT (`ENTIDAD_MUNICIPIO`, un municipio por entidad, folio

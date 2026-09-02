@@ -22,7 +22,7 @@ Validación **estática**: no necesita base de datos ni dependencias fuera de `r
 La validación contra datos reales queda pendiente de `gold.cubo_driver`/`gold.cubo_pivot`
 (US-113, Célula 1).
 
-Contrato: `04_UX_Design/Cube_Specs_DB05_DB08.md` (DOC-CUBESPEC-DB0508, v1.1).
+Contrato: `vault/04_UX_Design/Cube_Specs_DB05_DB08.md` (DOC-CUBESPEC-DB0508, v1.1).
 """
 
 from __future__ import annotations

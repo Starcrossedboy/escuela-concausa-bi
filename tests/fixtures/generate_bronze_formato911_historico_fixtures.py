@@ -1,5 +1,5 @@
 """Genera tests/fixtures/bronze_formato911_historico_sample.csv -- muestra sintetica y
-anonimizada (<=500 filas, _Meta/Vault_Rules.md / CLAUDE.md Section3) de bronze.formato911_historico
+anonimizada (<=500 filas, vault/_Meta/Vault_Rules.md / CLAUDE.md Section3) de bronze.formato911_historico
 (DS-01, distribucion HISTORICA multi-ciclo -- ver src/ingesta/extractor_formato911_historico.py),
 para poder correr y probar localmente el modelo Silver/Gold nuevos que mitigan RISK-007/DEC-007
 mientras la descarga real de los 6 ciclos completos no se ejecuta en este entorno.

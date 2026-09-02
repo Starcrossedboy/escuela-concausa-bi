@@ -58,6 +58,88 @@ VERBOS_PROHIBIDOS = frozenset(
     }
 )
 
+# --- Clasificación de INTENCIÓN de la pregunta (defensa en profundidad, P-13) ---
+# `pregunta_en_alcance` clasificaba solo por TEMA: "borra la tabla de predicciones" pasaba por
+# contener "predicciones". El validador de SQL (`validar_sql_lectura`) siempre fue —y sigue siendo—
+# la barrera real sobre el SQL. Al conectar el LLM conviene además rechazar la intención de escritura
+# desde la pregunta. El match es por token exacto: capta imperativos/infinitivos (cómo se dan las
+# órdenes) sin atrapar conjugaciones de preguntas legítimas ("¿qué escuelas se actualizaron?").
+# Limitación conocida: PATRON_PALABRA no capta acentos, así que solo cubre formas sin tilde; lo que
+# se escape lo detiene el validador de SQL.
+VERBOS_ESCRITURA_DIRECTOS = frozenset(
+    {
+        "borra",
+        "borrar",
+        "borren",
+        "borrame",
+        "elimina",
+        "eliminar",
+        "eliminen",
+        "suprime",
+        "suprimir",
+        "trunca",
+        "truncar",
+        "destruye",
+        "destruir",
+        "dropea",
+        "dropear",
+        "delete",
+        "drop",
+        "truncate",
+        "wipe",
+        "erase",
+    }
+)
+
+# Verbos que también aparecen en preguntas legítimas ("¿cuántas escuelas se crearon?"): solo cuentan
+# como orden de escritura si además nombran un objeto de datos (tabla, registro, columna, ...).
+VERBOS_ESCRITURA_AMBIGUOS = frozenset(
+    {
+        "actualiza",
+        "actualizar",
+        "modifica",
+        "modificar",
+        "inserta",
+        "insertar",
+        "altera",
+        "alterar",
+        "crea",
+        "crear",
+        "reemplaza",
+        "reemplazar",
+        "sobrescribe",
+        "sobreescribe",
+        "update",
+        "insert",
+        "alter",
+        "create",
+        "remove",
+        "replace",
+    }
+)
+
+OBJETOS_DE_DATOS = frozenset(
+    {
+        "tabla",
+        "tablas",
+        "registro",
+        "registros",
+        "fila",
+        "filas",
+        "dato",
+        "datos",
+        "columna",
+        "columnas",
+        "campo",
+        "campos",
+        "esquema",
+        "bd",
+        "gold",
+    }
+)
+
+RAZON_SOLO_LECTURA = "FARO solo responde consultas de lectura; no ejecuta cambios sobre los datos."
+
 PATRON_PALABRA = re.compile(r"\b[a-zA-Z_][a-zA-Z0-9_]*\b")
 PATRON_LIMIT = re.compile(r"\blimit\s+(\d+)\b", re.IGNORECASE)
 PATRON_COMENTARIO = re.compile(r"(--|/\*|\*/)")
@@ -83,17 +165,34 @@ class ResultadoGuardrail:
     razon: str | None = None
 
 
-def pregunta_en_alcance(pregunta: str) -> ResultadoGuardrail:
-    """Valida si una pregunta pertenece al dominio de FARO.
+def _intencion_de_escritura(tokens: set[str]) -> bool:
+    """True si la pregunta ORDENA mutar datos, no solo menciona un tema del proyecto.
 
-    La regla es deliberadamente conservadora: al menos una palabra debe pertenecer al vocabulario
-    del proyecto. Carlos (US-304b) podra enriquecer esto con recuperacion semantica, pero este
-    primer filtro evita que el agente intente responder temas ajenos.
+    Un verbo destructivo directo (borra, elimina, trunca, drop, ...) basta; los verbos ambiguos
+    (actualiza, crea, ...) solo cuentan si además nombran un objeto de datos, para no rechazar
+    preguntas legítimas de lectura.
+    """
+    if tokens & VERBOS_ESCRITURA_DIRECTOS:
+        return True
+    return bool(tokens & VERBOS_ESCRITURA_AMBIGUOS) and bool(tokens & OBJETOS_DE_DATOS)
+
+
+def pregunta_en_alcance(pregunta: str) -> ResultadoGuardrail:
+    """Valida si una pregunta pertenece al dominio de FARO y no ordena escribir.
+
+    Dos filtros complementarios:
+    1. TEMA: al menos una palabra debe pertenecer al vocabulario del proyecto (regla conservadora;
+       Carlos/US-304b podra enriquecerla con recuperacion semantica).
+    2. INTENCION (P-13): rechaza ordenes de escritura ("borra la tabla de predicciones") aunque
+       toquen un tema valido. Es defensa en profundidad; `validar_sql_lectura` sigue siendo la
+       barrera real sobre el SQL que genere el LLM.
     """
     tokens = {token.lower() for token in PATRON_PALABRA.findall(pregunta)}
-    if tokens & PALABRAS_AMBITO:
-        return ResultadoGuardrail(True)
-    return ResultadoGuardrail(False, "Pregunta fuera del alcance de FARO.")
+    if not (tokens & PALABRAS_AMBITO):
+        return ResultadoGuardrail(False, "Pregunta fuera del alcance de FARO.")
+    if _intencion_de_escritura(tokens):
+        return ResultadoGuardrail(False, RAZON_SOLO_LECTURA)
+    return ResultadoGuardrail(True)
 
 
 def validar_sql_lectura(sql: str) -> ResultadoGuardrail:

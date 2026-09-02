@@ -43,7 +43,7 @@ SELECT
     -- ---------- componentes aditivos: observado (KPI-01/02/05) ---------------
     cm.escuelas,
     cm.matricula_total,
-    cm.variacion_x_matricula,                  -- SUM(variacion * matricula), ponderado
+    cm.suma_matricula_anterior,                -- SUM(matricula_ciclo_anterior); denominador de KPI-02 (BUG-031)
     cm.suma_completitud,
 
     -- ---------- componentes aditivos: proyeccion ML-01 (KPI-12) ---------------

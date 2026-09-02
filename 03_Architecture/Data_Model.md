@@ -38,7 +38,7 @@ Reglas transversales:
 
 ## 2. BRONZE — landing crudo
 
-- **Una tabla por fuente**, sin transformar (los tipos pueden ser todos `string` si la fuente lo entrega así).
+- **Una tabla por artefacto físico oficial de cada fuente lógica**, sin transformar (los tipos pueden ser todos `string` si la fuente lo entrega así). Si una misma `DS-##` publica productos oficiales físicamente separados con contratos distintos, cada producto aterriza 1:1 en su propia tabla Bronze y conserva el mismo ID lógico de fuente en `_source`; los joins entre productos ocurren únicamente en Silver.
 - **Formato Parquet**, **particionado por fecha de ingesta** (`_ingested_at` → `dt=YYYY-MM-DD`).
 - **Metadatos obligatorios** en cada tabla:
 
@@ -60,8 +60,16 @@ Reglas transversales:
 | `bronze.sesnsp_<aaaa_mm>` | DS-04 | mensual |
 | `bronze.sinaica_<fecha>` | DS-05 | horaria → consolidado diario |
 | `bronze.conagua_<fecha>` | DS-06 | diaria |
-| `bronze.coneval_<aaaa>` | DS-07 | bienal |
+| `bronze.coneval_irs_<aaaa>` | DS-07 · CONEVAL IRS | quinquenal |
+| `bronze.coneval_pobreza_<aaaa>` | DS-07 · CONEVAL Pobreza Municipal | quinquenal / según publicación |
 | `bronze.conapo_<aaaa>` | DS-08 | anual |
+
+> **DS-07 — dos artefactos oficiales, una fuente lógica.** CONEVAL distribuye el Índice de Rezago
+> Social (IRS) municipal y la Medición de Pobreza Municipal como productos oficiales separados.
+> Bronze conserva ambos productos 1:1 en tablas distintas bajo el mismo ID lógico `DS-07`; la
+> conformación por clave INEGI y período ocurre en `silver.rezago_municipio`. Esta separación evita
+> fabricar en Bronze una tabla que CONEVAL no publica y mantiene intacto el contrato downstream de
+> Silver/Gold.
 
 ---
 
@@ -266,8 +274,14 @@ class FeaturesEscuela(BaseModel):
     d6_cobertura: Cobertura
     driver_dominante: DriverDominante | None                # etiqueta OPERATIVA, ver nota abajo
     indice_completitud_drivers: StrictFloat = Field(ge=0, le=1)
-    target_variacion_matricula: StrictFloat                 # etiqueta (partición temporal)
+    target_variacion_matricula: StrictFloat                 # FRACCIÓN vs ciclo anterior (ADR-007)
 ```
+> **`target_variacion_matricula` (ADR-007, ratificado 2026-08-29, cierra BUG-017/BUG-019):**
+> unidad **fracción** de matrícula vs el ciclo anterior del mismo cct
+> (`matricula_total/matricula_ciclo_anterior - 1.0`), **no** alumnos absolutos. Ej.: `-0.05` =
+> pierde 5 % de su matrícula. Mismo patrón que `target_hibrido.py::variacion_desde_serie` (C3).
+> `matricula_ciclo_anterior == 0` se rechaza explícito (división nativa de Postgres, sin
+> `nullif`), no se silencia como `SIN_DATO`.
 
 > **`driver_dominante` (US-302, acordado con Andrés González Habib/C3 el 2026-08-28):** etiqueta
 > **operativa** derivada por argmax entre los drivers con `*_cobertura = 'OK'` — **no** es una

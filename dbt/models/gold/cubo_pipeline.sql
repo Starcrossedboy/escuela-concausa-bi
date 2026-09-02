@@ -44,8 +44,9 @@ eventos as (
     where _source = 'DS-05_SINAICA'
 
     union all
+    -- DS-06: trazabilidad desde Bronze real; no se fabrica el contrato diario/geográfico de agua_region.
     select 'DS-06', _source, _ingested_at, _source_url
-    from {{ ref('agua_region') }}
+    from {{ source('bronze', 'conagua_presas') }}
     where _source = 'DS-06_CONAGUA_SINA'
 
     union all

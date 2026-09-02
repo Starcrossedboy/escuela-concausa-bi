@@ -3,10 +3,10 @@ id: DOC-CUBESPEC-DB0508
 title: "Cube Specs — Contrato semántico de los cubos de DB-05 y DB-08"
 owner: "Monserrat Xcaret Miranda Olivas"
 status: approved
-version: "1.0"
-traces_up: ["DOC-SCREENSPECS", "DOC-DATAMODEL", "US-211b", "REQ-002"]
+version: "1.1"
+traces_up: ["DOC-SCREENSPECS", "DOC-DATAMODEL", "US-211b", "REQ-002", "US-205"]
 traces_down: ["US-213", "US-214b", "US-215b"]
-last_reviewed: "2026-08-22"
+last_reviewed: "2026-08-29"
 tags: [bi, cubos, capa-semantica, dashboards, celula-2]
 ---
 
@@ -17,6 +17,11 @@ tags: [bi, cubos, capa-semantica, dashboards, celula-2]
 > US-113** (construcción de los cubos, Célula 1).
 > → [[04_UX_Design/_index]] · Fuentes canónicas: [[03_Architecture/Data_Model]] · [[04_UX_Design/Screen_Specs]]
 > · Plantilla: [[04_UX_Design/Cube_Specs_DB03_DB04]] (US-211a, Marina García del Buey)
+
+> **v1.1 (2026-08-29, US-205):** DB-05 se **re-escala** para analizar el **driver dominante de
+> ML-02** (`gold.cubo_driver`, KPI-07 ratificado) en vez del driver observado `d1..d6`. El KPI-19
+> propuesto queda **fuera de v1**; el SQL semántico pasa a hacer `pushthrough` de los cubos
+> físicos C1 (repunteo US-113). DB-08 (KPI-20) se conserva observado e intacto.
 
 ---
 
@@ -49,32 +54,39 @@ como **solicitud a la Célula 1** (§8), nunca como edición de [[03_Architectur
 | R6 | **La escuela es la unidad mínima; jamás el alumno.** Ninguna métrica desagrega por persona. | [[03_Architecture/Data_Model]] §1 |
 | R7 | **Filtros globales obligatorios:** ciclo, entidad y nivel educativo, aplicables a *ambos* tableros. | AC-002.2 ([[02_Requirements/Requirements_Detailed]]) |
 
-### 2.1 Decisión de diseño: v1 no lee salidas de ML
+### 2.1 Decisión de diseño: DB-05 lee ML-02 por cubo; DB-08 sigue observado
 
-A diferencia de los cubos de DB-03/DB-04, `cubo_driver` y `cubo_pivot` analizan el **driver
-observado** (`d1`…`d6` de `gold.fact_escuela_ciclo`), no la predicción. No hay `LEFT JOIN` a
-`gold.predicciones` ni a `gold.recomendaciones` en ninguno de los dos SQL de este documento. R1
-sigue vigente como principio del proyecto — si una iteración futura de DB-05/DB-08 agrega
-`indice_riesgo` o `driver_dominante`, tendrá que ser por `LEFT JOIN`, igual que en DB-03.
+**Re-escala de DB-05 (US-205, ratifica §8.3):** DB-05 analiza ahora el **driver dominante de
+ML-02** (KPI-07 ratificado) y **ya no el driver observado** (`d1…d6` del hecho → KPI-19 propuesto,
+que queda **fuera de v1**). `gold.cubo_driver` fue construido por C1 sobre
+`gold_ml_runtime.recomendaciones` y **distingue el 0 real del SIN_DATO**: escuelas a las que
+ninguna recomendación asignó ese driver (`escuelas_driver = 0`) vs grupos sin recomendaciones
+(`escuelas_driver NULL`, gobernado por `cobertura_recomendacion`). Los dos denominadores reales
+(`escuelas_con_recomendacion` / `escuelas_sin_recomendacion`) viajan en el cubo.
 
-Nota: **KPI-07** ("Driver dominante — distribución") ya aparece listado contra DB-05 en
-[[04_UX_Design/Screen_Specs]] §4, pero se sirve directo de `gold.recomendaciones` + `dim_driver` —
-no depende de `cubo_driver`. Queda como pregunta abierta a Manuel (§8.3) si US-213 debe absorber
-ese chart dentro de `cubo_driver` o dejarlo como está.
+R1 sigue vigente: la integración con ML vive **dentro del cubo** (LEFT JOIN en C1), nunca se
+copia la salida cruda como columna de un hecho. DB-08 (KPI-20) conserva v1 **observado** — el
+explorador pivota el driver medido, no la predicción.
 
-### 2.2 Decisión de diseño: formato largo (unpivot), no columnas `d1..d6`
+Nota: **KPI-07** ("Driver dominante — distribución") se consolidó como la métrica de DB-05 en el
+catálogo canónico ([[04_UX_Design/Screen_Specs]] §4), y la pregunta abierta del §8.3 queda
+**resuelta**: DB-05 se sirve de `gold.cubo_driver` (que materializa esa recomendación), no de
+`gold.recomendaciones` en crudo.
 
-Ambos cubos guardan **una fila por driver** (`id_driver` como columna, D1…D6 apilados vía
-`UNION ALL`), no columnas `d1`…`d6` como en `fact_escuela_ciclo`. Es el mismo patrón que ya usa
-KPI-06 del catálogo canónico. Es lo que permite que DB-05 muestre "un tab por driver" (US-213) con
-**un solo juego de charts** filtrado por `id_driver`, en vez de 6 charts casi duplicados por
-columna.
+### 2.2 Decisión de diseño: formato largo (una fila por driver), no columnas `d1..d6`
 
-**Riesgo y mitigación — doble conteo.** Columnas como `escuelas`, `suma_valor` o `matricula_total`
-se **repiten una vez por cada driver** dentro del mismo municipio/escuela × ciclo. Sumarlas sin
-agrupar/filtrar por `id_driver` las multiplica ×6: si un municipio × nivel × ciclo tiene 40
-escuelas, `SUM(escuelas)` sin filtrar por driver da 240, no 40. Por eso cada dataset del YAML
-declara `dimension_obligatoria_en_agregacion: id_driver`, y un test estático
+Ambos datasets guardan **una fila por driver** (`id_driver` como columna), no columnas `d1`…`d6`.
+El formato largo ya lo resuelve el cubo físico C1 (que apila D1…D6); la capa semántica lo consume
+con `pushthrough`. Es el mismo patrón que ya usa KPI-06/KPI-07 del catálogo canónico. Es lo que
+permite que DB-05 muestre "un tab por driver" (US-213) con **un solo juego de charts** filtrado por
+`id_driver`, en vez de 6 charts casi duplicados por columna.
+
+**Riesgo y mitigación — doble conteo.** Columnas como `escuelas_por_driver`,
+`escuelas_con_recomendacion` o `matricula_total` se **repiten una vez por cada driver** dentro del
+mismo municipio/escuela × ciclo. Sumarlas sin agrupar/filtrar por `id_driver` las multiplica ×6: si
+un municipio × nivel × ciclo tiene 40 escuelas, `SUM(escuelas_por_driver)` sin filtrar por driver
+da 240, no 40. Por eso cada dataset del YAML declara
+`dimension_obligatoria_en_agregacion: id_driver`, y un test estático
 (`tests/test_semantic_db05_db08.py`) lo verifica, no solo la prosa de este documento.
 
 ---
@@ -85,16 +97,14 @@ declara `dimension_obligatoria_en_agregacion: id_driver`, y un test estático
 
 | | |
 |---|---|
-| **Grano propuesto** | una fila por **`id_driver` × `cve_mun` × `nivel` × `id_ciclo`** |
-| **Grano en el esquema canónico hoy** | `driver × municipio × ciclo` ([[03_Architecture/Data_Model]] §4.3) — **sin `nivel`** |
+| **Grano** | una fila por **`id_driver` × `cve_mun` × `nivel` × `id_ciclo`** — **materializado por C1** (DEC-009 + US-113) |
+| **Original solicitado** | `driver × municipio × ciclo` ([[03_Architecture/Data_Model]] §4.3) — **sin `nivel`**, reemplazado por DEC-009 (ver §8.1) |
 | **Llave primaria** | (`id_driver`, `cve_mun`, `nivel`, `id_ciclo`) |
-| **Banderas de cobertura** | `cobertura_driver` (una sola bandera: el formato largo ya separa cada driver en su propia fila) |
-| **Alimenta** | DB-05 (distribución de los 6 drivers y su evolución) |
+| **Banderas de cobertura** | `cobertura_recomendacion` (una sola bandera: el formato largo ya separa cada driver en su propia fila) |
+| **Alimenta** | DB-05 (distribución del **driver dominante de ML-02** y su evolución — KPI-07) |
 
-> 🔴 **Cambio de grano solicitado a la Célula 1 — ver §8.1.** El grano canónico (`driver ×
-> municipio × ciclo`) **no puede satisfacer AC-002.2**: si el cubo se pre-agrega sin `nivel`, el
-> filtro global de nivel educativo no tiene sobre qué operar en DB-05. Misma solución que DEC-008
-> aplicó a DB-04: bajar un nivel el grano y reagregar con métricas aditivas.
+> **Re-escala US-205:** el cubo ya no mide el valor observado del driver (KPI-19 propuesto, fuera de
+> v1) sino la **asignación de ML-02** sobre `gold_ml_runtime.recomendaciones` (KPI-07 ratificado).
 
 ### 3.2 Columnas del cubo
 
@@ -106,19 +116,25 @@ declara `dimension_obligatoria_en_agregacion: id_driver`, y un test estático
 | `nombre_driver` | str | `dim_driver.nombre` | Etiqueta legible del tab |
 | `fuente_driver` | str | `dim_driver.fuente` | Nota de fuente en el tab |
 | `driver_nivel_geografico` | str | `dim_driver.nivel_geografico` | Aclara si el driver se mide a nivel municipio o escuela — **no confundir con el filtro `nivel` educativo** |
-| `cve_mun` / `cve_ent` | str | `fact_escuela_ciclo` / `dim_municipio` | **Filtro global de entidad** |
+| `cve_mun` / `cve_ent` | str | `dim_escuela` / `dim_municipio` | **Filtro global de entidad** |
 | `nombre_municipio` / `nombre_entidad` | str | `dim_municipio` | Migas de pan |
 | `nivel` | str | `dim_escuela` | **Filtro global de nivel** |
 | `id_ciclo` / `ciclo` / `anio_inicio` | str/int | `dim_tiempo` | Filtro global de ciclo · eje de la evolución |
 
-**Componentes aditivos** (§2.2 explica por qué son componentes y no un promedio):
+**Componentes aditivos** (de ML-02 — el cubo C1 los materializó sobre
+`gold_ml_runtime.recomendaciones`; §2.2 explica por qué son componentes y no un promedio):
 
 | Columna | Tipo | Definición |
 |---|---|---|
-| `escuelas` | int | `COUNT(DISTINCT cct)` en ese municipio × nivel × ciclo — **repetida ×6, una vez por driver** |
-| `suma_valor` | float | `SUM(valor)` **solo sobre `cobertura = 'OK'`** |
-| `escuelas_con_dato` | int | `COUNT(*)` sobre `cobertura = 'OK'` — denominador real |
-| `cobertura_driver` | enum `OK`/`SIN_DATO` | `SIN_DATO` cuando `escuelas_con_dato = 0` |
+| `total_escuelas` | int | `COUNT(DISTINCT cct)` en ese municipio × nivel × ciclo |
+| `escuelas_con_recomendacion` | int | escuelas del grupo que **sí** tienen recomendación ML-02 — denominador real |
+| `escuelas_sin_recomendacion` | int | escuelas del grupo **sin** recomendación (laten sin triangulación) |
+| `escuelas_driver` | int | escuelas de ese grupo cuyo driver dominante **es** este `id_driver` — `NULL` por combinación sin recomendaciones, nunca 0 inventado (R2) |
+| `cobertura_recomendacion` | enum `OK`/`SIN_DATO` | `SIN_DATO` cuando el grupo no tiene recomendaciones |
+
+La capa semántica (`superset/semantic/db05_cubo_driver.sql`) hace `pushthrough` 1:1 de estas
+columnas y del catalogo `dim_driver` (enrich vía el cubo); la razón `SUM(escuelas_driver) /
+SUM(escuelas_con_recomendacion)` (KPI-07) vive en `metrics_db05_db08.yaml`.
 
 ### 3.3 Catálogo de drivers: fuente, ADR y estado real (22-ago-2026)
 
@@ -131,10 +147,11 @@ declara `dimension_obligatoria_en_agregacion: id_driver`, y un test estático
 | D5 | Agua | CONAGUA SINA (DS-06) | escuela (IDW, radio 15km) | **`SIN_DATO` 100%** — sin `bronze.conagua` real todavía | [[03_Architecture/ADRs/ADR-006-idw-calidad-aire-agua]] |
 | D6 | Aire (PM2.5) | SINAICA (DS-05) | escuela (IDW, radio 15km) | Real | [[03_Architecture/ADRs/ADR-006-idw-calidad-aire-agua]] |
 
-> La fila D5 en DB-05 mostrará `cobertura_driver = 'SIN_DATO'` en el 100% de las combinaciones
-> hasta que Emilio Galnares Ruiz (DS-06) entregue datos reales de CONAGUA. **No es un bug** — es R2
-> funcionando correctamente. El tablero debe decirlo explícitamente, nunca "arreglarlo" con
-> `COALESCE(d5, 0)`.
+> **Re-escala US-205:** DB-05 ya no dibuja el valor observado del driver, sino la **asignación del
+> driver dominante por ML-02** (`cobertura_recomendacion`). La disponibilidad real de cada driver
+> (D5 «SIN_DATO 100%» hasta que Emilio Galnares Ruiz / DS-06 entregue CONAGUA) es ahora un
+> **insumo de ML-02**, no una columna del tablero. Sigue siendo R2 funcionando: nunca se
+> «arregla» con `COALESCE(<driver>, 0)`.
 
 ### 3.4 Jerarquías y drill-down
 
@@ -150,7 +167,7 @@ Tiempo (anio_inicio → id_ciclo)
 |---|---|---|---|---|
 | Lateral | **DB-05** | DB-07 | `id_driver` | ✅ Ratificada ([[04_UX_Design/Screen_Specs]] §3) |
 | Lateral | DB-07 | **DB-05** | `id_driver` | ✅ Ratificada |
-| Propuesta | **DB-05** | DB-08 | `(cve_mun, id_driver)` | ⬜ Propuesta, para US-214b |
+| Lateral | **DB-05** | DB-08 | `(cve_mun, id_driver)` | ✅ Ratificada (US-214b, validado en vivo 2026-08-30) |
 
 ### 3.5 Métricas derivadas (capa semántica de Superset)
 
@@ -158,9 +175,9 @@ Ver §5 para el mapeo completo a KPIs. Fórmulas en `superset/semantic/metrics_d
 
 ### 3.6 Cuidado con el doble conteo en formato largo
 
-Ejemplo: si un municipio × nivel × ciclo tiene 40 escuelas, `SUM(escuelas)` **sin** agrupar/filtrar
-por `id_driver` da 240 (40 × 6 drivers), no 40. Regla operativa: **todo chart de este dataset debe
-traer `id_driver` en el filtro o en el group-by.** Ver §2.2.
+Ejemplo: si un municipio × nivel × ciclo tiene 40 escuelas, `SUM(escuelas_por_driver)` **sin**
+agrupar/filtrar por `id_driver` da 240 (40 × 6 drivers), no 40. Regla operativa: **todo chart de
+este dataset debe traer `id_driver` en el filtro o en el group-by.** Ver §2.2.
 
 ---
 
@@ -216,44 +233,44 @@ cubo).
 
 ## 5. Mapeo a los KPIs canónicos
 
-| Métrica del cubo | KPI | Cubo |
+| Métrica del dataset | KPI | Cubo |
 |---|---|---|
-| `valor_promedio_driver` | **KPI-19** (propuesto) | `cubo_driver` |
-| `pct_escuelas_sin_dato` | **KPI-06** (reusado — dueño formal DB-07) | `cubo_driver` |
-| `valor_driver` | **KPI-20** (propuesto) | `cubo_pivot` |
+| `pct_escuelas_por_driver` (y `escuelas_por_driver`) | **KPI-07** (ratificado — driver dominante ML-02) | `cubo_driver` |
+| `valor_driver` | **KPI-20** (propuesto v1) | `cubo_pivot` |
 
-### 5.1 KPI-19 y KPI-20 — propuestos aquí, pendientes de publicación por Manuel
+> **Re-escala US-205:** el KPI-19 propuesto ("valor promedio del driver observado") queda **fuera
+> de DB-05 en v1**; su lugar lo ocupa el KPI-07 oficial del catálogo (driver dominante). KPI-20 se
+> mantiene tal cual para DB-08.
 
-El catálogo va de KPI-01 a KPI-18 (verificado: KPI-19 y KPI-20 están libres) y **ningún KPI está
-asignado hoy a DB-05 ni DB-08** — mismo vacío que tuvo DB-03 antes de que Marina propusiera
-KPI-15…18 (ver [[04_UX_Design/Cube_Specs_DB03_DB04]] §5.1). Se proponen dos altas para que Manuel
-las incorpore a [[04_UX_Design/Screen_Specs]] (documento canónico suyo — regla 1 del vault):
+### 5.1 KPI-07 (DB-05) y KPI-20 (DB-08)
 
-| ID propuesto | KPI | Grano | Expresión | Sustenta |
+El catálogo canónico de [[04_UX_Design/Screen_Specs]] asigna **KPI-07** (Driver dominante —
+distribución) a DB-05 desde US-204; DB-05 en v1 consume ese KPI vía `gold.cubo_driver`
+(decisión US-205, cierra la pregunta abierta del §8.3). Para DB-08 se conserva la propuesta
+**KPI-20** (valor del driver por escuela, exploración libre) del formato largo de v1:
+
+| ID | KPI | Grano | Expresión | Sustenta |
 |---|---|---|---|---|
-| **KPI-19** | Valor promedio y evolución del driver | `id_driver × cve_mun × nivel × id_ciclo` | `SUM(suma_valor) / NULLIF(SUM(escuelas_con_dato), 0)`, agrupado por `id_driver`; la evolución agrupa además por `anio_inicio` | Screen_Specs §2 (DB-05: "distribución de los 6 drivers y su evolución") · AC-002.2 · AC-002.5 |
+| **KPI-07** | Driver dominante — distribución | `id_driver × cve_mun × nivel × id_ciclo` | `SUM(escuelas_driver) / NULLIF(SUM(escuelas_con_recomendacion), 0)`, agrupado por `id_driver` | Screen_Specs §4 (KPI-07) · Screen_Specs §2 (DB-05) |
 | **KPI-20** | Valor del driver por escuela (exploración libre) | `cct × id_driver × id_ciclo` | Sin agregación — alimenta el pivote libre | Screen_Specs §2 (DB-08: "pivotable y drill-down libre sobre el hecho") |
 
 > **Nota honesta:** a diferencia de DB-03 (AC-002.4 dedicada), no existe hoy una AC específica para
 > DB-05/DB-08 en `Requirements_Detailed.md` — solo las generales AC-002.1/.2/.5. Se registra como
 > observación, no se inventa una AC nueva.
 
-Texto de la solicitud formal a Manuel: ver §8.3.
-
 ---
 
-## 6. SQL de referencia — entregable para US-113 (Célula 1)
+## 6. SQL en la capa semántica — repunteo a los cubos físicos (US-205)
 
-El SQL vive en `superset/semantic/` para poder usarse también como **dataset virtual** de Superset
-mientras los cubos físicos no existan:
+Los SQL viven en `superset/semantic/` y se usan como **datasets virtuales** de Superset que hacen
+`pushthrough` de los cubos físicos C1, más el enrich fino del catálogo `dim_driver`
+(junto al repunteo a `gold.cubo_*` de los 13 datasets, US-205):
 
-- `superset/semantic/db05_cubo_driver.sql`
-- `superset/semantic/db08_cubo_pivot.sql`
+- `superset/semantic/db05_cubo_driver.sql` → lee `gold.cubo_driver` (ML-02, KPI-07)
+- `superset/semantic/db08_cubo_pivot.sql` → lee `gold.cubo_pivot` + `gold.dim_driver` (observado, KPI-20)
 
-Son **propuestas de implementación**, no código de producción: la materialización (`dbt`, índices,
-estrategia de refresco) es decisión de la Célula 1 en US-113.
-
-Índices sugeridos a C1:
+La materialización (`dbt`, índices, estrategia de refresco) es de la Célula 1 (US-113). Índices
+sugeridos:
 
 | Cubo | Índice sugerido | Motivo |
 |---|---|---|
@@ -264,15 +281,16 @@ estrategia de refresco) es decisión de la Célula 1 en US-113.
 
 ## 7. Contrato de dependencias
 
-| Columna(s) | Depende de | Historia | Estado hoy (22-ago) |
+| Columna(s) | Depende de | Historia | Estado hoy (29-ago) |
 |---|---|---|---|
-| `fact_escuela_ciclo`, `dim_escuela`, `dim_municipio`, `dim_tiempo`, `dim_driver` | Célula 1 · Gold | US-103/104/105 | ✅ Materializado y validado (19-ago) |
-| `gold.cubo_driver`, `gold.cubo_pivot` (físicos) | Célula 1 · Gold | US-113 | ⬜ No existe ningún `cubo_*.sql` en `dbt/models/gold/` (mismo estado que DB-03/DB-04) |
-| D5 (agua) real | Célula 1 · DS-06 (Emilio Galnares Ruiz) | US-105 / DS-06 | ⬜ `SIN_DATO` 100%, sin `bronze.conagua` |
-| Salidas de ML | — | — | **No aplica a v1** (§2.1) |
+| `gold.cubo_driver`, `gold.cubo_pivot`, `dim_driver` | Célula 1 · Gold | US-113 | 🔵 **Materializados por C1** (cubos de `gold.cubo_*`, grano DEC-009) — revalidación de datos pendiente del gate de Deni |
+| Drivers observados `d1..d6` (hecho) | Célula 1 · Gold | US-103/104/105 | ✅ Materializado y validado (19-ago) — ya **no** alimenta DB-05 en v1 (re-escala US-205) |
+| `gold_ml_runtime.recomendaciones` (ML-02) | Célula 3 · `gold.recomendaciones` | US-313 | 🔵 En progreso (mock local MOCK-US203) — `cubo_driver` ya lo consume |
+| D5 (agua) real | DS-06 (Emilio Galnares Ruiz) | US-105 / DS-06 | ⬜ `SIN_DATO` 100%, sin `bronze.conagua` — insumo de ML-02 (ver §3.3) |
 
-**Comportamiento mientras las dependencias no llegan:** D5 muestra `cobertura_driver = 'SIN_DATO'`
-explícito (§3.3). El tablero no se rompe ni miente con ceros.
+**Comportamiento mientras las dependencias no llegan:** los grupos sin recomendación de ML-02
+muestran `cobertura_recomendacion = 'SIN_DATO'` explícito (§3.2). El tablero no se rompe ni miente
+con ceros.
 
 ---
 
@@ -305,43 +323,39 @@ explícito (§3.3). El tablero no se rompe ni miente con ceros.
   `nivel` y guardan las métricas como componentes aditivos. Actualiza `Data_Model.md` §4.3 ella
   misma. `cubo_pivot` confirmado sin cambios (§8.2).
 
+> **v1.1 (US-205):** C1 materializó `gold.cubo_driver` ya bajo la **re-escala a recomendación** —
+> los componentes no son `suma_valor`/`escuelas_con_dato` (driver observado) sino
+> `escuelas_driver`/`escuelas_con_recomendacion`/`escuelas_sin_recomendacion` + `cobertura_
+> recomendacion` (asignación de ML-02). El grano solicitado aquí (con `nivel`) se respetó tal cual.
+
 ### 8.2 A Diana Alvarez (C1) — nota, no solicitud
 
 `cubo_pivot` (DB-08) **no** necesita cambio de grano: su grano `cct × driver × ciclo` ya trae
 `nivel` gratis vía `dim_escuela`, igual que `cubo_escuela_360` (DB-03) tampoco lo necesitó. Se deja
 registrado para que quede claro por qué solo §8.1 pide un cambio.
 
-### 8.3 A Manuel Serranía (C2) — pendiente
+### 8.3 A Manuel Serranía (C2) — re-escalado a KPI-07 (US-205)
 
-> Hola Manuel — cerrando US-211b (cubos de DB-05 y DB-08). Dos cosas para que las ratifiques en el
-> catálogo, mismo proceso que seguiste con KPI-15…18 de Marina:
+> Versión resuelta: US-211b cerrado (22-ago) — KPI-19 y KPI-20 quedaron pendientes; la re-escala
+> US-205 los deja en su lugar definitivo:
 >
-> 1. Propongo **KPI-19** (Valor promedio y evolución del driver — grano `driver × municipio ×
->    nivel × ciclo`, alimenta DB-05) y **KPI-20** (Valor del driver por escuela — grano `cct ×
->    driver × ciclo`, alimenta DB-08). Verifiqué que ambos IDs están libres (el catálogo llega a
->    KPI-18). El % de escuelas sin dato del driver reusa **KPI-06** (dueño DB-07) — no inventé un
->    ID ahí.
-> 2. Para que DB-05 muestre "un tab por driver" (US-213) sin duplicar 6 juegos de charts, modelé
->    ambos cubos en **formato largo** (unpivot: una fila por driver, no columnas `d1..d6`) — mismo
->    patrón que ya usa KPI-06. ¿Lo ratificamos como convención válida para cubos analíticos nuevos,
->    junto al formato ancho que ya usan DB-03/DB-04?
->
-> Detalle completo en §5 y aquí mismo. Nota aparte, no bloqueante: ¿`cubo_driver` debería absorber
-> KPI-07 (driver dominante) para DB-05, o lo dejamos sirviéndose directo de
-> `gold.recomendaciones` como hoy?
->
-> Ninguna de las dos cosas me bloquea para abrir el PR hoy — las marco como pendientes y sigo.
+> 1. **KPI-07** (Driver dominante — distribución, ya oficial en Screen_Specs §4) es a partir de
+>    ahora la métrica de **DB-05**, servida por `gold.cubo_driver` que C1 construyó sobre
+>    `gold_ml_runtime.recomendaciones` (asignación de ML-02, no valor observado).
+> 2. **KPI-19** (Valor promedio del driver observado) queda **fuera de v1** de DB-05.
+> 3. **KPI-20** (Valor del driver por escuela) se conserva para DB-08, que sigue observado.
+> 4. El **formato largo** queda ratificado como patrón de los datasets por driver; lo materializa
+>    el propio cubo y la capa semántica lo consume con `pushthrough`.
 
 | Solicitud | Estado |
 |---|---|
-| Alta de KPI-19 y KPI-20 en el catálogo (§5.1) | ✅ Validados por Manuel el 2026-08-22 |
+| Alta de KPI-19 y KPI-20 en el catálogo (§5.1) | ⬜ **KPI-19 rechazado para DB-05 v1** por la re-escala US-205; ✅ **KPI-20 sigue propuesto para DB-08** |
 | Ratificar el **formato largo** como patrón aceptado para cubos analíticos nuevos | ✅ Ratificado |
-| Confirmar si `cubo_driver` debe absorber KPI-07 (driver dominante) | ⬜ pendiente, no bloquea |
+| Confirmar si `cubo_driver` debe absorber KPI-07 (driver dominante) | ✅ **Resuelto por US-205**: DB-05 = KPI-07 vía `gold.cubo_driver` |
 
-**Estado:** ✅ Aprobado por Manuel Serranía el 2026-08-22 (revisión de PR #73), con 2 correcciones
-bloqueantes solicitadas y aplicadas: doble escalado (`*100`) en `pct_escuelas_sin_dato` — el
-formato `porcentaje_1` (d3 `%`) ya multiplica por 100 al mostrar, regla no escrita de US-202 — y
-checklist del PR con casillas sin marcar.
+**v1.1 (29-ago):** la re-escala del §2.1 la ejecuta Manuel en US-205 junto con el repunteo de los
+13 datasets a `gold.cubo_*`. Las correcciones previas del PR #73 (doble escalado `*100` y checklist)
+siguen aplicadas en `metrics_db05_db08.yaml`.
 
 ---
 

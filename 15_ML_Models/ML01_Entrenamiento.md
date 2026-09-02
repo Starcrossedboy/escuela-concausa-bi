@@ -102,7 +102,9 @@ python -m src.modelos.entrenar_ml01 --tracking-uri sqlite:///mlflow.db --registr
 > `artifact_location: /mlflow/artifacts/1`, así que un cliente que entrena **desde el host** intenta
 > escribir esa ruta en su propia máquina y falla con
 > `OSError: [Errno 30] Read-only file system: '/mlflow'`. Las métricas se registran; el modelo no.
-> **AC-003.4 sigue sin cumplirse.**
+> El servidor compartido sigue bloqueado, pero **AC-003.4 ya se verificó localmente** el 29 de agosto:
+> ML-01, ML-02 y ML-03 quedaron registrados como versión 1 en un backend SQLite temporal y el
+> verificador conjunto confirmó los tres nombres canónicos.
 >
 > **Fix probado** (pendiente de aplicar por la Célula 5): levantando el mismo `faro-mlflow:3.15.1`
 > con `--serve-artifacts` y `--artifacts-destination ${MLFLOW_ARTIFACT_ROOT}`, el experimento queda

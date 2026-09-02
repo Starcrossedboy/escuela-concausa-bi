@@ -21,26 +21,36 @@ tags: [qa, bugs]
 | BUG-005 | Scripts `.sh` se corrompen a CRLF en checkouts de Windows: `.gitattributes` no tiene regla `*.sh text eol=lf`, así que con `core.autocrlf=true` MLflow y Superset no arrancan (`$'': command not found`; en MLflow el shebang `#!/bin/sh` produce un engañoso `no such file or directory`) | high | fixed | US-502 / REQ-005 | PR #65 (Luis Téllez, **C5**) — agregado `*.sh text eol=lf` a `.gitattributes` | pendiente (validar en Windows) |
 | BUG-006 | Healthcheck de `api` usa `curl -f` pero la imagen no incluye `curl` ni `wget` (solo `python`): el contenedor queda `unhealthy` de forma permanente aunque `/health` responda HTTP 200 | medium | fixed | US-502 / REQ-004 | PR #65 (Luis Téllez, **C5**) — removido healthcheck override de api, actualizado chromadb a /api/v2/heartbeat | pendiente (validar healthchecks) |
 | BUG-007 | Healthcheck de `chromadb` apunta a `/api/v1/heartbeat`, que responde **HTTP 410 Gone** (endpoint retirado); la ruta viva es `/api/v2/heartbeat`. Además arrastra el mismo problema de `curl` de BUG-006 | medium | fixed | US-502 / REQ-006 | PR #65 (Luis Téllez, **C5**) — actualizado puerto MLflow en documentación (5000 → 5001) | validado |
-| BUG-008 | `docker/api.Dockerfile` arranca `src.api.main:app` (el hola mundo de US-501, **3 rutas**) en vez de `src.api.app:app` (la app real del contrato v1, **18 rutas** bajo `/api/v1`): en el contenedor —y en la URL pública si usa este Dockerfile— **US-401, US-402 y US-411 son inalcanzables** | **high** | **fixed** | US-501 / US-411 / REQ-004 / REQ-005 | fix/luis-tellez-bug008-api-dockerfile (Luis Téllez, **C5**, 27-ago) — 1 línea en Dockerfile + redeploy urgente a producción | `curl https://faro-api-eanzfglvyq-uc.a.run.app/api/v1/openapi.json` → 200 OK con 18+ rutas |
+| BUG-008 | `docker/api.Dockerfile` arranca `src.api.main:app` (el hola mundo de US-501, **3 rutas**) en vez de `src.api.app:app` (la app real del contrato v1, **18 rutas** bajo `/api/v1`): en el contenedor —y en la URL pública si usa este Dockerfile— **US-401, US-402 y US-411 son inalcanzables** | **high** | **fixed** | US-501 / US-411 / REQ-004 / REQ-005 | fix/luis-tellez-bug008-api-dockerfile (Luis Téllez, **C5**, 27-ago) — 1 línea en Dockerfile + redeploy urgente a producción | `tests/test_docker_api_entrypoint.py` (3 pruebas, PR #137): lee el CMD del Dockerfile, importa la app declarada y compara sus rutas contra el esquema OpenAPI de `src.api.app` en vivo |
 | BUG-009 | 11 vars de dbt sin valor por default (7 `identifier` de fuentes Bronze + 4 vars de modelo): cualquier `dbt parse`/`build`/`run` falla al renderizar el manifest aunque el modelo probado no use esas fuentes | high | fixed | US-111 | defaults inline en `sources.yml` + bloque `vars:` en `dbt_project.yml` (DEC-011) | `dbt parse` en `ci.yml` (job `dbt-contract`) |
-| BUG-010 | `/api/v1/predicciones/*` sigue leyendo `src/api/mock_data.py` en vez de `gold.predicciones` + `gold.recomendaciones`: la verificación **#4 del ensayo E2E** («≥1 modelo sirviendo por API») devolvería un valor fijo, no la predicción de ML-01 | **high** | fixed | US-412 / US-415 / REQ-004 / REQ-003 | `feat/juan-mayen-us415-pydantic-schemas` — `src/api/repositorio_modelos.py` (`RepositorioModelos` sobre Postgres, mismo patrón `Depends` que `RepositorioGold`); `PrediccionOut.cluster` pasa a `StrictInt \| None` (ML-03 sin productor, US-321) | `tests/test_api_contract.py::test_prediccion_combina_ml`, `test_prediccion_cct_sin_fila_404`, `test_prediccion_batch_omite_ccts_sin_fila` (fake en `tests/fixtures_modelos.py`) |
+| BUG-010 | `/api/v1/predicciones/*` sigue leyendo `src/api/mock_data.py` en vez de `gold.predicciones` + `gold.recomendaciones`: la verificación **#4 del ensayo E2E** («≥1 modelo sirviendo por API») devolvería un valor fijo, no la predicción de ML-01 | **high** | fixed | US-412 / US-415 / REQ-004 / REQ-003 | `feat/juan-mayen-us415-pydantic-schemas` — `src/api/repositorio_modelos.py` (`RepositorioModelos` sobre Postgres, mismo patrón `Depends` que `RepositorioGold`); `PrediccionOut.cluster` pasa a `StrictInt \| None` (ML-03 sin productor, US-321) · `tests/test_api_contract.py::test_prediccion_combina_ml`, `test_prediccion_cct_sin_fila_404`, `test_prediccion_batch_omite_ccts_sin_fila` (fake en `tests/fixtures_modelos.py`) |
 | BUG-011 | `sync_semantic_layer.py` lee YAML/SQL con la codificación del sistema (`read_text()` sin `encoding`): en Windows usa cp1252 y truena con los acentos de cualquier `metrics_*.yaml`; el script solo corre con `PYTHONUTF8=1`. Misma familia que BUG-005 (locale de Windows) | medium | fixed | US-203 / US-212 | `fix/manuel-serrania-bug010-sync-charts-utf8` — `encoding="utf-8"` explícito en las 3 lecturas (`_read_yaml`, `_read_sql`) | pendiente (validar en Windows) |
-| BUG-012 | No existe runbook para levantar el pipeline local: `dbt/README.md` es el scaffold por defecto de dbt, no hay `profiles.yml` ni se documenta dónde ponerlo, y **cargar solo `bronze_formato911_sample.csv` deja `gold.fact_escuela_ciclo` en 0 filas** — hay que cargar también `bronze_formato911_ciclo_anterior_sample.csv` en la MISMA tabla para que `lag()` encuentre pares. Nada de esto está escrito. | high | open | US-112 / US-113 / REQ-001 | pendiente (**C1**) — pasos verificados en `_DevLog/2026-08-27-marina-garcia-pipeline-local-us212.md` | — |
+| BUG-012 | No existe runbook para levantar el pipeline local: `dbt/README.md` es el scaffold por defecto de dbt, no hay `profiles.yml` ni se documenta dónde ponerlo, y **cargar solo `bronze_formato911_sample.csv` deja `gold.fact_escuela_ciclo` en 0 filas** — hay que cargar también `bronze_formato911_ciclo_anterior_sample.csv` en la MISMA tabla para que `lag()` encuentre pares. Nada de esto está escrito. | high | open | US-112 / US-113 / REQ-001 | pendiente (**C1**) — pasos verificados en `_DevLog/2026-08-27-marina-garcia-pipeline-local-us212.md` | pendiente — **asignado a Edgar Coronel (PM) el 29-ago tras 3 días sin dueño en C1.** Los 7 pasos verificados de Marina en `_DevLog/2026-08-27-marina-garcia-pipeline-local-us212.md` se convierten en `dbt/README.md`. Con BUG-026 cerrado el pipeline ya es reproducible desde fixtures, así que el runbook por fin puede escribirse completo y verificarse |
 | BUG-013 | `publicar_gold.py` usa por defecto el fixture sintético `tests/fixtures/features_escuela_mock.csv`, no `gold.features_escuela`: publica 80 filas de **ciclo 2023-2024** mientras el hecho real tiene 25 de **2024-2025**. El JOIN por `(cct, id_ciclo)` da cero, así que DB-03 muestra `cobertura_prediccion = SIN_DATO` en el 100% de las escuelas y los bloques de predicción y recomendación (AC-002.4) quedan vacíos. Apuntarlo al Gold real tampoco basta hoy: `features_escuela` tiene un solo ciclo y ML exige partición temporal. | high | **parcial** | US-313 / US-113 / REQ-003 | **C3 ✅** (`a76c748`, Héctor): el hueco era que `publicar_gold.py` no sabía leer de una tabla; `cargar_features_desde_gold()` + `--desde-gold`. **C1 ✅ con datos reales** (Diana, 27-ago): 4 ciclos reales cargados en `bronze.formato911_2024_2025` → estrella completa y 8 cubos, 149/149 tests. **Lo que queda ⬜:** no es reproducible fuera del ambiente de Diana — con los fixtures del repo `features_escuela` sigue saliendo con 1 ciclo, así que **la dueña de DB-03 no puede verificar sus propios bloques ML (AC-002.4)** ni CI ejercitar la ruta. Ver **BUG-026** | verificado en local (Marina, 28-ago): `--desde-gold` → `ValueError: Con 1 ciclos no se puede hacer backtesting… Ciclos disponibles: ['2024-2025']` |
 | BUG-014 | `quality_gate.yml` busca el token de casilla sin marcar en **todo el cuerpo del PR** con `grep -q "\[ \]"`, no solo en ítems de lista: basta con **mencionar** esa sintaxis dentro de una explicación —aunque vaya en backticks— para que el check falle. Sumado a que la plantilla oficial trae la casilla de aprobación del PM sin marcar (le toca marcarla a él al revisar), **la plantilla del repo no puede pasar su propio gate** y empuja a los autores a borrar el registro de aprobación o a marcarlo ellos mismos. | medium | **fixed** | US-503 / REQ-007 | `fix/edgar-navarrete-mojibake-higiene-vault` (Edgar Coronel, PM — **revisión de C5 solicitada a Luis Téllez por regla 7**). Tres cambios: el patrón se acota a `grep -qE '^[[:space:]]*-[[:space:]]*\[ \]'`; la sección `## Aprobación` se recorta antes de evaluar, porque es del PM y se marca al revisar; y se agrega el evento **`edited`**, sin el cual un cuerpo corregido después del push se quedaba en rojo para siempre; además, las dos casillas que un autor honesto no puede marcar —`(Alternativa) No usé IA` y `Si toqué esquema…`— se marcan `<!-- opcional -->` en la plantilla y el gate las omite (hallado al revisar el PR #110) | `.github/scripts/probar_verificar_plantilla.sh` — 7 casos contra el script real, leyendo `.github/PULL_REQUEST_TEMPLATE.md` del archivo (no una copia): la plantilla llenada por el autor pasa, sin llenar reprueba, las casillas opcionales marcadas con `<!-- opcional -->` no cuentan, y mencionar la sintaxis en prosa ya no reprueba |
-| BUG-015 | ML-01 no podía entrenar sobre `gold.features_escuela` real: un driver **100 % `SIN_DATO`** (D5 agua, DS-06 sin descarga) rompe el binning de `HistGradientBoostingRegressor` con `window shape cannot be larger than input array shape`, un error que no delata la causa. Además el default `--ventanas 3` pedía 5 ciclos y el Gold real sólo tiene 3 utilizables | high | **fixed** | US-311 / US-313 / REQ-003 | `fix/hector-marban-driver-sin-datos` | — | ver detalle |
-| BUG-016 | La publicación a Gold tronaba en ML-02 con datos reales: hay filas con los **6 drivers en NULL a la vez**, y `generar_driver_dominante_proxy` falla ahí por diseño. La `driver_dominante` real de C1 (US-302, PR #113) ya adoptó la convención de dejarlas en NULL; faltaba apartarlas antes de entrenar, porque `validar_target_ml02` rechaza nulos. Conservan su predicción de ML-01 y no reciben recomendación (`SIN_DATO`, nunca un driver inventado) | high | **fixed** | US-313 / REQ-003 | `fix/hector-marban-driver-sin-datos` | — | ver detalle |
-| BUG-017 | `indice_riesgo` se publicó **saturado**: la corrida real de ML-01 dio MAE 10.90, pero la sigmoide está calibrada sobre **fracción** (`-0.05` = pierde 5 % de matrícula). Con esa escala el 100 % de las 45 249 filas queda en riesgo ≈ 1.00 y el tablero cuenta como "en riesgo" a todo el universo. **Confirmado por Diana el 2026-08-28**: `target_variacion_matricula = matricula_total - matricula_ciclo_anterior`, diferencia absoluta de alumnos. El MAE 10.90 son ~11 alumnos, no un modelo malo; lo que está mal es publicar eso a través de una sigmoide calibrada sobre fracción. Añadida guarda que detiene la publicación en vez de saturar en silencio; **falta confirmar las unidades en Gold con C1** | high | open | US-311 / US-313 / REQ-003 / US-104 | — | Diana Alvarez (C1) | ver detalle |
-| BUG-018 | ML-02 arrastra el **mismo defecto por ventana** que BUG-015: `entrenar_ml02._matriz()` toma siempre los 6 drivers sin comprobar cobertura dentro de la ventana de entrenamiento, así que un driver vacío en ese tramo (D6 aire, IDW de US-105) rompe el binning de `HistGradientBoostingClassifier` con el mismo error. Reproducido; el arreglo es el mismo que ya se aplicó en ML-01 | high | open | US-302 / REQ-003 | — | Andrés González Habib (C3) | ver detalle |
-| BUG-019 | `target_variacion_matricula` se produce en **dos unidades distintas** bajo el mismo nombre: `features_escuela.sql` (C1, grano escuela) da **alumnos absolutos** y `target_hibrido.variacion_desde_serie` (C3, grano municipio×nivel) da **fracción**. Ambas llegan a `gold.predicciones.valor`, distinguidas sólo por `grano` (DEC-010), así que esa columna hoy mezcla alumnos con fracciones. El contrato nunca declaró la unidad | high | open | US-104 / US-311 / US-313 / REQ-003 | — | pendiente ADR-007 (Andrés · Christian · Diana) | ver detalle |
-| BUG-020 | En la URL pública **toda ruta que toca base de datos responde HTTP 500**: `/api/v1/predicciones/{cct}`, `/predicciones/batch` y `/escuelas`. `/api/v1/health` responde 200, así que el contenedor corre y el despliegue de BUG-008 sirvió. Con token válido, inválido o sin token el resultado es el mismo 500 —nunca 401—, así que el fallo ocurre **antes** de validar auth. Sin esto no hay demo end-to-end ni el punto de rúbrica de URL pública | **critical** | open | US-401 / US-411 / US-501 / REQ-004 / REQ-005 | — | Christian Ruiz (C4) · Luis Téllez (C5) | ver detalle |
+| BUG-015 | ML-01 no podía entrenar sobre `gold.features_escuela` real: un driver **100 % `SIN_DATO`** (D5 agua, DS-06 sin descarga) rompe el binning de `HistGradientBoostingRegressor` con `window shape cannot be larger than input array shape`, un error que no delata la causa. Además el default `--ventanas 3` pedía 5 ciclos y el Gold real sólo tiene 3 utilizables | high | **fixed** | US-311 / US-313 / REQ-003 | `fix/hector-marban-driver-sin-datos` | — |
+| BUG-016 | La publicación a Gold tronaba en ML-02 con datos reales: hay filas con los **6 drivers en NULL a la vez**, y `generar_driver_dominante_proxy` falla ahí por diseño. La `driver_dominante` real de C1 (US-302, PR #113) ya adoptó la convención de dejarlas en NULL; faltaba apartarlas antes de entrenar, porque `validar_target_ml02` rechaza nulos. Conservan su predicción de ML-01 y no reciben recomendación (`SIN_DATO`, nunca un driver inventado) | high | **fixed** | US-313 / REQ-003 | `fix/hector-marban-driver-sin-datos` | — |
+| BUG-017 | `indice_riesgo` se publicó **saturado**: la corrida real de ML-01 dio MAE 10.90, pero la sigmoide está calibrada sobre **fracción** (`-0.05` = pierde 5 % de matrícula). Con esa escala el 100 % de las 45 249 filas queda en riesgo ≈ 1.00 y el tablero cuenta como "en riesgo" a todo el universo. **Confirmado por Diana el 2026-08-28**: `target_variacion_matricula = matricula_total - matricula_ciclo_anterior`, diferencia absoluta de alumnos. El MAE 10.90 son ~11 alumnos, no un modelo malo; lo que está mal es publicar eso a través de una sigmoide calibrada sobre fracción. Añadida guarda que detiene la publicación en vez de saturar en silencio | high | **fixed** | US-311 / US-313 / REQ-003 / US-104 | `fix/diana-varela-bug017-target-fraccion` (Diana Alvarez, C1) — ratifica [[03_Architecture/ADRs/ADR-007-unidad-target-variacion-matricula\|ADR-007]] (2026-08-29): `features_escuela.sql` (CTE `base`) pasa de diferencia absoluta a **fracción** (`matricula_total/matricula_ciclo_anterior - 1.0`, cast a `double precision` antes de dividir, división nativa de Postgres sin `nullif` rechaza `matricula_ciclo_anterior=0` en vez de silenciarlo). Unidad declarada en `src/modelos/contrato.py` y `Data_Model.md` §5.3 | dbt test nuevo `features_escuela_target_variacion_escala` (mediana \|target\|≤1.0, mismo umbral que `verificar_escala_variacion()` de Héctor) · verificado con datos reales: `dbt run --full-refresh` sin división por cero (ninguna escuela real con matrícula previa 0), `dbt test` limpio salvo el hueco ya conocido de DS-07/CONEVAL (no relacionado, ver US-325) · **pendiente C3 (Andrés González):** regenerar las 45 249 filas de `gold.predicciones` (quedaron saturadas con la unidad vieja) y reentrenar ML-01 (el MAE deja de leerse en alumnos) · [[_DevLog/2026-08-31-diana-alvarez-bug017-bug019-target-fraccion]] |
+| BUG-018 | ML-02 arrastra el **mismo defecto por ventana** que BUG-015: `entrenar_ml02._matriz()` toma siempre los 6 drivers sin comprobar cobertura dentro de la ventana de entrenamiento, así que un driver vacío en ese tramo (D6 aire, IDW de US-105) rompe el binning de `HistGradientBoostingClassifier` con el mismo error. Reproducido; el arreglo es el mismo que ya se aplicó en ML-01 | high | open | **fixed** | `feat/andres-habib-bug018-ml02-cobertura` (Andrés González) — cobertura evaluada por ventana y predicción/SHAP alineados con `feature_names_in_`. **Corregido el 29-ago en el registro**: la matriz de trazabilidad ya lo daba por resuelto desde el 28-ago pero esta fila seguía en `open`; el registro es la fuente canónica y no puede ir detrás de la matriz | ver detalle |
+| BUG-019 | `target_variacion_matricula` se producía en **dos unidades distintas** bajo el mismo nombre: `features_escuela.sql` (C1, grano escuela) daba **alumnos absolutos** y `target_hibrido.variacion_desde_serie` (C3, grano municipio×nivel) da **fracción**. Ambas llegan a `gold.predicciones.valor`, distinguidas sólo por `grano` (DEC-010), así que esa columna mezclaba alumnos con fracciones. El contrato nunca declaraba la unidad | high | **fixed** | US-104 / US-311 / US-313 / REQ-003 | mismo branch que BUG-017: `fix/diana-varela-bug017-target-fraccion` (Diana Alvarez, C1) — las dos unidades quedan unificadas en **fracción**; `src/modelos/contrato.py` y `Data_Model.md` §5.3 declaran explícitamente la unidad por primera vez | verificado junto con BUG-017 (mismo cambio, misma corrida real) · [[_DevLog/2026-08-31-diana-alvarez-bug017-bug019-target-fraccion]] |
+| BUG-020 | En la URL pública **toda ruta que toca base de datos responde HTTP 500**: `/api/v1/predicciones/{cct}`, `/predicciones/batch` y `/escuelas`. `/api/v1/health` responde 200, así que el contenedor corre y el despliegue de BUG-008 sirvió. Con token válido, inválido o sin token el resultado es el mismo 500 —nunca 401—, así que el fallo ocurre **antes** de validar auth. Sin esto no hay demo end-to-end ni el punto de rúbrica de URL pública | **critical** | open | US-401 / US-411 / US-501 / REQ-004 / REQ-005 | — | pendiente — **Christian Ruiz (C4) y Luis Téllez (C5); seguimiento diario de Edgar Coronel hasta cerrarlo.** Es el **único riesgo vivo para la casilla 6 del ensayo E2E** y para el punto de rúbrica de URL pública. Sin esto no hay demo end-to-end. Escalado el 29-ago tras dos peticiones de estado sin respuesta |
 | BUG-021 | `dbt run` con el número de hilos por defecto (`threads>1`) truena en `gold.dim_escuela`, `dim_municipio` y `dim_tiempo` con *relation does not exist*, aunque su silver de origen se cree casi en el mismo instante. Con `--threads 1` corre limpio de punta a punta. Causa: esos modelos leían su origen con `source('silver', …)` en vez de `ref()`. `silver.*` son modelos **de este mismo proyecto**, no datos externos, así que dbt no tenía cómo saber que debía construirlos antes y los agendaba en paralelo. Con `threads=1` el orden accidental funcionaba y el defecto quedaba escondido | high | **fixed** | US-213 / US-113 / REQ-001 | **Reportado por Monserrat Miranda** (2026-08-28, validando DB-05/DB-08 contra Gold real) · **corregido por Diana Alvarez** en `fix/diana-varela-bug016-source-vs-ref`: los siete modelos Gold pasan a `ref()`; `_gold__sources.yml` queda sólo como documentación de columnas | `dbt run` completo con hilos por defecto ✅ · [[_DevLog/2026-08-29-diana-alvarez-bug021-source-vs-ref]] |
 | BUG-022 | `gold.dim_driver` puede quedar desincronizado sin que nada lo detecte: `superset/mock/gold_estrella_mock.sql` (mock previo de C2/US-212, hoy superado) crea la tabla con `CREATE TABLE IF NOT EXISTS` + `INSERT ... ON CONFLICT DO NOTHING` usando nombres largos ("Pobreza y rezago social"...) distintos al catálogo canónico corto del seed (`dbt/seeds/dim_driver.csv`). Si ese mock corre en un entorno donde `dbt seed`/`dbt build` nunca se ejecutó, la tabla se queda con los nombres viejos — la columna `nombre` solo tenía `not_null`, sin `accepted_values`, así que ningún test lo detectaba; el primer síntoma era un HTTP 500 río abajo en Superset (US-213) | high | **fixed** | US-213 / US-113 | **Reportado por Manuel Serranía** (PR #100) y **Monserrat Olivas** (validando US-213 contra Gold real) · **corregido por Diana Alvarez** en `fix/diana-varela-bug022-dim-driver-catalogo`: `accepted_values` sobre `nombre` en `dbt/seeds/_gold__seeds.yml` con los 6 nombres canónicos, documentado en `Data_Model.md` §4.2 | Simulado el estado divergente real (test FALLA con `FAIL 6`) y el estado correcto tras `dbt seed` (PASS limpio) · [[_DevLog/2026-08-29-diana-alvarez-bug022-dim-driver-catalogo]] |
-| BUG-023 | Tercera aparición del defecto de BUG-015/BUG-018, ahora en `evaluar.py`: `error_por_entidad()` y `cobertura_y_error()` predecían con los **seis** drivers aunque el modelo se hubiera entrenado con menos, así que `construir_reporte()` **no podía generar el reporte** en el único escenario que el PM necesita documentar para la demo — el de 5 de 6 drivers. `ValueError: The feature names should match those that were passed during fit` | high | **fixed** | US-312 / REQ-003 / AC-003.2 | `feat/hector-marban-drivers-en-evaluacion` | — | ver detalle |
+| BUG-023 | Tercera aparición del defecto de BUG-015/BUG-018, ahora en `evaluar.py`: `error_por_entidad()` y `cobertura_y_error()` predecían con los **seis** drivers aunque el modelo se hubiera entrenado con menos, así que `construir_reporte()` **no podía generar el reporte** en el único escenario que el PM necesita documentar para la demo — el de 5 de 6 drivers. `ValueError: The feature names should match those that were passed during fit` | high | **fixed** | US-312 / REQ-003 / AC-003.2 | `feat/hector-marban-drivers-en-evaluacion` | — |
 | BUG-024 | `SELECT ... INTO` atravesaba el guardarraíl porque empieza con `SELECT`, pero en PostgreSQL crea una tabla; el agente no tiene otra capa que garantice solo lectura | **critical** | **fixed** | US-304a / US-305 / REQ-006 | `fix/andres-habib-bug024-select-into-rag-empty` | `tests/test_agente_guardrails.py::test_select_into_se_rechaza_como_escritura` |
-| BUG-025 | El endpoint desplegado `/api/v1/agente/consulta` es el **stub** de `src/api/v1/agente.py`: responde **la misma cadena fija a cualquier pregunta**, incluidas las fuera de alcance y las destructivas. Además su filtro de palabras busca `"borrar"` por subcadena, así que **«Borra la tabla de predicciones» no lo dispara** y recibe la respuesta normal con `fuera_de_alcance: false`. Los guardarraíles reales de `src/agente/guardrails.py` —que sí rechazan esa frase— nunca se invocan desde la API | high | open | US-304a, US-305, REQ-006 | pendiente (**C4 + C3**): conectar `procesar_consulta_con_rag()` al endpoint; como mitigación inmediata, que el stub llame a `pregunta_en_alcance()` |
-| BUG-026 | **Ningún juego de fixtures del repo puede ejercitar el grano escuela multi-ciclo.** Hay dos y cada uno resuelve la mitad: `bronze_formato911_sample.csv` + `…_ciclo_anterior_sample.csv` traen CCT coherentes con `gold.dim_escuela` (**59 de 60**) pero solo **2 ciclos**, así que `gold.features_escuela` sale con 1 y ML-01 no puede hacer partición temporal; `bronze_formato911_historico_sample.csv` trae **6 ciclos** pero comparte solo **3 CCT de 30** con `dim_escuela` (se generó sobre su propio universo, disjunto de `bronze.cct`), así que a grano escuela el JOIN se vacía **sin ningún error** — el modo de falla silenciosa de BUG-012. Consecuencia: entrenar ML-01 y verificar los bloques de predicción de DB-03 (AC-002.4) solo es posible con ~460 MB de CSV real en un ambiente propio (hoy, únicamente el de Diana); **CI nunca recorre esa ruta** | high | **en revisión** | US-104 / US-113 / US-313 / REQ-001 / REQ-003 | **PR #129** (Diana Alvarez) — fixture aditivo `bronze_formato911_serie_historica_sample.csv`: reutiliza las CCT de `bronze_formato911_sample.csv` tal cual (mismo patrón que `..._ciclo_anterior_fixture.py`) y agrega 2021-2022 y 2022-2023 sobre la MISMA tabla. No toca ningún modelo dbt. **Verificado de punta a punta por la reportante el 29-ago** | — (propuesto: aserción dbt de solape mínimo con `dim_escuela` y de ciclos mínimos en `features_escuela`) |
-| BUG-027 | `superset/semantic/metrics_kpis_base_us221.yaml` apunta sus 5 `sql_ref` a `sql/kpi_0*.sql`, ruta que **ya no existe**: el commit `1c2f5f9` movió esos archivos de `superset/sql/` a `superset/semantic/` y actualizó el test, pero no el YAML. Nadie lo nota porque `tests/test_kpis_us221.py` **codifica la ruta a mano** (`SQL_DIR = superset/semantic`) y nunca lee el `sql_ref` del catálogo: la prueba pasa en verde mientras el artefacto que la gente consulta apunta al vacío | low | open | US-221 / REQ-002 | pendiente (**C2**, Oscar Quiroz) — corregir a `semantic/…` | — (propuesto: que el test resuelva la ruta desde el YAML en vez de codificarla) |
+| BUG-025 | El endpoint desplegado `/api/v1/agente/consulta` es el **stub** de `src/api/v1/agente.py`: responde **la misma cadena fija a cualquier pregunta**, incluidas las fuera de alcance y las destructivas. Además su filtro de palabras busca `"borrar"` por subcadena, así que **«Borra la tabla de predicciones» no lo dispara** y recibe la respuesta normal con `fuera_de_alcance: false`. Los guardarraíles reales de `src/agente/guardrails.py` —que sí rechazan esa frase— nunca se invocan desde la API | high | open | US-304a, US-305, REQ-006 | pendiente (**C4 + C3**): conectar `procesar_consulta_con_rag()` al endpoint; como mitigación inmediata, que el stub llame a `pregunta_en_alcance()` || — 
+| BUG-026 | **Ningún juego de fixtures del repo puede ejercitar el grano escuela multi-ciclo.** Hay dos y cada uno resuelve la mitad: `bronze_formato911_sample.csv` + `…_ciclo_anterior_sample.csv` traen CCT coherentes con `gold.dim_escuela` (**59 de 60**) pero solo **2 ciclos**, así que `gold.features_escuela` sale con 1 y ML-01 no puede hacer partición temporal; `bronze_formato911_historico_sample.csv` trae **6 ciclos** pero comparte solo **3 CCT de 30** con `dim_escuela` (se generó sobre su propio universo, disjunto de `bronze.cct`), así que a grano escuela el JOIN se vacía **sin ningún error** — el modo de falla silenciosa de BUG-012. Consecuencia: entrenar ML-01 y verificar los bloques de predicción de DB-03 (AC-002.4) solo es posible con ~460 MB de CSV real en un ambiente propio (hoy, únicamente el de Diana); **CI nunca recorre esa ruta** | high | **fixed** | US-104 / US-113 / US-313 / REQ-001 / REQ-003 | **PR #129** (Diana Alvarez) — fixture aditivo `bronze_formato911_serie_historica_sample.csv`: reutiliza las CCT de `bronze_formato911_sample.csv` tal cual (mismo patrón que `..._ciclo_anterior_fixture.py`) y agrega 2021-2022 y 2022-2023 sobre la MISMA tabla. No toca ningún modelo dbt. **Verificado de punta a punta por la reportante el 29-ago** | — (propuesto: aserción dbt de solape mínimo con `dim_escuela` y de ciclos mínimos en `features_escuela`). **Mergeado el 29-ago**; cierra la mitad que faltaba de BUG-013 | — el fixture *es* la regresión: con él, `features_escuela` sale con 3 ciclos y `publicar_gold.py --desde-gold` entrena. Pendiente la guarda automática propuesta (aserción dbt de solape mínimo con `dim_escuela` y de ciclos mínimos), sin la cual un fixture futuro puede volver a divergir sin que CI lo note 
+| BUG-027 | `superset/semantic/metrics_kpis_base_us221.yaml` apunta sus 5 `sql_ref` a `sql/kpi_0*.sql`, ruta que **ya no existe**: el commit `1c2f5f9` movió esos archivos de `superset/sql/` a `superset/semantic/` y actualizó el test, pero no el YAML. Nadie lo nota porque `tests/test_kpis_us221.py` **codifica la ruta a mano** (`SQL_DIR = superset/semantic`) y nunca lee el `sql_ref` del catálogo: la prueba pasa en verde mientras el artefacto que la gente consulta apunta al vacío | medium | **superseded** | US-221 / REQ-002 | US-221 / REQ-002 | **No se corrige la ruta: los archivos desaparecen.** Manuel Serranía ratificó el 28-ago una sola implementación por KPI (regla 1 del vault): se borran los 5 `kpi_*.sql` y las tarjetas se remapean a los datasets canónicos (`db01_cubo_matricula`, `db02_cubo_riesgo_territorial`, `db01_distribucion_escuelas`), sin `sql_ref` a SQL nuevo. Arreglar el `sql_ref` sería trabajo sobre artefactos que se eliminan. Seguimiento en el follow-up de US-221 (C2, Oscar Quiroz) | — **lo que sí sobrevive del hallazgo**: `test_kpis_us221.py` codifica `SQL_DIR` a mano y nunca lee el `sql_ref`, por eso pasaba en verde con el catálogo apuntando al vacío. El follow-up convierte ese test en guarda antiduplicación, que es el requisito que nace de este reporte 
+| BUG-028 | `cargar_features()` leía el CSV **sin `dtype`**, así que pandas infería `int64` en `cve_mun` y se comía el cero de la izquierda: `"09001"` llegaba como `9001`. El join contra `dim_municipio` y la agregación de DEC-007 fallaban **en silencio** para las 9 entidades cuya clave INEGI empieza en cero — **CDMX (09) incluida, que es la entidad principal del alcance**. Diana lo había previsto y lo cubrió en `tests/conftest.py`, pero el lector de producción seguía sin ello, así que las pruebas veían la clave correcta y el pipeline no | high | **fixed** | US-325 / US-311 / DEC-007 / REQ-003 | **PR #127** — `dtype={"cve_mun": str}` en `cargar_features()` (`src/modelos/entrenar_ml01.py`). Detectado por la guarda de coherencia entidad↔municipio que el mismo PR agregó a `generar_fixture_dim.py`: reventó de inmediato con `'9001' contradice la entidad '09'` | la guarda misma es la regresión — `generar()` falla si `cve_mun` no empieza con la entidad que codifica el CCT, así que el cero perdido no puede volver a pasar inadvertido |
+| BUG-029 | **RESERVADO — Oscar Quiroz (C2).** `superset/sync_semantic_layer.py` recorre alfabéticamente los `.sql` de `superset/semantic/` y **aborta toda la corrida** al llegar a `db09_cubo_recomendaciones.sql` si `gold.recomendaciones` no existe. No es error del SQL: en un ambiente sin la cadena Bronze→Gold materializada, nadie que sincronice después de `db09` alfabéticamente puede registrar sus datasets. Detectado por Oscar al construir DB-07 (US-222) | medium | open | US-222 / US-205 / REQ-002 | pendiente (**C2**) — mitigación inmediata: cargar `superset/mock/gold_ml_outputs_mock.sql`, mismo patrón de US-203/204/211b/212; solución de fondo: la resiliencia del sync que Manuel agrega en US-205, para que un dataset con tabla ausente no tumbe la corrida completa | — (propuesto: que el sync reporte y continúe en vez de abortar) |
+| BUG-030 | **El esquema real de DS-06 no es el que `silver/agua_region.sql` espera, y el riesgo no es que D5 siga en `SIN_DATO` sino que alguien lo saque con la columna equivocada.** El extractor entrega `id_presa, nombre_oficial, corriente, estado, anio_term, alt_cort, cap_name, cap_namo`; el modelo espera `id_punto, region_hidrologica, latitud, longitud, indicador, valor, fecha`. **Ninguna de las cuatro columnas que importan existe** — no es renombrar, son dos estructuras distintas. Dos huecos: (1) sin `lat`/`lon` no hay interpolación IDW, que `Data_Model.md` §3 exige para D5; (2) `cap_name`/`cap_namo` son la **capacidad máxima** de la presa, no el volumen actual, así que conectarlas produciría un indicador constante en el tiempo que mide el tamaño de la presa y no la disponibilidad hídrica — un número creíble y falso, misma familia que el `indice_riesgo` saturado y el `*100`. Hoy no rompe nada porque BUG-009 mantiene el identifier falso y D5 sigue `SIN_DATO` explícito. Reportado por Diana Alvarez (C1) el 30-ago al revisar los metadatos de DS-06/DS-08, que **sí** están limpios | high | open | US-122a / US-112 / REQ-001 / DS-06 | pendiente (**C1 + Emilio Galnares**) — la solución ya está documentada en la ficha DS-06 §64-70 (endpoint «Detalle por presa: Presa, Año, Vol. de almacenamiento (hm3) — SERIE DE TIEMPO») y §74 (georreferencia vía datos.gob.mx). El extractor de US-122a jaló el listado general porque eso pedía la historia. **Decisión pendiente del PM:** ampliar el extractor, o documentar D5 como cobertura parcial explícita para la demo | — (propuesto: aserción de contrato entre las columnas de `bronze.conagua` y las que `agua_region.sql` consume) |
+| BUG-031 | **KPI-02 «Variación de matrícula» pinta −54.5 % donde el valor real es −0.19 %, en SEIS tableros: DB-01, DB-02, DB-03, DB-04, DB-06 y DB-09.** La métrica es `SUM(variacion_matricula * matricula_total) / NULLIF(SUM(matricula_total), 0)` con `formato: porcentaje_1`, es decir un **promedio ponderado de razones**… salvo que `variacion_matricula` no es una razón: `fact_escuela_ciclo.sql` la produce como `matricula_total - matricula_ciclo_anterior`, **alumnos absolutos** (rango observado −24 a 24). El resultado se renderiza como porcentaje, que multiplica por 100 otra vez. Verificado contra Postgres: 32 312 alumnos contra 32 374 del ciclo anterior = **−0.19 %**; los dos tableros dicen **−54.5 %**, factor 287 | **critical** | open | US-203 / US-204 / US-211a / US-212 / US-221 / REQ-002 / AC-002.4 | **C1 (Diana Alvarez) fixed** — `matricula_ciclo_anterior` expuesta en `fact_escuela_ciclo.sql`, `cubo_escuela_360.sql`, `cubo_comparador_municipio.sql` y, ampliando el alcance tras encontrar el mismo defecto en el repo, también `cubo_matricula.sql` (DB-01/DB-06) y `cubo_riesgo_territorial.sql` (DB-02) — rama `fix/diana-varela-bug031-matricula-anterior`, verificado contra Postgres real (`dbt run --full-refresh` + `dbt test`, `cubo_matricula_fact_parity` y `not_null_fact_escuela_ciclo_matricula_ciclo_anterior` en verde). Pendiente **C2 · Manuel Serranía**: migrar `metrics_db01_db02.yaml`, `metrics_db03_db04.yaml`, `metrics_db06_db09.yaml` a razón de sumas y retirar `variacion_x_matricula` + las dos aserciones que la exigen (`test_semantic_db01_db02.py`, `test_semantic_db06_db09.py`) — el origen es §4.4 de [[04_UX_Design/Cube_Specs_DB03_DB04]]: Marina especificó el componente aditivo y Deni Garrido lo implementó fielmente; la implementación es correcta, la especificación no | `tests/test_semantic_db03_db04.py::test_una_metrica_de_porcentaje_no_multiplica_dos_medidas` |
+| BUG-032 | `Data_Model.md` se contradice a sí mismo sobre dónde vive `indice_riesgo`: la línea 181 (§4.5) describe correctamente `valor` (variación cruda) e `indice_riesgo` como **columnas distintas** —que es lo implementado y lo que consume la API—, pero la nota de la línea 313 afirma que `indice_riesgo` vive *"en la columna `valor`"*. Quien lea §5.3 consultaría `valor` esperando un `[0,1]` y recibiría la variación cruda, hoy en alumnos absolutos: números como `-20` donde espera `0.6` | medium | open | US-313 / US-411 / REQ-003 | — | Diana Alvarez (C1) | ver detalle |
+| BUG-033 | El workflow **"Update Project Graph"** falla en **cada** merge a `main`: su paso final regenera `graphify-out/` y hace `git commit` + `git push` **directo a `main`**, que la branch protection rechaza (`GH013` — exige PR + revisión de code owner, DEC-003). Ningún commit del bot entró nunca; el grafo versionado solo se actualiza a mano. No bloquea merges (no es required check) pero deja **rojo cada run** y el grafo desactualizado desde el 25-ago | low | fixed | REQ-007 | `fix/luis-tellez-bug033-update-graph-artifact` (Luis Téllez, **C5**) — el workflow deja de commitear a main y **publica el grafo como artefacto de Actions**; `permissions` baja a `contents: read` | `workflow_dispatch` sobre la rama: el run genera el artefacto sin intentar push (ver detalle) |
+| BUG-034 | **DS-02: coordenadas `0,0` en el catálogo real de CCT pasaban como georreferencia válida.** Verificado contra la descarga real de SIGED (30-ago, ver `DS-02_Catalogo_CCT.md` §9): 6 filas de 77,712 escuelas de básica en las 4 `SCOPE_ENTIDADES` traían `INMUEBLE_LATITUD`/`INMUEBLE_LONGITUD` en `0.0`. `silver/escuela.sql` solo nulificaba cadenas vacías (`nullif(trim(cast(latitud as text)), '')`), nunca ceros literales — así que esas 6 escuelas se veían con georreferencia "presente" y podían entrar a la interpolación IDW de D5/D6 (ADR-006) como si `(0,0)` fuera un punto real, sesgando el resultado de las escuelas vecinas | medium | **fixed** | DS-02 / ADR-006 / US-105 / REQ-001 | `feat/diana-varela-ds02-cct-real` (Diana Alvarez, **C1**) — `nullif()` anidado sobre el valor numérico además de la cadena vacía | `dbt/tests/valid_escuela_georreferencia.sql` |
+| BUG-036 | **`cargar_fixture()` reportaba mal el número de filas insertadas en cargas grandes.** `execute_values()` pagina el INSERT en lotes de 100 filas por default; `cur.rowcount` justo después de la llamada solo refleja el ÚLTIMO lote, no el total acumulado. Verificado real: la carga de DS-02 (385,175 filas nuevas) reportó "75 insertadas" — exactamente `385175 % 100` — confirmado falso con un `COUNT(*)` directo en Postgres. Afecta a todos los cargadores reales que usan `cargar_fixture()` con más de 100 filas (DS-01, DS-04, DS-05, DS-08...); el número impreso en sesiones anteriores probablemente subestimó el conteo real, aunque los datos en sí sí quedaron completos (`ON CONFLICT DO NOTHING` seguía operando bien, solo el conteo impreso era falso) | medium | **fixed** | src/ingesta/cargar_bronze_fixture.py | `feat/diana-varela-ds02-cct-real` (Diana Alvarez, **C1**) — `RETURNING` + `execute_values(..., fetch=True)`, que sí agrega los resultados de todas las páginas | `tests/test_cargar_bronze_fixture_conteo.py` |
+| BUG-037 | `sync_semantic_layer.py` actualiza el SQL de un dataset (`PUT /api/v1/dataset/<id>`) pero nunca vuelve a pedirle a Superset que re-lea sus columnas: la lista de columnas queda fija desde la creación del dataset. Cualquier columna agregada, renombrada o quitada en un `.sql` de `superset/semantic/` después de esa primera creación se sincroniza en el texto del SQL pero no en el esquema del dataset — cualquier chart que la referencie falla con `Columns missing in dataset: [...]`, y el error solo aparece al abrir el dashboard en el navegador, nunca en la corrida del script ni en la API de creación de charts (que no valida contra el schema real) | medium | open | US-214b / REQ-002 | pendiente — mitigación manual usada hoy: `PUT /api/v1/dataset/<id>/refresh` (Superset ya expone este endpoint) llamado a mano tras el sync; fix de fondo propuesto: que `ensure_datasets()`/`_apply_metrics_and_columns()` llame ese mismo endpoint automáticamente cada vez que el SQL de un dataset cambia | Reportado por Monserrat Miranda (2026-08-30), validando US-214b en vivo: `db05_cubo_driver` ganó la columna `link_db08`, se sincronizó el SQL, y el chart "D1 · Municipios · driver dominante y cobertura" reventó con 4 columnas de esa fila (3 preexistentes + la nueva) marcadas "missing" hasta refrescar a mano. Sin test de regresión automatizado todavía |
+| BUG-038 | `_layout_tabs()` en `sync_semantic_layer.py` arma `ROOT_ID` con `type: "TABS"` y cuelga los 6 nodos `TAB-D1..D6` directamente como sus hijos. Superset renderiza el contenido del primer tab (D1) correctamente, pero **no dibuja ninguna barra de navegación entre tabs** — D2 a D6 quedan inalcanzables desde la interfaz, aunque sus datos y charts existen y funcionan bien vía API. El test `test_layout_tabs_arma_root_de_tipo_tabs` codifica esta estructura como si fuera la esperada (`assert position["ROOT_ID"]["type"] == "TABS"`), por eso pasaba en verde sin que nadie lo notara — nunca se había confirmado visualmente en un navegador real hasta hoy. **Segundo síntoma, misma causa probable**: los filtros globales de DB-05 (Ciclo/Entidad/Nivel) se pueden editar en el panel (quitar un valor, "Clear all") pero el cambio nunca le llega a los charts — ni al quitar un valor y darle "Apply filters", ni con "Clear all". Probado directo contra `/api/v1/chart/data` (sin pasar por el navegador): el mismo filtro por `cve_ent` sí funciona perfecto ahí (filtrar a `'09'` trae solo Ciudad de México, filtrar a `'19'` trae solo Nuevo León) — el SQL/dataset está bien, el defecto es que el *scope* del filtro nativo (`rootPath: ["ROOT_ID"]`) probablemente no puede resolver qué charts están "dentro" del árbol cuando ese árbol está mal armado para tabs, el mismo defecto de fondo que el síntoma anterior | high | open | US-213 / US-214b / REQ-002 | pendiente — **dos hipótesis probadas en vivo contra este Superset (nunca en el repo), ninguna resuelve ambas cosas a la vez**: (1) insertar un nodo `TABS-1` intermedio entre `ROOT_ID` (cambiado a `type: "ROOT"`) y los 6 `TAB-*` sí hace aparecer la barra de tabs, pero el contenido de todos los tabs queda en blanco (causa no identificada aún); (2) revertir a la estructura original recupera el contenido pero vuelve a perder la barra de tabs. Falta una tercera hipótesis — candidato: revisar si Superset necesita metadata adicional en el nodo `TABS` (tamaño, fondo) o si el problema está en otro lado (`json_metadata`, `filter_scopes`); dado el segundo síntoma, revisar también si arreglar el árbol resuelve el scope de filtros de un solo golpe | Reportado por Monserrat Miranda (2026-08-30), validando US-214b/US-215b en vivo. Sin test de regresión — el test existente (`test_layout_tabs_arma_root_de_tipo_tabs`) codifica la estructura incompleta como correcta y habría que revisarlo también |
 
 ## BUG-016 — Filas sin ningún driver rompían la publicación de ML-02
 
@@ -281,6 +291,30 @@ El fixture sintético trae los seis drivers poblados. **El escenario que rompe e
 el fixture no representa**, así que ninguna suite lo veía: ni la mía, ni la de ML-02. La lección no
 es "faltaba una prueba" —es que un fixture construido para validar la forma no valida la realidad, y
 que los casos degradados hay que construirlos a propósito.
+
+## BUG-032 — `Data_Model.md` se contradice sobre dónde vive `indice_riesgo`
+
+Encontrado el 2026-08-29 al cerrar los pendientes de `DOC-INDICE-RIESGO`.
+
+**Línea 181 (§4.5), correcta y implementada:**
+
+> `valor` (variación cruda, para métricas MAE/RMSE de ML-01) · **`indice_riesgo`** (float[0,1],
+> columna derivada calculada en `src/modelos/riesgo.py`)
+
+**Línea 313 (nota de §5.3), obsoleta:**
+
+> `indice_riesgo` vive en `gold.predicciones` (columna `valor`, `modelo = 'ML-01'`)
+
+Las dos no pueden ser ciertas. La implementación coincide con la 181: `publicar_gold.py` crea ambas
+columnas y `src/api/schemas.py` declara `indice_riesgo: StrictFloat | None = Field(None, ge=0, le=1)`.
+
+El daño no es teórico. Quien siga §5.3 consultará `valor` esperando un índice acotado a `[0,1]` y
+recibirá la variación cruda — que hasta que se implemente ADR-007 viene en **alumnos absolutos**. Es
+decir, valores como `-20` donde el consumidor espera `0.6`, sin que nada falle. Es el mismo modo de
+falla de BUG-017: un número creíble que significa otra cosa.
+
+Arreglo: la nota de la 313 debe decir que `indice_riesgo` es su **propia columna**, no `valor`.
+Archivo de Célula 1.
 
 ## Convención
 
@@ -963,6 +997,24 @@ SQL_DIR = Path(__file__).parent.parent / "superset" / "semantic"
 El test nunca lee el `sql_ref` del YAML, así que valida los archivos correctos mientras el catálogo
 —el artefacto que la gente consulta— apunta a otro lado. La prueba pasa y la referencia sigue rota.
 
+> **Actualización 2026-08-30 (Monserrat Miranda).** Confirmado con evidencia nueva: el pendiente
+> de C2/Oscar Quiroz no es solo una referencia rota que nadie lee. `sync_semantic_layer.py`
+> descubre `.sql` por *glob* directo sobre `superset/semantic/*.sql` (línea 224), sin pasar por
+> `sql_ref` ni por ningún `datasets:` del YAML — así que los 5 `kpi_0*.sql` que este bug pide
+> borrar se siguen registrando como datasets nuevos en cualquier sincronización.
+>
+> Al intentar validar US-214b en vivo (Superset 6.1.0, Docker local), `kpi_01_matricula_total.sql`
+> específicamente usa `WHERE e.nivel = :nivel` — un bind-param de SQLAlchemy sin valor al
+> momento de crear el dataset — y Superset lo ejecuta tal cual contra Postgres para inspeccionar
+> columnas. Postgres lo rechaza (`syntax error at or near "%"`), sin capturar la excepción:
+> **`sync_semantic_layer.py` aborta por completo antes de sincronizar ningún dashboard**, no solo
+> el suyo. Por eso sube la severidad a `medium`: ya no es una referencia muerta, es un bloqueo
+> operativo para cualquiera que sincronice desde cero.
+>
+> Mitigación local usada hoy (no persiste en el repo): apartar temporalmente
+> `kpi_01_matricula_total.sql` de `superset/semantic/` solo en disco para completar la validación
+> de DB-05/DB-08, y devolverlo a su lugar al terminar.
+
 ### Fix propuesto
 
 De C2 (Oscar Quiroz, dueño del artefacto): cambiar los 5 `sql_ref` a `semantic/…`.
@@ -971,3 +1023,301 @@ De C2 (Oscar Quiroz, dueño del artefacto): cambiar los 5 `sql_ref` a `semantic/
 
 Propuesto: que `test_kpis_us221.py` **resuelva la ruta desde el `sql_ref` del YAML** en vez de
 codificarla, para que el catálogo y los archivos no puedan volver a divergir en silencio.
+
+## BUG-028 — El cero de la izquierda de `cve_mun` se perdía al leer el CSV
+
+Encontrado por Edgar Coronel (PM) el 2026-08-29, resolviendo el cruce entre el PR #124 (Héctor
+Morales) y el PR #127 (Diana Alvarez). No lo reportó una persona: lo destapó una guarda escrita
+minutos antes.
+
+### Descripción
+
+`cargar_features()` leía el fixture con `pd.read_csv(ruta)` sin declarar tipos. `cve_mun` es
+puramente numérica, así que pandas la infería `int64` y descartaba el cero inicial:
+
+```
+"09001"  ->  9001
+```
+
+El daño no aparece al leer: aparece **río abajo y sin ruido**. El join contra `dim_municipio` no
+cruza, la agregación de DEC-007 pierde el grupo, y nada lanza excepción. Afecta a las **9 entidades
+cuya clave INEGI empieza en cero** — entre ellas **CDMX (`09`)**, que es la entidad principal de
+`SCOPE_ENTIDADES`.
+
+### Por qué las pruebas no lo veían
+
+Diana **sí había previsto exactamente esto**. Su comentario en `tests/conftest.py` lo dice palabra
+por palabra:
+
+```python
+# cve_mun es puramente numérica (p.ej. "09001") -- sin dtype=str, pandas la infiere como
+# int64 y se come el cero a la izquierda, rompiendo el join contra dim_municipio.
+return pd.read_csv(FIXTURE_FEATURES, dtype={"cve_mun": str})
+```
+
+Pero el `dtype` quedó **sólo en el fixture de pruebas**. El lector de producción —el que usan
+`entrenar_ml01`, `publicar_gold` y la generación de la dimensión— seguía sin él. Resultado: los
+tests veían la clave bien formada y el pipeline real no. El diagnóstico era correcto y la corrección
+se aplicó del lado que no la necesitaba.
+
+Es una variante del modo de falla de [[06_Quality_Testing/Bug_Register#BUG-026]] y de BUG-012: el
+artefacto de prueba y el artefacto real dejan de compartir origen, y la divergencia no produce
+error, sólo números distintos.
+
+### Cómo se detectó
+
+El PR #127 falló `test_agrega_igual_traiga_o_no_cve_mun_el_contrato` —la invariante que Héctor
+escribió en el PR #124— con 230 filas contra 315. Investigando esa diferencia se agregó a
+`generar_fixture_dim.generar()` una guarda de coherencia entre la entidad que codifica el CCT y la
+que declara `cve_mun`. La guarda reventó en la primera corrida:
+
+```
+ValueError: 09DCT0000G: `cve_mun` '9001' contradice la entidad '09' del CCT.
+```
+
+El defecto llevaba ahí desde que el contrato incorporó la columna. La guarda tardó una corrida en
+encontrarlo.
+
+### Fix
+
+`src/modelos/entrenar_ml01.py`, en `cargar_features()`:
+
+```python
+df = (
+    pd.read_parquet(ruta)
+    if ruta.suffix == ".parquet"
+    else pd.read_csv(ruta, dtype={"cve_mun": str})
+)
+```
+
+Parquet no necesita el tratamiento: conserva el tipo declarado en el esquema.
+
+### Test de regresión
+
+**La guarda es la regresión.** `generar_fixture_dim.generar()` falla si `cve_mun` no empieza con la
+entidad que codifica el CCT, o si las features traen más de un municipio por CCT. No es una prueba
+que alguien deba acordarse de correr: es una condición que el generador no puede violar.
+
+### Lección
+
+Una hipótesis correcta escrita en un comentario no protege nada si la corrección se aplica del lado
+equivocado. Cuando alguien documente un riesgo de tipos, la pregunta siguiente es **cuántos lectores
+tiene ese archivo**, no si el test pasa.
+
+## BUG-031 — KPI-02 muestra −54.5 % donde el valor real es −0.19 %
+
+Encontrado por Marina García del Buey el 2026-08-29, auditando sus propias métricas antes de la mesa
+de ADR-007. **El defecto es mío**, no de quien lo implementó.
+
+### Descripción
+
+La tarjeta «Variación de matrícula» (KPI-02) aparece en DB-03 y DB-04. Su métrica es:
+
+```
+SUM(variacion_matricula * matricula_total) / NULLIF(SUM(matricula_total), 0)     formato: porcentaje_1
+```
+
+Eso es un promedio de `variacion_matricula` ponderado por matrícula, y solo tiene sentido si
+`variacion_matricula` ya es una razón. **No lo es.** `fact_escuela_ciclo.sql:49` la produce como
+`matricula_total - matricula_ciclo_anterior`: alumnos absolutos, rango observado −24 a 24. El
+promedio ponderado da −0.545 «alumnos», y `porcentaje_1` lo multiplica por 100 al renderizar.
+
+Verificado contra Postgres:
+
+| | |
+|---|---|
+| Matrícula del ciclo | 32 312 |
+| Matrícula del ciclo anterior | 32 374 |
+| Variación real | **−0.19 %** |
+| Lo que pintan DB-03 y DB-04 | **−54.5 %** |
+
+Factor de error: 287. No es una degradación sutil: el tablero afirma que las escuelas perdieron más
+de la mitad de su matrícula en un ciclo.
+
+### Alcance real: seis tableros, no dos
+
+Encontrado al buscar referencias colgantes después de corregir DB-03 y DB-04. **El componente
+defectuoso se reutilizó en toda la Célula 2.** Expresión idéntica, formato de porcentaje idéntico:
+
+| Archivo | Línea | Tableros |
+|---|---|---|
+| `metrics_db01_db02.yaml` | 74 | DB-01 Ejecutivo |
+| `metrics_db01_db02.yaml` | 177 | DB-02 Mapa de riesgo |
+| `metrics_db03_db04.yaml` | 70 · 154 | DB-03 · DB-04 |
+| `metrics_db06_db09.yaml` | 73 | DB-06 · DB-09 |
+
+Verificado contra Postgres: `gold.cubo_matricula`, que alimenta DB-01 y DB-02, también da
+**−54.5 %**. Es el mismo número equivocado en todos.
+
+**Y hay dos pruebas que exigen el defecto como si fuera un requisito:**
+
+```
+tests/test_semantic_db01_db02.py:251   assert re.search(r"variacion_x_matricula", sql)
+tests/test_semantic_db06_db09.py:268   assert re.search(r"variacion_x_matricula", db06_cubo)
+```
+
+Mientras esas aserciones existan, quitar el componente **reprueba CI**. Cualquier corrección tiene
+que retirarlas en el mismo cambio. Esos dos archivos son de Manuel Serranía (C2, Tech Lead): no se
+tocan desde aquí, se le escalan.
+
+Por eso la severidad sube a **critical**: no es una tarjeta de dos tableros, es la métrica KPI-02 del
+catálogo canónico, mal en seis de los diez tableros, y con pruebas que la sostienen.
+
+### Causa raíz
+
+Está en la especificación, no en el código. §4.4 de [[04_UX_Design/Cube_Specs_DB03_DB04]] declaró
+`variacion_x_matricula = sum(variacion_matricula * matricula_total)` como componente aditivo del cubo
+de DB-04, y Deni Garrido lo implementó exactamente así en `cubo_comparador_municipio.sql`. **La
+implementación es fiel; la especificación estaba mal.**
+
+Ese componente carga dos errores a la vez:
+
+1. **Asume una unidad que el contrato nunca declaró.** Es el mismo hueco de BUG-019 y ADR-007, esta
+   vez en el frontend en lugar del ML.
+2. **Congela la agregación equivocada.** Una razón se calcula como razón de sumas, no como promedio
+   ponderado de razones por escuela. Guardar el producto ya ponderado impide corregirlo desde la capa
+   semántica: DB-04 **no se puede arreglar sin tocar el cubo**, porque `sum(variacion_matricula)` y la
+   matrícula anterior agregada no existen como columnas.
+
+### Por qué la prueba de regresión no lo vio
+
+`test_los_porcentajes_no_se_multiplican_dos_veces` (US-212) busca la cadena `100` en el texto de la
+expresión. Esta métrica **nunca tuvo `* 100`**, así que pasó en verde. La prueba detectaba la *forma*
+del error que Edgar Coronel encontró en `pct_escuelas_en_riesgo`, no la *clase* de error. Dio
+confianza falsa, que es peor que no tener prueba.
+
+Tampoco lo vio la validación de US-212 —«24/24 charts devuelven datos reales»—, porque **«devuelve
+datos» no es «devuelve el dato correcto»**.
+
+### Fix
+
+La corrección **no depende de ADR-007**: se expresa solo con matrículas, que son alumnos y lo seguirán
+siendo se ratifique lo que se ratifique.
+
+```
+SUM(matricula_total) / NULLIF(SUM(matricula_ciclo_anterior), 0) - 1
+```
+
+- **DB-03**: aplicable hoy derivando el denominador (`matricula_total - variacion_matricula`), y
+  migra a `matricula_ciclo_anterior` cuando C1 la exponga.
+- **DB-04**: requiere cambio en el cubo. Se retira la tarjeta mientras tanto — un tablero con una
+  métrica menos es defendible; con una métrica falsa, no.
+- **§4.4 del contrato**: `suma_matricula_anterior` reemplaza a `variacion_x_matricula`.
+
+**Fuera del alcance de este PR, escalado a C2 (Manuel Serranía):** `metrics_db01_db02.yaml`,
+`metrics_db06_db09.yaml` y las dos aserciones de `test_semantic_db01_db02.py` /
+`test_semantic_db06_db09.py`. La corrección es la misma expresión y depende del mismo cambio de cubo,
+así que conviene que vaya coordinada, no en cinco PR sueltos.
+
+Lo que hace falta de **C1**, cuatro líneas que conviene meter en el mismo PR de la normalización de
+ADR-007, porque ya van a tocar esos archivos:
+
+```sql
+-- fact_escuela_ciclo.sql:48 — el dato ya existe en el CTE con_anterior, solo se está tirando
+        matricula_ciclo_anterior,
+
+-- cubo_escuela_360.sql:25
+    f.matricula_ciclo_anterior,
+
+-- cubo_comparador_municipio.sql:29 — sustituye a variacion_x_matricula
+        sum(f.matricula_ciclo_anterior) as suma_matricula_anterior,
+```
+**Actualización (2026-08-31, Diana Alvarez) — C1 implementado.** Rama
+`fix/diana-varela-bug031-matricula-anterior`. Al revisar el repo antes de cerrar esta parte, el mismo
+patrón (`variacion_x_matricula` = promedio ponderado de una columna que no es razón) apareció también
+en `cubo_matricula.sql` (alimenta DB-01/DB-06, ya listados como afectados) y en
+`cubo_riesgo_territorial.sql` (alimenta DB-02, también listado) — ninguno de los dos estaba en el
+alcance original de tres archivos de este registro. Se corrigieron los cinco: `fact_escuela_ciclo.sql`,
+`cubo_escuela_360.sql`, `cubo_comparador_municipio.sql`, `cubo_matricula.sql`,
+`cubo_riesgo_territorial.sql`, más el test `cubo_matricula_fact_parity.sql` (columna renombrada) y
+`_gold__models.yml` (`matricula_ciclo_anterior` documentada con `not_null`). Verificado con
+`dbt run --full-refresh` + `dbt test` completos sobre Postgres real: los 5 modelos reconstruyen limpio
+(148/90/90/90/90 filas), `cubo_matricula_fact_parity` y
+`not_null_fact_escuela_ciclo_matricula_ciclo_anterior` pasan. Los 13 errores restantes del run son
+preexistentes y no relacionados: 8 ya documentados (gaps DS-06/CONAGUA y DS-07/CONEVAL) y 2 nuevos
+diagnosticados en esta verificación (`cubo_recomendaciones_kpi11_parity`,
+`gold_ml_runtime_recomendaciones_fact_relationship`) — ninguno de los dos referencia columnas de
+matrícula; ambos vienen del filtro preexistente `where matricula_ciclo_anterior is not null` en
+`fact_escuela_ciclo.sql` (excluye el primer ciclo observado de cada cct) frente a recomendaciones de
+ML-02 emitidas para ese primer ciclo, confirmado sin cambios vía `git diff main` (el fix es puramente
+aditivo, no toca ese filtro ni ningún JOIN). Sigue pendiente C2 (ver arriba).
+
+### Test de regresión
+
+`test_una_metrica_de_porcentaje_no_multiplica_dos_medidas`: una métrica con formato de porcentaje no
+puede multiplicar dos columnas de medida dentro de un agregado. Ese producto es la firma del defecto
+—delata que se está promediando una razón que no es razón— y es verificable sin base de datos. Se
+conserva la prueba del `* 100`.
+
+## BUG-033 — «Update Project Graph» falla en cada merge por push directo a `main`
+
+| | |
+|---|---|
+| **Severidad** | low — no bloquea merges (no es required check); deja rojo cada run y el grafo desactualizado |
+| **Estado** | `fixed` |
+| **Detectado** | 2026-08-31, revisando por qué todos los merges recientes marcan un check en rojo |
+| **Owner** | **Célula 5** (`.github/workflows/`) — Luis Téllez |
+| **traces_up** | REQ-007 |
+
+### Qué pasa
+
+`.github/workflows/update-project-graph.yml` corre en cada `push` a `main` que toque
+`src/`, `dbt/`, `dags/` o `03_Architecture/`. Su último paso regeneraba el grafo y lo subía a `main`:
+
+```
+git add graphify-out/graph.json graphify-out/GRAPH_REPORT.md
+git commit -m "docs: update project graph [skip ci]"
+git push
+```
+
+La branch protection de `main` rechaza el push (log del run `33470181062`):
+
+```
+remote: error: GH013: Repository rule violations found for refs/heads/main
+- Changes must be made through a pull request.
+- 2 of 2 required status checks are expected.
+! [remote rejected] main -> main (push declined due to repository rule violations)
+```
+
+### Causa raíz
+
+El workflow presupone que puede escribir a `main` con el `GITHUB_TOKEN`, pero las repository rules
+exigen **PR + 1 aprobación de code owner** (`* @edgarcoroneln`, DEC-003) y 2 status checks. Un push
+directo del bot es exactamente lo que esas reglas prohíben (regla 5 del vault). Confirmado: **no
+existe ni un commit del bot** en el historial — el auto-refresh nunca funcionó desde que se activó;
+el grafo versionado se actualizó siempre a mano (último cambio: `86fc37c`, 25-ago, en un commit de
+feature humano).
+
+### Por qué no se resuelve dándole push al bot
+
+Lograr un push realmente automático exigiría **debilitar la branch protection** (agregar el bot o un
+PAT/GitHub App a la bypass-list del ruleset) o abrir **un PR-de-bot por cada merge** que solo el PM
+—code owner único— podría aprobar y mergear. Ambas requieren decisión de Edgar (regla 7) y tienen
+mala relación costo/beneficio para un artefacto derivado que se regenera con dos comandos. Se
+descartaron a favor de no escribir a `main` en absoluto.
+
+### Fix
+
+El workflow deja de commitear. Regenera el grafo, valida que no filtre secretos y lo **publica como
+artefacto descargable de Actions** (`actions/upload-artifact@v4`, 30 días). Cambios:
+
+- se elimina el paso `git commit`/`git push`;
+- `permissions` baja de `contents: write` a `contents: read` (mínimo privilegio: ya solo hace checkout);
+- se retira el guard anti-ciclo `if: !contains(... 'update project graph')`, que solo existía para
+  no re-disparar el commit del bot que ya no ocurre.
+
+El grafo versionado en `graphify-out/` se sigue actualizando a mano por PR cuando haga falta
+(`graphify . --code-only && graphify cluster-only .`). No se toca la lógica de generación.
+
+### Test de regresión
+
+No hay prueba unitaria de workflows. Verificación: disparar el workflow con `workflow_dispatch` sobre
+la rama del fix y confirmar que el run **termina en verde** y publica el artefacto `project-graph`
+**sin intentar ningún push**. Cierre definitivo: el primer merge a `main` que toque los paths ya no
+deja el check en rojo.
+
+### Nota
+
+Los dos checks **requeridos** por `main` son «Calidad de codigo y vault» y «Generar y validar
+tablero PM» — viven en `ci.yml` y `pm-dashboard.yml`, no en este workflow, así que el cambio no los
+altera. («Contrato dbt» corre en cada PR pero **no** es required.)

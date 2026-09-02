@@ -1,95 +1,62 @@
 -- =============================================================================
--- gold.cubo_comparador_municipio  ·  DB-04 Comparador de municipios
+-- db04_cubo_comparador_municipio  ·  DB-04 Comparador de municipios
 -- -----------------------------------------------------------------------------
 -- Historia   : US-211a  (Marina Garcia del Buey, Celula 2 - Analytics & BI)
+--              Repunteo US-205 (Manuel Alejandro Serrania Reinada, C2)
 -- Contrato   : 04_UX_Design/Cube_Specs_DB03_DB04.md  (DOC-CUBESPEC-DB0304) §4
 -- Grano      : una fila por cve_mun x nivel x id_ciclo
--- Uso        : dataset virtual de Superset para DB-04 y SQL de referencia para
---              US-113 (materializacion en dbt, Celula 1).
 --
--- ATENCION - CAMBIO DE GRANO SOLICITADO A CELULA 1 (Cube_Specs §8.1):
---   Data_Model §4.3 declara el grano municipio x ciclo. Ese grano NO permite
---   cumplir AC-002.2 (filtro global por nivel educativo) en DB-04: si el cubo
---   se pre-agrega sin 'nivel', el filtro no tiene sobre que operar. Se baja el
---   grano a municipio x nivel x ciclo y se reagrega con metricas aditivas.
---   Cambio de esquema => regla 7 del vault: revision humana explicita de Diana.
+-- REPUNTEO A CUBOS FISICOS (US-205 / US-113): passthrough 1:1 de
+--   gold.cubo_comparador_municipio (C1, grano DEC-008). La lista de columnas es
+--   EXPLICITA a proposito: documenta el contrato de salida.
 --
--- POR QUE COMPONENTES Y NO PROMEDIOS:
---   Un promedio no se puede reagregar (el promedio de promedios de tres niveles
---   no es el promedio del municipio). Se guardan numerador y denominador por
---   separado y la razon se calcula en la capa semantica; asi cualquier
---   combinacion de filtros da el numero correcto. Ver metrics_db03_db04.yaml.
---
--- Reglas aplicadas: R1 (ML por JOIN), R2 (SIN_DATO nunca cero),
---                   R3 (umbral 0.6), R5 (Gold ya viene acotado).
+-- Reglas ya garantizadas por C1 (ver cubo_comparador_municipio):
+--   El cubo guarda COMPONENTES aditivos, nunca promedios (patron DEC-008):
+--   suma_d#/escuelas_con_d# y suma_indice_riesgo/escuelas_con_prediccion viajan
+--   por separado; la razon se calcula en la capa semantica (metrics_db03_db04.
+--   yaml). Esto permite reagregar con cualquier combinacion de filtros (AC-002.2).
+--   R1: riesgo ML-01 por LEFT JOIN (C1), modelo 'ML-01'. R2: SIN_DATO nunca se
+--   convierte en cero: cada driver publica cobertura_d# y el riesgo cobertura_
+--   riesgo. R3: escuelas_en_riesgo acotado al umbral 0.6. R5: Gold acotado.
 -- =============================================================================
 
 SELECT
     -- ---------- identidad y llaves -------------------------------------------
-    f.cve_mun,
-    dm.cve_ent,                                -- filtro global: entidad
-    dm.nombre_municipio,
-    dm.nombre_entidad,
-    e.nivel,                                   -- filtro global: nivel educativo
-    f.id_ciclo,
-    dt.ciclo,
-    dt.anio_inicio,
+    c.cve_mun,
+    c.cve_ent,                                -- filtro global: entidad
+    c.nombre_municipio,
+    c.nombre_entidad,
+    c.nivel,                                  -- filtro global: nivel educativo
+    c.id_ciclo,                               -- filtro global: ciclo
+    c.ciclo,
+    c.anio_inicio,
 
     -- ---------- contexto socioeconomico (KPI-14) -----------------------------
-    dm.poblacion,
-    dm.pobreza_pct,
-    dm.grado_rezago,
-    dm.indice_rezago_social,
+    c.poblacion,
+    c.pobreza_pct,
+    c.grado_rezago,
+    c.indice_rezago_social,
 
     -- ---------- componentes aditivos: volumen --------------------------------
-    COUNT(DISTINCT f.cct)                       AS escuelas,
-    SUM(f.matricula_total)                      AS matricula_total,
-    SUM(f.variacion_matricula * f.matricula_total) AS variacion_x_matricula,
-    SUM(f.indice_completitud_drivers)           AS suma_completitud,
+    c.escuelas,
+    c.matricula_total,
+    c.suma_matricula_anterior,                -- SUM(matricula_ciclo_anterior); denominador de KPI-02 (BUG-031)
+    c.suma_completitud,
 
     -- ---------- componentes aditivos: drivers --------------------------------
-    -- Cada driver se suma SOLO sobre las escuelas con cobertura OK y publica su
-    -- denominador real. Promediar tratando SIN_DATO como cero afirmaria "aqui no
-    -- hay problema" justo donde no se esta midiendo.
-    SUM(f.d1) FILTER (WHERE f.d1_cobertura = 'OK')   AS suma_d1,
-    COUNT(*)  FILTER (WHERE f.d1_cobertura = 'OK')   AS escuelas_con_d1,
-    SUM(f.d2) FILTER (WHERE f.d2_cobertura = 'OK')   AS suma_d2,
-    COUNT(*)  FILTER (WHERE f.d2_cobertura = 'OK')   AS escuelas_con_d2,
-    SUM(f.d3) FILTER (WHERE f.d3_cobertura = 'OK')   AS suma_d3,
-    COUNT(*)  FILTER (WHERE f.d3_cobertura = 'OK')   AS escuelas_con_d3,
-    SUM(f.d4) FILTER (WHERE f.d4_cobertura = 'OK')   AS suma_d4,
-    COUNT(*)  FILTER (WHERE f.d4_cobertura = 'OK')   AS escuelas_con_d4,
-    SUM(f.d5) FILTER (WHERE f.d5_cobertura = 'OK')   AS suma_d5,
-    COUNT(*)  FILTER (WHERE f.d5_cobertura = 'OK')   AS escuelas_con_d5,
-    SUM(f.d6) FILTER (WHERE f.d6_cobertura = 'OK')   AS suma_d6,
-    COUNT(*)  FILTER (WHERE f.d6_cobertura = 'OK')   AS escuelas_con_d6,
+    -- Numerador (suma_d#) y denominador real (escuelas_con_d#) por separado;
+    -- cobertura_d# gobierna el SIN_DATO (nunca cero).
+    c.suma_d1, c.escuelas_con_d1, c.cobertura_d1,
+    c.suma_d2, c.escuelas_con_d2, c.cobertura_d2,
+    c.suma_d3, c.escuelas_con_d3, c.cobertura_d3,
+    c.suma_d4, c.escuelas_con_d4, c.cobertura_d4,
+    c.suma_d5, c.escuelas_con_d5, c.cobertura_d5,
+    c.suma_d6, c.escuelas_con_d6, c.cobertura_d6,
 
     -- ---------- componentes aditivos: riesgo (ML-01) -------------------------
-    SUM(p.indice_riesgo)                        AS suma_indice_riesgo,
-    COUNT(p.cct)                                AS escuelas_con_prediccion,
-    COUNT(*) FILTER (WHERE p.indice_riesgo >= 0.6) AS escuelas_en_riesgo,  -- R3
-    CASE
-        WHEN COUNT(p.cct) = 0 THEN 'SIN_DATO'
-        ELSE 'OK'
-    END                                         AS cobertura_riesgo
+    c.suma_indice_riesgo,
+    c.escuelas_con_prediccion,
+    c.escuelas_en_riesgo,
+    c.cobertura_riesgo
 
-FROM gold.fact_escuela_ciclo f
-JOIN      gold.dim_escuela   e  ON f.cct      = e.cct
-JOIN      gold.dim_tiempo    dt ON f.id_ciclo = dt.id_ciclo
-JOIN      gold.dim_municipio dm ON f.cve_mun  = dm.cve_mun
-LEFT JOIN gold.predicciones  p  ON f.cct      = p.cct
-                               AND f.id_ciclo = p.id_ciclo
-                               AND p.modelo   = 'ML-01'
-GROUP BY
-    f.cve_mun,
-    dm.cve_ent,
-    dm.nombre_municipio,
-    dm.nombre_entidad,
-    e.nivel,
-    f.id_ciclo,
-    dt.ciclo,
-    dt.anio_inicio,
-    dm.poblacion,
-    dm.pobreza_pct,
-    dm.grado_rezago,
-    dm.indice_rezago_social;
+FROM gold.cubo_comparador_municipio c

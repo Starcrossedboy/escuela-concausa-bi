@@ -1,4 +1,4 @@
-"""Pruebas del contrato semántico de DB-06 y DB-09 (US-204).
+"""Pruebas del contrato semántico de DB-06 y DB-09 (US-204, repunteo US-205).
 
 Mismas reglas que `test_semantic_db01_db02.py` y `test_semantic_db03_db04.py`,
 ahora para el par prescriptivo: el tablero de **Predicciones** (DB-06) y el de
@@ -8,12 +8,16 @@ ahora para el par prescriptivo: el tablero de **Predicciones** (DB-06) y el de
   `cobertura_prediccion = 'SIN_DATO'` y `en_riesgo` nulo; el driver aún no
   explicado por ML-02 se etiqueta `'SIN_DATO'` como categoría (etiquetar el
   vacío, jamás rellenar una métrica).
-* **Las salidas de ML se leen por `LEFT JOIN`** con la llave completa
-  (`cct`, `id_ciclo`) y filtro de modelo (Data_Model §4.1).
+* **El SQL semántico lee `gold.cubo_*`** (repunteo US-205/US-113): db06 consume
+  los cubos pre-agregados y **no** re-une salidas de ML; db09 es el único que
+  conserva el LEFT JOIN a `gold.predicciones` con la llave completa, el modelo
+  y el grano `escuela` (DEC-010), porque el cubo de recomendaciones no trae
+  riesgo.
 * **Grano dual (DEC-010): solo se lee el grano `escuela`** de
   `gold.predicciones` (`(p.grano IS NULL OR p.grano = 'escuela')`); la
   proyección de `municipio × nivel` jamás se reparte entre escuelas.
-* **El umbral de riesgo es >= 0.6** (R3, ratificado 2026-08-13).
+* **El umbral de riesgo es >= 0.6** (R3, ratificado 2026-08-13): en db09 vive
+  en el SQL y en db06 en el YAML de métricas (`umbral: 0.6`).
 * **Componentes aditivos** (DEC-008/DEC-009): la razón vive en
   `metrics_db06_db09.yaml`, nunca es un promedio precalculado en el SQL.
 * **El mock es aditivo**: declara `grano` con ADD COLUMN IF NOT EXISTS, sin
@@ -99,12 +103,12 @@ def test_el_riesgo_no_se_rellena_con_cero(fixture_name: str, request: pytest.Fix
 
 
 def test_la_etiqueta_sin_dato_es_categoria_no_metrica(db09_rec: str) -> None:
-    """En driver dominante, COALESCE solo puede etiquetar la categoría vacía."""
-    # Permitido: etiquetar la categoría cuando ML-02 aún no explicó la escuela
-    # (driver_dominante y nombre_driver, una de cada salida de ML-02).
-    etiquetas = re.findall(r"coalesce\s*\([^)]*,\s*'SIN_DATO'\s*\)", db09_rec, re.IGNORECASE)
-    assert len(etiquetas) >= 2, (
-        "db09: los labels de driver deben etiquetar el vacío como 'SIN_DATO' (categoría)."
+    """El vacío viaja como literal 'SIN_DATO', jamás como cero (R2)."""
+    assert re.search(r"coalesce\s*\([^)]*,\s*'SIN_DATO'\s*\)", db09_rec, re.IGNORECASE), (
+        "db09: el driver sin explicar se etiqueta 'SIN_DATO' (categoría, no métrica)."
+    )
+    assert "cobertura_recomendacion" in db09_rec, (
+        "db09: falta cobertura_recomendacion para gobernar el SIN_DATO de ML-02."
     )
     # Prohibido: rellenar conteos o métricas con cero.
     assert not re.search(r"coalesce\s*\(\s*(sum|count)\s*\(", db09_rec, re.IGNORECASE), (
@@ -113,11 +117,10 @@ def test_la_etiqueta_sin_dato_es_categoria_no_metrica(db09_rec: str) -> None:
 
 
 def test_el_driver_vacio_agrupa_como_categoria(db09_rec: str) -> None:
-    """El 'SIN_DATO' de driver es una categoría observable, no un hueco silencioso."""
-    assert "cobertura_recomendacion" in db09_rec, (
-        "db09: falta la bandera cobertura_recomendacion para gobernar el SIN_DATO."
+    """La cobertura de predicción marca 'SIN_DATO' de forma explícita (R2)."""
+    assert re.search(r"when\s+p\.cct\s+is\s+null\s+then\s+'SIN_DATO'", db09_rec, re.IGNORECASE), (
+        "db09: cobertura_prediccion debe etiquetar la ausencia de predicción como SIN_DATO."
     )
-    assert re.search(r"when\s+r\.cct\s+is\s+null\s+then\s+'SIN_DATO'", db09_rec, re.IGNORECASE)
 
 
 # --------------------------------------------------------------------------- R1: las salidas de ML van por JOIN
@@ -135,52 +138,75 @@ def test_las_salidas_de_ml_no_se_leen_del_hecho(fixture_name: str, request: pyte
 
 
 @pytest.mark.parametrize("fixture_name", ["db06_cubo", "db06_puntos", "db09_rec"])
-def test_las_predicciones_se_une_con_left_join(fixture_name: str, request: pytest.FixtureRequest) -> None:
-    """Con INNER JOIN, una escuela sin predicción desaparecería sin explicación."""
+def test_lee_el_cubo_fisico_del_c1(fixture_name: str, request: pytest.FixtureRequest) -> None:
+    """Repunteo US-205: el riesgo ya viene pre-agregado por C1, no se re-une a ML."""
     sql = request.getfixturevalue(fixture_name)
-    assert re.search(r"left\s+join\s+gold\.predicciones\b", sql, re.IGNORECASE), (
-        f"{fixture_name}: gold.predicciones debe unirse con LEFT JOIN."
-    )
-
-
-@pytest.mark.parametrize("fixture_name", ["db06_cubo", "db06_puntos", "db09_rec"])
-def test_el_join_usa_llave_completa_y_filtro_de_modelo(fixture_name: str, request: pytest.FixtureRequest) -> None:
-    """(cct, id_ciclo) + modelo='ML-01': sin llave completa se mezclan ciclos; sin
-    filtro de modelo se mezcla el riesgo con otras salidas del catálogo."""
-    sql = request.getfixturevalue(fixture_name)
-    assert re.search(r"f\.cct\s*=\s*p\.cct", sql), f"{fixture_name}: falta la llave f.cct = p.cct"
-    assert re.search(r"f\.id_ciclo\s*=\s*p\.id_ciclo", sql), f"{fixture_name}: falta f.id_ciclo = p.id_ciclo"
-    assert re.search(r"modelo\s*=\s*'ML-01'", sql), f"{fixture_name}: falta modelo = 'ML-01'"
-
-
-def test_el_grano_dual_se_acota_a_escuela(db06_cubo: str, db06_puntos: str, db09_rec: str) -> None:
-    """DEC-010: se lee SOLO el grano 'escuela' de gold.predicciones. La proyección
-    municipio × nivel jamás se reparte entre escuelas."""
-    filtro = r"p\.grano\s+is\s+null\s+or\s+p\.grano\s*=\s*'escuela'"
-    for nombre, sql in (("db06_cubo", db06_cubo), ("db06_puntos", db06_puntos), ("db09_rec", db09_rec)):
-        assert re.search(filtro, sql, re.IGNORECASE), (
-            f"{nombre}: falta acotar gold.predicciones al grano 'escuela' (DEC-010)."
+    fuentes = {
+        "db06_cubo": (r"from\s+gold\.cubo_matricula\b", r"join\s+gold\.cubo_riesgo_territorial\b"),
+        "db06_puntos": (r"from\s+gold\.cubo_escuela_360\b",),
+        "db09_rec": (r"from\s+gold\.cubo_recomendaciones\b",),
+    }[fixture_name]
+    for patron in fuentes:
+        assert re.search(patron, sql, re.IGNORECASE), (
+            f"{fixture_name}: falta {patron} (repunteo a cubos C1)."
         )
 
 
-def test_db09_une_recomendaciones_por_left_join_con_llave_completa(db09_rec: str) -> None:
-    """KPI-07/11 leen la salida prescriptiva de ML-02; LEFT porque el modelo va llegando."""
-    assert re.search(r"left\s+join\s+gold\.recomendaciones\b", db09_rec, re.IGNORECASE)
-    assert re.search(r"f\.cct\s*=\s*r\.cct", db09_rec)
-    assert re.search(r"f\.id_ciclo\s*=\s*r\.id_ciclo", db09_rec)
-    assert not re.search(r"\bf\.(driver_dominante|recomendacion|prioridad)\b", db09_rec)
+@pytest.mark.parametrize("fixture_name", ["db06_cubo", "db06_puntos"])
+def test_db06_no_reune_predicciones(fixture_name: str, request: pytest.FixtureRequest) -> None:
+    """db06 consume los cubos pre-agregados de C1: no re-une gold.predicciones."""
+    sql = request.getfixturevalue(fixture_name)
+    assert not re.search(r"gold\.predicciones\b", sql, re.IGNORECASE), (
+        f"{fixture_name}: ML-01 ya lo resolvió el cubo C1; no se re-une aquí."
+    )
 
 
-def test_db09_une_el_driver_al_catalogo_dim_driver(db09_rec: str) -> None:
-    """nombre_driver sale del catálogo, no se digita ad hoc en el cubo."""
-    assert re.search(r"left\s+join\s+gold\.dim_driver\b", db09_rec, re.IGNORECASE)
-    assert re.search(r"r\.driver_dominante\s*=\s*dd\.id_driver", db09_rec)
+def test_db09_une_predicciones_con_left_join_y_llave_completa(db09_rec: str) -> None:
+    """El cubo de recomendaciones no trae riesgo: db09 lo une por LEFT JOIN con la
+    llave completa (cct, id_ciclo), el modelo y el grano escuela (R1 + DEC-010)."""
+    assert re.search(r"left\s+join\s+gold\.predicciones\b", db09_rec, re.IGNORECASE)
+    assert re.search(r"cr\.cct\s*=\s*p\.cct", db09_rec)
+    assert re.search(r"cr\.id_ciclo\s*=\s*p\.id_ciclo", db09_rec)
+    assert re.search(r"modelo\s*=\s*'ML-01'", db09_rec)
+    assert re.search(r"p\.grano\s+is\s+null\s+or\s+p\.grano\s*=\s*'escuela'", db09_rec, re.IGNORECASE)
+
+
+def test_el_grano_dual_ya_lo_acoto_el_cubo(db06_cubo: str, db06_puntos: str) -> None:
+    """DEC-010: C1 ya acotó gold.predicciones al grano escuela dentro de los cubos
+    de db06; la capa semántica no necesita (ni debe) volver a filtrar p.grano."""
+    for nombre, sql in (("db06_cubo", db06_cubo), ("db06_puntos", db06_puntos)):
+        assert not re.search(r"\bp\.grano\b", sql), (
+            f"{nombre}: el acote al grano escuela vive en C1, no en la capa semántica."
+        )
+
+
+def test_db09_expone_el_driver_etiquetado_desde_el_cubo(db09_rec: str) -> None:
+    """KPI-07/11 vienen resueltos en gold.cubo_recomendaciones (C1): la capa solo
+    etiqueta el vacío del catálogo y expone la cobertura de ML-02."""
+    assert re.search(r"nombre_driver,\s*'SIN_DATO'", db09_rec, re.IGNORECASE)
+    assert re.search(r"\bcobertura_recomendacion\b", db09_rec)
+    assert not re.search(r"gold\.recomendaciones\b", db09_rec, re.IGNORECASE), (
+        "db09: ML-02 ya lo resolvió el cubo C1; no se re-une gold.recomendaciones."
+    )
+
+
+def test_db09_expone_la_prioridad_de_ml02(db09_rec: str, datasets_por_nombre: dict[str, dict]) -> None:
+    """La métrica 'recomendaciones_prioridad_alta' (KPI-11) y el chart por [prioridad]
+    del dashboard DB-09 necesitan la columna cruda; el cubo C1 la trae y la capa la expone."""
+    assert re.search(r"\bprioridad\b", db09_rec), (
+        "db09: falta la columna `prioridad` que consume recomendaciones_prioridad_alta "
+        "y el chart por prioridad del dashboard DB-09."
+    )
+    cubo = datasets_por_nombre["db09_cubo_recomendaciones"]
+    metrica = {m["nombre"]: m for m in cubo["metricas"]}["recomendaciones_prioridad_alta"]
+    assert "prioridad" in metrica["expresion"]
 
 
 def test_las_filas_municipio_nivel_no_se_reparten(db06_cubo: str) -> None:
-    """El COUNT(p.cct) cuenta SOLO filas de escuela: el JOIN por cct y el filtro
-    de grano hacen físicamente imposible nutrir un municipio con predicción ajena."""
-    assert re.search(r"count\s*\(\s*p\.cct\s*\)", db06_cubo, re.IGNORECASE), (
+    """El denominador real escuelas_con_prediccion viene pre-agregado de C1 (grano
+    escuela ya acotado): es físicamente imposible nutrir un municipio con
+    predicción ajena."""
+    assert re.search(r"escuelas_con_prediccion", db06_cubo), (
         "db06_cubo: falta el denominador real escuelas_con_prediccion."
     )
     assert not re.search(r"\bp\.cve_mun\b", db06_cubo), (
@@ -191,23 +217,37 @@ def test_las_filas_municipio_nivel_no_se_reparten(db06_cubo: str) -> None:
 # --------------------------------------------------------------------------- R3: umbral de negocio
 
 
-@pytest.mark.parametrize("fixture_name", ["db06_cubo", "db06_puntos", "db09_rec"])
-def test_el_umbral_de_riesgo_es_el_ratificado(fixture_name: str, request: pytest.FixtureRequest) -> None:
-    """0.6 = perder ~5% de matrícula, ratificado el 2026-08-13 (Indice_Riesgo_ML01)."""
-    sql = request.getfixturevalue(fixture_name)
-    assert re.search(rf"indice_riesgo\s*>=\s*{UMBRAL_RIESGO}", sql), (
-        f"{fixture_name}: el umbral de 'escuela en riesgo' debe ser >= {UMBRAL_RIESGO} (R3)."
+def test_el_umbral_de_riesgo_es_el_ratificado_donde_dice_umbral(
+    db09_rec: str, datasets_por_nombre: dict[str, dict]
+) -> None:
+    """0.6 = perder ~5% de matrícula, ratificado el 2026-08-13 (Indice_Riesgo_ML01).
+    En db09 (el único que une gold.predicciones) vive en el SQL; en db06 vive en el
+    YAML de métricas (`umbral: 0.6`), porque C1 ya lo aplicó dentro de los cubos."""
+    assert re.search(rf"p\.indice_riesgo\s*>=\s*{UMBRAL_RIESGO}", db09_rec), (
+        "db09: el umbral de 'escuela en riesgo' debe ser >= 0.6 (R3)."
     )
+    for nombre in ("db06_cubo_predicciones", "db06_predicciones_escuela"):
+        ds = datasets_por_nombre[nombre]
+        metricas = {m["nombre"]: m for m in ds["metricas"]}
+        assert metricas["escuelas_en_riesgo"].get("umbral") == float(UMBRAL_RIESGO), (
+            f"{nombre}: debe ratificar el umbral 0.6 como R3 en el YAML."
+        )
 
 
 @pytest.mark.parametrize("fixture_name", ["db06_puntos", "db09_rec"])
 def test_sin_prediccion_no_es_en_riesgo(fixture_name: str, request: pytest.FixtureRequest) -> None:
     """La escuela sin predicción viaja con en_riesgo nulo, jamás FALSE ni TRUE."""
     sql = request.getfixturevalue(fixture_name)
-    patron = r"when\s+p\.indice_riesgo\s+is\s+null\s+then\s+null"
-    assert re.search(patron, sql, re.IGNORECASE), (
-        f"{fixture_name}: `en_riesgo` debe ser NULL cuando no hay predicción."
-    )
+    if fixture_name == "db09_rec":
+        patron = r"when\s+p\.indice_riesgo\s+is\s+null\s+then\s+null"
+        assert re.search(patron, sql, re.IGNORECASE), (
+            "db09: `en_riesgo` debe ser NULL cuando no hay predicción."
+        )
+    else:
+        # db06_puntos sirve en_riesgo del cubo C1 (ya nullable): no se fabrica.
+        assert not re.search(r"coalesce\s*\(\s*\w*\.?en_riesgo\b", sql, re.IGNORECASE), (
+            "db06_puntos: `en_riesgo` no se fabrica con COALESCE (R2)."
+        )
     assert "cobertura_prediccion" in sql, f"{fixture_name}: falta la bandera cobertura_prediccion."
 
 
@@ -223,12 +263,16 @@ def test_los_componentes_son_aditivos_no_promedios(db06_cubo: str) -> None:
     )
 
 
-def test_variacion_es_ponderada_por_matricula(db06_cubo: str) -> None:
-    """KPI-02 pondera por matrícula: SUM(variacion * matricula), nunca AVG(variacion)."""
-    assert re.search(
-        r"sum\s*\(\s*f\.variacion_matricula\s*\*\s*f\.matricula_total\s*\)",
-        db06_cubo, re.IGNORECASE,
-    ), "db06_cubo: falta el componente ponderado variacion_x_matricula (DEC-008)."
+def test_variacion_usa_suma_matricula_anterior(db06_cubo: str) -> None:
+    """KPI-02 es una razón de sumas (BUG-031/P-09): el cubo C1 ya guarda
+    suma_matricula_anterior = SUM(matricula_ciclo_anterior) como denominador directo.
+    El componente ponderado variacion_x_matricula fue eliminado y no debe reaparecer."""
+    assert re.search(r"\bsuma_matricula_anterior\b", db06_cubo), (
+        "db06_cubo: falta el denominador directo suma_matricula_anterior (KPI-02)."
+    )
+    assert not re.search(r"\bvariacion_x_matricula\b", db06_cubo), (
+        "db06_cubo: reaparece variacion_x_matricula, columna eliminada en BUG-031."
+    )
 
 
 def test_completitud_se_reagrega_como_razon(db06_cubo: str) -> None:
@@ -236,17 +280,24 @@ def test_completitud_se_reagrega_como_razon(db06_cubo: str) -> None:
     assert "suma_completitud" in db06_cubo, "db06_cubo: falta el numerador suma_completitud."
 
 
-def test_cubo_agrupa_al_grano_municipio_nivel_ciclo(db06_cubo: str) -> None:
-    """Grano cve_mun × nivel × ciclo (Cube_Specs §3.1)."""
-    clausula = db06_cubo.lower().split("group by", 1)[1]
-    for columna in ("cve_mun", "nivel", "id_ciclo"):
-        assert columna in clausula, f"Falta `{columna}` en el GROUP BY de db06_cubo."
+def test_cubo_agrupa_en_c1_al_grano_municipio_nivel_ciclo(
+    db06_cubo: str, datasets_por_nombre: dict[str, dict]
+) -> None:
+    """Grano cve_mun × nivel × ciclo (Cube_Specs §3.1), servido por los cubos C1."""
+    assert datasets_por_nombre["db06_cubo_predicciones"]["grano"] == ["cve_mun", "nivel", "id_ciclo"]
+    assert re.search(r"from\s+gold\.cubo_matricula\b", db06_cubo, re.IGNORECASE)
+    assert re.search(r"join\s+gold\.cubo_riesgo_territorial\b", db06_cubo, re.IGNORECASE)
+    assert not re.search(r"\bgroup\s+by\b", db06_cubo, re.IGNORECASE), (
+        "db06_cubo: los cubos C1 ya vienen al grano; no se reagrega en la capa semántica."
+    )
 
 
-def test_detalle_y_recomendaciones_estan_al_grano_del_hecho(db06_puntos: str, db09_rec: str) -> None:
+def test_detalle_y_recomendaciones_estan_al_grano_de_la_escuela(
+    db06_puntos: str, db09_rec: str
+) -> None:
     """Ni la capa de detalle ni las recomendaciones agregan: cada CCT es una fila."""
     for nombre, sql in (("db06_puntos", db06_puntos), ("db09_rec", db09_rec)):
-        assert re.search(r"\bf\.cct\b", sql)
+        assert re.search(r"\bcct\b", sql)
         assert not re.search(r"\bgroup\s+by\b", sql, re.IGNORECASE), f"{nombre} no debe agrupar."
 
 

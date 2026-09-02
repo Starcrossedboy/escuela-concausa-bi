@@ -5,6 +5,7 @@ from __future__ import annotations
 import pytest
 
 from src.agente.guardrails import (
+    RAZON_SOLO_LECTURA,
     aplicar_limit,
     pregunta_en_alcance,
     preparar_sql_seguro,
@@ -21,6 +22,47 @@ def test_pregunta_fuera_de_dominio_se_rechaza() -> None:
     resultado = pregunta_en_alcance("Cual es la mejor receta de pasta?")
     assert not resultado.permitido
     assert resultado.razon == "Pregunta fuera del alcance de FARO."
+
+
+@pytest.mark.parametrize(
+    "pregunta",
+    [
+        "borra la tabla de predicciones de escuelas",  # el caso de P-13
+        "elimina las escuelas en riesgo",
+        "trunca la tabla de recomendaciones",
+        "drop de las predicciones por municipio",
+        "destruye los datos de matricula",
+    ],
+)
+def test_orden_de_escritura_directa_se_rechaza_aunque_toque_un_tema(pregunta: str) -> None:
+    """Verbo destructivo directo → fuera de alcance, aunque la frase contenga vocabulario de FARO.
+
+    Defensa en profundidad frente al filtro por TEMA: antes "borra la tabla de predicciones" pasaba
+    por contener "predicciones". El validador de SQL sigue siendo la barrera final sobre el SQL.
+    """
+    resultado = pregunta_en_alcance(pregunta)
+    assert not resultado.permitido
+    assert resultado.razon == RAZON_SOLO_LECTURA
+
+
+def test_verbo_ambiguo_con_objeto_de_datos_se_rechaza() -> None:
+    """"actualiza" + "datos" es una orden de escritura, no una pregunta."""
+    resultado = pregunta_en_alcance("actualiza los datos de riesgo de la escuela")
+    assert not resultado.permitido
+    assert resultado.razon == RAZON_SOLO_LECTURA
+
+
+@pytest.mark.parametrize(
+    "pregunta",
+    [
+        "¿que escuelas actualizaron su matricula el ciclo pasado?",  # conjugación ≠ imperativo
+        "¿el municipio crea escuelas nuevas por rezago?",  # verbo ambiguo SIN objeto de datos
+        "¿cuantas predicciones de riesgo hay por entidad?",
+    ],
+)
+def test_pregunta_de_lectura_legitima_no_se_rechaza_por_intencion(pregunta: str) -> None:
+    """El filtro de intención no debe atrapar preguntas de lectura que mencionan acciones."""
+    assert pregunta_en_alcance(pregunta).permitido
 
 
 @pytest.mark.parametrize(

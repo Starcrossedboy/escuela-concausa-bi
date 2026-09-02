@@ -1,21 +1,24 @@
 -- =============================================================================
--- gold.cubo_riesgo_territorial (virtual)  ·  DB-02 Mapa de riesgo territorial
+-- db02_cubo_riesgo_territorial  ·  DB-02 Mapa de riesgo territorial
 -- -----------------------------------------------------------------------------
--- Historia   : US-203  (Manuel Alejandro Serrania Reinada, Celula 2 - Analytics & BI)
+-- Historia   : US-205  (Manuel Alejandro Serrania Reinada, Celula 2 - Analytics & BI)
 -- Contrato   : 04_UX_Design/Screen_Specs.md §2 (cubo de DB-02) y §4 (KPI-03/04/10)
 -- Grano      : una fila por cve_mun x nivel x id_ciclo
--- Uso        : dataset virtual de Superset para el coropletico municipal (KPI-10)
---              y SQL de referencia para US-113. Mismo grano que cubo_comparador
---              (DEC-008): sin `nivel` en el grano, el filtro global de nivel
---              no tendria sobre que operar.
 --
--- RIESGO POR JOIN (R1, Data_Model §4.1): indice_riesgo vive en gold.predicciones
---   y se consulta por LEFT JOIN (cct, id_ciclo) filtrando modelo = 'ML-01'.
---   LEFT y no INNER: un municipio sin predicciones sigue siendo un municipio del
---   mapa; su color sera "SIN_DATO", nunca un riesgo inventado.
+-- REPUNTEO A CUBOS FISICOS (US-205 / US-113): el SQL semantico ya NO agrega el
+--   hecho ni une a gold.predicciones; consume gold.cubo_riesgo_territorial
+--   (Grano DEC-009, C1), donde C1 ya resolvio la salida de ML-01 por LEFT JOIN
+--   con la llave completa (cct, id_ciclo), el filtro de modelo 'ML-01' y el
+--   umbral R3 (>= 0.6). La capa semantica solo anade el enrich del nombre
+--   oficial INEGI del municipio.
 --
--- Reglas aplicadas: R1 (ML por JOIN), R2 (SIN_DATO nunca cero),
---                   R3 (umbral 0.6), R5 (Gold ya viene acotado).
+-- Los componentes de riesgo (suma_indice_riesgo, escuelas_con_prediccion,
+--   escuelas_en_riesgo) y la bandera cobertura_riesgo viajan del cubo tal cual:
+--   R2 se cumple en C1 (ausencia de predicciones = cobertura 'SIN_DATO', nunca
+--   riesgo cero).
+--
+-- Reglas aplicadas: R2 (SIN_DATO nunca cero), R5 (Gold ya viene acotado).
+--   R1/R3 viven en el cubo C1 (por eso ya no aparecen aqui).
 --
 -- NOMBRE OFICIAL DEL MUNICIPIO: igual que db01_cubo_matricula — el nombre
 --   oficial INEGI vive en gold.geo_municipio mientras dim_municipio trae los
@@ -24,44 +27,25 @@
 
 SELECT
     -- ---------- identidad y llaves -------------------------------------------
-    f.cve_mun,
-    dm.cve_ent,                                -- filtro global: entidad
-    COALESCE(g.nombre_municipio, dm.nombre_municipio) AS nombre_municipio,
-    dm.nombre_entidad,
-    e.nivel,                                   -- filtro global: nivel educativo
-    f.id_ciclo,                                -- filtro global: ciclo
-    dt.ciclo,
-    dt.anio_inicio,
+    rt.cve_mun,
+    rt.cve_ent,                                -- filtro global: entidad
+    COALESCE(g.nombre_municipio, rt.nombre_municipio) AS nombre_municipio,
+    rt.nombre_entidad,
+    rt.nivel,                                  -- filtro global: nivel educativo
+    rt.id_ciclo,                               -- filtro global: ciclo
+    rt.ciclo,
+    rt.anio_inicio,
 
-    -- ---------- contexto para tooltips / ranking ------------------------------
-    COUNT(DISTINCT f.cct)                          AS escuelas,
-    SUM(f.matricula_total)                         AS matricula_total,
-    SUM(f.variacion_matricula * f.matricula_total) AS variacion_x_matricula,
+    -- ---------- contexto para tooltips / ranking (del cubo C1) ---------------
+    rt.escuelas,
+    rt.matricula_total,
+    rt.suma_matricula_anterior,                -- SUM(matricula_ciclo_anterior); denominador de KPI-02 (BUG-031)
 
-    -- ---------- componentes aditivos: riesgo (ML-01) --------------------------
-    SUM(p.indice_riesgo)                           AS suma_indice_riesgo,
-    COUNT(p.cct)                                   AS escuelas_con_prediccion,
-    COUNT(*) FILTER (WHERE p.indice_riesgo >= 0.6) AS escuelas_en_riesgo,  -- R3
-    CASE
-        WHEN COUNT(p.cct) = 0 THEN 'SIN_DATO'
-        ELSE 'OK'
-    END                                            AS cobertura_riesgo
+    -- ---------- componentes aditivos: riesgo (ML-01, resuelto por C1) --------
+    rt.suma_indice_riesgo,
+    rt.escuelas_con_prediccion,
+    rt.escuelas_en_riesgo,                     -- ya acotado al umbral R3
+    rt.cobertura_riesgo
 
-FROM gold.fact_escuela_ciclo f
-JOIN      gold.dim_escuela   e  ON f.cct      = e.cct
-JOIN      gold.dim_tiempo    dt ON f.id_ciclo = dt.id_ciclo
-JOIN      gold.dim_municipio dm ON f.cve_mun  = dm.cve_mun
-LEFT JOIN gold.geo_municipio g  ON f.cve_mun  = g.cve_mun
-LEFT JOIN gold.predicciones  p  ON f.cct      = p.cct
-                               AND f.id_ciclo = p.id_ciclo
-                               AND p.modelo   = 'ML-01'
-GROUP BY
-    f.cve_mun,
-    dm.cve_ent,
-    g.nombre_municipio,
-    dm.nombre_municipio,
-    dm.nombre_entidad,
-    e.nivel,
-    f.id_ciclo,
-    dt.ciclo,
-    dt.anio_inicio
+FROM gold.cubo_riesgo_territorial rt
+LEFT JOIN gold.geo_municipio g ON rt.cve_mun = g.cve_mun

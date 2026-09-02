@@ -4,10 +4,10 @@ title: "Threat Model & Security Policy — FARO"
 owner: "Luis Téllez Domínguez"
 co_owners: ["Christian Ruiz"]
 status: approved
-version: "1.0"
+version: "1.0.1"
 traces_up: ["US-502"]
 traces_down: ["SEC-HARDENING-S3", "SEC-HARDENING-S4"]
-last_reviewed: "2026-08-16"
+last_reviewed: "2026-08-29"
 tags: [security, threat-model, cis-controls, vulnerabilities, audit]
 ---
 
@@ -172,7 +172,7 @@ tags: [security, threat-model, cis-controls, vulnerabilities, audit]
 - ✅ Script de generación seguro (`scripts/generate-keys.py`)
 - ✅ Política documentada (`07_Security/Credentials_Policy.md`)
 - ✅ Passwords de 20 caracteres
-- **CIS Control:** 5.2, 5.3
+- **CIS Control:** 5.2 (Use Unique Passwords) · _(antes citaba 5.3 por error: 5.3 es "Disable Dormant Accounts")_
 
 ### M5: Control de acceso a código
 - ✅ `.env` en `.gitignore`
@@ -190,23 +190,28 @@ tags: [security, threat-model, cis-controls, vulnerabilities, audit]
 - [x] Warnings de seguridad
 - [x] Política de credenciales
 
+> **Nota (v1.0.1):** los US IDs de este roadmap se reconciliaron con el catálogo real de
+> Célula 5 (US-501..505); antes usaban IDs incorrectos (US-503/504/505 cruzados y el
+> fantasma US-601). La entrega vigente se rige por las **Fases** del plan de despliegue
+> GCP: Fase 1 = US-504 (ya aprovisionada ✅); Fases 3-4 = US-505.
+
 ### Sprint 3 (Staging) — Score: 8.5/10
-- [ ] Autenticación en MLflow (US-503)
-- [ ] Token auth en ChromaDB (US-504)
-- [ ] Nginx reverse proxy (US-505)
-- [ ] SSL/TLS con certificados self-signed
-- [ ] Rate limiting (10 req/s por IP)
-- [ ] Network segmentation (3 redes)
-- [ ] Rotación automática de SECRET_KEYs
+- [ ] Autenticación en MLflow — IAP delante de la UI admin (US-505, Fase 3)
+- [ ] Token auth en ChromaDB — IAP delante de la UI admin (US-505, Fase 3)
+- [ ] Reverse proxy / TLS en el borde: Cloud Load Balancing (HTTPS) + Cloud Armor (US-505, Fase 3/4)
+- [ ] SSL/TLS gestionado por Cloud LB (certificados administrados; no self-signed en prod)
+- [ ] Rate limiting (reglas Cloud Armor) (US-505, Fase 4)
+- [ ] Segmentación de red: VPC + Cloud SQL IP privada + Serverless VPC Connector (US-504, Fase 1 ✅)
+- [ ] Rotación de SECRET_KEYs vía Secret Manager (US-504)
 
 ### Sprint 4 (Producción) — Score: 9.5/10
-- [ ] GCP Secret Manager (US-601)
-- [ ] Cloud SQL cifrado (CMEK)
-- [ ] Cloud Armor WAF
-- [ ] Identity-Aware Proxy (OAuth2)
-- [ ] Security Command Center
-- [ ] Cloud Logging centralizado
-- [ ] Alertas de seguridad
+- [ ] GCP Secret Manager (US-504, Fase 1 ✅)
+- [ ] Cloud SQL cifrado at-rest (default) (US-504, Fase 1 ✅)
+- [ ] Cloud Armor WAF (US-505, Fase 4)
+- [ ] Identity-Aware Proxy (OAuth2) para UIs admin (US-505, Fase 3)
+- [ ] Security Command Center (US-505)
+- [ ] Cloud Logging / Audit Logs centralizado (US-504, Fase 1 ✅ — Data Access)
+- [ ] Alertas de seguridad (Cloud Monitoring) (US-505)
 
 ---
 
@@ -259,6 +264,7 @@ Si encuentras una vulnerabilidad de seguridad:
 | Fecha | Versión | Cambios | Autor |
 |-------|---------|---------|-------|
 | 2026-08-16 | 1.0 | Creación inicial, threat model, 13 vulnerabilidades documentadas | Luis Téllez |
+| 2026-08-29 | 1.0.1 | Reconciliación de US IDs del roadmap con el catálogo real (US-501..505; elimina el fantasma US-601); corrige tech stale (nginx/self-signed → Cloud LB/Armor + certs administrados); corrige cita CIS 5.3→5.2 en M4 | Luis Téllez |
 | TBD | 1.1 | Actualización post-Sprint 3 (auth implementado) | Christian Ruiz |
 | TBD | 2.0 | Actualización post-Sprint 4 (GCP production) | Luis Téllez |
 

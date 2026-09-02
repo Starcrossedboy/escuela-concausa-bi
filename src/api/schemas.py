@@ -14,11 +14,22 @@ from datetime import datetime
 from enum import Enum
 from typing import Generic, TypeVar
 
-from pydantic import BaseModel, Field, StrictFloat, StrictInt, StrictStr
+from pydantic import BaseModel, ConfigDict, Field, StrictFloat, StrictInt, StrictStr
 
 # --------------------------------------------------------------------------- #
 # Infraestructura del contrato
 # --------------------------------------------------------------------------- #
+
+
+class EntradaEstricta(BaseModel):
+    """Base para los modelos de **entrada** (request bodies). Validación estricta (US-404):
+
+    `extra="forbid"` => un campo desconocido en el cuerpo se rechaza con 422 (`validation_error`),
+    en vez de ignorarse en silencio. Endurece la superficie de la API contra typos y payloads
+    inesperados. Solo se aplica a la entrada; las salidas siguen siendo permisivas.
+    """
+
+    model_config = ConfigDict(extra="forbid")
 
 
 class Rol(str, Enum):
@@ -61,7 +72,7 @@ class TokenPair(BaseModel):
     expires_in: StrictInt = 900  # 15 min
 
 
-class RefreshIn(BaseModel):
+class RefreshIn(EntradaEstricta):
     refresh_token: StrictStr
 
 
@@ -111,14 +122,21 @@ class EscuelaDetalleOut(EscuelaOut):
 class MunicipioOut(BaseModel):
     cve_mun: StrictStr = Field(min_length=5, max_length=5)
     nombre_municipio: StrictStr
-    poblacion: StrictInt = Field(ge=0)
+    # SIN_DATO explícito (P-03/US-103): con `gold.dim_municipio` = universo INEGI (317 municipios
+    # de las 4 entidades), la población entra por LEFT JOIN a CONAPO; donde no hay fila queda NULL,
+    # nunca 0 ni municipio borrado. Se expone como null, igual que rezago/pobreza, en vez de romper.
+    poblacion: StrictInt | None = Field(default=None, ge=0)
     indice_rezago_social: float | None = None
     pobreza_pct: float | None = None
 
 
 class KpisOut(BaseModel):
     matricula_total: StrictInt
-    variacion_matricula: StrictFloat
+    # KPI-02 es una razón de sumas en [-1, 1]: -1 es la cota matemática (matrícula_total=0) y
+    # +1 duplicar la matrícula agregada de todo un filtro (irreal). Field(ge=-1, le=1) es la
+    # guardia de BUG-031: si la fórmula volviera a devolver alumnos absolutos (p. ej. -54.5),
+    # Pydantic rechaza con 500 en vez de pintar -5450% en el tablero.
+    variacion_matricula: StrictFloat = Field(ge=-1, le=1)
     escuelas_en_riesgo: StrictInt
     indice_completitud_drivers: StrictFloat = Field(ge=0, le=1)
 
@@ -142,7 +160,7 @@ class PrediccionOut(BaseModel):
     mlflow_run_id: StrictStr
 
 
-class PrediccionBatchIn(BaseModel):
+class PrediccionBatchIn(EntradaEstricta):
     ccts: list[StrictStr] = Field(min_length=1, max_length=1000)
     id_ciclo: StrictStr
 
@@ -158,7 +176,7 @@ class ExplicacionSHAPOut(BaseModel):
 # --------------------------------------------------------------------------- #
 
 
-class AgenteConsultaIn(BaseModel):
+class AgenteConsultaIn(EntradaEstricta):
     pregunta: StrictStr = Field(min_length=3, max_length=500)
 
 
@@ -173,7 +191,7 @@ class AgenteRespuestaOut(BaseModel):
 # --------------------------------------------------------------------------- #
 
 
-class PipelineRunIn(BaseModel):
+class PipelineRunIn(EntradaEstricta):
     dag: StrictStr
     ciclo: StrictStr
 

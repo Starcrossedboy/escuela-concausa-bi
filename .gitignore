@@ -14,7 +14,8 @@ secrets.yml
 service-account*.json
 
 # ---- Ambiente Python ----
-.venv/
+# .venv*/ cubre .venv, .venv311, .venv312… (.venv/ solo cazaba el nombre exacto)
+.venv*/
 venv/
 __pycache__/
 *.py[cod]

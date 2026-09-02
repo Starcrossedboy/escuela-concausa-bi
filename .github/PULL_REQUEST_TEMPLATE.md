@@ -1,3 +1,16 @@
+<!--
+  TÍTULO DEL PR — se valida en CI, cópialo con este formato exacto:
+
+      [Nombre Apellido] - Descripción concisa (ID) - [sync|CI|DoF|DevLog]
+
+  Ejemplo:
+      [Diana Alvarez] - Extractor de CEMABE con reintentos (US-113) - [sync|CI|DoF|DevLog]
+
+  El nombre es el tuyo, el de tu rama `dev/nombre-apellido`. Los cuatro tokens del final
+  son tu declaración de que sincronizaste, el CI está verde, cumples Definition of Filed
+  y escribiste tu DevLog.
+-->
+
 ## ¿Qué cambia y por qué?
 
 
@@ -16,12 +29,20 @@
 ## Avance entregado
 
 - Historia `US-___`: [ ] cerrada por completo · [ ] avance parcial
-- Fila actualizada en `02_Requirements/Traceability_Matrix.md`: [ ] sí
+- Fila actualizada en `vault/02_Requirements/Traceability_Matrix.md`: [ ] sí
 - Lo que aún falta (si aplica):
+
+## Sincronía y alcance
+
+- [ ] Salgo de **mi rama fija** `dev/nombre-apellido` — la única que uso
+- [ ] Hice `git merge origin/main` **antes de abrir este PR**
+- [ ] Solo toqué archivos de mi alcance 🟢/🟡 (`vault/_Meta/ownership.yml`) — o, si el cambio
+      es **transversal**, lo declaro arriba y pedí revisión a cada dueño afectado
+- [ ] Si toqué una ruta crítica de otra persona, le pedí revisión <!-- opcional -->
 
 ## Definition of Filed
 
-- [ ] Tiene **ID** según `_Meta/Naming_Conventions.md`
+- [ ] Tiene **ID** según `vault/_Meta/Naming_Conventions.md`
 - [ ] Vive en su **carpeta correcta**
 - [ ] Tiene **frontmatter** con `owner` y `status`
 - [ ] Enlaza `traces_up` y `traces_down`
@@ -30,7 +51,7 @@
 
 ## Calidad
 
-- [ ] `python _Meta/scripts/vault_lint.py .` da Vault limpio
+- [ ] `python vault/_Meta/scripts/vault_lint.py .` da Vault limpio
 - [ ] `pytest tests/ -q` en verde
 - [ ] Commits en Conventional Commits con el ID
 
@@ -43,7 +64,7 @@
 
 ## Uso de IA
 
-- [ ] Usé IA — enlace al DevLog: `_DevLog/____`
+- [ ] Usé IA — enlace al DevLog: `vault/_DevLog/____`
 - [ ] **Revisé línea por línea** el código generado
 - [ ] No pegué datos reales ni credenciales en prompts
 - [ ] (Alternativa) No usé IA en este cambio <!-- opcional -->
@@ -63,3 +84,6 @@
 
 **Revisión técnica de apoyo (no bloqueante)** — Tech Lead del área
 - [ ] Solicité su revisión con *Reviewers* si el cambio toca su área (resuelve la historia · no rompe nada · convenciones OK · pruebas suficientes)
+
+> Al mergear: **no borres la rama.** `dev/nombre-apellido` es permanente y se reutiliza
+> para el siguiente cambio.

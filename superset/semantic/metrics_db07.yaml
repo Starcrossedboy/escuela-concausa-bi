@@ -2,7 +2,7 @@
 # Capa semantica de DB-07 - metricas, jerarquias y filtros
 # -----------------------------------------------------------------------------
 # Historia : US-222 (Oscar Antonio Quiroz Lázaro, Célula 2 - Analytics & BI)
-# Contrato : 04_UX_Design/Screen_Specs.md §4 (KPI-05, KPI-06)
+# Contrato : vault/04_UX_Design/Screen_Specs.md §4 (KPI-05, KPI-06)
 # Uso      : declaracion de las metricas que se dan de alta en Superset al
 #            construir DB-07 Calidad y cobertura de datos.
 #            Formato propio del proyecto fijado en US-202.

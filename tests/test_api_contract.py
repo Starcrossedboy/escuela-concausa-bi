@@ -1,6 +1,6 @@
 """Pruebas del contrato de la API v1 (US-401).
 
-Verifican que el stub cumple `03_Architecture/API_Specification.md`: rutas presentes, códigos
+Verifican que el stub cumple `vault/03_Architecture/API_Specification.md`: rutas presentes, códigos
 correctos (200/302/404/422), formas de respuesta (`Page`, `ErrorOut`) y que el OpenAPI publicado
 en `api/openapi.v1.json` está sincronizado con el código.
 """

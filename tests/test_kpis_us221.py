@@ -16,7 +16,7 @@ métricas canónicas de los datasets existentes. Este test lo garantiza:
 
 Validación estática: no necesita base de datos.
 
-Contrato: `04_UX_Design/Screen_Specs.md` §2/§4 · `metrics_kpis_base_us221.yaml`.
+Contrato: `vault/04_UX_Design/Screen_Specs.md` §2/§4 · `metrics_kpis_base_us221.yaml`.
 """
 
 from __future__ import annotations

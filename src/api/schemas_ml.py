@@ -6,7 +6,7 @@ combine en el `PrediccionOut` público (`src/api/schemas.py`, §4 de `API_Specif
 
 **Nunca redefine `FeaturesEscuela`**: se importa el canónico de `src.modelos.contrato` (dueño
 Diana Alvarez / Andrés González Habib, `Data_Model.md` §5.3). Duplicarlo sería exactamente el
-riesgo de divergencia que `15_ML_Models/Publicacion_Gold.md` §9 ya señala para el catálogo de
+riesgo de divergencia que `vault/15_ML_Models/Publicacion_Gold.md` §9 ya señala para el catálogo de
 recomendaciones -- no se repite aquí para el contrato de features.
 
 La conversión de la salida de ML-01 (`variacion_predicha`, sin cota) al `indice_riesgo` ∈ [0,1]

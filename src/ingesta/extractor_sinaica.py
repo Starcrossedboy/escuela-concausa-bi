@@ -5,7 +5,7 @@ SINAICA/INECC no publica una API REST/JSON documentada. Los endpoints usados aqu
 los mismos que usa internamente el sitio `sinaica.inecc.gob.mx`; se identificaron por
 ingeniería inversa del paquete open-source `rsinaica`
 (https://github.com/diegovalle/rsinaica) y se verificaron en vivo el 2026-08-14 (ver
-`14_Data_Sources/DS-05_SINAICA_Calidad_Aire.md`, sección 9).
+`vault/14_Data_Sources/DS-05_SINAICA_Calidad_Aire.md`, sección 9).
 
 Produce dos tablas Bronze independientes (así las espera
 `dbt/models/silver/aire_estacion.sql`):

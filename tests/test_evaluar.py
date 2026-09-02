@@ -167,7 +167,7 @@ def test_el_reporte_publicado_esta_sincronizado(features, res01, res02, res03) -
     métricas reproducibles.
     """
     raiz = Path(__file__).resolve().parents[1]
-    publicado = (raiz / "06_Quality_Testing/Automated/Evaluacion_Modelos.md").read_text(
+    publicado = (raiz / "vault/06_Quality_Testing/Automated/Evaluacion_Modelos.md").read_text(
         encoding="utf-8"
     )
     assert publicado == construir_reporte(features, res01, res02, res03), (

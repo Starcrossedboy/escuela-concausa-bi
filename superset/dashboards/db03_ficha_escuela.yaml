@@ -2,7 +2,7 @@
 # DB-03 · Ficha de escuela — definicion declarativa (US-212)
 # -----------------------------------------------------------------------------
 # Historia : US-212 (Marina Garcia del Buey, Celula 2 - Analytics & BI)
-# Contrato : 04_UX_Design/Cube_Specs_DB03_DB04.md §3 · Screen_Specs.md §4 (KPI-15..18)
+# Contrato : vault/04_UX_Design/Cube_Specs_DB03_DB04.md §3 · Screen_Specs.md §4 (KPI-15..18)
 # Consumido por : superset/sync_semantic_layer.py (idempotente)
 #
 # Cubre AC-002.4 (perfil, drivers, prediccion y recomendacion por CCT),

@@ -12,7 +12,7 @@ tags: [docker, security, warnings, development]
 
 > **IMPORTANTE:** Esta configuración está diseñada EXCLUSIVAMENTE para desarrollo local.
 > **NO es segura para ambientes de staging o producción.**
-> → Documentación completa: [[07_Security/Threat_Model]]
+> → Documentación completa: [[vault/07_Security/Threat_Model]]
 
 ---
 
@@ -95,7 +95,7 @@ ports:
 1. Datos NO sensibles (fixtures, datos de prueba)
 2. No expuesto a Internet
 3. Cada desarrollador tiene sus propias credenciales
-4. Documentado en `07_Security/Credentials_Policy.md`
+4. Documentado en `vault/07_Security/Credentials_Policy.md`
 
 ### 🏢 En Producción (Sprint 4):
 - ✅ GCP Secret Manager para todas las credenciales
@@ -106,9 +106,9 @@ ports:
 
 ## 📚 Referencias
 
-- **Política de credenciales:** `07_Security/Credentials_Policy.md`
+- **Política de credenciales:** `vault/07_Security/Credentials_Policy.md`
 - **Threat model completo:** `SECURITY.md`
-- **Plan de hardening:** `08_CICD_DevOps/Security_Hardening.md` (Sprint 3)
+- **Plan de hardening:** `vault/08_CICD_DevOps/Security_Hardening.md` (Sprint 3)
 
 ---
 

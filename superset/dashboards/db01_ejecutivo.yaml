@@ -2,7 +2,7 @@
 # DB-01 - Tablero Ejecutivo · definicion declarativa (US-203)
 # -----------------------------------------------------------------------------
 # Historia : US-203 (Manuel Alejandro Serrania Reinada, Celula 2 - Analytics & BI)
-# Contrato : 04_UX_Design/Screen_Specs.md §4
+# Contrato : vault/04_UX_Design/Screen_Specs.md §4
 # Consumido por : superset/sync_semantic_layer.py (idempotente)
 #
 # Cada entrada `charts:` se convierte en un chart de Superset; el dashboard

@@ -5,6 +5,7 @@ on:
     # `edited` es indispensable (BUG-014): el check lee el cuerpo del PR desde el payload
     # del evento, así que sin este disparador un cuerpo corregido después del push se queda
     # en rojo para siempre. Costó los PR #73, #78, #79, #84, #88, #94, #98 y #105.
+    # También hace que el título se revalide al corregirlo, sin necesidad de un push vacío.
     types: [opened, edited, synchronize, reopened, ready_for_review]
     branches:
       - main
@@ -12,10 +13,14 @@ on:
 jobs:
   quality-checks:
     runs-on: ubuntu-latest
-    
+
     steps:
       - name: 📥 Descargar código
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
+        with:
+          # El gate de sincronía compara la rama contra `main`: necesita la historia
+          # completa, no el clon superficial de un solo commit.
+          fetch-depth: 0
 
       - name: 📝 Verificar que la plantilla de PR esté completa
         env:
@@ -25,10 +30,38 @@ jobs:
         # del repositorio: con el patrón anterior no podía pasar su propio gate.
         run: bash .github/scripts/verificar_plantilla_pr.sh
 
+      - name: 🔄 Verificar que la rama esté sincronizada con main
+        # Un PR con la rama atrasada se revisa contra un `main` que ya no existe: el verde
+        # que muestra describe un mundo viejo. Se reprueba al ABRIR el PR, no al mergear,
+        # para que el autor lo resuelva antes de pedir revisión.
+        run: |
+          git fetch origin main --quiet
+          if git merge-base --is-ancestor origin/main HEAD; then
+            echo "✅ La rama contiene el último \`main\`."
+          else
+            atras=$(git rev-list --count HEAD..origin/main)
+            echo "❌ La rama va $atras commit(s) por detrás de \`main\`."
+            echo ""
+            echo "   Sincroniza antes de pedir revisión:"
+            echo "       git fetch origin"
+            echo "       git merge origin/main"
+            echo "       git push origin \$(git branch --show-current)"
+            echo ""
+            echo "   Nunca \`rebase\`: tu rama es permanente y su historia ya fue revisada."
+            exit 1
+          fi
+
       - name: 🐍 Configurar Python
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v5
         with:
-          python-version: '3.10'
+          python-version: '3.11'
+
+      - name: 🪪 Verificar identidad, rama y alcance del autor
+        env:
+          PR_AUTHOR: ${{ github.event.pull_request.user.login }}
+          PR_BRANCH: ${{ github.event.pull_request.head.ref }}
+          PR_TITLE: ${{ github.event.pull_request.title }}
+        run: python vault/_Meta/scripts/check_ownership.py
 
       - name: 🔍 Ejecutar vault_lint.py
-        run: python _Meta/scripts/vault_lint.py .
+        run: python vault/_Meta/scripts/vault_lint.py .

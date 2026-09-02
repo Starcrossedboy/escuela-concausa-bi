@@ -1,6 +1,6 @@
 """Espejo local del contrato `gold.features_escuela` (US-311).
 
-El contrato canónico vive en `03_Architecture/Data_Model.md` §5.3 y lo **produce la Célula 1**
+El contrato canónico vive en `vault/03_Architecture/Data_Model.md` §5.3 y lo **produce la Célula 1**
 (Diana Alvarez). Este módulo es un espejo ejecutable para poder validar fixtures y avanzar con
 datos simulados mientras el módulo canónico existe.
 

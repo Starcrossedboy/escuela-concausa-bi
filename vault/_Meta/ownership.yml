@@ -1,0 +1,400 @@
+# ownership.yml — Fuente única de identidad, rama y permisos
+#
+# Un solo lugar define quién es cada persona, cuál es su rama y qué archivos puede tocar.
+# Los 21 Agent Contexts y la matriz de aislamiento se leen desde aquí; este archivo manda.
+#
+# La identidad se construye SIEMPRE igual:  {primer-nombre}-{apellido-paterno}
+# en minúsculas, ASCII sin acentos, kebab-case. Se ignoran el segundo nombre y el apellido
+# materno. Esa identidad es la misma en la rama, el título del PR, el DevLog, el Agent
+# Context y el plan de sprint — no existe ninguna otra forma de nombrar a una persona.
+#
+# Lo verifica en cada PR:  vault/_Meta/scripts/check_ownership.py
+
+version: 1
+
+personas:
+  edgar-coronel:
+    nombre: "Edgar Edmundo Coronel Navarrete"
+    github: edgarcoroneln
+    rama: dev/edgar-coronel
+    celula: PO
+    rol: "Líder de Proyecto / Product Owner"
+    tech_lead: true
+    plan: vault/12_Roadmap_Sprints/Sprints/0-edgar-edmundo-coronel-navarrete.md
+    verde:
+      - "vault/_Meta/**"
+      - "vault/00_Start_Here/**"
+      - "vault/01_Product/**"
+      - "vault/02_Requirements/**"
+      - "vault/10_Risk_Governance/**"
+      - "vault/12_Roadmap_Sprints/**"
+      - "vault/13_Reports/**"
+      - "vault/_DevLog/_index.md"
+    amarillo:
+      - "README.md"
+      - "CLAUDE.md"
+      - "AGENTS.md"
+      - "GEMINI.md"
+      - ".cursorrules"
+      - ".github/**"
+
+  diana-alvarez:
+    nombre: "Diana Aracely Alvarez Varela"
+    github: DianaVarela96
+    rama: dev/diana-alvarez
+    celula: 1
+    rol: "Tech Lead · Data Engineering"
+    tech_lead: true
+    plan: vault/12_Roadmap_Sprints/Sprints/1-diana-aracely-alvarez-varela.md
+    verde:
+      - "src/ingesta/**"
+      - "dbt/**"
+      - "dags/**"
+      - "vault/14_Data_Sources/**"
+      - "vault/03_Architecture/Data_Model.md"
+    amarillo:
+      - "tests/**"
+      - "great_expectations/**"
+      - "requirements/celula-1.txt"
+
+  deni-garrido:
+    nombre: "Deni Garrido Fragoso"
+    github: dgdeni
+    rama: dev/deni-garrido
+    celula: 1
+    rol: "Ingeniera de datos · Transformaciones dbt"
+    tech_lead: false
+    plan: vault/12_Roadmap_Sprints/Sprints/1-deni-garrido-fragoso.md
+    verde:
+      - "src/ingesta/**"
+      - "dbt/**"
+      - "dags/**"
+      - "vault/14_Data_Sources/**"
+      - "vault/03_Architecture/Data_Model.md"
+    amarillo:
+      - "tests/**"
+      - "great_expectations/**"
+      - "requirements/celula-1.txt"
+
+  luis-garcia:
+    nombre: "Luis Enrique García Vázquez"
+    github: LuisEGarciaV
+    rama: dev/luis-garcia
+    celula: 1
+    rol: "Ingeniero de datos jr · Extracción de fuentes"
+    tech_lead: false
+    plan: vault/12_Roadmap_Sprints/Sprints/1-luis-enrique-garcia-vazquez.md
+    verde:
+      - "src/ingesta/**"
+      - "dbt/**"
+      - "dags/**"
+      - "vault/14_Data_Sources/**"
+      - "vault/03_Architecture/Data_Model.md"
+    amarillo:
+      - "tests/**"
+      - "great_expectations/**"
+      - "requirements/celula-1.txt"
+
+  emilio-galnares:
+    nombre: "Emilio Galnares Ruiz"
+    github: Starcrossedboy
+    rama: dev/emilio-galnares
+    celula: 1
+    rol: "Ingeniero de datos jr · Calidad de datos"
+    tech_lead: false
+    plan: vault/12_Roadmap_Sprints/Sprints/1-emilio-galnares-ruiz.md
+    verde:
+      - "src/ingesta/**"
+      - "dbt/**"
+      - "dags/**"
+      - "vault/14_Data_Sources/**"
+      - "vault/03_Architecture/Data_Model.md"
+    amarillo:
+      - "tests/**"
+      - "great_expectations/**"
+      - "requirements/celula-1.txt"
+
+  manuel-serrania:
+    nombre: "Manuel Alejandro Serranía Reinada"
+    github: mserraniaa-png
+    rama: dev/manuel-serrania
+    celula: 2
+    rol: "Tech Lead · Analytics & BI"
+    tech_lead: true
+    plan: vault/12_Roadmap_Sprints/Sprints/2-manuel-alejandro-serrania-reinada.md
+    verde:
+      - "superset/**"
+      - "vault/04_UX_Design/**"
+      - "src/frontend/**"
+    amarillo:
+      - "tests/**"
+
+  marina-garcia:
+    nombre: "Marina García del Buey"
+    github: marina-gdb
+    rama: dev/marina-garcia
+    celula: 2
+    rol: "Analista BI · Dashboards ejecutivos"
+    tech_lead: false
+    plan: vault/12_Roadmap_Sprints/Sprints/2-marina-garcia-del-buey.md
+    verde:
+      - "superset/**"
+      - "vault/04_UX_Design/**"
+    amarillo:
+      - "src/frontend/**"
+      - "tests/**"
+
+  monserrat-miranda:
+    nombre: "Monserrat Xcaret Miranda Olivas"
+    github: monserratxmiranda
+    rama: dev/monserrat-miranda
+    celula: 2
+    rol: "Analista BI · Modelado semántico y cubos"
+    tech_lead: false
+    plan: vault/12_Roadmap_Sprints/Sprints/2-monserrat-xcaret-miranda-olivas.md
+    verde:
+      - "superset/**"
+      - "vault/04_UX_Design/**"
+    amarillo:
+      - "tests/**"
+
+  oscar-quiroz:
+    nombre: "Oscar Antonio Quiroz Lázaro"
+    github: oscarqlazaro-lab
+    rama: dev/oscar-quiroz
+    celula: 2
+    rol: "Analista BI jr · Gráficos, mapas y KPIs"
+    tech_lead: false
+    plan: vault/12_Roadmap_Sprints/Sprints/2-oscar-antonio-quiroz-lazaro.md
+    verde:
+      - "superset/**"
+      - "vault/04_UX_Design/**"
+    amarillo:
+      - "tests/**"
+
+  andres-gonzalez:
+    nombre: "Andrés González Habib"
+    github: Agh28
+    rama: dev/andres-gonzalez
+    celula: 3
+    rol: "Tech Lead · Machine Learning & Agente IA"
+    tech_lead: true
+    plan: vault/12_Roadmap_Sprints/Sprints/3-andres-gonzalez-habib.md
+    verde:
+      - "src/modelos/**"
+      - "src/agente/**"
+      - "vault/15_ML_Models/**"
+      - "notebooks/**"
+    amarillo:
+      - "src/frontend/**"
+      - "tests/**"
+      - "vault/06_Quality_Testing/Automated/**"
+      - "requirements/celula-3.txt"
+
+  hector-morales:
+    nombre: "Héctor Rafael Morales Marbán"
+    github: hector677-mm
+    rama: dev/hector-morales
+    celula: 3
+    rol: "Científico de datos · Modelos supervisados"
+    tech_lead: false
+    plan: vault/12_Roadmap_Sprints/Sprints/3-hector-rafael-morales-marban.md
+    verde:
+      - "src/modelos/**"
+      - "src/agente/**"
+      - "vault/15_ML_Models/**"
+      - "notebooks/**"
+    amarillo:
+      - "tests/**"
+      - "vault/06_Quality_Testing/Automated/**"
+
+  estefany-hernandez:
+    nombre: "Estefany Lucero Hernández Loredo"
+    github: stephi-coder
+    rama: dev/estefany-hernandez
+    celula: 3
+    rol: "Analista ML jr · Clustering y features"
+    tech_lead: false
+    plan: vault/12_Roadmap_Sprints/Sprints/3-estefany-lucero-hernandez-loredo.md
+    verde:
+      - "src/modelos/**"
+      - "src/agente/**"
+      - "vault/15_ML_Models/**"
+      - "notebooks/**"
+    amarillo:
+      - "tests/**"
+      - "vault/06_Quality_Testing/Automated/**"
+
+  carlos-mayorga:
+    nombre: "Carlos Guillermo Mayorga Tapia"
+    github: cmayorgat44
+    rama: dev/carlos-mayorga
+    celula: 3
+    rol: "Analista ML jr · Agente RAG y evaluación"
+    tech_lead: false
+    plan: vault/12_Roadmap_Sprints/Sprints/3-carlos-guillermo-mayorga-tapia.md
+    verde:
+      - "src/modelos/**"
+      - "src/agente/**"
+      - "vault/15_ML_Models/**"
+      - "notebooks/**"
+    amarillo:
+      - "tests/**"
+      - "vault/06_Quality_Testing/Automated/**"
+
+  christian-ruiz:
+    nombre: "Christian Imanol Ruiz Hurtado"
+    github: ImanolRuiz00
+    rama: dev/christian-ruiz
+    celula: 4
+    rol: "Tech Lead · Backend, API & Seguridad"
+    tech_lead: true
+    plan: vault/12_Roadmap_Sprints/Sprints/4-christian-imanol-ruiz-hurtado.md
+    verde:
+      - "src/api/**"
+      - "vault/03_Architecture/API_Specification.md"
+      - "vault/07_Security/**"
+    amarillo:
+      - "src/frontend/**"
+      - "api/openapi.v1.json"
+      - "tests/**"
+      - "requirements/celula-4.txt"
+
+  karla-monter:
+    nombre: "Karla Alejandra Monter Benitez"
+    github: marlakonter
+    rama: dev/karla-monter
+    celula: 4
+    rol: "Desarrolladora backend · Endpoints y RBAC"
+    tech_lead: false
+    plan: vault/12_Roadmap_Sprints/Sprints/4-karla-alejandra-monter-benitez.md
+    verde:
+      - "src/api/**"
+      - "vault/03_Architecture/API_Specification.md"
+    amarillo:
+      - "api/openapi.v1.json"
+      - "tests/**"
+
+  juan-macias:
+    nombre: "Juan Carlos Macías Mayen"
+    github: juanmmayen98-pixel
+    rama: dev/juan-macias
+    celula: 4
+    rol: "Desarrollador backend · Inferencia ML y contratos de API"
+    tech_lead: false
+    plan: vault/12_Roadmap_Sprints/Sprints/4-juan-carlos-macias-mayen.md
+    verde:
+      - "src/api/**"
+      - "vault/03_Architecture/API_Specification.md"
+    amarillo:
+      - "api/openapi.v1.json"
+      - "tests/**"
+
+  eloisa-gonzalez:
+    nombre: "Eloisa González Rubio"
+    github: EloisaGonzalezRubio
+    rama: dev/eloisa-gonzalez
+    celula: 4
+    rol: "Desarrolladora jr · Pruebas de API"
+    tech_lead: false
+    plan: vault/12_Roadmap_Sprints/Sprints/4-eloisa-gonzalez-rubio.md
+    verde:
+      - "src/api/**"
+      - "vault/03_Architecture/API_Specification.md"
+    amarillo:
+      - "tests/**"
+
+  luis-tellez:
+    nombre: "Luis Téllez Domínguez"
+    github: LuisTellez03
+    rama: dev/luis-tellez
+    celula: 5
+    rol: "Tech Lead · Cloud & DevOps"
+    tech_lead: true
+    plan: vault/12_Roadmap_Sprints/Sprints/5-luis-tellez-dominguez.md
+    verde:
+      - ".github/**"
+      - "docker/**"
+      - "docker-compose.yml"
+      - "infra/**"
+      - "vault/08_CICD_DevOps/**"
+      - "vault/11_Operations/**"
+    amarillo:
+      - "requirements/**"
+      - "scripts/**"
+      - "tests/**"
+
+  edgar-jimenez:
+    nombre: "Edgar Ulises Jiménez López"
+    github: EJ-by-Me
+    rama: dev/edgar-jimenez
+    celula: 5
+    rol: "DevOps jr · Contenedores"
+    tech_lead: false
+    plan: vault/12_Roadmap_Sprints/Sprints/5-edgar-ulises-jimenez-lopez.md
+    verde:
+      - ".github/**"
+      - "docker/**"
+      - "docker-compose.yml"
+      - "infra/**"
+      - "vault/08_CICD_DevOps/**"
+      - "vault/11_Operations/**"
+    amarillo:
+      - "requirements/**"
+      - "scripts/**"
+      - "tests/**"
+
+  alejandro-velazquez:
+    nombre: "Alejandro Velázquez Mendoza"
+    github: avmxk01
+    rama: dev/alejandro-velazquez
+    celula: 5
+    rol: "DevOps jr · Ambientes y despliegue"
+    tech_lead: false
+    plan: vault/12_Roadmap_Sprints/Sprints/5-alejandro-velazquez-mendoza.md
+    verde:
+      - ".github/**"
+      - "docker/**"
+      - "docker-compose.yml"
+      - "infra/**"
+      - "vault/08_CICD_DevOps/**"
+      - "vault/11_Operations/**"
+    amarillo:
+      - "requirements/**"
+      - "scripts/**"
+      - "tests/**"
+
+  edward-ruiz:
+    nombre: "Edward Ulysses Ruiz Bustillos"
+    github: Dr4wde064
+    rama: dev/edward-ruiz
+    celula: 5
+    rol: "DevOps jr · Monitoreo y documentación"
+    tech_lead: false
+    plan: vault/12_Roadmap_Sprints/Sprints/5-edward-ulysses-ruiz-bustillos.md
+    verde:
+      - ".github/**"
+      - "docker/**"
+      - "docker-compose.yml"
+      - "infra/**"
+      - "vault/08_CICD_DevOps/**"
+      - "vault/11_Operations/**"
+    amarillo:
+      - "requirements/**"
+      - "scripts/**"
+      - "tests/**"
+
+# Verde para todos, sin declararlo persona por persona. {id} = la identidad del autor.
+comunes:
+  - "vault/_DevLog/*-{id}-*.md"
+  - "vault/09_AI_Governance/Agent_Contexts/{id}-agent-context.md"
+
+# Rutas que exigen revisión explícita del dueño del área (regla 7 de Vault_Rules).
+# Estar en verde no basta: si no eres el dueño, necesitas su aprobación en el PR.
+criticos:
+  ".github/**": luis-tellez
+  "vault/_Meta/**": edgar-coronel
+  "vault/07_Security/**": christian-ruiz
+  "src/frontend/**": manuel-serrania
+  "vault/02_Requirements/Traceability_Matrix.md": edgar-coronel
+

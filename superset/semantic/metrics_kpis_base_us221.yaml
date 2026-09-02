@@ -20,7 +20,7 @@
 version: "1.0"
 owner: "Oscar Antonio Quiroz Lázaro"
 story: US-221
-traces_up: ["04_UX_Design/Screen_Specs", "US-201"]
+traces_up: ["vault/04_UX_Design/Screen_Specs", "US-201"]
 ratificado_por: "Manuel Alejandro Serranía Reinada (US-201, dueño del catálogo)"
 
 filtros_globales:

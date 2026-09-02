@@ -1,7 +1,7 @@
 """FARO Web — app Streamlit integrada (andamiaje).
 
 Router + sesión + guardas por rol. La lógica de cada página vive en pages/.
-Historia: US-206 (shell). Ver 03_Architecture/Frontend_Architecture.md.
+Historia: US-206 (shell). Ver vault/03_Architecture/Frontend_Architecture.md.
 """
 from __future__ import annotations
 

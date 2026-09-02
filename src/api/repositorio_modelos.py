@@ -1,7 +1,7 @@
 """Repositorio de datos para `/predicciones/{cct}` y `/predicciones/batch` (US-412, cierra BUG-010).
 
 `src/api/v1/predicciones.py` leía `src/api/mock_data.py` -- un valor fabricado a mano, no la salida
-de ningún modelo (BUG-010, `06_Quality_Testing/Bug_Register.md`). `gold.predicciones` y
+de ningún modelo (BUG-010, `vault/06_Quality_Testing/Bug_Register.md`). `gold.predicciones` y
 `gold.recomendaciones` ya están pobladas y verificadas contra Postgres (US-313, Héctor Morales):
 el swap es leerlas, no invocar MLflow en cada request. `mlflow_run_id` viaja en la fila y conserva
 el enlace auditable a la corrida que produjo el valor -- "3 modelos integrados vía API" (REQ-003)

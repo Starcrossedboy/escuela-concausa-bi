@@ -1,5 +1,5 @@
 # Estrategia de merge por UNIÓN solo para logs de SOLO-AGREGADO.
-# `_DevLog/_index.md` recibe una fila nueva por PR (append-only): con
+# `vault/_DevLog/_index.md` recibe una fila nueva por PR (append-only): con
 # `merge=union` (driver integrado de Git) ambos lados se conservan sin
 # marcadores de conflicto — exactamente lo que queremos.
 #
@@ -7,7 +7,7 @@
 # EDITA en sitio, y union la duplicaba (REQ-002/REQ-003 aparecían dos veces
 # con contenido distinto). Sus conflictos se resuelven a mano. Ver DevLog
 # 2026-08-19-edgar-mitigacion-risk007-target (colisión + de-dup).
-_DevLog/_index.md                      merge=union
+vault/_DevLog/_index.md                      merge=union
 
 # ═══════════════════════════════════════════════════════════════════
 # SCRIPTS SHELL: Forzar LF en todos los sistemas (BUG-005)

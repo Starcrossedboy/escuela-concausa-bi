@@ -1,7 +1,7 @@
 """Carga un fixture de Bronze (CSV en tests/fixtures/, <=500 filas, anonimizado) a Postgres.
 
 Uso exclusivo de DESARROLLO LOCAL / dbt run|test contra la capa Silver, mientras las URLs
-reales de las fuentes siguen bloqueadas (ver 14_Data_Sources/*.md). No es el extractor de
+reales de las fuentes siguen bloqueadas (ver vault/14_Data_Sources/*.md). No es el extractor de
 producción — ese vive en `extractor_<fuente>.py` y descarga de la fuente real hacia
 `data/bronze/` en Parquet (Data_Model.md §2).
 

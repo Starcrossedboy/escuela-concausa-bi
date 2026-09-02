@@ -9,8 +9,8 @@ Pero todo lo que consume ML-01 aguas abajo espera un **`indice_riesgo` acotado a
 más alto = más riesgo:
 
 - `src/api/schemas.py::PrediccionOut.indice_riesgo` — `Field(ge=0, le=1)`, y su prueba lo verifica.
-- `03_Architecture/Data_Model.md` §4.5 — vive en `gold.predicciones` como `valor` con `modelo='ML-01'`.
-- `04_UX_Design/Screen_Specs.md` — los tableros cuentan "escuelas en riesgo" con `indice_riesgo >= 0.6`.
+- `vault/03_Architecture/Data_Model.md` §4.5 — vive en `gold.predicciones` como `valor` con `modelo='ML-01'`.
+- `vault/04_UX_Design/Screen_Specs.md` — los tableros cuentan "escuelas en riesgo" con `indice_riesgo >= 0.6`.
 
 Nadie había definido la conversión entre ambas cosas. Este módulo la define en un solo lugar para
 que la API, los cubos de Superset y FARO Web lean el mismo número.
@@ -39,7 +39,7 @@ queda documentada por sus anclas y no por constantes mágicas.
 
 > **Estatus:** la unidad del target quedó ratificada en `ADR-007` (fracción, 29-ago) y el umbral de
 > −5 % en `DEC-006` (13-ago). **Queda abierta una sola ancla: el `0.30` de escuela estable**, que es
-> un juicio de negocio. Ver `15_ML_Models/Indice_Riesgo_ML01.md` §4.1.
+> un juicio de negocio. Ver `vault/15_ML_Models/Indice_Riesgo_ML01.md` §4.1.
 """
 
 from __future__ import annotations

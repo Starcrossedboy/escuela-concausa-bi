@@ -2,7 +2,7 @@
 # DB-04 · Comparador de municipios — definicion declarativa (US-212)
 # -----------------------------------------------------------------------------
 # Historia : US-212 (Marina Garcia del Buey, Celula 2 - Analytics & BI)
-# Contrato : 04_UX_Design/Cube_Specs_DB03_DB04.md §4 · Screen_Specs.md §4 (KPI-14)
+# Contrato : vault/04_UX_Design/Cube_Specs_DB03_DB04.md §4 · Screen_Specs.md §4 (KPI-14)
 # Consumido por : superset/sync_semantic_layer.py (idempotente)
 #
 # Grano del cubo: municipio x nivel x ciclo (DEC-008). Las razones NO vienen

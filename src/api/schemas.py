@@ -1,7 +1,7 @@
 """Modelos Pydantic del contrato de la API FARO (US-401).
 
-Fuente de verdad: `03_Architecture/API_Specification.md` §4. Estos modelos se mantienen
-**1:1** con ese documento y con `03_Architecture/Data_Model.md`. Cambiar aquí una forma
+Fuente de verdad: `vault/03_Architecture/API_Specification.md` §4. Estos modelos se mantienen
+**1:1** con ese documento y con `vault/03_Architecture/Data_Model.md`. Cambiar aquí una forma
 obliga a actualizar el contrato y avisar a las Células 2 y 3 (regla de oro del §6).
 
 Nota de alcance: este módulo define **solo el contrato** (request/response). La autenticación

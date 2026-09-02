@@ -245,7 +245,7 @@ class RepositorioGoldPostgres:
     def obtener_kpis(
         self, *, cve_ent: str | None, cve_mun: str | None, ciclo: str | None
     ) -> dict:
-        """Fórmulas tomadas literalmente de `04_UX_Design/Screen_Specs.md` (KPI-02 variación
+        """Fórmulas tomadas literalmente de `vault/04_UX_Design/Screen_Specs.md` (KPI-02 variación
         como razón de sumas con la columna directa `matricula_ciclo_anterior` — BUG-031/P-09;
         KPI-04 escuelas en riesgo vía JOIN a `gold.predicciones` con umbral 0.6 ratificado;
         KPI-05 completitud promedio). El `cast(..., Numeric)` evita la división entera de dos

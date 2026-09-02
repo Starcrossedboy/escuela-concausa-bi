@@ -15,7 +15,7 @@ jobs:
   # Si alguien agrega una fuente o un modelo con `var()` sin default, este job
   # se pone rojo en su PR en vez de descubrirse tres semanas después.
   # El perfil se genera aquí mismo con valores dummy — `parse` no abre conexión,
-  # y así no versionamos nada que parezca una credencial (07_Security/Secrets_Policy.md).
+  # y así no versionamos nada que parezca una credencial (vault/07_Security/Secrets_Policy.md).
   dbt-contract:
     name: Contrato dbt (parse)
     runs-on: ubuntu-latest
@@ -84,9 +84,9 @@ jobs:
           pip install ruff pytest pip-audit
           if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
       - name: Vault lint
-        run: python _Meta/scripts/vault_lint.py .
+        run: python vault/_Meta/scripts/vault_lint.py .
       - name: Validar tablero PM
-        run: python _Meta/scripts/validate_pm_dashboard.py .
+        run: python vault/_Meta/scripts/validate_pm_dashboard.py .
       - name: Ruff
         # US-523b: se quita "|| true" — si Ruff falla, el job falla y bloquea el merge.
         run: ruff check . --output-format=github

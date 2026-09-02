@@ -1,7 +1,7 @@
 """Autenticación del frontend delegando en la API (andamiaje).
 
 El front NO reimplementa OAuth: redirige a /auth/login de la API (US-402), guarda el JWT en sesión
-y expone require_role(). Historia: US-405. Ver 03_Architecture/API_Specification.md.
+y expone require_role(). Historia: US-405. Ver vault/03_Architecture/API_Specification.md.
 """
 from __future__ import annotations
 

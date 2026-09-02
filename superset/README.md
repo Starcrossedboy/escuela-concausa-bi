@@ -3,7 +3,7 @@
 > Convención canónica de la capa semántica de FARO. La fija **Manuel Alejandro Serranía Reinada**
 > (Tech Lead C2, **US-202** — REQ-002) y la deben seguir todas las historias que modelan cubos o
 > construyen tableros: US-211a, US-211b, US-212, US-213, US-214a/b, US-215a/b.
-> Catálogo canónico de KPIs: [[04_UX_Design/Screen_Specs]] · Contrato de cada cubo: `04_UX_Design/Cube_Specs_*.md`.
+> Catálogo canónico de KPIs: [[vault/04_UX_Design/Screen_Specs]] · Contrato de cada cubo: `vault/04_UX_Design/Cube_Specs_*.md`.
 
 ## Estructura de carpetas
 
@@ -27,7 +27,7 @@
   la Célula 1 (US-113); ya no es el SQL de referencia para materializar nada.
 - **Métricas por contrato:** `metrics_<cubos>.yaml` (p.ej. `metrics_db03_db04.yaml`).
 - **Nombres de métricas: `snake_case`** y **idénticos a la fórmula del KPI canónico** de
-  [[04_UX_Design/Screen_Specs]] (p.ej. `variacion_ponderada_pct` es el nombre del KPI-02). Cada métrica
+  [[vault/04_UX_Design/Screen_Specs]] (p.ej. `variacion_ponderada_pct` es el nombre del KPI-02). Cada métrica
   declara `kpi: KPI-xx`; si no hay KPI canónico aún, se marca `kpis_propuestos` y se alinea cuando el
   catálogo lo publique. **El catálogo de KPIs es la única fuente de nombres de métricas.**
 
@@ -101,7 +101,7 @@ en la red del navegador; las SQL corren en milisegundos directo contra Postgres.
 - **Workaround:** reiniciar solo el contenedor de BI — `docker restart faro-superset` — esperar el
   healthcheck (`docker ps` → *healthy*, ~30 s) y recargar con hard-refresh (Ctrl/Cmd+Shift+R).
   Verificado: tras el restart ambos tableros cargan completos en ~2 s.
-- Si reaparece, reportarlo en `06_Quality_Testing/Bug_Register.md` citando este README.
+- Si reaparece, reportarlo en `vault/06_Quality_Testing/Bug_Register.md` citando este README.
 - Fix definitivo (C5, backlog): backend de caché/resultados externo (Redis) o al menos
   `DATA_CACHE_CONFIG` persistente en `superset_config.py`.
 

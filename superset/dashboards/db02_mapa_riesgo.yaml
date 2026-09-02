@@ -2,7 +2,7 @@
 # DB-02 - Mapa de riesgo territorial · definicion declarativa (US-203)
 # -----------------------------------------------------------------------------
 # Historia : US-203 (Manuel Alejandro Serrania Reinada, Celula 2 - Analytics & BI)
-# Contrato : 04_UX_Design/Screen_Specs.md §2
+# Contrato : vault/04_UX_Design/Screen_Specs.md §2
 # Consumido por : superset/sync_semantic_layer.py (idempotente)
 #
 # El coropletico depende del dataset db02_coropletico, que a su vez requiere

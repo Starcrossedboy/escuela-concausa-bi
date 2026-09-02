@@ -3,7 +3,7 @@ de la limpieza de columnas usada antes de validar con Great Expectations.
 
 Sigue el mismo espíritu que `tests/test_extractor_sinaica.py`: datos sintéticos
 que reproducen la ESTRUCTURA real confirmada en vivo (ver
-`14_Data_Sources/DS-06_CONAGUA_SINA.md` sección 9 y el DevLog de la sesión), sin
+`vault/14_Data_Sources/DS-06_CONAGUA_SINA.md` sección 9 y el DevLog de la sesión), sin
 depender de una llamada de red real durante la prueba.
 """
 from __future__ import annotations

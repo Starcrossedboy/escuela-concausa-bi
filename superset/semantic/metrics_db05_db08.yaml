@@ -3,7 +3,7 @@
 # -----------------------------------------------------------------------------
 # Historia : US-211b (Monserrat Xcaret Miranda Olivas, Celula 2 - Analytics & BI)
 #            RE-ESCALA DB-05 + repunteo a cubos en US-205 (Manuel A. Serrania, C2)
-# Contrato : 04_UX_Design/Cube_Specs_DB05_DB08.md (DOC-CUBESPEC-DB0508)
+# Contrato : vault/04_UX_Design/Cube_Specs_DB05_DB08.md (DOC-CUBESPEC-DB0508)
 # Uso      : declaracion de las metricas que se dan de alta en Superset al
 #            construir DB-05 y DB-08 (US-213). Convencion fijada por Manuel en
 #            US-202 (superset/README.md); este archivo se alinea con ella.

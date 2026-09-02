@@ -2,7 +2,7 @@
 
 Lee variables de entorno (opcionalmente desde `.env`) con `pydantic-settings`. **Nunca** contiene
 secretos reales: solo valores por defecto seguros para desarrollo local. En producción los valores
-llegan por variables de entorno / Secret Manager (Célula 5); ver `07_Security/Secrets_Policy.md`.
+llegan por variables de entorno / Secret Manager (Célula 5); ver `vault/07_Security/Secrets_Policy.md`.
 """
 from __future__ import annotations
 
@@ -84,7 +84,7 @@ class Settings(BaseSettings):
     # el agente usa los defaults seguros del seam (degrada "no configurado") y CI/local no llaman a
     # Anthropic. Lo provisiona C5 en Secret Manager como ANTHROPIC_API_KEY. El adaptador
     # (`src/agente/llm.py`) lee esta misma variable y la config no secreta (AGENTE_MODELO/
-    # AGENTE_MAX_TOKENS/AGENTE_TIMEOUT_S) directamente del entorno. Ver `07_Security/Secrets_Policy.md`.
+    # AGENTE_MAX_TOKENS/AGENTE_TIMEOUT_S) directamente del entorno. Ver `vault/07_Security/Secrets_Policy.md`.
     anthropic_api_key: str = ""
 
     # ---- Inferencia ML: cache y timeouts (US-416) ----

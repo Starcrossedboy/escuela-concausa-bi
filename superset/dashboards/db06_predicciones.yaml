@@ -2,7 +2,7 @@
 # DB-06 - Tablero Predicciones · definicion declarativa (US-204)
 # -----------------------------------------------------------------------------
 # Historia : US-204 (Manuel Alejandro Serrania Reinada, Celula 2 - Analytics & BI)
-# Contrato : 04_UX_Design/Cube_Specs_DB06_DB09.md §3-§4
+# Contrato : vault/04_UX_Design/Cube_Specs_DB06_DB09.md §3-§4
 # Consumido por : superset/sync_semantic_layer.py (idempotente)
 #
 # Diferenciador: la proyeccion ML-01 (variacion proyectada) y el riesgo, ambos

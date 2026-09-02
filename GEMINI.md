@@ -4,7 +4,7 @@ title: "GEMINI.md — Apuntador de contexto para Gemini CLI"
 owner: "Edgar Edmundo Coronel Navarrete"
 status: approved
 version: "1.0"
-traces_up: ["00_Start_Here/PROJECT_INDEX", "AGENTS"]
+traces_up: ["vault/00_Start_Here/PROJECT_INDEX", "AGENTS"]
 tags: [ai-governance, context, multi-llm]
 ---
 
@@ -12,10 +12,15 @@ tags: [ai-governance, context, multi-llm]
 
 Este proyecto usa AGENTS.md como documento canónico para asistentes de IA.
 
-**Antes de hacer cualquier cosa, lee en este orden:**
-1. `AGENTS.md` — protocolo de trabajo y handoff entre LLMs
-2. `CLAUDE.md` — qué es el proyecto, arquitectura, equipo
-3. `_Meta/Vault_Rules.md` — las 7 reglas no negociables
-4. La entrada más reciente de `_DevLog/` — dónde quedó la sesión anterior
+**Antes de hacer cualquier cosa, lee `AGENTS.md`.** Ahí está el orden de lectura obligatorio,
+el protocolo de trabajo y las reglas de ramas y Pull Requests. Este archivo no las repite, para
+que no puedan quedar desfasadas.
 
-No generes código ni documentos sin haber leído esos cuatro.
+Lo mínimo que debes saber antes de tocar nada:
+
+- Cada persona trabaja en **una sola rama permanente**, `dev/{primer-nombre}-{apellido-paterno}`.
+- Se sincroniza con `git merge origin/main`; nunca `rebase` ni `--force`.
+- Cada quien toca solo su alcance, definido en `vault/_Meta/ownership.yml`.
+- Toda sesión con IA deja un DevLog antes del push.
+
+No generes código ni documentos sin haber leído `AGENTS.md`.

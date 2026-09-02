@@ -1,6 +1,6 @@
 """Emisión y validación de JWT propios (US-402).
 
-Decisiones (ver `03_Architecture/ADRs/ADR-004-autenticacion-oauth2-jwt.md`):
+Decisiones (ver `vault/03_Architecture/ADRs/ADR-004-autenticacion-oauth2-jwt.md`):
 - **access token**: vida corta (15 min por defecto), viaja en `Authorization: Bearer`.
 - **refresh token**: vida larga (7 días), se canjea en `POST /auth/refresh`.
 - Ambos llevan el claim `type` (`access`|`refresh`) para que un refresh no se use como access ni

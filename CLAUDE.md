@@ -5,7 +5,7 @@ owner: "Edgar Edmundo Coronel Navarrete"
 status: approved
 version: "1.0"
 source_of_truth: true
-traces_up: ["00_Start_Here/PROJECT_INDEX"]
+traces_up: ["vault/00_Start_Here/PROJECT_INDEX"]
 tags: [ai-governance, context, meta]
 ---
 
@@ -42,10 +42,10 @@ driver dominante. El proyecto es **prescriptivo**, no solo descriptivo.
 ## 2. Regla de oro del repositorio
 
 > **Este repositorio se rige por el vault.** Antes de crear cualquier archivo, consulta
-> `_Meta/Vault_Rules.md`, `_Meta/Naming_Conventions.md` y `_Meta/Definition_of_Filed.md`.
+> `vault/_Meta/Vault_Rules.md`, `vault/_Meta/Naming_Conventions.md` y `vault/_Meta/Definition_of_Filed.md`.
 > Si un artefacto no cumple "Definition of Filed", **no está terminado**.
 
-Las 7 reglas no negociables:
+Las 9 reglas no negociables:
 
 1. Un tema, un archivo canónico. Prohibido duplicar.
 2. Todo artefacto lleva frontmatter con `id`, `owner`, `status` y (si aplica) `traces_up` / `traces_down`.
@@ -54,6 +54,8 @@ Las 7 reglas no negociables:
 5. Cambios al código pasan por PR. **Nunca push directo a `main`.**
 6. **Toda sesión con IA genera una entrada de DevLog antes del push.**
 7. Cambios de seguridad, esquema o CI/CD requieren revisión humana explícita.
+8. **Una rama fija por persona: `dev/{identidad}`.** Permanente, se sincroniza con `merge`, nunca se borra.
+9. **Cada quien toca solo su alcance**, definido en `vault/_Meta/ownership.yml`. El CI lo hace cumplir.
 
 ---
 
@@ -63,14 +65,22 @@ Las 7 reglas no negociables:
 - Escribe en **español** (código y comentarios técnicos pueden ir en inglés).
 - Usa los prefijos de ID correctos: `REQ-` `US-` `AC-` `ADR-` `TASK-` `TEST-` `BUG-` `SEC-` `RISK-` `INC-` `DEC-` `DS-` `ML-`
 - Al terminar una tarea, **recuerda al usuario** que debe: actualizar el `_index.md`, la
-  `02_Requirements/Traceability_Matrix.md` y escribir su DevLog.
+  `vault/02_Requirements/Traceability_Matrix.md` y escribir su DevLog.
 - Commits en formato Conventional Commits **con el ID de la historia**:
   `feat(gold): cubo de matrícula por municipio (US-113)`
-- Ramas: `feat/` `fix/` `chore/` `docs/` `sec/` + `{nombre}-{descripcion}`
+- **Una sola rama por persona:** `dev/{primer-nombre}-{apellido-paterno}`, permanente. La rama dice
+  quién; el commit dice qué. El padrón de las 21 identidades está en `vault/_Meta/ownership.yml`.
+- **Sincroniza antes de trabajar y antes de abrir el PR:** `git fetch origin && git merge origin/main`.
+- Título del PR: `[Nombre Apellido] - Descripción concisa (ID) - [sync|CI|DoF|DevLog]`
 
 ### Nunca
 - **Nunca hagas commit directo a `main`.**
-- **Nunca pongas credenciales, tokens ni contenido de `.env` en el código.** Ver `07_Security/Secrets_Policy.md`.
+- **Nunca abras una rama por historia, por sprint o por tema.** Solo existe `dev/{identidad}`.
+- **Nunca uses `rebase` ni `--force`** sobre una rama `dev/*`: es permanente y su historia sostiene
+  las revisiones de los PRs anteriores.
+- **Nunca toques archivos fuera del alcance de la persona con la que trabajas.** Ante duda, pregunta
+  al dueño del área.
+- **Nunca pongas credenciales, tokens ni contenido de `.env` en el código.** Ver `vault/07_Security/Secrets_Policy.md`.
 - **Nunca subas datos reales pesados.** `data/raw/` está en `.gitignore`. Los fixtures van en
   `tests/fixtures/`, máximo 500 filas, anonimizados.
 - Nunca inventes rutas de fuentes de datos. Si no sabes la URL exacta, dilo y pide confirmación.
@@ -166,8 +176,8 @@ nulo silencioso.** Cada cubo expone bandera de cobertura y se calcula `indice_co
 | 5 | Cloud & DevOps | Luis Téllez | 1.0 pt |
 | PO | Dirección de proyecto | Edgar Coronel | 0.5 pts |
 
-Cada integrante tiene su plan en `12_Roadmap_Sprints/Sprints/` y su alcance de IA en
-`09_AI_Governance/Agent_Contexts/`.
+Cada integrante tiene su plan en `vault/12_Roadmap_Sprints/Sprints/` y su alcance de IA en
+`vault/09_AI_Governance/Agent_Contexts/`.
 
 **Antes de trabajar con alguien, revisa su Agent Context.** No trabajes fuera del alcance definido.
 
@@ -195,7 +205,7 @@ source .venv/bin/activate
 docker compose up -d
 
 # Calidad del vault (DEBE dar verde antes de cada PR)
-python _Meta/scripts/vault_lint.py .
+python vault/_Meta/scripts/vault_lint.py .
 
 # Pruebas
 pytest tests/ -q

@@ -797,7 +797,7 @@
     }
   },
   "info": {
-    "description": "Contrato REST de FARO (Escuela como Sensor Social). Fuente de verdad: 03_Architecture/API_Specification.md. Este servicio publica el OpenAPI que consumen los mocks de las Células 2 y 3 (US-401).",
+    "description": "Contrato REST de FARO (Escuela como Sensor Social). Fuente de verdad: vault/03_Architecture/API_Specification.md. Este servicio publica el OpenAPI que consumen los mocks de las Células 2 y 3 (US-401).",
     "title": "FARO API — Contrato v1",
     "version": "1.0.0"
   },
@@ -1370,7 +1370,7 @@
     },
     "/api/v1/kpis": {
       "get": {
-        "description": "KPIs agregados del tablero (rol mínimo: ciudadano).\n\nFórmulas tomadas literalmente de `04_UX_Design/Screen_Specs.md` (KPI-02 variación ponderada,\nKPI-04 escuelas en riesgo vía JOIN a `gold.predicciones` con umbral 0.6 ratificado, KPI-05\ncompletitud promedio) — no son agregaciones inventadas para este endpoint.",
+        "description": "KPIs agregados del tablero (rol mínimo: ciudadano).\n\nFórmulas tomadas literalmente de `vault/04_UX_Design/Screen_Specs.md` (KPI-02 variación ponderada,\nKPI-04 escuelas en riesgo vía JOIN a `gold.predicciones` con umbral 0.6 ratificado, KPI-05\ncompletitud promedio) — no son agregaciones inventadas para este endpoint.",
         "operationId": "obtener_kpis_api_v1_kpis_get",
         "parameters": [
           {

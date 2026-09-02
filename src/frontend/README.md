@@ -1,7 +1,7 @@
 # FARO Web (frontend Streamlit)
 
-Capa web integrada del proyecto. Diseño: `03_Architecture/Frontend_Architecture.md` · Decisión:
-`03_Architecture/ADRs/ADR-002-frontend-streamlit.md`.
+Capa web integrada del proyecto. Diseño: `vault/03_Architecture/Frontend_Architecture.md` · Decisión:
+`vault/03_Architecture/ADRs/ADR-002-frontend-streamlit.md`.
 
 ## Estructura (andamiaje)
 - `app.py` — entrada, router y sesión.

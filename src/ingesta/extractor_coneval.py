@@ -12,7 +12,7 @@ pobreza ocurren después, en Silver.
 
 La estructura física utilizada aquí fue verificada contra los ZIP oficiales de
 CONEVAL el 2026-08-30 y quedó documentada en
-`_DevLog/2026-08-30-deni-garrido-ds07-probe-esquema-real.md`.
+`vault/_DevLog/2026-08-30-deni-garrido-ds07-probe-esquema-real.md`.
 """
 
 from __future__ import annotations

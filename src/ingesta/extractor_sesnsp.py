@@ -3,7 +3,7 @@ Extractor de SESNSP (DS-04) — Incidencia delictiva municipal, periodicidad men
 
 La URL oficial de SESNSP (gob.mx) publica el dataset como un link de SharePoint que
 exige login de Microsoft, sin descarga pública anónima (ver
-`14_Data_Sources/DS-04_SESNSP_Incidencia_Delictiva.md`, sección 9). Este extractor usa
+`vault/14_Data_Sources/DS-04_SESNSP_Incidencia_Delictiva.md`, sección 9). Este extractor usa
 en su lugar el mismo dataset servido por la Agencia de Transformación Digital y
 Telecomunicaciones (ATDT) — la infraestructura real detrás de `datos.gob.mx` (mismo
 host que ya usa `extractor_formato911.py` para DS-01), verificada en vivo el

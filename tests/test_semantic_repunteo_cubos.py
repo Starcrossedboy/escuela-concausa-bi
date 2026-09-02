@@ -17,7 +17,7 @@ leer ese mismo cubo.
 Validación **estática**: no necesita base de datos. La validación contra datos corre con
 `superset/sync_semantic_layer.py --validar-datos`.
 
-Contratos: `04_UX_Design/Cube_Specs_DB*.md` (US-113/205).
+Contratos: `vault/04_UX_Design/Cube_Specs_DB*.md` (US-113/205).
 """
 
 from __future__ import annotations

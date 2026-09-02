@@ -99,6 +99,49 @@ el OpenAPI publicado.
 
 Pruebas: `tests/test_rbac.py` (matriz 401/403/200 en admin y ambas ramas del flag en lectura).
 
+## Hardening de la API (US-404)
+
+Endurecimiento de la superficie HTTP, configurable por entorno (`config.py`):
+
+- **Rate limiting** por `(IP, path)`, `RATE_LIMIT_DEFAULT` (default `120/minute`). Se implementa con
+  el **motor `limits`** (dependencia de `slowapi`) en un middleware propio que devuelve el `ErrorOut`
+  429 uniforme. **No** se usa `SlowAPIMiddleware`: su resolución de ruta no reconoce los routers
+  incluidos de esta versión de FastAPI (`_IncludedRouter`) y eximiría todo. Es **en memoria por
+  proceso** → sirve para 1 instancia/demo; **follow-up:** backend compartido (Redis) para Cloud Run
+  multi-instancia.
+- **CORS** con orígenes configurables (`CORS_ORIGINS`, CSV); default = frontends locales. C5 añade
+  los orígenes reales de despliegue. Métodos/headers acotados (`GET/POST/OPTIONS`, `Authorization`/
+  `Content-Type`).
+- **Validación estricta de entrada**: los request bodies heredan de `EntradaEstricta`
+  (`extra="forbid"`) → un campo desconocido es 422, no se ignora en silencio. Se refleja como
+  `additionalProperties: false` en el OpenAPI publicado.
+- **Errores sin fuga**: el handler 500 registra el detalle real en logs (`faro.api`) y devuelve un
+  mensaje genérico; ningún 4xx/5xx expone trazas, SQL ni configuración interna.
+
+Pruebas: `tests/test_hardening.py` (CORS, 429 con `ErrorOut`, 422 por campo extra, 500 sin fuga).
+
+### Ejecutor SQL read-only del agente (BUG-025)
+
+La colaboración `ejecutar_sql` del seam del agente se implementa en `src/api/ejecutor_gold.py`
+(`ejecutar_sql_read_only`), con **defensa en profundidad**:
+
+1. **Rol PostgreSQL con solo `SELECT` sobre `gold.*`** — DSN `DATABASE_URL_READ_ONLY`, distinto de la
+   conexión general; es la barrera real (aunque todo lo demás fallara, la BD rechaza escritura).
+2. `SET TRANSACTION READ ONLY` por conexión.
+3. `statement_timeout` (`AGENTE_SQL_TIMEOUT_MS`, default 30 s).
+4. Revalidación con `validar_sql_lectura()` antes de tocar la BD (redundante, a propósito).
+
+Se cablea (`app.dependency_overrides[get_ejecutar_sql]`) **solo si** `DATABASE_URL_READ_ONLY` está
+definido; sin él el agente usa el default seguro del seam y CI/local no tocan Postgres. La ejecución
+real es integración (US-422, Eloisa). Config por patrón `Settings` (minúsculas, sin `os.getenv` suelto).
+
+**Pendiente de Célula 5:** crear el rol `faro_agente_readonly` (`GRANT SELECT ON ALL TABLES IN SCHEMA
+gold`), el secreto en Secret Manager y el `--set-secrets=DATABASE_URL_READ_ONLY=...` en Cloud Run.
+
+**Follow-ups de hardening (documentados aquí):** migración a **RS256** (llaves RSA en Secret Manager,
+**C5**) manteniendo `jwt_algorithm` configurable; **rotación/revocación de refresh** con un store
+(Postgres/Redis); rate limiting distribuido (Redis).
+
 ## Consecuencias
 
 - US-403 construye `require_role(...)` sobre `get_current_user` de este ADR.

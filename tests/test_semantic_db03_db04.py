@@ -1,4 +1,4 @@
-"""Pruebas del contrato semántico de los cubos de DB-03 y DB-04 (US-211a).
+"""Pruebas del contrato semántico de los cubos de DB-03 y DB-04 (US-211a, repunteo US-205).
 
 Convierten en algo que el CI puede hacer cumplir las reglas que este proyecto no puede
 permitirse romper en la capa de BI:
@@ -6,9 +6,9 @@ permitirse romper en la capa de BI:
 * **`SIN_DATO` nunca es cero.** Si alguien —persona o IA— "arregla" un hueco con
   `COALESCE(d1, 0)`, el tablero afirmaría "aquí no hay problema" justo donde el Estado no
   está midiendo. Estas pruebas fallan si eso aparece.
-* **Las salidas de ML se leen por `JOIN`**, nunca como columna del hecho
-  (`Data_Model` §4.1). En el grano de escuela el `JOIN` además debe ser `LEFT`, para que la
-  ficha exista aunque el modelo todavía no haya puntuado a la escuela.
+* **El SQL semántico lee `gold.cubo_*`** (repunteo US-205/US-113): ya no agrega el hecho
+  ni une salidas de ML — los LEFT JOIN con llave completa, el modelo `ML-01` y el umbral
+  `0.6` ya los resolvió el cubo C1. La capa hace passthrough explícito del contrato.
 * **Las razones se guardan como numerador y denominador**, para que se puedan reagregar con
   cualquier combinación de los filtros globales (AC-002.2).
 
@@ -104,9 +104,8 @@ def test_db04_publica_el_denominador_real_de_cada_driver(db04: str) -> None:
             f"Falta el denominador `escuelas_con_{driver}`: sin él, el promedio de {driver} "
             "se calcularía sobre escuelas que nunca se midieron."
         )
-        patron = rf"sum\s*\(\s*\w*\.?{driver}\s*\)\s*filter\s*\(\s*where\s+\w*\.?{driver}_cobertura\s*=\s*'OK'"
-        assert re.search(patron, db04, re.IGNORECASE), (
-            f"`suma_{driver}` debe sumar solo sobre {driver}_cobertura = 'OK'."
+        assert f"cobertura_{driver}" in db04, (
+            f"Falta la bandera `cobertura_{driver}` (R2: SIN_DATO nunca cero)."
         )
 
 
@@ -132,66 +131,72 @@ def test_las_salidas_de_ml_no_se_leen_del_hecho(cubo: str, request: pytest.Fixtu
         )
 
 
-def test_db03_une_las_salidas_de_ml_con_left_join(db03: str) -> None:
-    """La ficha debe existir aunque el modelo aún no haya puntuado a la escuela (Cube_Specs §2.2)."""
+def test_db03_lee_el_cubo_fisico(db03: str) -> None:
+    """Repunteo US-205: la ficha 360 se sirve de gold.cubo_escuela_360 (C1)."""
+    assert re.search(r"from\s+gold\.cubo_escuela_360\b", db03, re.IGNORECASE), (
+        "db03: debe leer gold.cubo_escuela_360."
+    )
+
+
+def test_db04_lee_el_cubo_fisico(db04: str) -> None:
+    """Repunteo US-205: el comparador se sirve de gold.cubo_comparador_municipio (C1)."""
+    assert re.search(r"from\s+gold\.cubo_comparador_municipio\b", db04, re.IGNORECASE), (
+        "db04: debe leer gold.cubo_comparador_municipio."
+    )
+
+
+def test_db04_publica_la_cobertura_de_riesgo(db04: str) -> None:
+    """R2: el riesgo viaja con cobertura_riesgo (SIN_DATO nunca cero) desde el cubo."""
+    assert re.search(r"\bcobertura_riesgo\b", db04), (
+        "db04: falta cobertura_riesgo para gobernar el área de predicción."
+    )
+
+
+@pytest.mark.parametrize("cubo", ["db03", "db04"])
+def test_la_capa_semantica_no_reune_salidas_de_ml(cubo: str, request: pytest.FixtureRequest) -> None:
+    """R1 ya lo resolvió el cubo C1; la capa semántica no re-une gold.predicciones ni
+    gold.recomendaciones."""
+    sql = request.getfixturevalue(cubo)
     for tabla in ("gold.predicciones", "gold.recomendaciones"):
-        assert re.search(rf"left\s+join\s+{re.escape(tabla)}\b", db03, re.IGNORECASE), (
-            f"DB-03 debe unir {tabla} con LEFT JOIN: con JOIN interno la escuela desaparecería "
-            "del tablero sin explicación."
+        assert not re.search(rf"\b{re.escape(tabla)}\b", sql, re.IGNORECASE), (
+            f"{cubo}: {tabla} ya fue resuelta por C1; no se re-une en la capa semántica."
         )
-
-
-def test_db04_une_las_predicciones_con_left_join(db04: str) -> None:
-    """Un municipio sin predicciones sigue siendo comparable por matrícula y contexto."""
-    assert re.search(r"left\s+join\s+gold\.predicciones\b", db04, re.IGNORECASE)
-
-
-@pytest.mark.parametrize("cubo", ["db03", "db04"])
-def test_el_join_de_predicciones_filtra_el_modelo(cubo: str, request: pytest.FixtureRequest) -> None:
-    """`gold.predicciones` guarda ML-01/02/03: sin filtrar el modelo, el riesgo se mezcla."""
-    sql = request.getfixturevalue(cubo)
-    assert re.search(r"modelo\s*=\s*'ML-01'", sql), f"{cubo}: falta el filtro `modelo = 'ML-01'`."
-
-
-@pytest.mark.parametrize("cubo", ["db03", "db04"])
-def test_el_join_de_ml_usa_la_llave_completa(cubo: str, request: pytest.FixtureRequest) -> None:
-    """La llave de unión es (cct, id_ciclo): unir solo por cct rompería el grano por ciclo."""
-    sql = request.getfixturevalue(cubo)
-    assert re.search(r"f\.cct\s*=\s*p\.cct", sql)
-    assert re.search(r"f\.id_ciclo\s*=\s*p\.id_ciclo", sql)
 
 
 # --------------------------------------------------------------------------- R3: umbral de negocio
 
 
-@pytest.mark.parametrize("cubo", ["db03", "db04"])
-def test_el_umbral_de_riesgo_es_el_ratificado(cubo: str, request: pytest.FixtureRequest) -> None:
-    """0.6 = perder ~5% de matrícula, ratificado el 2026-08-13 (Indice_Riesgo_ML01)."""
-    sql = request.getfixturevalue(cubo)
-    assert re.search(rf"indice_riesgo\s*>=\s*{UMBRAL_RIESGO}", sql), (
-        f"{cubo}: el umbral de 'escuela en riesgo' debe ser >= {UMBRAL_RIESGO}."
-    )
+def test_el_umbral_de_riesgo_es_el_ratificado(datasets_por_nombre: dict[str, dict]) -> None:
+    """0.6 = perder ~5% de matrícula, ratificado el 2026-08-13 (Indice_Riesgo_ML01).
+    Con el repunteo el umbral ya no vive en el SQL (lo aplicó C1): queda declarado
+    en el YAML de métricas (`umbral: 0.6`) para mantener el contrato R3."""
+    for nombre in ("cubo_escuela_360", "cubo_comparador_municipio"):
+        ds = datasets_por_nombre[nombre]
+        metricas = {m["nombre"]: m for m in ds["metricas"]}
+        assert metricas["escuelas_en_riesgo"].get("umbral") == float(UMBRAL_RIESGO), (
+            f"{nombre}: debe ratificar el umbral 0.6 como R3 en el YAML."
+        )
 
 
 # --------------------------------------------------------------------------- grano y filtros globales
 
 
 def test_db03_tiene_grano_de_escuela_por_ciclo(db03: str) -> None:
-    """Grano cct × ciclo (Data_Model §4.3)."""
-    assert re.search(r"\bf\.cct\b", db03)
-    assert re.search(r"\bf\.id_ciclo\b", db03)
+    """Grano cct × ciclo (Data_Model §4.3), servido por el cubo C1 a detalle."""
+    assert re.search(r"\bcct\b", db03)
+    assert re.search(r"\bid_ciclo\b", db03)
     assert not re.search(r"\bgroup\s+by\b", db03, re.IGNORECASE), (
-        "DB-03 está al grano del hecho: no debe agregar."
+        "DB-03 está al grano del detalle: no debe agregar."
     )
 
 
-def test_db04_agrupa_al_grano_declarado(db04: str) -> None:
-    """Grano cve_mun × nivel × ciclo: sin `nivel` no se puede cumplir AC-002.2 en DB-04."""
-    group_by = db04.lower().split("group by", 1)
-    assert len(group_by) == 2, "DB-04 debe agregar con GROUP BY."
-    clausula = group_by[1]
-    for columna in ("cve_mun", "nivel", "id_ciclo"):
-        assert columna in clausula, f"Falta `{columna}` en el GROUP BY de DB-04."
+def test_db04_agrupa_al_grano_declaro_en_el_cubo(db04: str, datasets_por_nombre: dict[str, dict]) -> None:
+    """Repunteo US-205: db04 ya viene al grano cve_mun × nivel × ciclo desde C1 — el
+    YAML lo declara y el SQL no reagrega (sin nivel no se cumpliría AC-002.2)."""
+    assert datasets_por_nombre["cubo_comparador_municipio"]["grano"] == ["cve_mun", "nivel", "id_ciclo"]
+    assert not re.search(r"\bgroup\s+by\b", db04, re.IGNORECASE), (
+        "db04: el cubo C1 ya viene al grano; no se reagrega en la capa semántica."
+    )
 
 
 @pytest.mark.parametrize("cubo", ["db03", "db04"])
@@ -210,6 +215,11 @@ def metricas() -> dict:
     """Carga el YAML de métricas. `pyyaml` no está en requirements.txt: si falta, se omite."""
     yaml = pytest.importorskip("yaml", reason="pyyaml no está en requirements.txt")
     return yaml.safe_load(leer(YAML_METRICAS))
+
+
+@pytest.fixture(scope="module")
+def datasets_por_nombre(metricas: dict) -> dict[str, dict]:
+    return {d["nombre"]: d for d in metricas["datasets"]}
 
 
 def test_el_yaml_declara_los_dos_cubos(metricas: dict) -> None:
@@ -259,6 +269,42 @@ def test_los_porcentajes_no_se_multiplican_dos_veces(metricas: dict) -> None:
                 "guarda la razón como fracción."
             )
 
+
+
+def test_una_metrica_de_porcentaje_no_multiplica_dos_medidas(metricas: dict) -> None:
+    """Una razón se calcula como razón de sumas, no como promedio ponderado de razones.
+
+    Regresión de BUG-031. `variacion_ponderada_pct` era
+    `SUM(variacion_matricula * matricula_total) / NULLIF(SUM(matricula_total), 0)`: un promedio
+    de `variacion_matricula` ponderado por matrícula, que solo tendría sentido si esa columna
+    fuera una razón. Son alumnos absolutos, así que el tablero pintó **-54.5%** durante dos
+    semanas donde el valor real era **-0.19%**.
+
+    La firma del defecto es el **producto de dos columnas dentro de un agregado**: delata que se
+    está promediando una razón que no es razón, y que el numerador y el denominador reales no
+    existen por separado. La prueba hermana —la del `* 100`— no lo detectaba porque esta
+    expresión nunca tuvo `* 100`: cubría la *forma* del error de US-203/US-211b/US-212, no su
+    *clase*. Esa confianza falsa es lo que esta prueba viene a cerrar.
+
+    Nota deliberada sobre el alcance: esto es verificable sin base de datos, así que corre en
+    CI. Lo que NO sustituye es mirar el número — "devuelve datos" no es "devuelve el dato
+    correcto".
+    """
+    producto_de_columnas = re.compile(
+        r"(?:SUM|AVG)\s*\(\s*[A-Za-z_][A-Za-z0-9_]*\s*\*\s*[A-Za-z_][A-Za-z0-9_]*",
+        re.IGNORECASE,
+    )
+    for dataset in metricas["datasets"]:
+        for metrica in dataset["metricas"]:
+            if not str(metrica.get("formato", "")).startswith("porcentaje"):
+                continue
+            expresion = metrica.get("expresion", "")
+            assert not producto_de_columnas.search(expresion), (
+                f"{dataset['nombre']}.{metrica['nombre']}: la expresión multiplica dos medidas "
+                f"dentro de un agregado ({expresion!r}) y se renderiza como porcentaje. "
+                "Guarda numerador y denominador por separado y divide sumas de una sola "
+                "columna (Cube_Specs_DB03_DB04 §4.4, BUG-031)."
+            )
 
 def test_ninguna_metrica_rellena_con_cero(metricas: dict) -> None:
     for dataset in metricas["datasets"]:

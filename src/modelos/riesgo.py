@@ -37,9 +37,9 @@ queda documentada por sus anclas y no por constantes mágicas.
   sea el resto del universo o el ciclo. Además está acotada por construcción, así que nunca viola el
   contrato de la API.
 
-> **Estatus:** propuesta de ML-01 pendiente de ratificar con Andrés González Habib (ADR-003) y
-> Christian Ruiz (contrato de la API). Las anclas son el punto a discutir; la forma funcional no
-> debería cambiar. Ver `15_ML_Models/Indice_Riesgo_ML01.md`.
+> **Estatus:** la unidad del target quedó ratificada en `ADR-007` (fracción, 29-ago) y el umbral de
+> −5 % en `DEC-006` (13-ago). **Queda abierta una sola ancla: el `0.30` de escuela estable**, que es
+> un juicio de negocio. Ver `15_ML_Models/Indice_Riesgo_ML01.md` §4.1.
 """
 
 from __future__ import annotations

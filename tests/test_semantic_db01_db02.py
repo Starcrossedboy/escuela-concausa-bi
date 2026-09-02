@@ -1,14 +1,16 @@
-"""Pruebas del contrato semántico de DB-01 y DB-02 (US-203).
+"""Pruebas del contrato semántico de DB-01 y DB-02 (US-203, repunteo US-205).
 
 Mismas reglas que `test_semantic_db03_db04.py`, ahora para el tablero ejecutivo y
-el mapa de riesgo territorial:
+el mapa de riesgo territorial, leídos desde los cubos físicos C1:
 
 * **`SIN_DATO` nunca es cero.** Un municipio sin predicciones ML-01 se pinta
   SIN_DATO; si alguien lo "arregla" con `COALESCE(indice_riesgo, 0)` el mapa
   mentiría pintando calma donde no hay medición.
-* **Las salidas de ML se leen por `LEFT JOIN`** con la llave completa
-  (`cct`, `id_ciclo`) y filtro de modelo (Data_Model §4.1).
-* **El umbral de riesgo es >= 0.6** (R3, ratificado 2026-08-13).
+* **El SQL semántico lee `gold.cubo_*`** (repunteo US-205/US-113): ya no agrega
+  el hecho ni une salidas de ML — C1 las resolvió por LEFT JOIN con llave
+  completa y filtro de modelo; aquí solo se enriquece el nombre del municipio.
+* **El umbral de riesgo es >= 0.6** (R3, ratificado 2026-08-13) y queda
+  declarado en el YAML de métricas (`umbral: 0.6`).
 * **Los porcentajes dividen entre el denominador real**: `% en riesgo` sobre
   escuelas *puntuadas*, no sobre el total.
 * **El mock de ML es inofensivo**: determinístico, idempotente y sin DDL/DML
@@ -105,9 +107,9 @@ def test_el_riesgo_no_se_rellena_con_cero(fixture_name: str, request: pytest.Fix
 
 
 def test_la_etiqueta_sin_dato_es_categoria_no_metrica(db01_driver: str) -> None:
-    """En driver dominante, COALESCE solo puede etiquetar la categoría vacía."""
-    # Permitido: etiquetar la categoría cuando ML-02 aún no explicó la escuela.
-    assert re.search(r"coalesce\s*\([^)]*,\s*'SIN_DATO'\s*\)", db01_driver, re.IGNORECASE)
+    """La categoría vacía viaja como literal 'SIN_DATO', jamás como cero (R2)."""
+    assert re.search(r"'\s*SIN_DATO\s*'\s+as\s+id_driver", db01_driver, re.IGNORECASE)
+    assert re.search(r"'\s*Sin recomendacion\s*'", db01_driver, re.IGNORECASE)
     # Prohibido: rellenar conteos o métricas con cero.
     assert not re.search(r"coalesce\s*\(\s*(sum|count)\s*\(", db01_driver, re.IGNORECASE), (
         "driver_dominante: no se rellenan agregaciones con COALESCE."
@@ -129,48 +131,56 @@ def test_las_salidas_de_ml_no_se_leen_del_hecho(fixture_name: str, request: pyte
 
 
 @pytest.mark.parametrize("fixture_name", ["db02_cubo", "db02_puntos"])
-def test_las_predicciones_se_une_con_left_join(fixture_name: str, request: pytest.FixtureRequest) -> None:
-    """Con INNER JOIN, una escuela sin predicción desaparecería del mapa sin explicación."""
+def test_lee_el_cubo_fisico_del_c1(fixture_name: str, request: pytest.FixtureRequest) -> None:
+    """Repunteo US-205: el riesgo ya viene pre-agregado por C1, no se re-une a ML."""
     sql = request.getfixturevalue(fixture_name)
-    assert re.search(r"left\s+join\s+gold\.predicciones\b", sql, re.IGNORECASE), (
-        f"{fixture_name}: gold.predicciones debe unirse con LEFT JOIN."
+    cubo = {
+        "db02_cubo": "gold.cubo_riesgo_territorial",
+        "db02_puntos": "gold.cubo_escuela_360",
+    }[fixture_name]
+    assert re.search(rf"from\s+{cubo}\b", sql, re.IGNORECASE), (
+        f"{fixture_name}: debe leer {cubo} (grano DEC-009/DEC-010)."
     )
 
 
 @pytest.mark.parametrize("fixture_name", ["db02_cubo", "db02_puntos"])
-def test_el_join_usa_llave_completa_y_filtro_de_modelo(fixture_name: str, request: pytest.FixtureRequest) -> None:
-    """(cct, id_ciclo) + modelo='ML-01': sin llave completa se mezclan ciclos; sin
-    filtro de modelo se mezcla el riesgo con otras salidas del catálogo."""
+def test_la_capa_semantica_no_reune_predicciones(fixture_name: str, request: pytest.FixtureRequest) -> None:
+    """R1 ya lo resolvió el cubo C1 (LEFT JOIN con llave completa + modelo ML-01);
+    la capa semántica no debe re-unir gold.predicciones."""
     sql = request.getfixturevalue(fixture_name)
-    assert re.search(r"f\.cct\s*=\s*p\.cct", sql)
-    assert re.search(r"f\.id_ciclo\s*=\s*p\.id_ciclo", sql)
-    assert re.search(r"modelo\s*=\s*'ML-01'", sql)
+    assert not re.search(r"gold\.predicciones\b", sql, re.IGNORECASE), (
+        f"{fixture_name}: no se une gold.predicciones en la capa semántica (vive en C1)."
+    )
 
 
-def test_driver_dominante_viene_de_recomendaciones_por_left_join(db01_driver: str) -> None:
-    """KPI-07 lee la salida prescriptiva de ML-02; LEFT porque el modelo va llegando."""
-    assert re.search(r"left\s+join\s+gold\.recomendaciones\b", db01_driver, re.IGNORECASE)
-    assert re.search(r"f\.cct\s*=\s*r\.cct", db01_driver)
-    assert re.search(r"f\.id_ciclo\s*=\s*r\.id_ciclo", db01_driver)
+def test_driver_dominante_se_reagrega_del_cubo(db01_driver: str) -> None:
+    """KPI-07 reagrega gold.cubo_driver (ML-02 ya resuelto por C1) a cve_ent × ciclo."""
+    assert re.search(r"from\s+gold\.cubo_driver\b", db01_driver, re.IGNORECASE)
+    assert re.search(r"sum\s*\(\s*(?:\w+\.)?escuelas_driver\s*\)", db01_driver, re.IGNORECASE)
+    assert re.search(r"escuelas_sin_recomendacion", db01_driver)
     assert not re.search(r"\bf\.(driver_dominante|recomendacion|prioridad)\b", db01_driver)
 
 
 # --------------------------------------------------------------------------- R3: umbral de negocio
 
 
-def test_el_umbral_de_riesgo_es_el_ratificado(db02_cubo: str, db02_puntos: str) -> None:
-    """0.6 = perder ~5% de matrícula, ratificado el 2026-08-13 (Indice_Riesgo_ML01)."""
-    for nombre, sql in (("db02_cubo", db02_cubo), ("db02_puntos", db02_puntos)):
-        assert re.search(rf"indice_riesgo\s*>=\s*{UMBRAL_RIESGO}", sql), (
-            f"{nombre}: el umbral de 'escuela en riesgo' debe ser >= {UMBRAL_RIESGO} (R3)."
+def test_el_umbral_de_riesgo_es_el_ratificado(datasets_por_nombre: dict[str, dict]) -> None:
+    """0.6 = perder ~5% de matrícula, ratificado el 2026-08-13 (Indice_Riesgo_ML01).
+    Con el repunteo el umbral ya no vive en el SQL (lo aplicó C1): queda declarado
+    en el YAML de métricas (`umbral: 0.6`) para mantener el contrato R3."""
+    for nombre in ("db02_cubo_riesgo_territorial", "db02_coropletico"):
+        ds = datasets_por_nombre[nombre]
+        metricas = {m["nombre"]: m for m in ds["metricas"]}
+        assert metricas["escuelas_en_riesgo"].get("umbral") == float(UMBRAL_RIESGO), (
+            f"{nombre}: debe ratificar el umbral 0.6 como R3 en el YAML."
         )
 
 
 def test_sin_prediccion_no_es_en_riesgo(db02_puntos: str) -> None:
-    """La escuela sin predicción viaja con en_riesgo nulo, jamás FALSE ni TRUE."""
-    patron = r"when\s+p\.indice_riesgo\s+is\s+null\s+then\s+null"
-    assert re.search(patron, db02_puntos, re.IGNORECASE), (
-        "db02_puntos: `en_riesgo` debe ser NULL cuando no hay predicción."
+    """La escuela sin predicción viaja con en_riesgo nulo (del cubo C1), no con cero."""
+    assert re.search(r"\ben_riesgo\b", db02_puntos)
+    assert not re.search(r"coalesce\s*\(\s*\w*\.?en_riesgo\b", db02_puntos, re.IGNORECASE), (
+        "db02_puntos: `en_riesgo` no se fabrica con COALESCE (R2)."
     )
     assert re.search(r"cobertura_prediccion", db02_puntos), (
         "db02_puntos: falta la bandera cobertura_prediccion."
@@ -178,26 +188,28 @@ def test_sin_prediccion_no_es_en_riesgo(db02_puntos: str) -> None:
 
 
 def test_el_cubo_declara_cobertura_por_municipio(db02_cubo: str) -> None:
-    assert "cobertura_riesgo" in db02_cubo, (
+    assert re.search(r"\bcobertura_riesgo\b", db02_cubo), (
         "db02_cubo: falta cobertura_riesgo para pintar SIN_DATO en el coroplético."
     )
-    assert re.search(r"when\s+count\s*\(\s*\w*\.?cct\s*\)\s*=\s*0\s+then\s+'SIN_DATO'",
-                     db02_cubo, re.IGNORECASE)
+    assert re.search(r"rt\.cobertura_riesgo", db02_cubo), (
+        "db02_cubo: la cobertura viene del cubo C1, no se re-computa aquí."
+    )
 
 
 # --------------------------------------------------------------------------- grano y filtros globales
 
 
-def test_db01_cubo_agrupa_al_grano_declarado(db01_cubo: str) -> None:
-    """Grano cve_mun × nivel × ciclo (Screen_Specs §2)."""
-    clausula = db01_cubo.lower().split("group by", 1)[1]
-    for columna in ("cve_mun", "nivel", "id_ciclo"):
-        assert columna in clausula, f"Falta `{columna}` en el GROUP BY de DB-01 cubo."
+def test_db01_cubo_no_reagrega_y_lee_el_cubo(db01_cubo: str) -> None:
+    """Repunteo US-205: passthrough de gold.cubo_matricula, grano C1 = cve_mun×nivel×ciclo."""
+    assert re.search(r"from\s+gold\.cubo_matricula\b", db01_cubo, re.IGNORECASE)
+    assert not re.search(r"\bgroup\s+by\b", db01_cubo, re.IGNORECASE), (
+        "db01_cubo: el cubo C1 ya viene al grano; no se reagrega en la capa semántica."
+    )
 
 
 def test_distribucion_agrupa_por_nivel_sostenimiento_ciclo(db01_dist: str) -> None:
     clausula = db01_dist.lower().split("group by", 1)[1]
-    for columna in ("nivel", "sostenimiento", "id_ciclo"):
+    for columna in ("nivel", "sostenimiento", "id_ciclo", "cve_ent"):
         assert columna in clausula, (
             f"Falta `{columna}` en el GROUP BY de distribución de escuelas."
         )
@@ -209,16 +221,17 @@ def test_driver_dominante_agrupa_por_driver_y_ciclo(db01_driver: str) -> None:
         assert columna in clausula, f"Falta `{columna}` en el GROUP BY de driver dominante."
 
 
-def test_db02_cubo_agrupa_al_mismo_grano_que_db04(db02_cubo: str) -> None:
-    """Mismo grano que cubo_comparador (DEC-008): cve_mun × nivel × ciclo."""
-    clausula = db02_cubo.lower().split("group by", 1)[1]
-    for columna in ("cve_mun", "nivel", "id_ciclo"):
-        assert columna in clausula, f"Falta `{columna}` en el GROUP BY de DB-02 cubo."
+def test_db02_cubo_lee_el_grano_de_db04(db02_cubo: str) -> None:
+    """Mismo grano que cubo_comparador (DEC-008/009): cve_mun × nivel × ciclo, en C1."""
+    assert re.search(r"from\s+gold\.cubo_riesgo_territorial\b", db02_cubo, re.IGNORECASE)
+    assert not re.search(r"\bgroup\s+by\b", db02_cubo, re.IGNORECASE), (
+        "db02_cubo: el cubo C1 ya viene al grano; no se reagrega en la capa semántica."
+    )
 
 
-def test_puntos_esta_al_grano_del_hecho(db02_puntos: str) -> None:
+def test_puntos_esta_al_grano_de_la_escuela(db02_puntos: str) -> None:
     """La capa de puntos no agrega: cada CCT es un marcador (Screen_Specs §2)."""
-    assert re.search(r"\bf\.cct\b", db02_puntos)
+    assert re.search(r"\bcct\b", db02_puntos)
     assert not re.search(r"\bgroup\s+by\b", db02_puntos, re.IGNORECASE)
 
 
@@ -231,13 +244,19 @@ def test_los_componentes_son_aditivos_no_promedios(db01_cubo: str, db02_cubo: st
         )
 
 
-def test_variacion_es_ponderada_por_matricula(db01_cubo: str, db02_cubo: str) -> None:
-    """KPI-02 pondera por matrícula: SUM(variacion * matricula), nunca AVG(variacion)."""
+def test_variacion_usa_suma_matricula_anterior(db01_cubo: str, db02_cubo: str) -> None:
+    """KPI-02 es una razón de sumas (BUG-031/P-09): el cubo C1 ya guarda
+    suma_matricula_anterior = SUM(matricula_ciclo_anterior) como denominador directo;
+    la razón SUM(matricula_total)/SUM(suma_matricula_anterior)-1 vive en el YAML.
+    El componente ponderado variacion_x_matricula fue eliminado por Diana/C1 y no debe
+    reaparecer: promediaba alumnos absolutos como si fueran una fracción."""
     for nombre, sql in (("db01_cubo", db01_cubo), ("db02_cubo", db02_cubo)):
-        assert re.search(
-            r"sum\s*\(\s*f\.variacion_matricula\s*\*\s*f\.matricula_total\s*\)",
-            sql, re.IGNORECASE,
-        ), f"{nombre}: falta el componente ponderado variacion_x_matricula."
+        assert re.search(r"\bsuma_matricula_anterior\b", sql), (
+            f"{nombre}: falta el denominador directo suma_matricula_anterior (KPI-02)."
+        )
+        assert not re.search(r"\bvariacion_x_matricula\b", sql), (
+            f"{nombre}: reaparece variacion_x_matricula, columna eliminada en BUG-031."
+        )
 
 
 def test_los_filtros_globales_tienen_columna(db01_cubo: str, db02_cubo: str, db01_dist: str) -> None:
@@ -282,7 +301,18 @@ def test_el_coropletico_no_tiene_nivel_en_el_grano(metricas: dict) -> None:
     coro = next(d for d in metricas["datasets"] if d["nombre"] == "db02_coropletico")
     assert coro["grano"] == ["cve_mun", "id_ciclo"]
     sql = sin_comentarios(leer(SEMANTIC / coro["sql"]))
-    assert not re.search(r"\bnivel\b", sql.split("WITH riesgo")[1]), (
+    riesgo = sql.split("WITH riesgo")[1]
+    assert re.search(r"from\s+gold\.cubo_riesgo_territorial\b", riesgo, re.IGNORECASE), (
+        "db02_coropletico: debe reagregar gold.cubo_riesgo_territorial."
+    )
+    assert re.search(r"sum\s*\(\s*rt\.escuelas_con_prediccion\s*\)", riesgo, re.IGNORECASE), (
+        "db02_coropletico: reagrega las escuelas puntuadas para re-decidir cobertura."
+    )
+    assert re.search(
+        r"when\s+sum\s*\(?\s*rt\.escuelas_con_prediccion\s*\)?\)?\s*=\s*0\s+then\s+'SIN_DATO'",
+        riesgo, re.IGNORECASE,
+    ), "db02_coropletico: cobertura SIN_DATO re-computada en la reagregación (R2)."
+    assert not re.search(r"\bnivel\b", riesgo), (
         "db02_coropletico: no debe exponer `nivel` (polígonos duplicados por nivel educativo)."
     )
 

@@ -22,6 +22,7 @@ fastapi>=0.111.0
 uvicorn[standard]>=0.30.0
 python-jose[cryptography]>=3.3.0   # JWT (US-402). Uso endurecido: algoritmos explícitos en decode.
 cachetools>=5.3   # cache TTL de predicciones (US-416)
+slowapi>=0.1.9   # rate limiting (US-404); el 429 se mapea al ErrorOut uniforme del contrato
 
 # Célula 3 - ML. Sólo lo que el CI necesita para correr las pruebas de src/modelos/:
 # el resto del stack (xgboost, mlflow, shap, chromadb, sentence-transformers) vive en

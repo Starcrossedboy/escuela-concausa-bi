@@ -1,66 +1,64 @@
 -- =============================================================================
--- Coropletico municipal (KPI-10)  ·  DB-02 Mapa de riesgo territorial
+-- db02_coropletico  ·  DB-02 Mapa de riesgo territorial (KPI-10)
 -- -----------------------------------------------------------------------------
--- Historia : US-203  (Manuel Alejandro Serrania Reinada, Celula 2 - Analytics & BI)
+-- Historia : US-205  (Manuel Alejandro Serrania Reinada, Celula 2 - Analytics & BI)
 -- Contrato : 04_UX_Design/Screen_Specs.md §2 ("coropletico municipal")
 -- Grano    : una fila por cve_mun x id_ciclo
 --
--- Compone el cubo de riesgo territorial con las geometrias municipales que
--- Superset necesita para deck_polygon: `geometria` viaja como texto GeoJSON
--- (line_type json) y la llave cve_mun (CVEGEO INEGI de 5 digitos) es la misma
--- de gold.dim_municipio y del GeoJSON del asset.
+-- REPUNTEO A CUBOS FISICOS (US-205 / US-113): REAGREGA gold.cubo_riesgo_
+--   territorial (grano cve_mun x nivel x ciclo) al grano municipal del
+--   coropletico (cve_mun x ciclo) SUMANDO los componentes aditivos y las
+--   geometrias municipales que Superset necesita para deck_polygon: `geometria`
+--   viaja como texto GeoJSON (line_type json) y la llave cve_mun (CVEGEO INEGI
+--   de 5 digitos) es la misma de dim_municipio y del GeoJSON del asset.
 --
--- SIN `nivel` en el grano, A PROPOSITO: con nivel, un municipio produceria una
--- fila por nivel educativo y el JOIN con la geometria dibujaria poligonos
--- superpuestos. El desglose por nivel vive en el cubo territorial y en los
--- puntos de escuela; el color del poligono es siempre municipal.
+-- SIN `nivel` en el grano, A PROPOSITO: con nivel, un municipio produciria una
+--   fila por nivel educativo y el JOIN con la geometria dibujaria poligonos
+--   superpuestos. El desglose por nivel vive en el cubo territorial y en los
+--   puntos de escuela; el color del poligono es siempre municipal.
+--
+-- La cobertura se RE-computa en la reagregacion: si entre los niveles del
+--   municipio nadie fue puntuado, el poligono se pinta 'SIN_DATO', nunca en el
+--   color de riesgo cero (R2).
 --
 -- gold.geo_municipio es una tabla LOCAL creada por
--- superset/cargar_geojson_municipios.py desde el asset versionado
--- superset/assets/geojson/municipios_scope.geojson (datos publicos INEGI).
+--   superset/cargar_geojson_municipios.py desde el asset versionado
+--   superset/assets/geojson/municipios_scope.geojson (datos publicos INEGI).
 --
--- Reglas aplicadas: R1 (ML por JOIN), R2 (SIN_DATO nunca cero: los municipios
---                   sin prediccion se pintan SIN_DATO, no en el color de
---                   riesgo cero), R3 (umbral 0.6).
+-- Reglas aplicadas: R2 (SIN_DATO nunca cero), R5 (Gold ya viene acotado).
+--   R1/R3 viven en el cubo C1.
 -- =============================================================================
 
 WITH riesgo AS (
     SELECT
-        f.cve_mun,
-        dm.cve_ent,
-        dm.nombre_municipio,
-        dm.nombre_entidad,
-        f.id_ciclo,
-        dt.ciclo,
-        dt.anio_inicio,
+        rt.cve_mun,
+        rt.cve_ent,
+        rt.nombre_municipio,
+        rt.nombre_entidad,
+        rt.id_ciclo,
+        rt.ciclo,
+        rt.anio_inicio,
 
-        COUNT(DISTINCT f.cct)                          AS escuelas,
-        SUM(f.matricula_total)                         AS matricula_total,
-        SUM(f.variacion_matricula * f.matricula_total) AS variacion_x_matricula,
+        SUM(rt.escuelas)                    AS escuelas,
+        SUM(rt.matricula_total)             AS matricula_total,
+        SUM(rt.suma_matricula_anterior)     AS suma_matricula_anterior,
 
-        SUM(p.indice_riesgo)                           AS suma_indice_riesgo,
-        COUNT(p.cct)                                   AS escuelas_con_prediccion,
-        COUNT(*) FILTER (WHERE p.indice_riesgo >= 0.6) AS escuelas_en_riesgo,  -- R3
+        SUM(rt.suma_indice_riesgo)          AS suma_indice_riesgo,
+        SUM(rt.escuelas_con_prediccion)     AS escuelas_con_prediccion,
+        SUM(rt.escuelas_en_riesgo)          AS escuelas_en_riesgo,
         CASE
-            WHEN COUNT(p.cct) = 0 THEN 'SIN_DATO'
+            WHEN SUM(rt.escuelas_con_prediccion) = 0 THEN 'SIN_DATO'
             ELSE 'OK'
-        END                                            AS cobertura_riesgo
-
-    FROM gold.fact_escuela_ciclo f
-    JOIN      gold.dim_escuela   e  ON f.cct      = e.cct
-    JOIN      gold.dim_tiempo    dt ON f.id_ciclo = dt.id_ciclo
-    JOIN      gold.dim_municipio dm ON f.cve_mun  = dm.cve_mun
-    LEFT JOIN gold.predicciones  p  ON f.cct      = p.cct
-                                   AND f.id_ciclo = p.id_ciclo
-                                   AND p.modelo   = 'ML-01'
+        END                                 AS cobertura_riesgo
+    FROM gold.cubo_riesgo_territorial rt
     GROUP BY
-        f.cve_mun,
-        dm.cve_ent,
-        dm.nombre_municipio,
-        dm.nombre_entidad,
-        f.id_ciclo,
-        dt.ciclo,
-        dt.anio_inicio
+        rt.cve_mun,
+        rt.cve_ent,
+        rt.nombre_municipio,
+        rt.nombre_entidad,
+        rt.id_ciclo,
+        rt.ciclo,
+        rt.anio_inicio
 )
 
 SELECT
@@ -73,7 +71,7 @@ SELECT
     r.anio_inicio,
     r.escuelas,
     r.matricula_total,
-    r.variacion_x_matricula,
+    r.suma_matricula_anterior,
     r.suma_indice_riesgo,
     r.escuelas_con_prediccion,
     r.escuelas_en_riesgo,

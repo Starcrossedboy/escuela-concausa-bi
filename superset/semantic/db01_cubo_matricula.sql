@@ -1,60 +1,46 @@
 -- =============================================================================
--- gold.cubo_matricula (virtual)  ·  DB-01 Ejecutivo
+-- db01_cubo_matricula  ·  DB-01 Ejecutivo
 -- -----------------------------------------------------------------------------
--- Historia   : US-203  (Manuel Alejandro Serrania Reinada, Celula 2 - Analytics & BI)
+-- Historia   : US-205  (Manuel Alejandro Serrania Reinada, Celula 2 - Analytics & BI)
 -- Contrato   : 04_UX_Design/Screen_Specs.md §2 (cubo de DB-01) y §4 (KPI-01/02/05)
 -- Grano      : una fila por cve_mun x nivel x id_ciclo
--- Uso        : dataset virtual de Superset para DB-01 y SQL de referencia para
---              US-113 (materializacion en dbt, Celula 1). Cuando el cubo real
---              exista, este dataset cambia su SQL por `SELECT * FROM
---              gold.cubo_matricula` y nada mas se mueve.
 --
--- POR QUE COMPONENTES Y NO PROMEDIOS (patron DEC-008, ratificado para DB-04):
---   La variacion ponderada y la completitud se guardan como numerador y
---   denominador por separado; la razon vive en metrics_db01_db02.yaml. Asi
+-- REPUNTEO A CUBOS FISICOS (US-205 / US-113): el SQL semantico ya NO agrega el
+--   hecho; consume gold.cubo_matricula (Grano DEC-009, C1). La capa semantica
+--   solo anade enrich fino: el nombre oficial INEGI del municipio.
+--
+-- POR QUE COMPONENTES Y NO PROMEDIOS (patron DEC-008): la variacion ponderada y
+--   la completitud viajan como numerador y denominador por separado (ya
+--   pre-agregados por el cubo); la razon vive en metrics_db01_db02.yaml. Asi
 --   cualquier combinacion de los filtros globales (AC-002.2) reagrega bien.
---
--- Reglas aplicadas: R1 (hechos observados: aqui NO hay salidas de ML),
---                   R2 (SIN_DATO nunca cero: sin COALESCE a 0),
---                   R5 (Gold ya viene acotado a SCOPE_ENTIDADES).
 --
 -- NOMBRE OFICIAL DEL MUNICIPIO: gold.dim_municipio sigue siendo la dimension
 --   canonica, pero mientras C1 no cargue el catalogo real de DS-02 sus nombres
 --   son placeholders del fixture ("Municipio 09002"). El GeoJSON versionado ya
 --   trajo el nombre oficial INEGI a gold.geo_municipio, asi que se prefiere ese
---   y queda dm.nombre_municipio como fallback. Cuando C1 cargue nombres reales,
+--   y queda cm.nombre_municipio como fallback. Cuando C1 cargue nombres reales,
 --   este COALESCE puede invertirse (o desaparecer) sin tocar los tableros.
+--
+-- Reglas aplicadas: R2 (SIN_DATO nunca cero), R5 (Gold ya viene acotado).
+--   R1/R3 no aplican: DB-01 solo expone hechos observados, sin salidas de ML.
 -- =============================================================================
 
 SELECT
     -- ---------- identidad y llaves -------------------------------------------
-    f.cve_mun,
-    dm.cve_ent,                                -- filtro global: entidad
-    COALESCE(g.nombre_municipio, dm.nombre_municipio) AS nombre_municipio,
-    dm.nombre_entidad,
-    e.nivel,                                   -- filtro global: nivel educativo
-    f.id_ciclo,                                -- filtro global: ciclo
-    dt.ciclo,
-    dt.anio_inicio,
+    cm.cve_mun,
+    cm.cve_ent,                                -- filtro global: entidad
+    COALESCE(g.nombre_municipio, cm.nombre_municipio) AS nombre_municipio,
+    cm.nombre_entidad,
+    cm.nivel,                                  -- filtro global: nivel educativo
+    cm.id_ciclo,                               -- filtro global: ciclo
+    cm.ciclo,
+    cm.anio_inicio,
 
-    -- ---------- componentes aditivos -----------------------------------------
-    COUNT(DISTINCT f.cct)                          AS escuelas,
-    SUM(f.matricula_total)                         AS matricula_total,
-    SUM(f.variacion_matricula * f.matricula_total) AS variacion_x_matricula,
-    SUM(f.indice_completitud_drivers)              AS suma_completitud
+    -- ---------- componentes aditivos (pre-agregados por el cubo C1) ----------
+    cm.escuelas,
+    cm.matricula_total,
+    cm.suma_matricula_anterior,                -- SUM(matricula_ciclo_anterior); denominador de KPI-02 (BUG-031)
+    cm.suma_completitud
 
-FROM gold.fact_escuela_ciclo f
-JOIN      gold.dim_escuela   e  ON f.cct      = e.cct
-JOIN      gold.dim_tiempo    dt ON f.id_ciclo = dt.id_ciclo
-JOIN      gold.dim_municipio dm ON f.cve_mun  = dm.cve_mun
-LEFT JOIN gold.geo_municipio g  ON f.cve_mun  = g.cve_mun
-GROUP BY
-    f.cve_mun,
-    dm.cve_ent,
-    g.nombre_municipio,
-    dm.nombre_municipio,
-    dm.nombre_entidad,
-    e.nivel,
-    f.id_ciclo,
-    dt.ciclo,
-    dt.anio_inicio
+FROM gold.cubo_matricula cm
+LEFT JOIN gold.geo_municipio g ON cm.cve_mun = g.cve_mun

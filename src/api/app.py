@@ -17,12 +17,18 @@ trazas, SQL ni rutas internas.
 """
 from __future__ import annotations
 
+import logging
 import uuid
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, Request, status
 from fastapi.exceptions import RequestValidationError
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
+from limits import parse as parse_limit
+from limits.storage import MemoryStorage
+from limits.strategies import MovingWindowRateLimiter
+from slowapi.util import get_remote_address
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from src.api.config import get_settings
@@ -30,6 +36,8 @@ from src.api.schemas import ErrorOut
 from src.api.v1 import api_v1_router
 
 API_PREFIX = "/api/v1"
+
+_logger = logging.getLogger("faro.api")
 
 # Código estable de error por status HTTP (§5). Lo no mapeado cae en internal_error.
 _ERROR_POR_STATUS: dict[int, str] = {
@@ -74,7 +82,8 @@ async def _lifespan(app: FastAPI):
 
 
 def create_app() -> FastAPI:
-    """Construye la app del contrato v1 con sus routers y manejadores de error uniformes."""
+    """Construye la app del contrato v1 con sus routers, hardening y manejadores uniformes (US-404)."""
+    settings = get_settings()
     app = FastAPI(
         title="FARO API — Contrato v1",
         description=(
@@ -89,7 +98,59 @@ def create_app() -> FastAPI:
         lifespan=_lifespan,
     )
 
+    # --- Rate limiting (US-404) ---
+    # Límite por (IP, path) con el motor `limits` (dependencia de slowapi). NO se usa
+    # `SlowAPIMiddleware`: su resolución de ruta no reconoce los routers incluidos de esta versión de
+    # FastAPI (los deja como `_IncludedRouter`) y terminaría eximiendo todo. En su lugar, un
+    # middleware propio devuelve directamente el `ErrorOut` 429. Es en memoria por proceso (1
+    # instancia); para prod multi-instancia se migra a un backend compartido (Redis) — follow-up en
+    # ADR-004. Se registra ANTES que CORS para que sus cabeceras acompañen también al 429.
+    if settings.rate_limit_enabled:
+        _rl_item = parse_limit(settings.rate_limit_default)
+        _rl = MovingWindowRateLimiter(MemoryStorage())
+
+        @app.middleware("http")
+        async def _rate_limit_mw(request: Request, call_next):
+            if not _rl.hit(_rl_item, get_remote_address(request), request.url.path):
+                return _respuesta_error(
+                    status.HTTP_429_TOO_MANY_REQUESTS, "rate_limited", _nuevo_request_id()
+                )
+            return await call_next(request)
+
+    # --- CORS (US-404) ---
+    # Orígenes configurables (C5 añade los de despliegue). Se omite si la lista está vacía.
+    if settings.cors_origin_list:
+        app.add_middleware(
+            CORSMiddleware,
+            allow_origins=settings.cors_origin_list,
+            allow_credentials=True,
+            allow_methods=["GET", "POST", "OPTIONS"],
+            allow_headers=["Authorization", "Content-Type"],
+        )
+
     app.include_router(api_v1_router, prefix=API_PREFIX)
+
+    # --- Ejecutor SQL read-only del agente (US-404 / BUG-025) ---
+    # Solo se cablea si hay DSN read-only configurado (C5 en Secret Manager). Sin él, el agente usa el
+    # default seguro del seam (degrada) y CI/local no tocan Postgres.
+    if settings.database_url_read_only:
+        from src.api.ejecutor_gold import ejecutar_sql_read_only
+        from src.api.v1.agente import get_ejecutar_sql
+
+        app.dependency_overrides[get_ejecutar_sql] = lambda: ejecutar_sql_read_only
+
+    # --- LLM del agente: text-to-SQL + redactor (BUG-025 / P-13) ---
+    # Solo se cablea si hay ANTHROPIC_API_KEY (C5 en Secret Manager). Sin ella, el agente usa los
+    # defaults seguros del seam (degrada "no configurado") y CI/local no llaman a Anthropic. El SQL
+    # que genere el LLM pasa SIEMPRE por el filtro de intención de la pregunta (P-13) y por
+    # `preparar_sql_seguro` (solo-lectura) antes de tocar la BD: el LLM nunca es la única capa.
+    # Las firmas del adaptador (prompt, pregunta) y (pregunta, filas) ya casan con el seam.
+    if settings.anthropic_api_key:
+        from src.agente.llm import generar_sql_con_llm, redactar_respuesta_con_llm
+        from src.api.v1.agente import get_generar_sql, get_redactar_respuesta
+
+        app.dependency_overrides[get_generar_sql] = lambda: generar_sql_con_llm
+        app.dependency_overrides[get_redactar_respuesta] = lambda: redactar_respuesta_con_llm
 
     @app.exception_handler(StarletteHTTPException)
     async def _http_exc(request: Request, exc: StarletteHTTPException) -> JSONResponse:
@@ -102,10 +163,10 @@ def create_app() -> FastAPI:
 
     @app.exception_handler(Exception)
     async def _unhandled_exc(request: Request, exc: Exception) -> JSONResponse:
-        # No se filtra el detalle real: vive solo en los logs internos.
-        return _respuesta_error(
-            status.HTTP_500_INTERNAL_SERVER_ERROR, "internal_error", _nuevo_request_id()
-        )
+        # El detalle real se registra internamente (logs), NUNCA se devuelve al cliente.
+        request_id = _nuevo_request_id()
+        _logger.exception("Error no controlado [%s] en %s %s", request_id, request.method, request.url.path)
+        return _respuesta_error(status.HTTP_500_INTERNAL_SERVER_ERROR, "internal_error", request_id)
 
     return app
 

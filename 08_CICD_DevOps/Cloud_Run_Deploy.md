@@ -3,9 +3,9 @@ id: DOC-CLOUD-RUN-DEPLOY
 title: "Procedimiento de Deploy a Cloud Run"
 owner: "Luis Téllez Domínguez"
 status: active
-version: "1.0"
-traces_up: ["US-501", "REQ-005"]
-tags: [devops, gcp, cloud-run, deployment, sprint-1]
+version: "1.1"
+traces_up: ["US-501", "US-505", "REQ-005"]
+tags: [devops, gcp, cloud-run, deployment, sprint-1, fase-2]
 date: "2026-08-09"
 ---
 
@@ -181,6 +181,73 @@ gcloud run deploy faro-api \
 - `--timeout=300s`: 5 minutos máximo por request
 
 **Tiempo estimado:** 1-2 minutos
+
+### 4.3 Deploy productivo — Fase 2 (US-505): API ↔ Cloud SQL privado
+
+A partir de Fase 2, el deploy **conecta el API a la base Gold en Cloud SQL** por la
+red privada de Fase 1 (US-504) y toma los secretos de **Secret Manager**. El script
+`deploy-cloud-run.sh` ya incluye estos parámetros por defecto (overridables por env):
+
+```bash
+# Redeploy productivo con la imagen conocida (no requiere rebuild si sólo cambia config)
+./08_CICD_DevOps/scripts/deploy-cloud-run.sh v0.2.1-hotfix-bug008
+```
+
+Comando equivalente:
+
+```bash
+gcloud run deploy faro-api \
+  --image=us-central1-docker.pkg.dev/faro-escuela-sensor/faro-images/faro-api:v0.2.1-hotfix-bug008 \
+  --platform=managed --region=us-central1 --allow-unauthenticated \
+  --service-account=faro-api-sa@faro-escuela-sensor.iam.gserviceaccount.com \
+  --vpc-connector=faro-connector --vpc-egress=private-ranges-only \
+  --port=8080 --memory=512Mi --cpu=1 --min-instances=0 --max-instances=10 --timeout=300s \
+  --set-env-vars="ENVIRONMENT=production,POSTGRES_HOST=172.21.0.3,POSTGRES_PORT=5432,POSTGRES_DB=faro,POSTGRES_USER=faro_app" \
+  --set-secrets="JWT_SECRET_KEY=jwt-secret-key:latest,POSTGRES_PASSWORD=db-password:latest"
+```
+
+**Parámetros nuevos vs. Sprint 1:**
+- `--service-account=faro-api-sa`: **mínimo privilegio** (ya no la SA por defecto de Compute).
+- `--vpc-connector=faro-connector` + `--vpc-egress=private-ranges-only`: el API alcanza
+  Cloud SQL por **IP privada** (`172.21.0.3`); la DB nunca se expone a Internet.
+- `--set-secrets=...`: `JWT_SECRET_KEY` y `POSTGRES_PASSWORD` se inyectan desde Secret
+  Manager en runtime → **ya no viajan como env var en texto plano** (cierra la violación
+  de `07_Security/Secrets_Policy.md`).
+- `--set-env-vars` sólo lleva parámetros **no sensibles** de conexión.
+
+**Poblar Gold en Cloud SQL (una vez, antes del primer redeploy productivo):** como la
+instancia sólo tiene IP privada, se pobló con IP pública **temporal** + Cloud SQL Auth
+Proxy (contenedor oficial, token OAuth efímero) reusando la vía de fixtures Bronze +
+`dbt run` acotado; se quitó la IP pública al terminar. Detalle en el DevLog
+[[_DevLog/2026-08-29-luis-tellez-us505-fase2-gold-cloudsql-redeploy]].
+
+### 4.4 Redeploy con **imagen nueva** (cambia el código, no sólo la config)
+
+Cuando el cambio está en `src/` (p.ej. desplegar en prod un fix ya mergeado a `main`),
+el §4.3 no basta: hay que **reconstruir y publicar** la imagen antes de desplegar.
+
+> ⚠️ **Arquitectura:** `build-and-push.sh` usa `docker build` sin `--platform`, así que en
+> un Mac Apple Silicon (arm64) produciría una imagen que Cloud Run **rechaza** (`Container
+> manifest type ... not supported`, ver §10). Construye siempre con `buildx --platform
+> linux/amd64`.
+
+```bash
+# 1) Build + push (amd64) con un tag inmutable nuevo
+docker buildx build --platform linux/amd64 \
+  -t us-central1-docker.pkg.dev/faro-escuela-sensor/faro-images/faro-api:<TAG> \
+  -f docker/api.Dockerfile --push .
+
+# 2) Deploy: el script preserva SA / VPC connector / secretos de Fase 2 (§4.3)
+./08_CICD_DevOps/scripts/deploy-cloud-run.sh <TAG>
+```
+
+**Ejemplo real (BUG-025):** el fix de `src/api/v1/agente.py` (PR #142, C4) estaba en `main`
+pero prod seguía sirviendo el stub porque corría la imagen `v0.2.1-hotfix-bug008` (Fase 2 no
+hizo rebuild). Se reconstruyó como **`v0.2.2-bug025`** y se desplegó → revisión
+**`faro-api-00006-q8f`**. Verificado en prod: `/agente/consulta` ya **no** es el stub (degrada
+seguro, `sql_generado:null`, la frase destructiva ya no se acepta) y `/escuelas` sigue 200 con
+25 escuelas. El RAG real sigue pendiente de C3 (LLM) + añadir `chromadb`/`sentence-transformers`
+a la imagen. Detalle en [[_DevLog/2026-08-29-luis-tellez-bug025-redeploy-agente-prod]].
 
 ---
 
@@ -447,7 +514,7 @@ gcloud run services update faro-api \
 
 ---
 
-**Última actualización:** 2026-08-09  
-**Sprint:** S1  
+**Última actualización:** 2026-08-29 (v1.1 · §4.3 deploy productivo Fase 2, US-505)  
+**Sprint:** S1 (base) · S4 (Fase 2)  
 **Owner:** Luis Téllez Domínguez  
-**Status:** ✅ Completado y verificado
+**Status:** ✅ Completado y verificado (BUG-020 curado en prod)

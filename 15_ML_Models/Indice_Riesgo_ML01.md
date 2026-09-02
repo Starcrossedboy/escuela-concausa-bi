@@ -11,8 +11,12 @@ tags: [ml, celula-3, ml-01, contrato]
 # Índice de riesgo de ML-01 — de variación de matrícula a [0,1]
 
 > Define cómo la predicción de ML-01 se convierte en el `indice_riesgo` que consumen la API, los
-> cubos de Superset y FARO Web. **Propuesta pendiente de ratificar** con Andrés González Habib
-> (ADR-003) y Christian Ruiz (contrato de la API).
+> cubos de Superset y FARO Web.
+>
+> **Queda una sola decisión abierta: el ancla `0.30`** (ver §4). Las otras dos que este documento
+> listaba ya están cerradas por hechos, no por opinión: `DEC-006` ratificó el umbral de −5 % el
+> 13-ago, y `ADR-007` ratificó el 29-ago que el target se expresa en **fracción**, que es la unidad
+> sobre la que esta sigmoide está calibrada.
 > → [[15_ML_Models/_index]] · [[15_ML_Models/ML_Strategy]] · [[03_Architecture/Data_Model]]
 
 ## 1. El hueco que cierra
@@ -75,15 +79,51 @@ métrica y no se entrena contra él.
 
 ## 4. Lo que hay que ratificar
 
-Lo discutible son **las anclas**, no la forma funcional:
+La forma funcional no está en discusión; las anclas sí. De las tres preguntas que este documento
+abrió, **queda una**.
 
-1. **¿`0.30` es el riesgo correcto para una escuela estable?** Se eligió distinto de cero porque
-   ninguna escuela tiene riesgo nulo, pero es un juicio de negocio.
-2. **¿`-5 %` es el umbral de "escuela en riesgo"?** Se tomó del `0.6` que ya usan los tableros de
-   [[04_UX_Design/Screen_Specs]], leyéndolo al revés. Conviene que Manuel lo confirme.
-3. **¿El `indice_riesgo` de `gold.predicciones` es este, o la variación cruda?** El `Data_Model`
-   §4.5 declara `valor` genérico. Propongo guardar **ambos**: la variación en `valor` y el índice
-   como columna derivada, para no perder la unidad original.
+### 4.1 Abierto — ¿`0.30` es el riesgo de una escuela estable?
+
+Es el único juicio de negocio pendiente, y conviene plantearlo por lo que se ve en pantalla y no por
+la sigmoide:
+
+| Escuela | `indice_riesgo` |
+|---|---|
+| crece 10 % | 0.034 |
+| crece 5 % | 0.109 |
+| **estable** | **0.300** |
+| pierde 2 % | 0.414 |
+| pierde 5 % | 0.600 |
+| pierde 10 % | 0.840 |
+
+La pregunta concreta: **¿una escuela que no pierde un solo alumno debe aparecer con 30 % de riesgo
+en el tablero?** Se eligió distinto de cero porque ninguna escuela tiene riesgo nulo, pero es un
+juicio que no le toca a Célula 3. No es inocuo: mueve el punto medio de la escala — hoy un riesgo de
+`0.50` equivale a perder **3.4 %** de la matrícula.
+
+Quien debe firmarlo: **Manuel Serranía** y **Marina García** (es lo que muestran sus tableros) y
+**Christian Ruiz** (contrato de la API). Mientras siga abierto, este documento se queda en
+`in_review`.
+
+### 4.2 Cerrado — el umbral de −5 % (`DEC-006`, 13-ago)
+
+Ratificado por Manuel Serranía leyendo el `>= 0.6` de [[04_UX_Design/Screen_Specs]]. Queda como la
+segunda ancla de la calibración: `−0.05 → 0.60`.
+
+Vale la pena dejar asentado algo que apareció al revisarla: **`DEC-006` define el umbral como
+"pérdida de ~5 % de matrícula", o sea que ya presuponía la fracción**. Ratificar ADR-007 no fue una
+decisión nueva sino hacer explícito lo que esta decisión ya suponía desde agosto.
+
+### 4.3 Cerrado — `indice_riesgo` **y** variación cruda, no una u otra
+
+Se publican **ambos**, que era la propuesta: `gold.predicciones.valor` guarda la variación cruda
+—necesaria para el MAE/RMSE de ML-01— e `indice_riesgo` es una columna derivada acotada a [0,1].
+Implementado en `src/modelos/publicar_gold.py` y documentado en `Data_Model` §4.5.
+
+> [!warning] Contradicción pendiente en `Data_Model.md`
+> La línea 181 (§4.5) describe correctamente las dos columnas, pero la nota de la **línea 313** dice
+> que `indice_riesgo` vive *"en la columna `valor`"*. Quien lea §5.3 consultaría `valor` esperando un
+> `[0,1]` y recibiría la variación cruda. Es archivo de Célula 1; reportado, no corregido aquí.
 
 ## 5. Pruebas
 

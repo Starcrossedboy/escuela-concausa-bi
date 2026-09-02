@@ -8,6 +8,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
+import numpy as np
 import pandas as pd
 import pytest
 
@@ -15,9 +16,11 @@ from src.modelos.contrato import DRIVERS
 from src.modelos.entrenar_ml01 import entrenar_y_evaluar as entrenar_ml01
 from src.modelos.entrenar_ml02 import cargar_features_ml02
 from src.modelos.entrenar_ml02 import entrenar_y_evaluar as entrenar_ml02
+from src.modelos.entrenar_ml03 import entrenar_y_evaluar as entrenar_ml03
 from src.modelos.evaluar import (
     cobertura_y_error,
     construir_reporte,
+    cumplimiento_umbrales,
     curva_por_ventana,
     drivers_en_el_modelo,
     error_por_entidad,
@@ -154,7 +157,7 @@ def test_el_reporte_alinea_umbrales_ml01_con_target_proporcional(features, res01
     assert "MAE < 15 alumnos" not in reporte
 
 
-def test_el_reporte_publicado_esta_sincronizado(features, res01, res02) -> None:
+def test_el_reporte_publicado_esta_sincronizado(features, res01, res02, res03) -> None:
     """El documento versionado debe coincidir con lo que produce el generador **hoy**.
 
     Es la guarda que faltaba. Al alinear los umbrales (US-301) se cambió `evaluar.py` sin
@@ -167,7 +170,7 @@ def test_el_reporte_publicado_esta_sincronizado(features, res01, res02) -> None:
     publicado = (raiz / "06_Quality_Testing/Automated/Evaluacion_Modelos.md").read_text(
         encoding="utf-8"
     )
-    assert publicado == construir_reporte(features, res01, res02), (
+    assert publicado == construir_reporte(features, res01, res02, res03), (
         "El reporte publicado no coincide con el generador. "
         "Regenéralo con: python -m src.modelos.evaluar"
     )
@@ -240,3 +243,77 @@ def test_excluidos_por_ventana_en_none_no_rompe(res01_sin_agua, res02) -> None:
     detalle = exclusiones_por_ventana(res01_sin_agua, ResultadoSinDetalle())
 
     assert set(detalle["modelo"]) == {"ML-01"}
+
+
+# ------------------------------------------------- ML-03 en la evaluación (AC-003.2)
+
+
+@pytest.fixture(scope="module")
+def res03(features: pd.DataFrame):
+    return entrenar_ml03(features, n_ventanas=VENTANAS)
+
+
+def test_los_tres_modelos_aparecen_en_la_comparativa(res01, res02, res03) -> None:
+    """AC-003.2 pide que cada modelo reporte su métrica; sin ML-03 no cerraba."""
+    tabla = tabla_comparativa(res01, res02, res03)
+
+    assert set(tabla["modelo"]) == {"ML-01", "ML-02", "ML-03"}
+    fila = tabla[tabla["modelo"] == "ML-03"].iloc[0]
+    assert fila["tipo"] == "no supervisado"
+    assert 0.0 < fila["valor"] <= 1.0
+
+
+def test_ml03_no_finge_una_mejora_sobre_baseline(res01, res02, res03) -> None:
+    """Un cero se leería como "no aporta"; lo correcto es que no aplique.
+
+    ML-03 es no supervisado: su Silhouette mide separación, no ventaja sobre un modelo tonto.
+    """
+    tabla = tabla_comparativa(res01, res02, res03)
+    fila = tabla[tabla["modelo"] == "ML-03"].iloc[0]
+
+    assert np.isnan(fila["baseline"]) and np.isnan(fila["mejora"])
+    assert fila["mejora"] != 0, "un 0 afirmaría algo distinto a 'no aplica'"
+
+
+def test_la_comparativa_sigue_funcionando_sin_ml03(res01, res02) -> None:
+    """El parámetro es opcional: quien evalúe sólo los supervisados no debe romperse."""
+    tabla = tabla_comparativa(res01, res02)
+
+    assert set(tabla["modelo"]) == {"ML-01", "ML-02"}
+
+
+def test_el_reporte_afirma_si_el_umbral_se_cumple(res01, res02, res03) -> None:
+    """Enunciar umbral y cifra por separado deja la comparación al lector.
+
+    Sobre el fixture, ML-03 no alcanza su umbral. El reporte tiene que decirlo, no insinuarlo.
+    """
+    tabla = cumplimiento_umbrales(res01, res02, res03)
+
+    assert set(tabla["modelo"]) == {"ML-01", "ML-02", "ML-03"}
+    assert set(tabla["cumple"]) <= {"✅ sí", "❌ **no**"}
+    ml03 = tabla[tabla["modelo"] == "ML-03"].iloc[0]
+    assert ml03["cumple"] == "❌ **no**", "0.1086 no llega a 0.30 y así debe reportarse"
+
+
+def test_un_umbral_incumplido_se_dice_en_prosa(
+    features: pd.DataFrame, res01, res02, res03
+) -> None:
+    """La celda de una tabla no basta: el aviso tiene que leerse."""
+    reporte = construir_reporte(features, res01, res02, res03)
+
+    assert "Umbral no alcanzado" in reporte
+    assert "ML-03" in reporte
+    assert "aún sin implementar" not in reporte, "el artefacto ya no puede decir que no existe"
+
+
+def test_la_curva_incluye_solo_el_k_elegido(res01, res02, res03) -> None:
+    """`metricas` trae toda la búsqueda de k; publicar todo confundiría la curva."""
+    curva = curva_por_ventana(res01, res02, res03)
+    ml03 = curva[curva["modelo"] == "ML-03"]
+
+    assert not ml03.empty
+    assert (ml03["metrica"] == "Silhouette").all()
+    esperadas = res03.metricas[
+        (res03.metricas["k"] == res03.k_seleccionado) & res03.metricas["silhouette"].notna()
+    ]
+    assert len(ml03) == len(esperadas)

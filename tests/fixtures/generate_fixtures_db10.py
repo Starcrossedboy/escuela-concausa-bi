@@ -69,7 +69,7 @@ def seed(conn: sqlite3.Connection) -> None:
             n_rows += 1
         else:
             # cada fuente OK tiene 1-2 fechas de ingesta recientes
-            for dias_atras in random.sample(range(0, 5), k=random.randint(1, 2)):
+            for dias_atras in random.sample(range(5), k=random.randint(1, 2)):
                 fecha = (hoy - timedelta(days=dias_atras)).isoformat()
                 filas = random.randint(50, 5000)
                 cur.execute(

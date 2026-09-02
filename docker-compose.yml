@@ -124,6 +124,7 @@ services:
     environment:
       AIRFLOW__CORE__EXECUTOR: ${AIRFLOW__CORE__EXECUTOR}
       AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: ${AIRFLOW__DATABASE__SQL_ALCHEMY_CONN}
+      AIRFLOW__DATABASE__SQL_ALCHEMY_ENGINE_ARGS: '{"executemany_mode": "values_plus_batch", "executemany_values_page_size": 10000, "executemany_batch_page_size": 2000}'
       AIRFLOW__CORE__FERNET_KEY: ${AIRFLOW__CORE__FERNET_KEY}
       AIRFLOW__WEBSERVER__SECRET_KEY: ${AIRFLOW__WEBSERVER__SECRET_KEY}
       AIRFLOW__CORE__LOAD_EXAMPLES: ${AIRFLOW__CORE__LOAD_EXAMPLES}
@@ -152,11 +153,14 @@ services:
   # AIRFLOW WEBSERVER (UI Web - puerto 8080)
   # ═════════════════════════════════════════════════════════════════════
   airflow-webserver:
-    image: apache/airflow:2.7.0-python3.11
+    build:
+      context: .
+      dockerfile: docker/airflow.Dockerfile
     restart: unless-stopped
     environment:
       AIRFLOW__CORE__EXECUTOR: ${AIRFLOW__CORE__EXECUTOR}
       AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: ${AIRFLOW__DATABASE__SQL_ALCHEMY_CONN}
+      AIRFLOW__DATABASE__SQL_ALCHEMY_ENGINE_ARGS: '{"executemany_mode": "values_plus_batch", "executemany_values_page_size": 10000, "executemany_batch_page_size": 2000}'
       AIRFLOW__CORE__FERNET_KEY: ${AIRFLOW__CORE__FERNET_KEY}
       AIRFLOW__WEBSERVER__SECRET_KEY: ${AIRFLOW__WEBSERVER__SECRET_KEY}
       AIRFLOW__CORE__LOAD_EXAMPLES: ${AIRFLOW__CORE__LOAD_EXAMPLES}
@@ -184,11 +188,14 @@ services:
   # AIRFLOW SCHEDULER (Orquestador de DAGs)
   # ═════════════════════════════════════════════════════════════════════
   airflow-scheduler:
-    image: apache/airflow:2.7.0-python3.11
+    build:
+      context: .
+      dockerfile: docker/airflow.Dockerfile
     restart: unless-stopped
     environment:
       AIRFLOW__CORE__EXECUTOR: ${AIRFLOW__CORE__EXECUTOR}
       AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: ${AIRFLOW__DATABASE__SQL_ALCHEMY_CONN}
+      AIRFLOW__DATABASE__SQL_ALCHEMY_ENGINE_ARGS: '{"executemany_mode": "values_plus_batch", "executemany_values_page_size": 10000, "executemany_batch_page_size": 2000}'
       AIRFLOW__CORE__FERNET_KEY: ${AIRFLOW__CORE__FERNET_KEY}
       AIRFLOW__CORE__LOAD_EXAMPLES: ${AIRFLOW__CORE__LOAD_EXAMPLES}
     volumes:

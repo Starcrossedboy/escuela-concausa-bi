@@ -58,7 +58,7 @@ dashboards:
                   comparator: "D1"
                   clause: WHERE
 
-          - nombre: "D1 · Escuelas con driver dominante"
+          - nombre: "D1 · Escuelas por driver dominante"
             dataset: db05_cubo_driver
             metrica: escuelas_por_driver
             viz: big_number_total
@@ -128,7 +128,7 @@ dashboards:
               adhoc_filters:
                 - {expressionType: SIMPLE, subject: id_driver, operator: "==", comparator: "D2", clause: WHERE}
 
-          - nombre: "D2 · Escuelas con driver dominante"
+          - nombre: "D2 · Escuelas por driver dominante"
             dataset: db05_cubo_driver
             metrica: escuelas_por_driver
             viz: big_number_total
@@ -198,7 +198,7 @@ dashboards:
               adhoc_filters:
                 - {expressionType: SIMPLE, subject: id_driver, operator: "==", comparator: "D3", clause: WHERE}
 
-          - nombre: "D3 · Escuelas con driver dominante"
+          - nombre: "D3 · Escuelas por driver dominante"
             dataset: db05_cubo_driver
             metrica: escuelas_por_driver
             viz: big_number_total
@@ -268,7 +268,7 @@ dashboards:
               adhoc_filters:
                 - {expressionType: SIMPLE, subject: id_driver, operator: "==", comparator: "D4", clause: WHERE}
 
-          - nombre: "D4 · Escuelas con driver dominante"
+          - nombre: "D4 · Escuelas por driver dominante"
             dataset: db05_cubo_driver
             metrica: escuelas_por_driver
             viz: big_number_total
@@ -338,7 +338,7 @@ dashboards:
               adhoc_filters:
                 - {expressionType: SIMPLE, subject: id_driver, operator: "==", comparator: "D5", clause: WHERE}
 
-          - nombre: "D5 · Escuelas con driver dominante"
+          - nombre: "D5 · Escuelas por driver dominante"
             dataset: db05_cubo_driver
             metrica: escuelas_por_driver
             viz: big_number_total
@@ -408,7 +408,7 @@ dashboards:
               adhoc_filters:
                 - {expressionType: SIMPLE, subject: id_driver, operator: "==", comparator: "D6", clause: WHERE}
 
-          - nombre: "D6 · Escuelas con driver dominante"
+          - nombre: "D6 · Escuelas por driver dominante"
             dataset: db05_cubo_driver
             metrica: escuelas_por_driver
             viz: big_number_total

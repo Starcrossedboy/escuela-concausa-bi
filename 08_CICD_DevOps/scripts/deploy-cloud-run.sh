@@ -39,8 +39,19 @@ POSTGRES_PORT="${POSTGRES_PORT:-5432}"
 POSTGRES_DB="${POSTGRES_DB:-faro}"
 POSTGRES_USER="${POSTGRES_USER:-faro_app}"
 
+# OAuth2 con Google (US-402, desbloquea a C4). El client_id y el redirect son PÚBLICOS (viajan en
+# la URL de consentimiento del navegador) -> env vars. El client_secret es sensible -> Secret Manager.
+GOOGLE_CLIENT_ID="${GOOGLE_CLIENT_ID:-526490367142-gctkloa4dsnp7m56r0fu62n7ehuhpkcs.apps.googleusercontent.com}"
+GOOGLE_REDIRECT_URI="${GOOGLE_REDIRECT_URI:-https://faro-api-eanzfglvyq-uc.a.run.app/api/v1/auth/callback}"
+
+# ANALISTA_EMAILS: allowlist del rol `analista` (US-403). DUEÑO: PO/Edgar — pendiente de definir
+# (task_0c696e2e). Hoy vacío => todos `ciudadano`. NO se versiona ningún correo (dato personal).
+# Para probar el rol cuando C4 cierre el verifier, setéalo EFÍMERO sin versionarlo:
+#   gcloud run services update faro-api --region=us-central1 --update-env-vars=ANALISTA_EMAILS=<correo1,correo2>
+# ANALISTA_EMAILS="${ANALISTA_EMAILS:-}"
+
 # Secretos inyectados en runtime desde Secret Manager (nunca en la imagen ni en env plano)
-SECRETS="JWT_SECRET_KEY=jwt-secret-key:latest,POSTGRES_PASSWORD=db-password:latest"
+SECRETS="JWT_SECRET_KEY=jwt-secret-key:latest,POSTGRES_PASSWORD=db-password:latest,GOOGLE_CLIENT_SECRET=google-client-secret:latest"
 
 IMAGE_URL="${REGION}-docker.pkg.dev/${PROJECT_ID}/faro-images/${IMAGE_NAME}:${IMAGE_TAG}"
 
@@ -52,6 +63,7 @@ echo "   Image: ${IMAGE_URL}"
 echo "   Service Account: ${SERVICE_ACCOUNT}"
 echo "   VPC Connector: ${VPC_CONNECTOR} (egress: ${VPC_EGRESS})"
 echo "   Cloud SQL: ${POSTGRES_USER}@${POSTGRES_HOST}:${POSTGRES_PORT}/${POSTGRES_DB}"
+echo "   OAuth Google: redirect=${GOOGLE_REDIRECT_URI} (client_secret desde Secret Manager)"
 echo ""
 
 gcloud run deploy ${SERVICE_NAME} \
@@ -68,7 +80,7 @@ gcloud run deploy ${SERVICE_NAME} \
   --min-instances=0 \
   --max-instances=10 \
   --timeout=300s \
-  --set-env-vars="ENVIRONMENT=production,POSTGRES_HOST=${POSTGRES_HOST},POSTGRES_PORT=${POSTGRES_PORT},POSTGRES_DB=${POSTGRES_DB},POSTGRES_USER=${POSTGRES_USER}" \
+  --set-env-vars="ENVIRONMENT=production,POSTGRES_HOST=${POSTGRES_HOST},POSTGRES_PORT=${POSTGRES_PORT},POSTGRES_DB=${POSTGRES_DB},POSTGRES_USER=${POSTGRES_USER},GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID},GOOGLE_REDIRECT_URI=${GOOGLE_REDIRECT_URI}" \
   --set-secrets="${SECRETS}"
 
 echo ""

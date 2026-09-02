@@ -57,6 +57,15 @@
 # ── scripts (apoyo) ── 2 ──────────────────────────────────────────────────────
 "scripts/**" = ["I001", "EXE001"]
 
+# ── scripts/generate-keys.py (US-504) ── N999 ─────────────────────────────────
+# El guion del nombre hace que N999 lo marque como "módulo inválido", pero es un
+# SCRIPT de apoyo: se ejecuta con `python3 scripts/generate-keys.py` y NUNCA se
+# importa. US-524b agregó scripts/__init__.py (necesario para importar
+# scripts.mlflow_monitor), lo que volvió scripts/ un paquete y activó N999 sobre
+# este archivo. Renombrarlo tocaría ~8 referencias en docs de seguridad; se exime
+# N999 aquí en su lugar (no cambia comportamiento).
+"scripts/generate-keys.py" = ["N999"]
+
 # ── src/frontend ── 2 ──────────────────────────────────────────────────────────
 "src/frontend/**" = ["I001", "UP045"]
 

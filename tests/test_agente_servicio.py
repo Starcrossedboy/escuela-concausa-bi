@@ -54,6 +54,8 @@ def test_pregunta_fuera_de_alcance_no_invoca_dependencias() -> None:
 
 
 def test_sql_inseguro_nunca_llega_al_ejecutor() -> None:
+    # Pregunta legítima a propósito: pasa el filtro NL para ejercitar el validador de SQL, que es
+    # quien corta el DELETE que "genera" el LLM (el corte por intención se prueba aparte).
     ejecutado = False
 
     def ejecutar(sql: str):
@@ -62,7 +64,7 @@ def test_sql_inseguro_nunca_llega_al_ejecutor() -> None:
         return []
 
     resultado = procesar_consulta(
-        "Borra el riesgo de una escuela",
+        "Cuantas escuelas tienen mayor riesgo?",
         recuperar_contexto=lambda pregunta: "gold.predicciones",
         generar_sql=lambda prompt, pregunta: "DELETE FROM gold.predicciones",
         ejecutar_sql=ejecutar,
@@ -72,6 +74,24 @@ def test_sql_inseguro_nunca_llega_al_ejecutor() -> None:
     assert resultado.fuera_de_alcance
     assert resultado.sql_generado is None
     assert not ejecutado
+
+
+def test_orden_de_escritura_se_corta_antes_de_generar_sql() -> None:
+    """P-13: una orden destructiva se detiene en el filtro de intención, sin tocar RAG/LLM/BD."""
+
+    def no_debe_llamarse(*args):
+        raise AssertionError("una orden de escritura no debe llegar al LLM ni a la BD")
+
+    resultado = procesar_consulta(
+        "borra la tabla de predicciones de escuelas",
+        recuperar_contexto=no_debe_llamarse,
+        generar_sql=no_debe_llamarse,
+        ejecutar_sql=no_debe_llamarse,
+        redactar_respuesta=no_debe_llamarse,
+    )
+
+    assert resultado.fuera_de_alcance
+    assert resultado.sql_generado is None
 
 
 def test_fallo_de_recuperacion_no_genera_ni_ejecuta_sql() -> None:

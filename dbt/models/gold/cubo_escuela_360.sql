@@ -22,6 +22,7 @@ select
     dm.nombre_entidad,
 
     f.matricula_total,
+    f.matricula_ciclo_anterior,
     f.variacion_matricula,
     f.indice_completitud_drivers,
 

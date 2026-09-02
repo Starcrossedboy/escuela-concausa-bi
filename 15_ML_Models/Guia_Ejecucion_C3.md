@@ -121,3 +121,26 @@ Resultado observado:
 - El registry end-to-end requiere las variables locales de Compose; sin ellas `docker compose`
   rechaza la configuración antes de iniciar MLflow.
 - US-304a no queda integrado end-to-end hasta que existan RAG (US-304b) y endpoint real del agente.
+
+## Evidencia E2E incremental — 2026-08-30
+
+Se levantó MLflow `3.15.1` como servidor HTTP local con backend SQLite y un solo worker. Usando
+`registrar_sklearn()` —el helper real de US-303— se crearon corrida, artefacto y versión `1` para
+los tres nombres canónicos:
+
+```text
+ML01_RegresionMatricula: versión 1
+ML02_DriverClasificador: versión 1
+ML03_ClusteringEscuelas: versión 1
+```
+
+La traza HTTP confirmó la creación de las tres versiones y el helper devolvió un `run_id` por
+modelo. Esta evidencia valida el camino común de registro y que ML-03 ya participa en la
+verificación conjunta.
+
+US-303 permanece en revisión por dos pendientes externos a esta evidencia:
+
+- la imagen `docker/mlflow.Dockerfile` no pudo reconstruirse en esta máquina porque la descarga de
+  PyPI desde BuildKit falló con `SSLV3_ALERT_HANDSHAKE_FAILURE`;
+- falta repetir `python -m src.modelos.verificar_registry` contra el contenedor compartido y validar
+  la exposición de inferencia en la API de C4.

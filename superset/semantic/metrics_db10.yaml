@@ -1,0 +1,78 @@
+# =============================================================================
+# Capa semantica de DB-10 - metricas, jerarquias y filtros
+# -----------------------------------------------------------------------------
+# Historia : US-223 (Oscar Antonio Quiroz Lázaro, Célula 2 - Analytics & BI)
+# Contrato : 04_UX_Design/Screen_Specs.md §4 (KPI-13)
+# Uso      : declaracion de las metricas que se dan de alta en Superset al
+#            construir DB-10 Monitor del pipeline.
+#            Formato propio del proyecto fijado en US-202.
+#
+# Regla transversal: toda razon se expresa como SUM(numerador)/SUM(denominador)
+# para que se pueda reagregar con cualquier combinacion de filtros globales.
+# `filas` es un componente aditivo (SUM), nunca se redefine.
+#
+# Fuente: gold.cubo_pipeline (US-113, Diana Alvarez), ya materializado.
+# Una fuente ausente conserva su fila de catalogo con cobertura_pipeline=
+# 'SIN_DATO'; nunca se representa como cero ni desaparece.
+# =============================================================================
+
+version: "1.0"
+owner: "Oscar Antonio Quiroz Lázaro"
+story: US-223
+traces_up: DOC-SCREENSPECS
+
+# -----------------------------------------------------------------------------
+# Filtros globales — DB-10 es de alcance nacional (no territorial/nivel)
+# -----------------------------------------------------------------------------
+filtros_globales:
+  - nombre: fuente
+    columna: fuente
+    etiqueta: "Fuente de datos"
+    nota: >
+      DB-10 es de alcance nacional y no aplica los filtros de ciclo/entidad/
+      nivel de AC-002.2 — su unidad de análisis es la fuente de ingesta, no
+      la escuela ni el territorio.
+
+datasets:
+  # ---------------------------------------------------------------------------
+  # DB-10 - Estado de la ingesta (KPI-13)
+  # ---------------------------------------------------------------------------
+  - nombre: db10_cubo_pipeline
+    dashboard: DB-10
+    sql: db10_cubo_pipeline.sql
+    grano: [id_fuente, fecha_ingesta]
+    llave_primaria: [id_fuente, fecha_ingesta]
+    cubo_canonico_futuro: gold.cubo_pipeline
+    banderas_cobertura:
+      - cobertura_pipeline
+
+    jerarquias:
+      - nombre: fuente
+        niveles: [id_fuente, fuente]
+      - nombre: tiempo
+        niveles: [fecha_ingesta]
+
+    metricas:
+      - nombre: filas
+        etiqueta: "Filas ingeridas"
+        expresion: "SUM(filas)"
+        formato: entero
+        kpi: KPI-13
+        cobertura: cobertura_pipeline
+        nota: >
+          Componente aditivo (Screen_Specs.md §4, KPI-13). Una fuente
+          SIN_DATO no suma 0: se excluye del SUM, no se rellena.
+      - nombre: ultima_ingesta
+        etiqueta: "Última ingesta"
+        expresion: "MAX(_ingested_at)"
+        formato: fecha
+        kpi: KPI-13
+      - nombre: fuentes_ok
+        etiqueta: "Fuentes con dato"
+        expresion: "SUM(es_ok)"
+        formato: entero
+      - nombre: fuentes_sin_dato
+        etiqueta: "Fuentes SIN_DATO"
+        expresion: "SUM(es_sin_dato)"
+        formato: entero
+        nota: "El hallazgo en sí: cuántas de las 8 fuentes no han ingerido nada."

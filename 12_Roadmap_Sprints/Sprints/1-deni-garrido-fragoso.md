@@ -6,7 +6,7 @@ status: approved
 version: "1.0"
 traces_up: ["01_Product/PRD", "02_Requirements/User_Stories"]
 traces_down: ["US-111", "US-112", "US-113", "US-114"]
-last_reviewed: "2026-08-28"
+last_reviewed: "2026-08-30"
 tags: [sprint, plan, celula-1, nivel-medio]
 ---
 
@@ -335,3 +335,27 @@ No pasa nada — lo grave es no decirlo. Si al cierre del sprint tu historia va 
 ---
 
 *Documento generado para el proyecto FARO · Maestría MTIIA · Universidad Anáhuac · Dr. José Gustavo Fuentes*
+
+---
+
+## 9. Evidencia de cierre runtime — US-113
+
+**Fecha:** 2026-08-30
+**Estado técnico:** runtime real validado; pendiente únicamente revisión/PR y actualización de la
+matriz de trazabilidad por su owner (PM).
+
+- 9/9 cubos Gold materializados con filas.
+- 134/134 tests dbt de cubos en PASS.
+- `missing=[]`, `empty=[]`, `dbt_test_rc=0`.
+- DS-07 real nacional llega a D1/Gold.
+- DS-06 real queda trazado en DB-10 sin fabricar D5.
+- ML publicado desde `gold.features_escuela` real tras la normalización de ADR-007.
+- Evidencia detallada: [[_DevLog/2026-08-30-deni-garrido-us113-runtime-real-cierre|DevLog de cierre runtime US-113]].
+
+**Filas runtime:** `cubo_matricula=90`, `cubo_riesgo_territorial=90`,
+`cubo_escuela_360=145`, `cubo_comparador_municipio=90`, `cubo_driver=540`,
+`cubo_completitud=540`, `cubo_pivot=870`, `cubo_recomendaciones=145`,
+`cubo_pipeline=9`.
+
+> La matriz de trazabilidad no se modifica desde esta rama porque
+> `02_Requirements/Traceability_Matrix.md` pertenece al PM y declara que el PM la mantiene.

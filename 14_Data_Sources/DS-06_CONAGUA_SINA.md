@@ -97,3 +97,10 @@ tags: [data-source, bronze, driver-d5, ingesta-continua]
 - La granularidad temporal varía por presa (algunas solo tienen 2 años, otras podrían
   tener series más largas) — se debe confirmar rango real al construir el extractor.
 - Llave de unión a municipio no es directa (ver sección 6); requiere regla de cruce.
+
+## 11. Integración Bronze/Postgres para DB-10 — 2026-08-30
+
+- Snapshot real 1:1 en `bronze.conagua_presas`.
+- DB-10 registra DS-06 desde Bronze real.
+- **D5 permanece `SIN_DATO` explícito**: el endpoint no trae el contrato diario/georreferenciado de `silver.agua_region`.
+- No se inventan fecha, región hidrológica ni georreferencia.

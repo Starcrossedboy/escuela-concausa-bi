@@ -29,8 +29,8 @@ personas:
       - "vault/10_Risk_Governance/**"
       - "vault/12_Roadmap_Sprints/**"
       - "vault/13_Reports/**"
-      - "vault/_DevLog/_index.md"
     amarillo:
+      - "tests/**"
       - "README.md"
       - "CLAUDE.md"
       - "AGENTS.md"
@@ -53,6 +53,7 @@ personas:
       - "vault/14_Data_Sources/**"
       - "vault/03_Architecture/Data_Model.md"
     amarillo:
+      - "vault/03_Architecture/_index.md"
       - "tests/**"
       - "great_expectations/**"
       - "requirements/celula-1.txt"
@@ -72,6 +73,7 @@ personas:
       - "vault/14_Data_Sources/**"
       - "vault/03_Architecture/Data_Model.md"
     amarillo:
+      - "vault/03_Architecture/_index.md"
       - "tests/**"
       - "great_expectations/**"
       - "requirements/celula-1.txt"
@@ -91,6 +93,7 @@ personas:
       - "vault/14_Data_Sources/**"
       - "vault/03_Architecture/Data_Model.md"
     amarillo:
+      - "vault/03_Architecture/_index.md"
       - "tests/**"
       - "great_expectations/**"
       - "requirements/celula-1.txt"
@@ -110,6 +113,7 @@ personas:
       - "vault/14_Data_Sources/**"
       - "vault/03_Architecture/Data_Model.md"
     amarillo:
+      - "vault/03_Architecture/_index.md"
       - "tests/**"
       - "great_expectations/**"
       - "requirements/celula-1.txt"
@@ -255,6 +259,7 @@ personas:
       - "vault/03_Architecture/API_Specification.md"
       - "vault/07_Security/**"
     amarillo:
+      - "vault/03_Architecture/_index.md"
       - "src/frontend/**"
       - "api/openapi.v1.json"
       - "tests/**"
@@ -272,6 +277,7 @@ personas:
       - "src/api/**"
       - "vault/03_Architecture/API_Specification.md"
     amarillo:
+      - "vault/03_Architecture/_index.md"
       - "api/openapi.v1.json"
       - "tests/**"
 
@@ -287,6 +293,7 @@ personas:
       - "src/api/**"
       - "vault/03_Architecture/API_Specification.md"
     amarillo:
+      - "vault/03_Architecture/_index.md"
       - "api/openapi.v1.json"
       - "tests/**"
 
@@ -302,6 +309,7 @@ personas:
       - "src/api/**"
       - "vault/03_Architecture/API_Specification.md"
     amarillo:
+      - "vault/03_Architecture/_index.md"
       - "tests/**"
 
   luis-tellez:
@@ -384,10 +392,34 @@ personas:
       - "scripts/**"
       - "tests/**"
 
-# Verde para todos, sin declararlo persona por persona. {id} = la identidad del autor.
+# Verde para todos, sin declararlo persona por persona. {id} = la identidad del autor;
+# las entradas sin {id} son comunes a todos por igual.
+#
+# Aquí vive lo que la plantilla de PR exige a CUALQUIER autor en casilla obligatoria. Si algo
+# es requisito para abrir un PR, tiene que estar permitido para quien lo abre — de lo contrario
+# el gate de propiedad y el de plantilla se contradicen y nadie puede entregar.
 comunes:
   - "vault/_DevLog/*-{id}-*.md"
   - "vault/09_AI_Governance/Agent_Contexts/{id}-agent-context.md"
+  # Índice de DevLog: append-only, una fila por PR (`merge=union` en .gitattributes).
+  - "vault/_DevLog/_index.md"
+  # Matriz de trazabilidad: cada autor actualiza SU fila y el PM consolida — es lo que dice
+  # la tabla 🟡 de los 21 Agent Contexts. Sigue en `criticos`, así que el gate avisa a quién
+  # pedirle revisión, pero ya no reprueba.
+  - "vault/02_Requirements/Traceability_Matrix.md"
+  # Infraestructura de la raíz, compartida por todo el repositorio.
+  - ".gitignore"
+  - ".gitattributes"
+  # Registros de intake: `Definition_of_Filed` obliga a CUALQUIERA a dar de alta ahí el bug,
+  # el riesgo, el bloqueo o el hallazgo que encuentre. Si el registro no está permitido para
+  # quien reporta, la regla no se puede cumplir. Son append-only y sus dueños de área siguen
+  # en `criticos`, así que el gate avisa a quién pedirle revisión sin reprobar el PR.
+  - "vault/06_Quality_Testing/Bug_Register.md"
+  - "vault/07_Security/Security_Audit_Log.md"
+  - "vault/10_Risk_Governance/Risk_Register.md"
+  - "vault/10_Risk_Governance/Blocker_Register.md"
+  - "vault/10_Risk_Governance/Decision_Log.md"
+  - "vault/10_Risk_Governance/Incident_Log.md"
 
 # Rutas que exigen revisión explícita del dueño del área (regla 7 de Vault_Rules).
 # Estar en verde no basta: si no eres el dueño, necesitas su aprobación en el PR.
@@ -397,4 +429,5 @@ criticos:
   "vault/07_Security/**": christian-ruiz
   "src/frontend/**": manuel-serrania
   "vault/02_Requirements/Traceability_Matrix.md": edgar-coronel
+  "vault/10_Risk_Governance/**": edgar-coronel
 

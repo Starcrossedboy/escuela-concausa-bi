@@ -38,7 +38,7 @@ Reglas transversales:
 
 ## 2. BRONZE — landing crudo
 
-- **Una tabla por fuente**, sin transformar (los tipos pueden ser todos `string` si la fuente lo entrega así).
+- **Una tabla por artefacto físico oficial de cada fuente lógica**, sin transformar (los tipos pueden ser todos `string` si la fuente lo entrega así). Si una misma `DS-##` publica productos oficiales físicamente separados con contratos distintos, cada producto aterriza 1:1 en su propia tabla Bronze y conserva el mismo ID lógico de fuente en `_source`; los joins entre productos ocurren únicamente en Silver.
 - **Formato Parquet**, **particionado por fecha de ingesta** (`_ingested_at` → `dt=YYYY-MM-DD`).
 - **Metadatos obligatorios** en cada tabla:
 
@@ -60,8 +60,16 @@ Reglas transversales:
 | `bronze.sesnsp_<aaaa_mm>` | DS-04 | mensual |
 | `bronze.sinaica_<fecha>` | DS-05 | horaria → consolidado diario |
 | `bronze.conagua_<fecha>` | DS-06 | diaria |
-| `bronze.coneval_<aaaa>` | DS-07 | bienal |
+| `bronze.coneval_irs_<aaaa>` | DS-07 · CONEVAL IRS | quinquenal |
+| `bronze.coneval_pobreza_<aaaa>` | DS-07 · CONEVAL Pobreza Municipal | quinquenal / según publicación |
 | `bronze.conapo_<aaaa>` | DS-08 | anual |
+
+> **DS-07 — dos artefactos oficiales, una fuente lógica.** CONEVAL distribuye el Índice de Rezago
+> Social (IRS) municipal y la Medición de Pobreza Municipal como productos oficiales separados.
+> Bronze conserva ambos productos 1:1 en tablas distintas bajo el mismo ID lógico `DS-07`; la
+> conformación por clave INEGI y período ocurre en `silver.rezago_municipio`. Esta separación evita
+> fabricar en Bronze una tabla que CONEVAL no publica y mantiene intacto el contrato downstream de
+> Silver/Gold.
 
 ---
 

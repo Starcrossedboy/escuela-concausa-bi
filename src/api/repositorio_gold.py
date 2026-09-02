@@ -16,7 +16,7 @@ from __future__ import annotations
 
 from typing import Protocol
 
-from sqlalchemy import func, select
+from sqlalchemy import Numeric, cast, func, select
 from sqlalchemy.engine import Engine
 
 from src.api.db import get_engine, get_tablas
@@ -233,26 +233,32 @@ class RepositorioGoldPostgres:
     @staticmethod
     def _municipio_dict(fila) -> dict:
         """`gold.dim_municipio.poblacion` es `numeric` en Postgres (llega como `Decimal` por
-        SQLAlchemy); `MunicipioOut.poblacion` es `StrictInt` — se normaliza aquí, en la frontera
-        con la BD, en vez de relajar el contrato."""
+        SQLAlchemy); `MunicipioOut.poblacion` es `StrictInt | None` — se normaliza aquí, en la
+        frontera con la BD, en vez de relajar el contrato. El NULL es legítimo (SIN_DATO, P-03):
+        con el universo INEGI de municipios, los que no tienen fila CONAPO llegan sin población;
+        se preserva el `None` explícito en vez de coaccionar `int(None)` (que rompía con 500)."""
         datos = dict(fila)
-        datos["poblacion"] = int(datos["poblacion"])
+        poblacion = datos["poblacion"]
+        datos["poblacion"] = int(poblacion) if poblacion is not None else None
         return datos
 
     def obtener_kpis(
         self, *, cve_ent: str | None, cve_mun: str | None, ciclo: str | None
     ) -> dict:
         """Fórmulas tomadas literalmente de `04_UX_Design/Screen_Specs.md` (KPI-02 variación
-        ponderada, KPI-04 escuelas en riesgo vía JOIN a `gold.predicciones` con umbral 0.6
-        ratificado, KPI-05 completitud promedio)."""
+        como razón de sumas con la columna directa `matricula_ciclo_anterior` — BUG-031/P-09;
+        KPI-04 escuelas en riesgo vía JOIN a `gold.predicciones` con umbral 0.6 ratificado;
+        KPI-05 completitud promedio). El `cast(..., Numeric)` evita la división entera de dos
+        columnas integer en Postgres (SUM(int)/SUM(int) truncaría a -1)."""
         fact, dim_municipio, predicciones = self._fact, self._dim_municipio, self._predicciones
 
         consulta = (
             select(
                 func.coalesce(func.sum(fact.c.matricula_total), 0).label("matricula_total"),
                 (
-                    func.sum(fact.c.variacion_matricula * fact.c.matricula_total)
-                    / func.nullif(func.sum(fact.c.matricula_total), 0)
+                    cast(func.sum(fact.c.matricula_total), Numeric)
+                    / func.nullif(func.sum(fact.c.matricula_ciclo_anterior), 0)
+                    - 1
                 ).label("variacion_matricula"),
                 func.count(predicciones.c.cct)
                 .filter(predicciones.c.indice_riesgo >= 0.6)

@@ -167,7 +167,7 @@ Tiempo (anio_inicio → id_ciclo)
 |---|---|---|---|---|
 | Lateral | **DB-05** | DB-07 | `id_driver` | ✅ Ratificada ([[04_UX_Design/Screen_Specs]] §3) |
 | Lateral | DB-07 | **DB-05** | `id_driver` | ✅ Ratificada |
-| Propuesta | **DB-05** | DB-08 | `(cve_mun, id_driver)` | ⬜ Propuesta, para US-214b |
+| Lateral | **DB-05** | DB-08 | `(cve_mun, id_driver)` | ✅ Ratificada (US-214b, validado en vivo 2026-08-30) |
 
 ### 3.5 Métricas derivadas (capa semántica de Superset)
 

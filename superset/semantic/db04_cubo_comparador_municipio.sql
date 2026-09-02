@@ -40,7 +40,7 @@ SELECT
     -- ---------- componentes aditivos: volumen --------------------------------
     c.escuelas,
     c.matricula_total,
-    c.variacion_x_matricula,
+    c.suma_matricula_anterior,                -- SUM(matricula_ciclo_anterior); denominador de KPI-02 (BUG-031)
     c.suma_completitud,
 
     -- ---------- componentes aditivos: drivers --------------------------------

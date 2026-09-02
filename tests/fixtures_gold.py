@@ -15,7 +15,8 @@ from copy import deepcopy
 
 # --------------------------------------------------------------------------- #
 # Datos sintéticos (mismas escuelas/municipios de ejemplo que src/api/mock_data.py,
-# con los campos que hoy solo existen en Gold: cve_ent, id_ciclo, tiene_prediccion).
+# con los campos que hoy solo existen en Gold: cve_ent, id_ciclo, tiene_prediccion,
+# matricula_ciclo_anterior — denominador directo de KPI-02, BUG-031/P-09).
 # --------------------------------------------------------------------------- #
 
 ESCUELAS_FAKE: list[dict] = [
@@ -27,7 +28,8 @@ ESCUELAS_FAKE: list[dict] = [
         "cve_mun": "09010",  # Álvaro Obregón, CDMX
         "id_ciclo": "2024-2025",
         "matricula_total": 480,
-        "variacion_matricula": -0.05,
+        "matricula_ciclo_anterior": 500,  # variacion_matricula = total - anterior (alumnos absolutos, como gold.fact_escuela_ciclo)
+        "variacion_matricula": -20,
         "indice_riesgo": 0.72,
         "driver_dominante": "D2",
         "tiene_prediccion": True,
@@ -45,7 +47,8 @@ ESCUELAS_FAKE: list[dict] = [
         "cve_mun": "15057",  # Naucalpan, Edomex
         "id_ciclo": "2024-2025",
         "matricula_total": 610,
-        "variacion_matricula": 0.02,
+        "matricula_ciclo_anterior": 598,
+        "variacion_matricula": 12,
         "indice_riesgo": 0.55,
         "driver_dominante": "D1",
         "tiene_prediccion": True,
@@ -63,7 +66,8 @@ ESCUELAS_FAKE: list[dict] = [
         "cve_mun": "19039",  # Monterrey, Nuevo León
         "id_ciclo": "2024-2025",
         "matricula_total": 320,
-        "variacion_matricula": 0.10,
+        "matricula_ciclo_anterior": 298,
+        "variacion_matricula": 22,
         "indice_riesgo": 0.31,
         "driver_dominante": "D4",
         "tiene_prediccion": True,
@@ -81,7 +85,8 @@ ESCUELAS_FAKE: list[dict] = [
         "cve_mun": "14039",  # Guadalajara, Jalisco
         "id_ciclo": "2024-2025",
         "matricula_total": 540,
-        "variacion_matricula": -0.02,
+        "matricula_ciclo_anterior": 551,
+        "variacion_matricula": -11,
         "indice_riesgo": 0.48,
         "driver_dominante": "D5",
         "tiene_prediccion": True,
@@ -101,7 +106,8 @@ ESCUELAS_FAKE: list[dict] = [
         "cve_mun": "09010",
         "id_ciclo": "2024-2025",
         "matricula_total": 200,
-        "variacion_matricula": 0.0,
+        "matricula_ciclo_anterior": 200,
+        "variacion_matricula": 0,
         "indice_riesgo": None,
         "driver_dominante": None,
         "tiene_prediccion": False,
@@ -238,13 +244,14 @@ class RepositorioGoldFake:
     ) -> dict:
         escuelas = self._filtrar_escuelas(cve_ent=cve_ent, cve_mun=cve_mun, ciclo=ciclo)
         matricula_total = sum(e["matricula_total"] for e in escuelas)
-        if matricula_total:
-            variacion = (
-                sum(e["variacion_matricula"] * e["matricula_total"] for e in escuelas)
-                / matricula_total
-            )
-        else:
-            variacion = 0.0
+        # KPI-02 como RAZÓN DE SUMAS, idéntico a RepositorioGoldPostgres.obtener_kpis
+        # (BUG-031/P-09): SUM(matricula_total) / NULLIF(SUM(matricula_ciclo_anterior), 0) - 1.
+        # NO el promedio ponderado SUM(variacion * matricula) / SUM(matricula), que era la
+        # fórmula defectuosa: pintaba -54.5 % donde el valor real era -0.19 %. El NULLIF se
+        # refleja aquí como el guard sobre suma_anterior (0 -> variacion 0.0, como el `or 0.0`
+        # del repo real).
+        suma_anterior = sum(e["matricula_ciclo_anterior"] for e in escuelas)
+        variacion = (matricula_total / suma_anterior - 1) if suma_anterior else 0.0
         en_riesgo = sum(
             1
             for e in escuelas

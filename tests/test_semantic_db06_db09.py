@@ -263,10 +263,15 @@ def test_los_componentes_son_aditivos_no_promedios(db06_cubo: str) -> None:
     )
 
 
-def test_variacion_es_ponderada_por_matricula(db06_cubo: str) -> None:
-    """KPI-02 pondera por matrícula: el cubo C1 ya guarda variacion_x_matricula."""
-    assert re.search(r"\bvariacion_x_matricula\b", db06_cubo), (
-        "db06_cubo: falta el componente ponderado variacion_x_matricula (DEC-008/009)."
+def test_variacion_usa_suma_matricula_anterior(db06_cubo: str) -> None:
+    """KPI-02 es una razón de sumas (BUG-031/P-09): el cubo C1 ya guarda
+    suma_matricula_anterior = SUM(matricula_ciclo_anterior) como denominador directo.
+    El componente ponderado variacion_x_matricula fue eliminado y no debe reaparecer."""
+    assert re.search(r"\bsuma_matricula_anterior\b", db06_cubo), (
+        "db06_cubo: falta el denominador directo suma_matricula_anterior (KPI-02)."
+    )
+    assert not re.search(r"\bvariacion_x_matricula\b", db06_cubo), (
+        "db06_cubo: reaparece variacion_x_matricula, columna eliminada en BUG-031."
     )
 
 

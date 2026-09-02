@@ -44,6 +44,12 @@ DRIVER_A_CLASE: dict[str, str] = {
     "d6_aire": "D6",
 }
 
+#: Drivers que miden SERVICIOS PRESENTES (alto = escuela mejor). Entran al argmax de
+#: `driver_dominante` invertidos como (1 - valor), para que el dominante sea el driver que MÁS
+#: presiona y no el mejor servicio. Debe coincidir con la regla 4 del CTE `con_driver_dominante`
+#: en dbt/models/gold/features_escuela.sql y con el perfilado de entrenar_ml03.py (P-05, 2026-08-31).
+DRIVERS_INVERTIDOS: tuple[str, ...] = ("d3_infraestructura", "d4_conectividad")
+
 HIPERPARAMETROS: dict[str, object] = {
     "max_iter": 150,
     "learning_rate": 0.06,
@@ -101,7 +107,12 @@ class ResultadoML02:
 
 
 def generar_driver_dominante_proxy(df: pd.DataFrame) -> pd.Series:
-    """Deriva una etiqueta provisional `D1`..`D6` desde el driver observado mas alto.
+    """Deriva una etiqueta provisional `D1`..`D6` desde el driver que MÁS presiona.
+
+    D3/D4 miden servicios presentes (suben cuando la escuela está mejor), así que se invierten
+    (`1 - valor`) antes del argmax: sin eso, la escuela mejor equipada quedaría coronada como
+    "dominante en infraestructura" (P-05). Es la misma regla del CTE `con_driver_dominante` de
+    features_escuela.sql y del perfilado de entrenar_ml03.py.
 
     Los `SIN_DATO` llegan como `NaN`; aqui se tratan como no elegibles para dominar. No se imputan a
     cero porque cero puede ser un valor valido de un driver.
@@ -110,7 +121,10 @@ def generar_driver_dominante_proxy(df: pd.DataFrame) -> pd.Series:
     if faltantes:
         raise ValueError(f"Faltan drivers para derivar target proxy: {sorted(faltantes)}")
 
-    puntajes = df[list(DRIVERS)].astype(float).fillna(-np.inf)
+    puntajes = df[list(DRIVERS)].astype(float)
+    for driver in DRIVERS_INVERTIDOS:
+        puntajes[driver] = 1 - puntajes[driver]
+    puntajes = puntajes.fillna(-np.inf)
     dominante = puntajes.idxmax(axis=1)
     sin_observaciones = np.isneginf(puntajes.max(axis=1))
     if bool(sin_observaciones.any()):

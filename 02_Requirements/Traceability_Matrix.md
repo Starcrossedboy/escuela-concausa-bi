@@ -188,6 +188,13 @@ tags: [requirements, traceability, matrix]
 |---|---|---|---|---|
 | `REQ-003` | `US-311`, `US-313` | **ADR-007 `accepted`** (29-ago) con la tabla de lo que falta para que surta efecto ✅ · `DOC-INDICE-RIESGO` reducido a una sola decisión abierta —el ancla `0.30`— tras cerrar el umbral (`DEC-006`) y la doble columna `valor`/`indice_riesgo` ✅ · **BUG-032** registrado: `Data_Model` §5.3 contradice a §4.5 ⬜ · suite 643 ✅ | [[_DevLog/2026-08-29-hector-morales-adr007-ratificado]] | 🟡 En progreso |
 
+## Evidencia incremental — 2026-08-30 · cierre de US-213 y arranque de US-214b/US-215b (C2)
+
+| REQ | Historias | Evidencia/decisión | DevLog | Estado |
+|---|---|---|---|---|
+| `REQ-002` | `US-213` | PR #114 confirmado **mergeado** (29-ago): DB-05 (6 tabs) y DB-08 (explorador) sobre `gold.cubo_*`, 51 pruebas, validado contra Gold real ✅ · revisado el remap mecánico de PR #134 (US-205, Manuel Serranía) línea por línea contra las 6 tabs: limpio, sin referencias viejas a KPI-19/`valor_promedio_driver` · 2 nits cosméticos corregidos aquí (wording "con"/"por" driver dominante; falta `cobertura:` en `pct_escuelas_sin_recomendacion`) | [[_DevLog/2026-08-30-monserrat-miranda-cierre-us213-revision-pr134]] | ✅ `US-213` done |
+| `REQ-002` | `US-214b`, `US-215b` | Arranca hoy: filtros/drill-down DB-05→DB-08 (`cve_mun`, `id_driver`), alcance acotado al lado Superset (la navegación cruzada en FARO Web es de Manuel/`src/frontend/`, coordinación aparte) · plan de pruebas de usabilidad/accesibilidad — ambas Sprint 5 | [[_DevLog/2026-08-30-monserrat-miranda-cierre-us213-revision-pr134]] | ⬜ Arrancando |
+
 ## Evidencia incremental — 2026-08-30 · avance de US-214b/US-215b (C2)
 
 | REQ | Historias | Evidencia de prueba | DevLog | Estado |

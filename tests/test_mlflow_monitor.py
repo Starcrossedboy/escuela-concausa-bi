@@ -134,11 +134,10 @@ def test_mlflow_no_se_importa_a_nivel_de_modulo():
             for alias in nodo.names:
                 if alias.name == "mlflow" or alias.name.startswith("mlflow."):
                     imports_de_mlflow_a_nivel_de_modulo.append(alias.name)
-        elif isinstance(nodo, ast.ImportFrom):
-            if nodo.module and (
-                nodo.module == "mlflow" or nodo.module.startswith("mlflow.")
-            ):
-                imports_de_mlflow_a_nivel_de_modulo.append(nodo.module)
+        elif isinstance(nodo, ast.ImportFrom) and nodo.module and (
+            nodo.module == "mlflow" or nodo.module.startswith("mlflow.")
+        ):
+            imports_de_mlflow_a_nivel_de_modulo.append(nodo.module)
 
     assert imports_de_mlflow_a_nivel_de_modulo == [], (
         "Se encontró un import de mlflow a nivel de módulo: "

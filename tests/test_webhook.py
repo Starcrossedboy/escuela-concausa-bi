@@ -16,7 +16,6 @@ conectividad real a un webhook.
 
 import json
 
-import pytest
 
 from common_alerting import webhook
 

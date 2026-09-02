@@ -324,7 +324,7 @@ class Settings(BaseSettings):
 | `d1`…`d6` | float\|SIN_DATO | Score por driver | Silver | Sí (centinela `SIN_DATO`) |
 | `d1_cobertura`…`d6_cobertura` | enum | OK / SIN_DATO | derivado | No |
 
-> **Nota:** `indice_riesgo` vive en `gold.predicciones` (columna `valor`, `modelo = 'ML-01'`) y
+> **Nota:** `indice_riesgo` es su propia columna en `gold.predicciones` (no vive en `valor`; ver §4.5) y
 > `driver_dominante` vive en `gold.recomendaciones`. Se consultan por `JOIN` con `cct, id_ciclo`,
 > no se duplican aquí (ver §4.1).
 

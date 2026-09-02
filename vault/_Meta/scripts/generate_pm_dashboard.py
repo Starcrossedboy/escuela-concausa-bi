@@ -51,8 +51,27 @@ def clean(value: str) -> str:
     return value.strip()
 
 
+# Centinela para proteger los pipes que NO son separadores de columna mientras se parte
+# la fila. Es un carácter que no aparece en Markdown legible.
+CENTINELA_PIPE = "\x00"
+
+
 def table_cells(line: str) -> list[str]:
-    return [clean(cell) for cell in line.strip().strip("|").split("|")]
+    """Parte una fila Markdown en celdas, respetando los pipes escapados.
+
+    Un wikilink con alias —`[[ruta\\|texto]]`— lleva un `|` que **no** separa columnas:
+    es sintaxis de Obsidian, y en Markdown se escribe escapado para que GitHub lo renderice
+    dentro de la celda. Partir la línea cruda por todos los pipes corta ese enlace en dos,
+    desplaza el resto de las columnas y corrompe el snapshot **en silencio**: el generador no
+    revienta porque la fila sigue teniendo suficientes celdas, solo que ya no son las que
+    parecen. Pasó con la fila `US-004` de Execution_Status (BUG-040), que publicó texto en
+    el campo `updated` durante días.
+
+    `clean()` ya sabe resolver `[[ruta|texto]]` a `texto`; lo que faltaba era no destruir el
+    enlace antes de que pudiera hacerlo.
+    """
+    protegida = line.strip().strip("|").replace("\\|", CENTINELA_PIPE)
+    return [clean(cell.replace(CENTINELA_PIPE, "|")) for cell in protegida.split("|")]
 
 
 def git(root: Path, *args: str) -> str:
@@ -551,9 +570,7 @@ def parse_devlog_authors(root: Path) -> dict[str, int]:
     for line in text.splitlines():
         if not line.startswith("| "):
             continue
-        # Los wikilinks usan `\|` (pipe escapado); se protege antes de partir por columnas.
-        safe = line.strip().strip("|").replace("\\|", "\x00")
-        cells = [c.strip().replace("\x00", "|") for c in safe.split("|")]
+        cells = table_cells(line)
         if len(cells) < 5:
             continue
         author = cells[2]

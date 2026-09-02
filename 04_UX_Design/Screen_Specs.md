@@ -161,13 +161,18 @@ GROUP BY f.cve_mun, dt.ciclo;
 
 ### KPI-02 · Variación de matrícula (%Δ ponderado)
 
-Variación por escuela ponderada por su matrícula. **Cubo:** `gold.cubo_matricula`.
+Variación agregada como **razón de sumas**: la matrícula total del ciclo entre la del ciclo
+anterior, menos 1 (equivale a la variación por escuela ponderada por su matrícula del ciclo
+anterior). **Cubo:** `gold.cubo_matricula`. Se usa la columna directa `matricula_ciclo_anterior`,
+no `variacion_matricula`: esta última son **alumnos absolutos** (`matricula_total -
+matricula_ciclo_anterior`), y promediarla ponderada por matrícula pintaba −54.5 % donde el valor
+real es −0.19 % (BUG-031). El `* 1.0` evita la división entera de dos columnas `integer`.
 
 ```sql
 SELECT dt.ciclo,
        SUM(f.matricula_total) AS matricula_total,
-       SUM(f.variacion_matricula * f.matricula_total)
-         / NULLIF(SUM(f.matricula_total), 0) AS variacion_ponderada_pct
+       SUM(f.matricula_total) * 1.0
+         / NULLIF(SUM(f.matricula_ciclo_anterior), 0) - 1 AS variacion_ponderada_pct
 FROM gold.fact_escuela_ciclo f
 JOIN gold.dim_tiempo dt ON f.id_ciclo = dt.id_ciclo
 GROUP BY dt.ciclo;

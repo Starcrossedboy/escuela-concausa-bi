@@ -50,6 +50,26 @@ SELECT
     cd.escuelas_con_recomendacion,
     cd.escuelas_sin_recomendacion,
     cd.escuelas_driver,                         -- NULL + SIN_DATO por grupo sin ML-02
-    cd.cobertura_recomendacion                  -- OK / SIN_DATO
+    cd.cobertura_recomendacion,                 -- OK / SIN_DATO
+
+    -- ---------- navegacion cruzada hacia DB-08 (US-214b) ----------------------
+    -- Native filter IDs fijados por posicion en filtros_globales de
+    -- db08_explorador_cubo.yaml (ver _filtros_nativos() en sync_semantic_layer.py):
+    -- cve_mun = indice 3, id_driver = indice 4 -> NATIVE_FILTER-US203-3/-4.
+    -- RISON verificado con la libreria prison (la misma que usa Superset en
+    -- reports/models.py) contra Superset 6.1.0 real. cve_mun va entre %27...%27
+    -- (mismo workaround del backend) porque prison cita valores con forma
+    -- numerica; id_driver (D1..D6) no, porque es identificador RISON valido.
+    '<a href="/superset/dashboard/db08-explorador-cubo/?native_filters=' ||
+        '(NATIVE_FILTER-US203-3:(extraFormData:(filters:!((col:cve_mun,op:IN,val:!(%27' || cd.cve_mun || '%27)))),' ||
+        'filterState:(label:cve_mun,validateStatus:!f,value:!(%27' || cd.cve_mun || '%27)),' ||
+        'id:NATIVE_FILTER-US203-3,ownState:()),' ||
+        'NATIVE_FILTER-US203-4:(extraFormData:(filters:!((col:id_driver,op:IN,val:!(' || cd.id_driver || ')))),' ||
+        'filterState:(label:id_driver,validateStatus:!f,value:!(' || cd.id_driver || ')),' ||
+        'id:NATIVE_FILTER-US203-4,ownState:()))' ||
+        '" target="_blank">Ver detalle del municipio →</a>' AS link_db08
+    -- Texto de ancla decidido solo para DB-05 (Monserrat). Si este patron de
+    -- link cruzado se reusa en otro tablero, falta una pasada de homologacion
+    -- de nomenclatura orientada a usuario -- pendiente, no bloqueante hoy.
 
 FROM gold.cubo_driver cd

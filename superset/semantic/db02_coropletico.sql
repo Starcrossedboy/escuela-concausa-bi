@@ -41,7 +41,7 @@ WITH riesgo AS (
 
         SUM(rt.escuelas)                    AS escuelas,
         SUM(rt.matricula_total)             AS matricula_total,
-        SUM(rt.variacion_x_matricula)       AS variacion_x_matricula,
+        SUM(rt.suma_matricula_anterior)     AS suma_matricula_anterior,
 
         SUM(rt.suma_indice_riesgo)          AS suma_indice_riesgo,
         SUM(rt.escuelas_con_prediccion)     AS escuelas_con_prediccion,
@@ -71,7 +71,7 @@ SELECT
     r.anio_inicio,
     r.escuelas,
     r.matricula_total,
-    r.variacion_x_matricula,
+    r.suma_matricula_anterior,
     r.suma_indice_riesgo,
     r.escuelas_con_prediccion,
     r.escuelas_en_riesgo,

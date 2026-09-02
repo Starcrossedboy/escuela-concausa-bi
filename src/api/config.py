@@ -71,6 +71,22 @@ class Settings(BaseSettings):
     rate_limit_enabled: bool = True
     rate_limit_default: str = "120/minute"
 
+    # ---- Ejecutor SQL del agente: read-only sobre Gold (US-404 / BUG-025) ----
+    # DSN de un rol PostgreSQL con SOLO SELECT sobre `gold.*` (lo provisiona C5 en Secret Manager
+    # como DATABASE_URL_READ_ONLY). Vacío => el ejecutor NO se cablea y el agente degrada seguro.
+    # Es una conexión distinta de la de lectura general (postgres_*): mínimo privilegio para el SQL
+    # que genera el LLM. Ver `src/api/ejecutor_gold.py` y ADR-004 §Hardening.
+    database_url_read_only: str = ""
+    agente_sql_timeout_ms: int = 30000
+
+    # ---- LLM del agente: text-to-SQL + redactor (BUG-025 / P-13) ----
+    # Secreto (Anthropic) que gobierna el cableado del LLM en la app. Vacío => el LLM NO se cablea:
+    # el agente usa los defaults seguros del seam (degrada "no configurado") y CI/local no llaman a
+    # Anthropic. Lo provisiona C5 en Secret Manager como ANTHROPIC_API_KEY. El adaptador
+    # (`src/agente/llm.py`) lee esta misma variable y la config no secreta (AGENTE_MODELO/
+    # AGENTE_MAX_TOKENS/AGENTE_TIMEOUT_S) directamente del entorno. Ver `07_Security/Secrets_Policy.md`.
+    anthropic_api_key: str = ""
+
     # ---- Inferencia ML: cache y timeouts (US-416) ----
     # `/predicciones/*` ya no invoca MLflow en vivo (US-412): lee `gold.predicciones` precalculada.
     # Un timeout aquí es "Postgres no respondió a tiempo", no "MLflow tardó". Ver

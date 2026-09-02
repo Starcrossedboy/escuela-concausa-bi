@@ -53,15 +53,6 @@ vars:
   # Usada por models/silver/agua_region.sql.
   bronze_conagua_id_column: "id_estacion"
 
-  # ⚠️ DEUDA TÉCNICA ACEPTADA POR EDGAR CORONEL (PM) — BUG-009, 2026-08-23.
-  # `coneval_periodo_medicion` NO es una columna: ninguna de las tablas `coneval_*`
-  # trae año o período, así que es un entero fijo que hay que decidir a mano.
-  # `2020` es un PLACEHOLDER sin confirmar contra la fuente, heredado del ensayo E2E
-  # (PR #70). Si está mal, etiqueta mal el período de medición del rezago social en
-  # `silver.rezago_municipio` y todo lo que cuelga de ahí — no rompe el build, miente
-  # en silencio. Pendiente de confirmación por Deni Garrido Fragoso (dueña de DS-07)
-  # antes del freeze del 6-sep-2026. Usada por models/silver/rezago_municipio.sql.
-  coneval_periodo_medicion: 2020
 
 # Configuring models
 # Full documentation: https://docs.getdbt.com/docs/configuring-models

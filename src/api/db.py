@@ -79,6 +79,7 @@ def _metadatos() -> tuple[MetaData, Table, Table, Table, Table]:
         Column("id_ciclo", String, primary_key=True),
         Column("cve_mun", String(5)),
         Column("matricula_total", Integer),
+        Column("matricula_ciclo_anterior", Integer),
         Column("variacion_matricula", Float),
         Column("indice_completitud_drivers", Numeric),
         Column("d1", Float, nullable=True),

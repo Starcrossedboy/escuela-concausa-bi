@@ -20,3 +20,4 @@ tags: [moc, adr, architecture]
 | [[03_Architecture/ADRs/ADR-005-dim-driver-mapeo]] | Mapeo de D3/D4 en dim_driver: infraestructura y conectividad desde CEMABE | accepted | 2026-08-17 |
 | [[03_Architecture/ADRs/ADR-006-idw-calidad-aire-agua]] | Interpolación IDW de D5/D6 (agua/aire) hacia cada escuela | accepted | 2026-08-19 |
 | [[03_Architecture/ADRs/ADR-007-unidad-target-variacion-matricula]] | Unidad de `target_variacion_matricula`: fracción, no diferencia absoluta | accepted | 2026-08-29 |
+| [[03_Architecture/ADRs/ADR-009-monitoreo-mlflow-webhook]] | Monitoreo de runs de MLflow con alertas por webhook genérico | proposed | 2026-08-31 |

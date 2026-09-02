@@ -28,3 +28,4 @@ slowapi>=0.1.9   # rate limiting (US-404); el 429 se mapea al ErrorOut uniforme 
 # el resto del stack (xgboost, mlflow, shap, chromadb, sentence-transformers) vive en
 # requirements/celula-3.txt, que el CI no instala. `mlflow` es import diferido a propósito.
 scikit-learn>=1.5
+python-json-logger>=2.0,<3    # US-524a: formateador JSON seguro para Cloud Logging

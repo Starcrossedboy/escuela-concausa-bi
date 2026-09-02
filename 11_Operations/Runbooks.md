@@ -18,6 +18,7 @@ tags: [ops, runbooks]
 | Rotación de secretos | fuga sospechada | [[07_Security/Secrets_Policy]] |
 | Restaurar backup | pérdida de datos | <> |
 | Escalar recursos | pico de carga | <> |
+| Alertas Airflow/MLflow | falla de task, SLA incumplido, run de MLflow fallido o métrica fuera de rango | [[11_Operations/Runbook_SLA_MLflow]] |
 
 ## Plantilla de runbook
 1. Síntoma / disparador

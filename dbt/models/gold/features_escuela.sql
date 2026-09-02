@@ -63,12 +63,21 @@ base as (
 
     -- Sin ciclo anterior no hay target que entrenar (es la primera observación del cct);
     -- se excluye aquí, no se rellena con 0 (evitaría una fuga de "variación cero" falsa).
+    -- FIX (2026-08-31, Diana/BUG-017/BUG-019, ADR-007 ratificado 2026-08-29): target_variacion_
+    -- matricula es FRACCIÓN (matricula_total/matricula_ciclo_anterior - 1.0), no diferencia
+    -- absoluta de alumnos -- mismo patrón que src/modelos/target_hibrido.py::variacion_desde_serie
+    -- (C3). El cast a double precision es necesario ANTES de dividir: matricula_total y
+    -- matricula_ciclo_anterior son integer (silver/matricula.sql), y una división integer/integer
+    -- trunca en vez de dar el decimal esperado. matricula_ciclo_anterior = 0 se rechaza EXPLÍCITO
+    -- vía la división nativa de Postgres (sin nullif) -- si aparece, dbt run truena aquí en vez de
+    -- convertirse en un SIN_DATO invisible (así lo pide el ADR, igual que variacion_desde_serie ya
+    -- hace raise ValueError en Python).
     select
         cct,
         id_ciclo,
         cve_mun,
         matricula_total,
-        cast(matricula_total - matricula_ciclo_anterior as double precision)
+        (cast(matricula_total as double precision) / matricula_ciclo_anterior) - 1.0
             as target_variacion_matricula
     from con_target
     where matricula_ciclo_anterior is not null
@@ -157,34 +166,81 @@ d1 as (
 
 ),
 
--- D2: inseguridad, SESNSP por municipio. Suma de todos los delitos disponibles (todavía
--- sin alinear meses al ciclo escolar; simplificación a refinar cuando haya datos reales)
+-- D2: inseguridad, SESNSP por municipio.
+-- FIX (P-10, 2026-08-31, Luis): antes se normalizaba min-max sobre `sum(conteo)` CRUDO, así que
+-- el índice ordenaba TAMAÑO de municipio (más habitantes -> más delitos absolutos), no
+-- inseguridad. Ahora se convierte a una TASA comparable ANTES de normalizar: delitos por 100 000
+-- habitantes y por mes observado. Se divide entre la población municipal (DS-08 CONAPO, sumada
+-- sobre grupo_edad y último año disponible, mismo criterio que dim_municipio.sql) y entre los
+-- meses con datos de ese municipio (así un municipio con 12 meses observados no se ve "más
+-- inseguro" que uno con 3 sólo por acumular más meses). El factor 100 000 es cosmético: el
+-- min-max es invariante a un escalado positivo constante -- no cambia d2_inseguridad, sólo hace
+-- legible la tasa intermedia. Un municipio sin población CONAPO -> SIN_DATO explícito (nunca cero
+-- ni tasa silenciosa), mismo criterio que D1 con rezago. Sigue sin alinear meses al ciclo escolar
+-- (simplificación documentada, a refinar cuando haya datos reales).
+poblacion_municipal as (
+
+    -- Población total del municipio: se suma sobre grupo_edad y se toma el último año disponible
+    -- (mismo criterio que dim_municipio.sql).
+    select cve_mun, poblacion_anio as poblacion
+    from (
+        select
+            cve_mun,
+            anio,
+            sum(poblacion) as poblacion_anio,
+            max(anio) over (partition by cve_mun) as anio_max
+        from {{ ref('poblacion_municipio') }}
+        group by cve_mun, anio
+    ) t
+    where anio = anio_max
+
+),
+
 delitos_por_municipio as (
 
-    select cve_mun, sum(conteo) as conteo_total
+    select
+        cve_mun,
+        sum(conteo) as conteo_total,
+        count(distinct (anio, mes)) as meses_con_datos
     from {{ ref('delitos_municipio') }}
     group by cve_mun
 
 ),
 
+delitos_tasa as (
+
+    -- delitos por 100 000 habitantes por mes observado; NULL = SIN_DATO (sin población o sin meses)
+    select
+        d.cve_mun,
+        case
+            when p.poblacion > 0 and d.meses_con_datos > 0
+                then d.conteo_total * 100000.0 / p.poblacion / d.meses_con_datos
+        end as tasa
+    from delitos_por_municipio d
+    left join poblacion_municipal p on p.cve_mun = d.cve_mun
+
+),
+
 delitos_rango as (
 
-    select min(conteo_total) as min_val, max(conteo_total) as max_val
-    from delitos_por_municipio
+    select min(tasa) as min_val, max(tasa) as max_val
+    from delitos_tasa
+    where tasa is not null
 
 ),
 
 d2 as (
 
     select
-        d.cve_mun,
+        t.cve_mun,
         case
+            when t.tasa is null then null
             when dr.max_val > dr.min_val
-                then (d.conteo_total - dr.min_val) / cast(dr.max_val - dr.min_val as double precision)
+                then (t.tasa - dr.min_val) / cast(dr.max_val - dr.min_val as double precision)
             else 0.5
         end as d2_inseguridad,
-        'OK' as d2_cobertura
-    from delitos_por_municipio d
+        case when t.tasa is null then 'SIN_DATO' else 'OK' end as d2_cobertura
+    from delitos_tasa t
     cross join delitos_rango dr
 
 ),
@@ -229,7 +285,14 @@ distancias_aire as (
             + sin(radians(e.latitud)) * sin(radians(a.latitud))
         ))) as distancia_km
     from escuela_geo e
-    cross join aire_pm25 a
+    -- Acota por caja de ±0.2° lat/lon ANTES del Haversine: con datos reales el producto cruzado
+    -- (~230 000 escuelas × 384 estaciones ≈ 88 M de pares) no termina. La caja es un superconjunto
+    -- EXACTO del disco de 15 km en todo México (a 33°N, 0.2° de longitud ≈ 18.7 km > 15 km), así
+    -- que el `where distancia_km <= 15` de dentro_radio_aire da un resultado idéntico al del cross
+    -- join, evaluando muchísimos menos pares.
+    join aire_pm25 a
+        on a.latitud between e.latitud - 0.2 and e.latitud + 0.2
+        and a.longitud between e.longitud - 0.2 and e.longitud + 0.2
 
 ),
 
@@ -319,6 +382,14 @@ ensamblado as (
 --   3. Si ninguna fila tiene un driver elegible, driver_dominante queda NULL (nunca un driver
 --      artificial) -- LEFT JOIN LATERAL preserva la fila con NULL cuando la subconsulta no
 --      devuelve nada.
+--   4. D3 (infraestructura) y D4 (conectividad) miden SERVICIOS PRESENTES: suben cuando la
+--      escuela está MEJOR, al revés que D1/D2/D6 (que suben cuando la situación empeora). Para
+--      que el argmax corone al driver que más PRESIONA (la peor situación) y no al mejor
+--      servicio, D3 y D4 entran al argmax INVERTIDOS como (1 - valor). Esto SOLO afecta la
+--      elección del dominante; las columnas publicadas d3_infraestructura/d4_conectividad
+--      conservan su escala original (P-05, 2026-08-31). Mismo arreglo en
+--      generar_driver_dominante_proxy() de entrenar_ml02.py y en el perfilado de
+--      clústers de entrenar_ml03.py.
 con_driver_dominante as (
 
     select
@@ -332,8 +403,11 @@ con_driver_dominante as (
             array[
                 case when e.d1_cobertura = 'OK' then e.d1_pobreza::double precision end,
                 case when e.d2_cobertura = 'OK' then e.d2_inseguridad::double precision end,
-                case when e.d3_cobertura = 'OK' then e.d3_infraestructura::double precision end,
-                case when e.d4_cobertura = 'OK' then e.d4_conectividad::double precision end,
+                -- D3/D4 invertidos (1 - valor): miden servicios presentes (alto = mejor); el
+                -- argmax busca el driver que MÁS presiona, así que entra su complemento. Solo
+                -- afecta la elección del dominante, no las columnas publicadas (regla 4, P-05).
+                case when e.d3_cobertura = 'OK' then (1 - e.d3_infraestructura)::double precision end,
+                case when e.d4_cobertura = 'OK' then (1 - e.d4_conectividad)::double precision end,
                 case when e.d5_cobertura = 'OK' then e.d5_agua::double precision end,
                 case when e.d6_cobertura = 'OK' then e.d6_aire::double precision end
             ]

@@ -6,7 +6,7 @@ with esperado as (
         f.id_ciclo,
         count(distinct f.cct) as escuelas,
         sum(f.matricula_total) as matricula_total,
-        sum(f.variacion_matricula * f.matricula_total) as variacion_x_matricula,
+        sum(f.matricula_ciclo_anterior) as suma_matricula_anterior,
         sum(f.indice_completitud_drivers) as suma_completitud
     from {{ ref('fact_escuela_ciclo') }} f
     inner join {{ ref('dim_escuela') }} e on f.cct = e.cct
@@ -22,5 +22,5 @@ left join {{ ref('cubo_matricula') }} c
 where c.cve_mun is null
    or c.escuelas <> e.escuelas
    or c.matricula_total <> e.matricula_total
-   or abs(c.variacion_x_matricula - e.variacion_x_matricula) > 0.0000001
+   or abs(c.suma_matricula_anterior - e.suma_matricula_anterior) > 0.0000001
    or abs(c.suma_completitud - e.suma_completitud) > 0.0000001

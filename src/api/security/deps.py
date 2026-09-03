@@ -33,7 +33,12 @@ def get_current_user(
         raise HTTPException(
             status.HTTP_401_UNAUTHORIZED, detail="Token inválido o expirado."
         ) from exc
-    return UserOut(sub=claims["sub"], email=claims.get("email", ""), role=Rol(claims["role"]))
+    return UserOut(
+        sub=claims["sub"],
+        email=claims.get("email", ""),
+        role=Rol(claims["role"]),
+        name=claims.get("name", ""),
+    )
 
 
 def get_google_verifier() -> GoogleVerifier:

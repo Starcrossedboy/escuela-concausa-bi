@@ -347,10 +347,17 @@ personas:
       - "infra/**"
       - "vault/08_CICD_DevOps/**"
       - "vault/11_Operations/**"
+      # Módulo de alertas que él mismo creó para US-524b (webhook Slack/Discord +
+      # callbacks de Airflow) — es infraestructura de monitoreo, no lógica de ingesta.
+      - "common_alerting/**"
     amarillo:
       - "requirements/**"
       - "scripts/**"
       - "tests/**"
+      # US-524b exige un callback de alerta en cada DAG. dags/** sigue siendo
+      # territorio de C1 (criticos avisa a Diana); esto solo le permite tocarlo
+      # sin que el gate lo rechace por "fuera de alcance" antes de llegar ahí.
+      - "dags/**"
 
   alejandro-velazquez:
     nombre: "Alejandro Velázquez Mendoza"
@@ -420,6 +427,13 @@ comunes:
   - "vault/10_Risk_Governance/Blocker_Register.md"
   - "vault/10_Risk_Governance/Decision_Log.md"
   - "vault/10_Risk_Governance/Incident_Log.md"
+  # Huecos reales hallados 2026-09-03 (Christian Ruiz, US-402/403/404): ninguna
+  # persona tenía estas dos rutas en su alcance, así que el gate reprobaba a
+  # quien las tocara sin importar quién fuera. Un ADR y una variable de entorno
+  # nueva son responsabilidad de quien hace el cambio de arquitectura, no de
+  # una sola célula.
+  - "vault/03_Architecture/ADRs/**"
+  - ".env.example"
 
 # Rutas que exigen revisión explícita del dueño del área (regla 7 de Vault_Rules).
 # Estar en verde no basta: si no eres el dueño, necesitas su aprobación en el PR.
@@ -430,4 +444,9 @@ criticos:
   "src/frontend/**": manuel-serrania
   "vault/02_Requirements/Traceability_Matrix.md": edgar-coronel
   "vault/10_Risk_Governance/**": edgar-coronel
+  # dags/** es verde de C1 (Diana/Deni/Luis García/Emilio); se abre en amarillo a
+  # edgar-jimenez para los callbacks de alerta de US-524b (BUG hallado 2026-09-03:
+  # el hueco anterior le reprobaba el gate por "fuera de alcance" antes de llegar
+  # a este aviso). Diana revisa cualquier cambio que no sea suyo.
+  "dags/**": diana-alvarez
 

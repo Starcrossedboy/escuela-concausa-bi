@@ -166,3 +166,67 @@ def verificar_modelos_registrados(
     if faltantes:
         raise RuntimeError(f"Modelos sin versión en MLflow Registry: {', '.join(faltantes)}.")
     return versiones
+
+
+def verificar_artefactos_descargables(
+    tracking_uri: str,
+    versiones: Mapping[str, str],
+) -> None:
+    """Confirma que cada versión registrada se pueda **cargar de vuelta**, no sólo que exista.
+
+    Una fila en el Model Registry no prueba que el modelo esté ahí. Si el
+    `--default-artifact-root` es una ruta de disco (`/mlflow/artifacts`) en vez del esquema de
+    proxy `mlflow-artifacts:/`, el servidor se la entrega al cliente tal cual y éste la resuelve
+    contra **su propio** disco: las métricas viajan por la API REST y se guardan bien, pero
+    escribir el modelo falla con `OSError: Read-only file system: '/mlflow'` y leerlo devuelve
+    `No such artifact: 'MLmodel'` — mientras la versión sigue `READY` en la UI.
+
+    El segundo modo de fallo es más silencioso: con la raíz correcta pero **sin**
+    `--artifacts-destination` apuntando al volumen, los artefactos caen en el `./mlartifacts`
+    de la capa efímera del contenedor. Todo funciona hasta que el contenedor se recrea —y en
+    Cloud Run eso pasa de rutina—, y entonces las versiones quedan `READY` sin artefacto.
+
+    Ese hueco dejó `ML01_RegresionMatricula` versión 1 en verde desde el 18-ago sin que ningún
+    cliente pudiera cargarla (**BUG-043**). AC-003.4 pide que el modelo *llegue* al registry, y la
+    única prueba de eso es traerlo de vuelta — que es, además, exactamente lo que hace la API de
+    la Célula 4 al servir inferencia.
+
+    Se usa `pyfunc` a propósito: no depende del sabor con que se guardó el modelo y es la misma
+    ruta de carga que usa quien lo consume.
+
+    Args:
+        tracking_uri: URI de tracking de MLflow.
+        versiones: mapa `{nombre_modelo: version}`, tal como lo devuelve
+            `verificar_modelos_registrados`.
+
+    Raises:
+        RuntimeError: si alguna versión no se puede cargar, nombrando el modelo y la causa probable.
+    """
+    try:
+        import mlflow
+    except ImportError as exc:  # pragma: no cover - depende del ambiente de C3
+        raise RuntimeError("Instala mlflow para verificar el Model Registry.") from exc
+
+    mlflow.set_tracking_uri(tracking_uri)
+
+    fallidos: list[str] = []
+    for nombre, version in sorted(versiones.items()):
+        try:
+            mlflow.pyfunc.load_model(f"models:/{nombre}/{version}")
+        except Exception as exc:  # noqa: BLE001 - cualquier fallo aquí significa modelo inservible
+            fallidos.append(f"{nombre} v{version} ({type(exc).__name__}: {str(exc)[:120]})")
+
+    if fallidos:
+        raise RuntimeError(
+            "Hay versiones en el Registry que NO se pueden cargar: "
+            + "; ".join(fallidos)
+            + ".\nLa fila existe pero el artefacto no llega al cliente (BUG-043). Dos causas, "
+            "las dos de configuración del servidor:\n"
+            "  1. `--default-artifact-root` es una ruta de disco en vez de `mlflow-artifacts:/`, "
+            "así que el cliente la resuelve contra su propio disco. Lo define "
+            "`MLFLOW_ARTIFACT_ROOT` en el `.env`.\n"
+            "  2. Falta `--artifacts-destination /mlflow/artifacts`, así que los artefactos "
+            "caen en la capa efímera del contenedor y mueren al recrearlo. Lo define el "
+            "`command:` del servicio `mlflow` en `docker-compose.yml` (Célula 5).\n"
+            "`--serve-artifacts` NO es la causa: en MLflow 3.x viene activo por defecto."
+        )

@@ -706,15 +706,27 @@ def build_snapshot(root: Path) -> dict[str, Any]:
     delivery = parse_delivery(root)
     delivery_date = date.fromisoformat(delivery["date"])
     today = date.today()
+    # BUG-042: antes, una US sin fila en Execution_Status.md caía en silencio a
+    # "planned" -- que puede o no ser cierto, nadie lo verificaba. Pasó con 24
+    # historias reales (algunas ya tenían PR mergeado) contadas como "planned"
+    # sin que nada fallara. Un valor por defecto que parece dato es peor que un
+    # error: ahora toda US-### debe tener su fila explícita, o el generador
+    # truena con la lista completa de las que faltan.
+    faltantes = sorted(s["id"] for s in stories if s["id"] not in execution)
+    if faltantes:
+        raise ValueError(
+            f"{len(faltantes)} historia(s) sin fila en Execution_Status.md (BUG-042): "
+            f"{', '.join(faltantes)}. Agrega su fila -- con el estado real, no un default."
+        )
     for story in stories:
-        state = execution.get(story["id"], {})
+        state = execution[story["id"]]
         story.update(
             {
-                "status": state.get("status", "planned"),
-                "started": state.get("started", "—"),
-                "blocked_since": state.get("blocked_since", "—"),
-                "evidence": state.get("evidence", "—"),
-                "updated": state.get("updated", "—"),
+                "status": state["status"],
+                "started": state["started"],
+                "blocked_since": state["blocked_since"],
+                "evidence": state["evidence"],
+                "updated": state["updated"],
             }
         )
         plan_story = individual_plans.get(story["owner"], {}).get("stories", {}).get(story["id"], {})

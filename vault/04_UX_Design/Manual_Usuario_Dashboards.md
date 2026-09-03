@@ -31,16 +31,28 @@ prueba y ocho placeholders.
 Bronze cargado (local con `dbt run` completo, o el ambiente validado que usó Luis Téllez el
 2026-09-01) puede tomar las capturas y reemplazar los marcadores sin tocar el resto del texto.
 
+**Actualización 2026-09-02 (1/10 con captura real):** tras arreglar **BUG-029**,
+`gold.cubo_completitud` resultó estar ya materializado en este ambiente — **DB-07 ya tiene captura
+real** (sección correspondiente, más abajo). Los otros 9 siguen con `[CAPTURA PENDIENTE]`: sus
+propios cubos (`gold.cubo_pipeline` para DB-10, y el resto) no están materializados aquí y sí
+dependen de Bronze (Diana Álvarez, C1) — arreglar BUG-029 no los destraba, solo evitaba que uno
+roto tumbara el registro de los demás.
+
 **Actualización 2026-09-02:** DB-07 y DB-10 ya tienen su definición de tablero declarativa
 (`superset/dashboards/db07_calidad_cobertura.yaml`, `superset/dashboards/db10_monitor_pipeline.yaml`)
-— antes solo existía su capa semántica (SQL + métricas), sin layout de charts que registrar. Con
-Bronze cargado, `sync_semantic_layer.py` ya puede importar los 10 tableros completos, no 8.
+— antes solo existía su capa semántica (SQL + métricas), sin layout de charts que registrar.
+Además se corrigió **BUG-029** (el sync abortaba toda la corrida al toparse con un dataset roto),
+así que un cubo faltante ya no le impide registrarse a los demás. Con eso, **DB-07 ya está viva en
+Superset local** — captura real más abajo. DB-10 sigue sin poder registrarse: su propio cubo
+(`gold.cubo_pipeline`) no existe todavía, y eso sí depende de que Bronze se cargue (Diana Álvarez,
+C1) — BUG-029 nunca fue la causa de ese bloqueo específico, solo evitaba que se propagara a otros.
 
 | Dashboard | Estado de datos conocido |
 |---|---|
 | DB-01, DB-02 | **Estructura** validada por Luis Téllez (2026-09-01): 9/9 y 7/7 charts renderizan, filtros responden, ningún chart roto. **Los números todavía no**: falta el recálculo del Carril A (hoy solo hay un ciclo cargado) — ver su DevLog. No presentes como cifras finales en una demo. |
 | DB-03…DB-06, DB-08, DB-09 | Construidos (PR mergeados), sin confirmación reciente de validación en vivo — verificar antes de usar en demo. |
-| DB-07, DB-10 | SQL, capa semántica, **definición de tablero (`superset/dashboards/db07_calidad_cobertura.yaml`, `db10_monitor_pipeline.yaml`)** y 12 pruebas automatizadas en verde contra fixtures; **registro en Superset bloqueado** por falta de Bronze (documentado en sus Cube Specs). No van a aparecer poblados en una demo local hasta resolver ese bloqueo. |
+| DB-07 | **Viva en Superset local** (2026-09-02): 7/7 charts con datos reales de `gold.cubo_completitud` (72 filas). El mapa carga pero el autozoom no centra en México — zoom manual pendiente, no es falta de datos. Captura real incluida abajo. |
+| DB-10 | SQL, capa semántica y definición de tablero (`db10_monitor_pipeline.yaml`) listos, 5 pruebas en verde; **no se registra** porque `gold.cubo_pipeline` no existe — depende de que Bronze se cargue (Diana Álvarez, C1), sin relación con BUG-029. |
 
 ---
 
@@ -202,11 +214,18 @@ territoriales (dónde el Estado literalmente no está midiendo).
 **Cómo leerlo:** es el tablero que convierte una limitación de datos en un hallazgo de valor —
 "aquí no sabemos" es en sí mismo información útil para dónde invertir en instrumentación.
 **Nota de estado:** SQL, capa semántica, definición de tablero
-(`superset/dashboards/db07_calidad_cobertura.yaml`) y 7 pruebas automatizadas, todo en verde; el
-registro real en Superset está bloqueado en este ambiente por falta de Bronze (ver
-[[vault/04_UX_Design/Cube_Specs_DB07]] §4).
+(`superset/dashboards/db07_calidad_cobertura.yaml`) y 7 pruebas automatizadas, todo en verde.
+**Ya registrado y vivo en Superset local** (2026-09-02) tras el fix de BUG-029 — ver
+[[vault/04_UX_Design/Cube_Specs_DB07]] §4 para el detalle del bloqueo ya resuelto.
 
-[CAPTURA PENDIENTE: DB-07 — mapa de vacíos + completitud por driver]
+![DB-07 · Calidad y cobertura de datos, capturado en local tras el fix de BUG-029](capturas/db07-calidad-cobertura.png)
+
+**Captura real, 2026-09-02**, tomada contra Superset local tras el fix de BUG-029 y con
+`gold.cubo_completitud` ya materializado en este ambiente (72 filas). Los 6 tiles/tabla muestran
+números reales. El mapa (KPI-06) carga correctamente — las geometrías de los 3 municipios están
+confirmadas en `gold.geo_municipio` — pero el autozoom de Superset no centra la vista en México al
+cargar; hay que hacer zoom manual en el navegador para verlo. No es un problema de datos, es una
+interacción pendiente de ajustar en el propio Superset.
 
 ### DB-08 · Explorador del cubo
 
@@ -272,5 +291,6 @@ en tiempo real qué fuente está fallando, en vez de que parezca un bug silencio
 - **Consume:** [[vault/04_UX_Design/Screen_Specs]] (catálogo de KPIs y arquitectura de los 10
   dashboards, US-201) · [[vault/04_UX_Design/Cube_Specs_DB07]] · [[vault/04_UX_Design/Cube_Specs_DB10]]
   (bloqueo de datos documentado)
-- **Pendiente:** reemplazar los 10 marcadores `[CAPTURA PENDIENTE]` cuando el ambiente tenga Bronze
+- **Pendiente:** reemplazar los 9 marcadores `[CAPTURA PENDIENTE]` restantes (DB-07 ya tiene
+  captura real) cuando el ambiente tenga Bronze cargado
   cargado; actualizar la tabla de la sección "Estado de este manual" en cada revisión

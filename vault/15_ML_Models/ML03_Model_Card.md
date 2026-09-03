@@ -22,7 +22,8 @@ El objetivo de **ML-03** es un agrupamiento no supervisado (clustering) para enc
 
 ## 3. Métrica Obtenida
 - **Métrica principal**: Coeficiente de **Silhouette** (Silhouette Score).
-- **Resultados actuales**: **Pendiente de entrenamiento; todavía no hay Silhouette obtenido** (ya que la historia US-321 sigue pendiente de implementación).
+- **Resultados actuales**: **Silhouette Score = 0.1086**. 
+  *(Nota: El modelo no superó el umbral mínimo de ≥ 0.30 establecido en los criterios de aceptación, por lo que requiere iteración adicional o reducción de dimensionalidad).*
 
 ## 4. Limitaciones Conocidas
 - Carece de una "verdad absoluta" al ser no supervisado; los clústeres resultantes requieren interpretación y etiquetado de negocio (ej. "Escuelas rurales sin conectividad", "Escuelas urbanas saturadas").

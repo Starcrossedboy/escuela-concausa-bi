@@ -225,36 +225,47 @@ def ensure_datasets(
         name = sql_file.stem  # p.ej. db03_cubo_escuela_360
         sql = _read_sql(sql_file)
 
-        if name in existing:
-            ds_id = existing[name]
-            # El SQL del archivo puede haber cambiado desde la última corrida:
-            # comparar contra lo guardado y hacer PUT si difiere (si no, los
-            # tableros seguirían consultando el SQL viejo para siempre).
-            detalle = _request("GET", f"/api/v1/dataset/{ds_id}", token=token).get("result", {})
-            sql_actual = (detalle.get("sql") or "").strip()
-            if sql_actual != sql.strip():
-                _request(
-                    "PUT",
-                    f"/api/v1/dataset/{ds_id}",
-                    token=token,
-                    csrf_token=csrf,
-                    body={"sql": sql},
-                )
-                print(f"  ↻ Dataset '{name}' actualizado (el SQL cambió)")
+        # BUG-029: un dataset cuya tabla Gold aun no existe (ambiente sin la
+        # cadena Bronze->Gold completa) no debe tumbar la corrida entera --
+        # antes, un solo 500 aqui abortaba el sync para TODOS los tableros
+        # alfabeticamente posteriores, sanos o no. Se reporta y se continua;
+        # el dataset simplemente no entra a `datasets`, y los charts que lo
+        # usan ya saben omitirse (ensure_chart devuelve -1 si el nombre no
+        # esta en `datasets_by_name`).
+        try:
+            if name in existing:
+                ds_id = existing[name]
+                # El SQL del archivo puede haber cambiado desde la última corrida:
+                # comparar contra lo guardado y hacer PUT si difiere (si no, los
+                # tableros seguirían consultando el SQL viejo para siempre).
+                detalle = _request("GET", f"/api/v1/dataset/{ds_id}", token=token).get("result", {})
+                sql_actual = (detalle.get("sql") or "").strip()
+                if sql_actual != sql.strip():
+                    _request(
+                        "PUT",
+                        f"/api/v1/dataset/{ds_id}",
+                        token=token,
+                        csrf_token=csrf,
+                        body={"sql": sql},
+                    )
+                    print(f"  ↻ Dataset '{name}' actualizado (el SQL cambió)")
+                else:
+                    print(f"  ✔ Dataset '{name}' existe y está al día (id={ds_id})")
             else:
-                print(f"  ✔ Dataset '{name}' existe y está al día (id={ds_id})")
-        else:
-            body = {
-                "database": db_id,
-                "sql": sql,
-                "schema": "gold",
-                "table_name": name,
-            }
-            created = _request(
-                "POST", "/api/v1/dataset/", token=token, csrf_token=csrf, body=body
-            )
-            ds_id = created.get("id")
-            print(f"  ✔ Dataset '{name}' creado (id={ds_id})")
+                body = {
+                    "database": db_id,
+                    "sql": sql,
+                    "schema": "gold",
+                    "table_name": name,
+                }
+                created = _request(
+                    "POST", "/api/v1/dataset/", token=token, csrf_token=csrf, body=body
+                )
+                ds_id = created.get("id")
+                print(f"  ✔ Dataset '{name}' creado (id={ds_id})")
+        except Exception as e:  # noqa: BLE001 - un dataset roto no debe abortar el sync (BUG-029)
+            print(f"  ✗ Dataset '{name}' omitido (tabla/vista Gold ausente o error): {e}")
+            continue
 
         datasets[name] = ds_id
 

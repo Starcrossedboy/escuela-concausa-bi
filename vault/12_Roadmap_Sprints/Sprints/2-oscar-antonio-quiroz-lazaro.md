@@ -310,10 +310,10 @@ Actualiza esta tabla **antes de cada standup**. El PM la revisa para el tablero 
 
 | ID | Historia | Estado | % | Bloqueado por | Fecha compromiso |
 |---|---|---|---|---|---|
-| `US-221` | Construir los graficos base de KPIs | 🔵 En revisión (PR #106) | 90% | Revisión de Manuel, checks y merge | Junta de cierre |
-| `US-222` | Construir DB-07 Calidad y cobertura de dat | ⬜ Por iniciar | 0% | — | Dom 30 ago |
-| `US-223` | Construir DB-10 Monitor del pipeline | ⬜ Por iniciar | 0% | — | Dom 6 sep |
-| `US-224` | Documentar el manual de usuario de los das | ⬜ Por iniciar | 0% | — | Dom 6 sep |
+| `US-221` | Construir los graficos base de KPIs | ✅ Terminado (PR #106) | 100% | — | — |
+| `US-222` | Construir DB-07 Calidad y cobertura de dat | ✅ Terminado (PR #125) | 100% | — | — |
+| `US-223` | Construir DB-10 Monitor del pipeline | ✅ Terminado (PR #159) | 100% | — | — |
+| `US-224` | Documentar el manual de usuario de los das | 🟡 En curso | 70% | Capturas reales — Bronze no cargado en ningún ambiente disponible | Dom 6 sep |
 
 **Estados válidos:** ⬜ Por iniciar · 🟡 En curso · 🔵 En revisión (PR abierto) · ✅ Terminado · 🔴 Bloqueado
 

@@ -12,6 +12,7 @@ Firma HS256 (simétrica) por ahora; el ADR documenta la migración a RS256 en pr
 """
 from __future__ import annotations
 
+import secrets
 from datetime import datetime, timedelta, timezone
 from typing import Any
 
@@ -22,6 +23,8 @@ from src.api.schemas import Rol, TokenPair
 
 TIPO_ACCESS = "access"
 TIPO_REFRESH = "refresh"
+# Token de un solo viaje que transporta el parametro `state` del flujo OAuth (anti-CSRF, US-402).
+TIPO_STATE = "state"
 
 
 class AuthError(Exception):
@@ -96,6 +99,36 @@ def create_token_pair(sub: str, role: Rol | str, email: str = "") -> TokenPair:
         token_type="bearer",
         expires_in=s.access_token_expire_minutes * 60,
     )
+
+
+def create_state_token() -> str:
+    """Emite el `state` anti-CSRF del flujo OAuth2 (US-402).
+
+    Es un JWT propio, de vida muy corta, con un `nonce` aleatorio. Al ser **firmado** no hace falta
+    almacenamiento de sesion en el servidor: Cloud Run corre varias instancias sin estado compartido,
+    y un `state` guardado en memoria se perderia entre la ida y la vuelta del navegador. El mismo
+    valor viaja por dos canales independientes (la URL de Google y una cookie `HttpOnly`), y el
+    callback exige que coincidan: eso es lo que impide que un tercero fabrique un callback valido.
+    """
+    s = get_settings()
+    ahora = _now()
+    exp = ahora + timedelta(minutes=s.oauth_state_expire_minutes)
+    return _encode(
+        {
+            "nonce": secrets.token_urlsafe(16),
+            "type": TIPO_STATE,
+            "iat": int(ahora.timestamp()),
+            "exp": int(exp.timestamp()),
+        }
+    )
+
+
+def verify_state_token(token: str) -> dict[str, Any]:
+    """Valida un `state` (firma, expiracion y tipo). Lanza `AuthError` si no es de tipo state."""
+    claims = _decode(token)
+    if claims.get("type") != TIPO_STATE:
+        raise AuthError("se esperaba un state token")
+    return claims
 
 
 def verify_access_token(token: str) -> dict[str, Any]:

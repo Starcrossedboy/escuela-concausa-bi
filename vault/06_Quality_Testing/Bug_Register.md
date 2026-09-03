@@ -289,6 +289,19 @@ depende de ese job, así que el problema parece más amplio que la tabla de C3.
 
 Lo que hace falta para cerrarlo es mirar los logs de Cloud Run, que son de C4/C5.
 
+**Actualización 2026-08-29/30 (C5, US-505 Fase 2 — PR #144/#146):** BUG-020 **curado en
+producción**. Se pobló Gold en Cloud SQL y se redeployó `faro-api` por IP privada con secretos en
+Secret Manager. Validación en prod: `/escuelas` **500→200** (25 escuelas), `/predicciones/{cct}`
+**500→404 estructurado** (correcto: `gold.predicciones` vacía hasta que ML-01 publique a prod).
+
+**Verificación 2026-09-02 (Juan Carlos Macías, US-412/US-416):** re-confirmado en vivo contra la
+URL pública — `/api/v1/predicciones/{cct}` → 404 `ErrorOut`, `/api/v1/predicciones/batch` → 200
+`{"items":[],"total":0}`, `/api/v1/escuelas` → 200. **BUG-020 no reproduce.** Regresión adicional
+en `tests/test_repositorio_modelos.py`: un `ProgrammingError` por esquema `gold` ausente ahora
+degrada a 503, no a 500. **Recomendación a los dueños (Christian Ruiz / Luis Téllez):** mover a
+`fixed` → `closed`. *(El campo `status` de la tabla lo actualizan los dueños; esta nota no lo
+cambia.)*
+
 ## BUG-024 — `SELECT INTO` atravesaba el guardarraíl de solo lectura
 
 Reportado por Edgar Coronel el 2026-08-28 durante la revisión de seguridad del PR #119.

@@ -51,6 +51,16 @@ def main(root_value: str = ".") -> int:
             fail(f"{story['id']} done sin evidencia", failures)
         if not story.get("owner_short"):
             fail(f"{story.get('id')} sin owner_short (nombre corto del responsable)", failures)
+        # BUG-040: una fila mal formada en Execution_Status desplaza las columnas y mete
+        # texto donde va la fecha. El snapshot seguía siendo "válido" porque nadie miraba
+        # este campo, y el tablero publicó basura durante días. Ahora falla al generarlo.
+        actualizado = story.get("updated", "")
+        if actualizado not in {"", "—"} and not re.fullmatch(r"\d{4}-\d{2}-\d{2}", actualizado):
+            fail(
+                f"{story.get('id')}: 'updated' no es una fecha ({actualizado[:48]!r}). "
+                "Suele ser una fila de Execution_Status con columnas desalineadas.",
+                failures,
+            )
     people = data.get("people", [])
     if len(people) != 21:
         fail(f"Se esperaban 21 personas y hay {len(people)}", failures)

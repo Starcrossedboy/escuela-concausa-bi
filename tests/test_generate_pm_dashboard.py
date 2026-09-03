@@ -1,0 +1,120 @@
+"""TEST-015 — El parser de tablas del tablero PM respeta los pipes escapados.
+
+BUG-040: `table_cells` partía la fila cruda por **todos** los pipes, incluido el de un
+wikilink con alias (`[[ruta\\|texto]]`). Ese pipe no separa columnas: es sintaxis de
+Obsidian, y el vault la escribe escapada 190+ veces. Al partir ahí, las columnas se
+desplazaban y el campo `updated` recibía texto en vez de una fecha — sin que nada fallara,
+porque la fila seguía teniendo suficientes celdas. El tablero publicó basura durante días.
+
+Estas pruebas fijan el contrato: una celda con un pipe escapado sigue siendo UNA celda.
+"""
+
+import re
+import sys
+from pathlib import Path
+
+import pytest
+
+RAIZ = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(RAIZ / "vault" / "_Meta" / "scripts"))
+
+from generate_pm_dashboard import parse_execution, table_cells
+
+FECHA = re.compile(r"\d{4}-\d{2}-\d{2}")
+
+
+# ── El contrato del parser ───────────────────────────────────────────────────
+
+
+def test_un_pipe_escapado_no_abre_columna():
+    fila = r"| US-999 | done | 2026-01-01 | — | [[vault/x/Doc\|alias]] y algo | 2026-01-02 |"
+    celdas = table_cells(fila)
+    assert len(celdas) == 6
+    assert celdas[5] == "2026-01-02", "la fecha se desplazó de columna"
+
+
+def test_el_alias_se_resuelve_a_su_texto():
+    celdas = table_cells(r"| a | [[vault/x/Doc\|texto visible]] |")
+    assert celdas[1] == "texto visible"
+
+
+def test_varios_pipes_escapados_en_la_misma_celda():
+    fila = r"| US-999 | done | 2026-01-01 | — | [[a\|uno]] · [[b\|dos]] · [[c\|tres]] | 2026-01-02 |"
+    celdas = table_cells(fila)
+    assert len(celdas) == 6
+    assert celdas[5] == "2026-01-02"
+
+
+def test_una_fila_sin_alias_no_cambia_de_comportamiento():
+    fila = "| US-998 | done | 2026-01-01 | — | [[vault/x/Doc]] evidencia | 2026-01-02 |"
+    celdas = table_cells(fila)
+    assert len(celdas) == 6
+    assert celdas[5] == "2026-01-02"
+
+
+def test_los_pipes_reales_siguen_separando():
+    assert len(table_cells("| a | b | c |")) == 3
+
+
+# ── El archivo real, que es lo que se publica ────────────────────────────────
+
+
+@pytest.fixture(scope="module")
+def ejecucion():
+    return parse_execution(RAIZ)
+
+
+def test_toda_historia_tiene_una_fecha_en_updated(ejecucion):
+    """El síntoma exacto de BUG-040, medido sobre la fuente canónica."""
+    malas = {k: v["updated"][:40] for k, v in ejecucion.items() if not FECHA.fullmatch(v["updated"])}
+    assert not malas, f"'updated' no es fecha en: {malas}"
+
+
+def test_la_evidencia_no_queda_truncada(ejecucion):
+    """Una celda cortada a la mitad deja un wikilink sin cerrar."""
+    rotas = [k for k, v in ejecucion.items() if v["evidence"].count("[[") != v["evidence"].count("]]")]
+    assert not rotas, f"evidencia con wikilink sin cerrar en: {rotas}"
+
+
+def test_us004_conserva_su_evidencia_completa(ejecucion):
+    """La fila que destapó el defecto: su texto llega hasta el final."""
+    assert ejecucion["US-004"]["updated"] == "2026-08-29"
+    assert ejecucion["US-004"]["evidence"].endswith("hasta el cierre del proyecto")
+
+
+# ── El índice de DevLog alimenta las métricas por persona ────────────────────
+#
+# `build_engagement` cruza el conteo de DevLogs con el nombre canónico por coincidencia
+# EXACTA. Una fila con el pipe sin escapar corre la columna y atribuye el DevLog a la
+# descripción; una variante de nombre —sin acento, o el nombre corto— deja a esa persona
+# con cero DevLogs aunque los haya escrito. Ambas cosas pasaron: el tablero contaba 25
+# "autores" y mostraba a tres personas sin documentación.
+
+sys.path.insert(0, str(RAIZ / "vault" / "_Meta" / "scripts"))
+from check_ownership import leer_ownership
+from generate_pm_dashboard import parse_devlog_authors
+
+
+@pytest.fixture(scope="module")
+def nombres_canonicos():
+    datos = leer_ownership(str(RAIZ / "vault" / "_Meta" / "ownership.yml"))
+    return {p["nombre"] for p in datos["personas"].values()}
+
+
+def test_toda_fila_del_indice_de_devlog_tiene_5_columnas():
+    ruta = RAIZ / "vault" / "_DevLog" / "_index.md"
+    malas = []
+    for numero, linea in enumerate(ruta.read_text(encoding="utf-8").splitlines(), 1):
+        if linea.startswith("| [[vault/_DevLog/") and len(table_cells(linea)) != 5:
+            malas.append(numero)
+    assert not malas, f"filas con columnas desalineadas: {malas}"
+
+
+def test_todo_autor_del_indice_existe_en_el_padron(nombres_canonicos):
+    """Una variante de nombre no rompe nada: silenciosamente deja a alguien en cero."""
+    autores = set(parse_devlog_authors(RAIZ))
+    fuera = autores - nombres_canonicos
+    assert not fuera, (
+        f"autores que no coinciden con ningún nombre canónico: {sorted(fuera)}. "
+        "Sus DevLogs no se le cuentan a nadie."
+    )

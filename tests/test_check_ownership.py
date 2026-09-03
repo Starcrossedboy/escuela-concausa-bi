@@ -109,3 +109,91 @@ def test_ningun_alias_historico_resuelve_a_una_rama(datos, alias):
     ramas = {p["rama"] for p in datos["personas"].values()}
     assert f"dev/{alias}" not in ramas
     assert alias not in datos["personas"]
+
+
+# ── BUG-039 — el padrón tiene que permitir lo que la plantilla de PR exige ────
+#
+# La plantilla marca como obligatorias varias casillas que obligan al autor a tocar
+# archivos compartidos: su fila en el índice de DevLog y su fila en la matriz de
+# trazabilidad. Si esos archivos no están en el alcance de quien abre el PR, el gate
+# de propiedad y el de plantilla se contradicen y nadie puede entregar. Pasó: durante
+# unas horas los 21 quedaron sin poder abrir un PR que pasara sus propios gates.
+
+OBLIGATORIO_POR_PR = [
+    "vault/_DevLog/_index.md",
+    "vault/02_Requirements/Traceability_Matrix.md",
+    ".gitignore",
+    ".gitattributes",
+]
+
+
+def _alcance(datos, identidad):
+    persona = datos["personas"][identidad]
+    return (
+        list(persona["verde"])
+        + list(persona["amarillo"])
+        + [c.replace("{id}", identidad) for c in datos["comunes"]]
+        + [persona["plan"]]
+    )
+
+
+@pytest.mark.parametrize("ruta", OBLIGATORIO_POR_PR)
+def test_todos_pueden_tocar_lo_que_la_plantilla_exige(datos, ruta):
+    sin_permiso = [i for i in datos["personas"] if not coincide(ruta, _alcance(datos, i))]
+    assert not sin_permiso, f"{ruta} está fuera del alcance de: {', '.join(sin_permiso)}"
+
+
+def test_un_pr_que_cierra_una_historia_pasa_el_gate(datos):
+    """El caso real: alguien cierra su historia cumpliendo Definition of Filed."""
+    alcance = _alcance(datos, "diana-alvarez")
+    for ruta in (
+        "src/ingesta/extractor_formato911.py",
+        "vault/_DevLog/2026-09-03-diana-alvarez-us106.md",
+        "vault/_DevLog/_index.md",
+        "vault/02_Requirements/Traceability_Matrix.md",
+    ):
+        assert coincide(ruta, alcance), f"un PR normal se reprobaría por {ruta}"
+
+
+def test_quien_documenta_arquitectura_puede_registrarla_en_su_indice(datos):
+    """Tener un .md de una carpeta en verde sin su _index.md impide cumplir la regla 4."""
+    for identidad in ("diana-alvarez", "christian-ruiz", "karla-monter", "juan-macias"):
+        alcance = _alcance(datos, identidad)
+        assert coincide("vault/03_Architecture/_index.md", alcance), identidad
+
+
+def test_la_matriz_sigue_siendo_ruta_critica(datos):
+    """Común para editar, pero el gate debe seguir avisando a quién pedirle revisión."""
+    assert datos["criticos"]["vault/02_Requirements/Traceability_Matrix.md"] == "edgar-coronel"
+
+
+# ── Los registros de intake de Definition_of_Filed ───────────────────────────
+#
+# `Definition_of_Filed` obliga a CUALQUIERA a dar de alta el bug, el riesgo, el bloqueo
+# o el hallazgo de seguridad que encuentre, en un registro concreto. Si ese registro no
+# está permitido para quien reporta, la regla queda escrita pero es imposible de cumplir.
+
+REGISTROS_DE_INTAKE = [
+    "vault/06_Quality_Testing/Bug_Register.md",
+    "vault/07_Security/Security_Audit_Log.md",
+    "vault/10_Risk_Governance/Risk_Register.md",
+    "vault/10_Risk_Governance/Blocker_Register.md",
+    "vault/10_Risk_Governance/Decision_Log.md",
+    "vault/10_Risk_Governance/Incident_Log.md",
+]
+
+
+@pytest.mark.parametrize("registro", REGISTROS_DE_INTAKE)
+def test_cualquiera_puede_dar_de_alta_en_los_registros_de_intake(datos, registro):
+    sin_permiso = [i for i in datos["personas"] if not coincide(registro, _alcance(datos, i))]
+    assert not sin_permiso, f"{registro} está fuera del alcance de: {', '.join(sin_permiso)}"
+
+
+def test_los_registros_de_intake_existen_donde_dice_definition_of_filed(datos):
+    for registro in REGISTROS_DE_INTAKE:
+        assert (RAIZ / registro).exists(), f"{registro} no existe"
+
+
+def test_el_pm_puede_probar_el_codigo_que_mantiene(datos):
+    """`vault/_Meta/scripts/**` es del PM; sus pruebas viven en `tests/`."""
+    assert coincide("tests/test_check_ownership.py", _alcance(datos, "edgar-coronel"))

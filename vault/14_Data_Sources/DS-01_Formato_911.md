@@ -19,14 +19,32 @@ tags: [data-source, bronze, hecho-central]
   alumno (privacidad por diseño).
 
 ## 2. Acceso
-- **URL de descarga:** PENDIENTE-CONFIRMAR (portal esperado: SIGED / datos.gob.mx).
-- **Formato:** CSV / XLSX.
-- **Tamaño aproximado:** PENDIENTE-CONFIRMAR.
+- **URL de descarga (verificada real, no PENDIENTE):** portal
+  [repodatos.atdt.gob.mx](https://repodatos.atdt.gob.mx) (Datos Abiertos SEP, "Registro de
+  alumnado y personal docente — educación básica y media superior — Formato 911"). Cada ciclo
+  escolar tiene su propia URL de archivo — **no siguen una fórmula derivable** (2023-2024 y
+  2024-2025 rompen el patrón de los ciclos anteriores cada una a su manera, verificado a mano
+  por Diana, clic derecho → copiar dirección del enlace en datos.gob.mx). Las 6 URLs reales,
+  una por ciclo, viven en `SOURCE_URL_POR_CICLO` de
+  `src/ingesta/extractor_formato911_historico.py`:
+  - 2019-2020: `https://repodatos.atdt.gob.mx/s_educacion_publica/f911/BASICA_2019-2020.csv`
+  - 2020-2021: `https://repodatos.atdt.gob.mx/s_educacion_publica/f911/BASICA_2020-2021.csv`
+  - 2021-2022: `https://repodatos.atdt.gob.mx/s_educacion_publica/f911/BASICA_2021-2022.csv`
+  - 2022-2023: `https://repodatos.atdt.gob.mx/s_educacion_publica/f911/BASICA_2022-2023.csv`
+  - 2023-2024: `https://repodatos.atdt.gob.mx/s_educacion_publica/f911/ESTANDAR_BASICA_I2324.csv`
+  - 2024-2025: `https://repodatos.atdt.gob.mx/api_update/secretaria_educacion/registro_alumnado_personal_docente_educacion_basica_media_superior_formato_911/educacion_basica_2024_2025.csv`
+    (mismo archivo que usa `src/ingesta/extractor_formato911.py`, el cargador de ciclo único de
+    PR #105 — es la misma fuente, dos extractores distintos, ver nota de aislamiento en el
+    docstring de `extractor_formato911_historico.py`)
+- **Formato:** CSV, ~190 columnas reales por archivo (solo se extraen las que hace falta, ver §5).
+- **Tamaño real:** no medido en MB (son CSV de texto plano vía HTTP directo, no ZIP) — conteo de
+  filas real por ciclo confirmado en §9 (228,804–231,913 filas según ciclo).
 - **Distribución alterna — serie SNIEE:** la SEP publica esta **misma fuente ya agregada** a nivel
   `municipio × nivel` como serie **multi-año** (SNIEE / Sistema de Consulta de Estadística Educativa,
-  planeacion.sep.gob.mx — URL PENDIENTE-CONFIRMAR). **No es una 9ª fuente**, es DS-01 en otra
-  distribución. Es la vía que habilita el **target real multi-año** por `DEC-007` sin reconstruir años
-  crudos del 911 (el 911 crudo aporta el desglose por escuela para features y driver dominante).
+  planeacion.sep.gob.mx — URL PENDIENTE-CONFIRMAR, sitio caído por DNS al momento de intentar
+  acceder, ver §9a). **No es una 9ª fuente**, es DS-01 en otra distribución. Es la vía que
+  habilitaría el target real multi-año por `DEC-007` como alternativa — **no bloqueante**: el
+  target ya se calcula del microdato real del 911 (ver §9a, decisión tomada con el equipo).
 
 ## 3. Frecuencia real de actualización
 - **Anual**, por ciclo escolar (inicio de cursos).

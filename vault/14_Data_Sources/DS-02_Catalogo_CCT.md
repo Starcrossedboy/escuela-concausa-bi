@@ -19,11 +19,22 @@ tags: [data-source, bronze, llave-primaria]
   nivel escuela y habilita el cruce municipal.
 
 ## 2. Acceso
-- **URL de descarga:** [SIGED — Descarga del Catálogo de Centros de Trabajo](https://www.siged.sep.gob.mx/SIGED/datos_abiertos.html).
-  El catálogo se publica partido por rango de entidad: `CATALOGO_CENTRO_TRABAJO_01_16_CSV.zip`
-  (entidades 01-16) y `CATALOGO_CENTRO_TRABAJO_17_32_CSV.zip` (entidades 17-32) — hay que
-  descargar **los dos**; de las 4 `SCOPE_ENTIDADES` del proyecto, Nuevo León (19) cae en el
-  segundo. Diccionario de datos oficial: `CENTROS_TRABAJO_DICDAT.xlsx` (mismo portal).
+- **URL de descarga (portal, manual):** [SIGED — Descarga del Catálogo de Centros de
+  Trabajo](https://www.siged.sep.gob.mx/SIGED/datos_abiertos.html). El catálogo se publica
+  partido por rango de entidad: `CATALOGO_CENTRO_TRABAJO_01_16_CSV.zip` (entidades 01-16) y
+  `CATALOGO_CENTRO_TRABAJO_17_32_CSV.zip` (entidades 17-32) — hay que descargar **los dos**;
+  de las 4 `SCOPE_ENTIDADES` del proyecto, Nuevo León (19) cae en el segundo. Diccionario de
+  datos oficial: `CENTROS_TRABAJO_DICDAT.xlsx` (mismo portal).
+- **URL real, automatizada (verificada 2026-09-03):** el portal no expone un link de descarga
+  directo — el botón dispara JavaScript (AngularJS, `SIGED/js/tablas_siged.js
+  descargarArchivo`) que arma el archivo como Blob en el navegador, sin URL de archivo estática
+  que copiar. Se inspeccionó el JS del portal en vivo y se encontró la llamada real que hace:
+  `GET https://api.siged.sep.gob.mx/CoreServices/servicios/archivo/buscarArchivos/grupo=CCTS&id={idFile}`
+  (`idFile=4` → parte 01-16, `idFile=3` → parte 17-32, verificados en vivo contra el listado
+  real de la API — son PK de base de datos, no fórmula, por eso `src/ingesta/extractor_cct.py`
+  siempre valida que el `name` que regresa coincide con el esperado antes de aceptarlo). Esta
+  URL automatiza Camino A de BLOCK-004 — ver
+  [[vault/14_Data_Sources/DS-01_Formato_911|DS-01 §11]].
 - **Formato:** CSV, encoding **Latin-1** (no UTF-8 — verificado real, acentos/eñes se corrompen
   si se lee como UTF-8).
 - **Tamaño real:** 250.6 MB (01-16, 332,888 filas) + 196.4 MB (17-32, 264,797 filas).

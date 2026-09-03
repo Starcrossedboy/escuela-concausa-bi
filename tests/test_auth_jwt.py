@@ -7,6 +7,7 @@ refresh, `get_current_user` (401), el callback de Google y la política de rol p
 from __future__ import annotations
 
 from datetime import datetime, timedelta, timezone
+from urllib.parse import parse_qs, urlparse
 
 import pytest
 from fastapi.testclient import TestClient
@@ -145,6 +146,14 @@ def test_refresh_con_access_token_da_401(client: TestClient) -> None:
     assert r.status_code == 401
 
 
+def _iniciar_login(client: TestClient) -> str:
+    """Ejecuta `GET /auth/login` y devuelve el `state`; la cookie queda en el cliente."""
+    r = client.get(f"{API_PREFIX}/auth/login", follow_redirects=False)
+    assert r.status_code == 302
+    destino = urlparse(r.headers["location"])
+    return parse_qs(destino.query)["state"][0]
+
+
 def test_login_redirige_a_google(client: TestClient) -> None:
     r = client.get(f"{API_PREFIX}/auth/login", follow_redirects=False)
     assert r.status_code == 302
@@ -152,13 +161,16 @@ def test_login_redirige_a_google(client: TestClient) -> None:
 
 
 def test_callback_con_verificador_falso_emite_tokens(client: TestClient) -> None:
+    """Flujo completo login -> callback: el `state` se toma del redirect, la cookie la pone /login."""
+
     class FakeVerifier:
         def verify(self, code: str) -> GoogleIdentity:
             return GoogleIdentity(sub="google-123", email="persona@faro.mx")
 
     app.dependency_overrides[get_google_verifier] = lambda: FakeVerifier()
     try:
-        r = client.get(f"{API_PREFIX}/auth/callback", params={"code": "fake-code"})
+        state = _iniciar_login(client)
+        r = client.get(f"{API_PREFIX}/auth/callback", params={"code": "fake-code", "state": state})
         assert r.status_code == 200
         claims = jwtmod.verify_access_token(r.json()["access_token"])
         assert claims["sub"] == "google-123"

@@ -175,11 +175,14 @@ acceso a esos archivos/red desde el entorno de IA).
 
 - Correr `validar_cct()`/`validar_formato911_historico()` contra los archivos reales completos,
   no solo el DataFrame sintético (implementado, no verificado — ver arriba).
-- Confirmar los 2 PRs exactos que rompieron `agua_region`/`rezago_municipio` y avisar a sus
-  dueños.
-- Compartir el dump de Bronze ya generado (Camino B de BLOCK-004) por Teams — acción de
-  Diana, fuera del alcance de esta sesión de IA (no hay forma de subir archivos a Teams desde
-  aquí).
+- **Corrección:** `agua_region` no estaba "roto por PRs" — confirmado con DevLog de Deni
+  (2026-08-30-deni-garrido-ds06-bronze-pipeline.md) y el propio DevLog de Diana de US-105
+  (2026-08-19): D5 sigue `SIN_DATO` explícito porque CONAGUA no entrega el contrato
+  diario/georreferenciado que pide `silver.agua_region` — es un hueco de fuente real y ya
+  documentado, no una regresión de código. Sigue pendiente confirmar el estado real de
+  `rezago_municipio` (DS-07) — no verificado en esta sesión.
+- **2026-09-03, resuelto:** Diana compartió el dump de Bronze (Camino B de BLOCK-004) por
+  Teams, canal general del equipo — ver `Blocker_Register.md`, BLOCK-004 ahora `resolved`.
 
 ## IDs tocados
 

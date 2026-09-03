@@ -206,7 +206,7 @@ tags: [requirements, traceability, matrix]
 
 | REQ | Historias | Evidencia de prueba | DevLog | Estado |
 |---|---|---|---|---|
-| `REQ-007` | `US-523b` | Gate de Ruff en `ci.yml` dejó de usar `\|\| true`; ahora bloquea merge por errores de lint en todo el repo (`ruff check .` global) · los 58 errores preexistentes, ninguno introducido por este cambio, no bloquean el merge porque `ruff.toml` los exonera vía `per-file-ignores`, pendientes de limpieza en historia dedicada · gate de `pytest` ya bloqueaba correctamente desde antes, sin cambios necesarios · suite completa verificada: 643 passed, 5 skipped | [[vault/_DevLog/2026-08-31-edgar-jimenez-us523b-ci-quality-gate]] | **US-523b cierra por completo** |
+| `REQ-007` | `US-523b` | Gate de Ruff en `ci.yml` dejó de usar `\|\| true`; ahora bloquea merge por errores de lint en todo el repo (`ruff check .` global) · los 58 errores preexistentes, ninguno introducido por este cambio, no bloquean el merge porque `ruff.toml` los exonera vía `per-file-ignores`, pendientes de limpieza en historia dedicada · gate de `pytest` ya bloqueaba correctamente desde antes, sin cambios necesarios · suite completa verificada: 643 passed, 5 skipped | [[vault/_DevLog/2026-08-31-edgar-jimenez-us523b-ci-quality-gate]] | Quality gate CI: lint y pruebas | ✅ Terminado | 100% | PR #165 merged 2026-09-02 | 2026-09-02 | **US-523b cierra por completo** |
 
 ## Evidencia incremental — 2026-08-31 · cierre de BUG-017/BUG-019
 

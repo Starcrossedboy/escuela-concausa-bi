@@ -202,6 +202,7 @@ def google_falso(monkeypatch: pytest.MonkeyPatch):
             "sub": "google-sub-1",
             "email": "persona@faro.mx",
             "email_verified": True,
+            "name": "Persona de Prueba",
             "iat": ahora,
             "exp": ahora + 600,
         }
@@ -313,3 +314,59 @@ def test_callback_con_code_invalido_da_401_sin_fuga(client: TestClient, google_f
     assert {"error", "message", "request_id"} == cuerpo.keys()
     # El mensaje no menciona Google, el code ni nada del intercambio.
     assert "google" not in cuerpo["message"].lower()
+
+
+# --------------------------------------------------------------------------- #
+# `name` en el contrato (US-405: el front lo muestra en la sidebar)
+# --------------------------------------------------------------------------- #
+
+
+def test_verifier_toma_el_name_del_id_token(google_falso) -> None:
+    google_falso()
+    assert RealGoogleVerifier().verify("code").name == "Persona de Prueba"
+
+
+def test_name_ausente_no_rompe_el_login(google_falso) -> None:
+    """`name` es opcional: si Google no lo manda, la sesion se emite igual con `name` vacio."""
+    google_falso(name=None)
+    identidad = RealGoogleVerifier().verify("code")
+    assert identidad.email == "persona@faro.mx"
+    assert identidad.name == ""  # no la cadena "None"
+
+
+def test_me_devuelve_name(client: TestClient, google_falso) -> None:
+    """El `name` sobrevive del id_token al access token y llega a /auth/me (contrato con C2)."""
+    google_falso()
+    state = _iniciar_login(client)
+    r = client.get(f"{API_PREFIX}/auth/callback", params={"code": "ok", "state": state})
+    assert r.status_code == 200
+    token = r.json()["access_token"]
+    me = client.get(f"{API_PREFIX}/auth/me", headers={"Authorization": f"Bearer {token}"})
+    assert me.status_code == 200
+    cuerpo = me.json()
+    assert cuerpo["name"] == "Persona de Prueba"
+    assert cuerpo["email"] == "persona@faro.mx"
+    assert cuerpo["role"] == "ciudadano"
+
+
+def test_name_sobrevive_al_refresh(client: TestClient, google_falso) -> None:
+    """Al renovar no hay id_token que reconsultar: el `name` viaja en el refresh token."""
+    google_falso()
+    state = _iniciar_login(client)
+    par = client.get(f"{API_PREFIX}/auth/callback", params={"code": "ok", "state": state}).json()
+    nuevo = client.post(f"{API_PREFIX}/auth/refresh", json={"refresh_token": par["refresh_token"]})
+    assert nuevo.status_code == 200
+    me = client.get(
+        f"{API_PREFIX}/auth/me",
+        headers={"Authorization": f"Bearer {nuevo.json()['access_token']}"},
+    )
+    assert me.json()["name"] == "Persona de Prueba"
+
+
+def test_name_no_influye_en_el_rol(google_falso) -> None:
+    """`name` es solo para mostrar: el rol se resuelve por correo, nunca por nombre."""
+    from src.api.security.roles import resolve_role
+
+    google_falso(name="Analista Jefe")
+    identidad = RealGoogleVerifier().verify("code")
+    assert resolve_role(identidad.email).value == "ciudadano"

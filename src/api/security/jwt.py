@@ -53,7 +53,7 @@ def _decode(token: str) -> dict[str, Any]:
         raise AuthError("token inválido o expirado") from exc
 
 
-def create_access_token(sub: str, role: Rol | str, email: str = "") -> str:
+def create_access_token(sub: str, role: Rol | str, email: str = "", name: str = "") -> str:
     """Emite un access token de vida corta con los claims `sub`, `role`, `email`, `type`, `iat`, `exp`."""
     s = get_settings()
     ahora = _now()
@@ -63,6 +63,7 @@ def create_access_token(sub: str, role: Rol | str, email: str = "") -> str:
             "sub": sub,
             "role": Rol(role).value,
             "email": email,
+            "name": name,
             "type": TIPO_ACCESS,
             "iat": int(ahora.timestamp()),
             "exp": int(exp.timestamp()),
@@ -70,7 +71,7 @@ def create_access_token(sub: str, role: Rol | str, email: str = "") -> str:
     )
 
 
-def create_refresh_token(sub: str, email: str = "") -> str:
+def create_refresh_token(sub: str, email: str = "", name: str = "") -> str:
     """Emite un refresh token de vida larga.
 
     Lleva `sub` y `email` (no el rol): al refrescar se **re-resuelve** el rol con la política vigente,
@@ -83,6 +84,7 @@ def create_refresh_token(sub: str, email: str = "") -> str:
         {
             "sub": sub,
             "email": email,
+            "name": name,
             "type": TIPO_REFRESH,
             "iat": int(ahora.timestamp()),
             "exp": int(exp.timestamp()),
@@ -90,18 +92,18 @@ def create_refresh_token(sub: str, email: str = "") -> str:
     )
 
 
-def create_token_pair(sub: str, role: Rol | str, email: str = "") -> TokenPair:
+def create_token_pair(sub: str, role: Rol | str, email: str = "", name: str = "") -> TokenPair:
     """Crea el par access+refresh que devuelven `/auth/callback` y `/auth/refresh`."""
     s = get_settings()
     return TokenPair(
-        access_token=create_access_token(sub, role, email),
-        refresh_token=create_refresh_token(sub, email),
+        access_token=create_access_token(sub, role, email, name),
+        refresh_token=create_refresh_token(sub, email, name),
         token_type="bearer",
         expires_in=s.access_token_expire_minutes * 60,
     )
 
 
-def create_state_token() -> str:
+def create_state_token(redirect: str = "") -> str:
     """Emite el `state` anti-CSRF del flujo OAuth2 (US-402).
 
     Es un JWT propio, de vida muy corta, con un `nonce` aleatorio. Al ser **firmado** no hace falta
@@ -116,6 +118,10 @@ def create_state_token() -> str:
     return _encode(
         {
             "nonce": secrets.token_urlsafe(16),
+            # Destino al que volver tras el login (US-405). Viaja DENTRO del state firmado, no como
+            # parametro suelto: asi Google nos lo devuelve intacto y nadie puede cambiarlo por el
+            # camino. Ya viene validado contra la allowlist en /auth/login.
+            "redirect": redirect,
             "type": TIPO_STATE,
             "iat": int(ahora.timestamp()),
             "exp": int(exp.timestamp()),

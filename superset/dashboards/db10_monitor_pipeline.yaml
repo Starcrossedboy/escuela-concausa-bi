@@ -1,0 +1,73 @@
+# =============================================================================
+# DB-10 - Tablero Monitor del pipeline · definicion declarativa (US-223)
+# -----------------------------------------------------------------------------
+# Historia : US-223 (Oscar Antonio Quiroz Lázaro, Célula 2 - Analytics & BI)
+# Contrato : vault/04_UX_Design/Cube_Specs_DB10.md §2, §5
+# Consumido por : superset/sync_semantic_layer.py (idempotente)
+#
+# DB-10 es de alcance nacional: no aplica los filtros de ciclo/entidad/nivel
+# de AC-002.2 (su unidad de analisis es la fuente de ingesta, no la escuela
+# ni el territorio). Las 8 fuentes del catalogo siempre aparecen, incluso sin
+# ingesta todavia -- cobertura_pipeline='SIN_DATO', filas nunca se rellena
+# con cero.
+# =============================================================================
+
+version: "1.0"
+owner: "Oscar Antonio Quiroz Lázaro"
+story: US-223
+
+dashboards:
+  - titulo: "DB-10 · Monitor del pipeline"
+    slug: db10-monitor-pipeline
+    descripcion: >
+      Estado de la ingesta por fuente (KPI-13): filas cargadas y última
+      ingesta exitosa de las 8 fuentes del catálogo. Una fuente sin ingesta
+      no desaparece ni cuenta cero — se marca SIN_DATO explícitamente.
+    filtros_globales:
+      - columna: fuente
+        etiqueta: "Fuente de datos"
+        datasets: [db10_cubo_pipeline]
+
+    charts:
+      # ----- Fila 1: tiles KPI -------------------------------------------------
+      - nombre: "KPI-13 · Filas ingeridas"
+        dataset: db10_cubo_pipeline
+        metrica: filas
+        viz: big_number_total
+        ancho: 3
+        alto: 38
+        subheader: "Componente aditivo — SIN_DATO no suma cero"
+
+      - nombre: "Fuentes con dato"
+        dataset: db10_cubo_pipeline
+        metrica: fuentes_ok
+        viz: big_number_total
+        ancho: 3
+        alto: 38
+        subheader: "De las 8 fuentes del catálogo (DS-01…DS-08)"
+
+      - nombre: "Fuentes SIN_DATO"
+        dataset: db10_cubo_pipeline
+        metrica: fuentes_sin_dato
+        viz: big_number_total
+        ancho: 3
+        alto: 38
+        subheader: "El hallazgo: cuáles no han ingerido nada"
+
+      - nombre: "Última ingesta"
+        dataset: db10_cubo_pipeline
+        metrica: ultima_ingesta
+        viz: big_number_total
+        ancho: 3
+        alto: 38
+        subheader: "Fecha más reciente entre las 8 fuentes"
+
+      # ----- Fila 2: estado por fuente -------------------------------------------
+      - nombre: "Estado de las 8 fuentes"
+        dataset: db10_cubo_pipeline
+        metrica: filas
+        viz: table
+        ancho: 12
+        alto: 80
+        dimensiones: [fuente, cobertura_pipeline]
+        row_limit: 20

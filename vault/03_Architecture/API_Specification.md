@@ -163,11 +163,17 @@ C2/C3), no se retoma como pendiente de US-411.
 - `/predicciones/{cct}` y `/predicciones/batch` leen `gold.predicciones` + `gold.recomendaciones`
   (US-412, cierra BUG-010) vía `RepositorioModelos`; un CCT sin fila en `gold.predicciones` es
   `404`, nunca un valor inventado. `mlflow_run_id` conserva el enlace auditable a la corrida.
-- **Cache y timeouts (US-416):** las lecturas pasan por un cache TTL en memoria por
-  `(cct, id_ciclo)`, compartido entre ambas rutas (`src/api/cache_predicciones.py`). Si Postgres no
-  responde dentro del timeout configurado, la respuesta es `503` `service_unavailable` (§5) —
-  nunca un `500` genérico ni una predicción a medias. El timeout de `/predicciones/batch` es
-  atómico: si falla, falla toda la petición, aunque parte de los CCT ya estuvieran en cache.
+  > **Nota de despliegue:** en el despliegue actual las tablas `gold.predicciones` /
+  > `gold.recomendaciones` están vacías (la publicación de ML-01 a esa base, US-313, aún no
+  > corre), así que **todo CCT devuelve `404` estructurado** hasta esa publicación. La ruta
+  > responde correctamente; lo que falta es dato, no código.
+- **Cache y degradación (US-416):** las lecturas pasan por un cache TTL en memoria por
+  `(cct, id_ciclo)`, compartido entre ambas rutas (`src/api/cache_predicciones.py`). Si Postgres
+  no responde dentro del timeout configurado **o el esquema/tabla `gold.*` no existe o es
+  inalcanzable**, la respuesta es `503` `service_unavailable` (§5) — nunca un `500` genérico ni
+  una predicción a medias (`RepositorioModelosPostgres._con_timeout` traduce cualquier
+  `SQLAlchemyError`). El timeout de `/predicciones/batch` es atómico: si falla, falla toda la
+  petición, aunque parte de los CCT ya estuvieran en cache.
 
 ### 3.5 Agente conversacional `/agente/*`
 | Método | Ruta | Rol | Request | Response | Códigos |
@@ -323,7 +329,7 @@ class ErrorOut(BaseModel):
 | 404 | `not_found` | CCT/municipio inexistente o fuera de `SCOPE_ENTIDADES` |
 | 422 | `validation_error` | Falla la validación Pydantic (formato de entrada) |
 | 429 | `rate_limited` | Exceso de peticiones |
-| 503 | `service_unavailable` | Postgres no respondió a tiempo (timeout de inferencia, US-416) |
+| 503 | `service_unavailable` | Gold no disponible para inferencia: timeout de Postgres **o** esquema/tabla `gold.*` ausente o inalcanzable (US-416) |
 | 500 | `internal_error` | Error interno (detalle solo en logs, nunca en la respuesta) |
 
 ---

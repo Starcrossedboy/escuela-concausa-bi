@@ -9,7 +9,7 @@ touches: ["US-204", "US-205", "US-206", "REQ-002"]
 tags: [devlog]
 ---
 
-# DevLog — 2026-09-02 — Cierre documental US-204/US-205 + plan US-206
+# DevLog — 2026-09-02 — Cierre documental US-204/US-205 + implementación US-206
 
 → [[vault/_DevLog/_index|Volver al índice]]
 
@@ -23,29 +23,51 @@ tags: [devlog]
 - **Cierre documental de US-205** (repunteo a `gold.cubo_*`, PR #134): **corregido el bug de etiqueta**
   reportado por Edgar — la fila que decía `US-206 | done` contenía la evidencia de US-205. Reetiquetada
   a `US-205 | done`.
+- **Implementación de US-206 (embebido de dashboards)**:
+  - `src/frontend/superset_client.py` (nuevo): cliente del guest token — login admin contra
+    `/api/v1/security/login`, resolución de UUID de cada dashboard por slug, `POST
+    /api/v1/security/guest_token/` y `iframe_url` firmada por tablero. `tableros_embebidos()` acepta un
+    `cliente` inyectado (patrón DI del frontend). Sin token válido NO devuelve tableros.
+  - `src/frontend/pages/1_Dashboards.py`: catálogo DB-01…DB-06/DB-08/DB-09, filtros globales AC-002.2
+    (ciclo/entidad/nivel), iframes firmados y degradación explícita: si Superset no expone guest token
+    (C5 pendiente) NO se muestra ningún tablero (AC-002.1).
+  - `src/frontend/app.py`: tarjetas de acceso rápido (elimina `TODO(US-206)`).
+  - `tests/test_frontend_superset_client.py` (nuevo): 4 pruebas con `httpx.MockTransport` (token ok,
+    401→deshabilitado, sin UUID→error, password ausente→error).
+- Verificación: `ruff check` limpio (src/frontend + test) · `pytest` frontend 15 passed · ownership
+  `test_check_ownership.py` 40 passed. Los 10 errores de colección del suite global son preexistentes
+  (módulos externos como `limits`), ajenos a este cambio.
 
 ## 🤖 Sesión de IA
 - **Agente / modelo:** OpenCode / opencode/big-pickle
 - **Archivos creados/modificados:**
   - `PLAN_US206_EMBEBIDO.md` (nuevo, raíz)
   - `vault/12_Roadmap_Sprints/Execution_Status.md` (corrección US-204 done + reetiqueta US-205)
+  - `src/frontend/superset_client.py` (nuevo)
+  - `src/frontend/pages/1_Dashboards.py` (implementado)
+  - `src/frontend/app.py` (navegación)
+  - `tests/test_frontend_superset_client.py` (nuevo)
 - **Decisiones autónomas del agente:** confirmar US-204 como `done` (el entregable es el tablero, cierra
-  con código + capa de datos; la validación en vivo queda como follow-up de US-313) y colocar el DevLog
-  del cierre antes del push, según la regla obligatoria.
+  con código + capa de datos; la validación en vivo queda como follow-up de US-313); el guest token se
+  pide **directo a Superset** (sin endpoint nuevo en la API); resolver el UUID del dashboard por slug
+  porque el recurso del guest token requiere UUID, no slug. Dependencias de C5 (habilitar embedding) y
+  Oscar (DB-07/DB-10) quedan declaradas como no bloqueantes del código.
 - **Correcciones manuales:** — (ninguna)
 - **Prompt inicial:** "¿Qué hemos hecho hasta ahora?" (recuperación de contexto de sesión previa)
 
 ## Seguridad / calidad
-- [x] Sin secretos hardcodeados
-- [ ] Tests agregados/actualizados (TEST-###)
+- [x] Sin secretos hardcodeados (credenciales vienen de env, nunca se loguean)
+- [x] Tests agregados/actualizados — `tests/test_frontend_superset_client.py` (4 casos)
 - [x] DevLog enlaza a los IDs afectados
 
 ## Bloqueantes
-- Guest token de Superset NO habilitado (depende de C5/Luis Téllez).
-- DB-07 y DB-10 sin slug declarado (depende de Oscar Quiroz, US-222/223).
+- Guest token de Superset NO habilitado (depende de C5/Luis Téllez) → en runtime el front degrada a
+  mensaje sin tableros; el código del embebido queda listo.
+- DB-07 y DB-10 sin slug declarado (depende de Oscar Quiroz, US-222/223) → 8 de 10 tableros hoy.
 
 ## Próximos pasos
-1. Push de rama `dev/manuel-serrania` (crea la rama remota) con el cierre documental + plan.
-2. Coordinar con Luis Téllez (guest token) y Oscar (DB-07/DB-10) antes del embebido.
-3. Coordinar shell compartido con Marina/Andrés/Christian (todos tocan `src/frontend/**`).
-4. Implementar `src/frontend/superset_client.py` + `pages/1_Dashboards.py` + `app.py` (Jue 3).
+1. Push de rama `dev/manuel-serrania` con cierre documental + código US-206 + tests.
+2. Coordinar con Luis Téllez (habilitar `ENABLE_GUEST_EMBEDDING`/`GUEST_ROLE_NAME`) para validar el
+   embebido en vivo (Sáb 5 pruebas compose).
+3. Coordinar con Oscar para declarar DB-07/DB-10 y completar los 10 tableros.
+4. Coordinar shell compartido con Marina/Andrés/Christian (todos tocan `src/frontend/**`).

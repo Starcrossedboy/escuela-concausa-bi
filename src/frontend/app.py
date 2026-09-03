@@ -28,7 +28,14 @@ def main() -> None:
         "Usa el menú lateral: **Dashboards**, **Panel de ML** y **Chat del agente**. "
         "Las vistas de analista requieren el rol correspondiente."
     )
-    # TODO(US-206): navegación y tarjetas de acceso rápido.
+    st.subheader("Acceso rápido")
+    cols = st.columns(3)
+    with cols[0]:
+        st.button("📊 Dashboards", use_container_width=True)
+    with cols[1]:
+        st.button("🤖 Panel de ML", use_container_width=True)
+    with cols[2]:
+        st.button("💬 Chat del agente", use_container_width=True)
 
 
 if __name__ == "__main__":

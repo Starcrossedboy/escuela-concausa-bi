@@ -20,6 +20,7 @@ Toda sesión con IA **debe** generar una entrada de DevLog **antes del push** (p
 ## Entradas
 | Fecha | Descripción | Autor | Agente/Modelo | IDs tocados |
 |---|---|---|---|---|
+| [[vault/_DevLog/2026-09-03-andres-gonzalez-validacion-c3-e2e\|2026-09-03]] | Validación de C3, contrato del chat con OAuth y bloqueo operativo del E2E RAG en Docker | Andrés González Habib | GitHub Copilot | US-302, US-303, US-304a, US-305, REQ-003, REQ-006 |
 | 2026-08-01 | (ejemplo) inicialización | Edgar Edmundo Coronel Navarrete | Claude Code | — |
 | [[vault/_DevLog/2026-08-02-edgar-edmundo-coronel-navarrete\|2026-08-02]] | Frontmatter PRD-GENERAL, redacción PRD FARO e índice 01_Product | Edgar Edmundo Coronel Navarrete | Claude Code / opus-4-8 | PRD-GENERAL, PRD, MOC-01 |
 | [[vault/_DevLog/2026-08-03-handoff-planeacion\|2026-08-03]] | **Handoff** de la sesión de planeación (PRD, 7 REQ, 8 fuentes, 87 US, 21 Agent Contexts, Data_Model, AGENTS.md) | Edgar Edmundo Coronel Navarrete | Claude Code / opus-4-8 | PRD, REQ-001…007, US-CATALOG, DS-01…08, DOC-DATAMODEL |

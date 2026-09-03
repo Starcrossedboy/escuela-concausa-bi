@@ -74,3 +74,6 @@ tests/fixtures/*.db
 # Documentos de referencia/handoff personales por sprint. Viven solo en la
 # máquina, sirven para retomar contexto entre sesiones de IA. Ver _local/.
 _local/
+
+# ---- Dumps de Postgres (datos reales pesados, NUNCA versionar — CLAUDE.md) ----
+*.dump

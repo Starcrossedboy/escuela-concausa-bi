@@ -2,9 +2,11 @@
 id: DOC-US221-KPIS-BASE
 title: "US-221 — Gráficos base de KPIs (series de matrícula, distribución por nivel y tarjetas reutilizables)"
 owner: "Oscar Antonio Quiroz Lázaro"
-status: in_review
+status: approved
+version: "1.0"
 traces_up: ["vault/04_UX_Design/Screen_Specs", "US-201", "vault/02_Requirements/User_Stories"]
 traces_down: []
+last_reviewed: "2026-09-02"
 tags: [celula-2, kpis, superset, us-221]
 ---
 

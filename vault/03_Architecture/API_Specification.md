@@ -6,8 +6,8 @@ status: in_review
 version: "1.1"
 source_of_truth: true
 traces_up: ["REQ-004", "vault/03_Architecture/Data_Model"]
-traces_down: ["US-401", "US-402", "US-403", "US-411", "US-412", "US-415", "US-416"]
-last_reviewed: "2026-08-27"
+traces_down: ["US-401", "US-402", "US-403", "US-404", "US-405", "US-411", "US-412", "US-415", "US-416"]
+last_reviewed: "2026-09-02"
 tags: [architecture, api, contract, fastapi, oauth2]
 ---
 
@@ -52,6 +52,28 @@ tags: [architecture, api, contract, fastapi, oauth2]
 3. El access token lleva los *claims* `sub` (usuario), `role` (`ciudadano`|`analista`) y `exp`.
 4. Al expirar el access token, el cliente usa el refresh token para obtener uno nuevo sin re-login.
 
+**Verificación de la identidad (cerrada en S5, US-402).** `/auth/callback` no confía en el `code`:
+lo canjea en el *token endpoint* de Google y **verifica el `id_token`** — firma `RS256` contra la
+llave del JWKS público que corresponde al `kid`, `aud` == `GOOGLE_CLIENT_ID`, `iss` de Google y `exp`
+vigente — y además exige `email_verified == true`, porque el rol se resuelve por correo. La lista de
+algoritmos se pasa explícita: nunca se confía en el `alg` que traiga el token.
+
+### 2.1.1 `state` anti-CSRF del callback
+
+`/auth/login` genera un `state` **firmado** (JWT propio de 10 min con un `nonce` aleatorio), lo manda
+a Google en la URL y guarda el mismo valor en la cookie `faro_oauth_state` (`HttpOnly`, `Secure`
+fuera de local, `SameSite=Lax`, un solo uso). `/auth/callback` exige que el parámetro `state` **y** la
+cookie existan y coincidan, y que el token sea válido y esté vigente; si no, responde **401**. Un
+tercero puede provocar la llamada al callback, pero no puede leer ni fabricar la cookie.
+
+Se eligió un `state` firmado, y no uno guardado en memoria del servidor, porque Cloud Run corre
+varias instancias sin estado compartido: un `state` en RAM se perdería entre la ida y la vuelta del
+navegador.
+
+> **Cambio de contrato para los clientes:** un `GET /auth/callback` sin `state` (o con uno que no
+> case con la cookie) ahora devuelve **401**, no 200. El flujo correcto siempre entra por
+> `/auth/login`; no se debe llamar al callback a mano.
+
 ### 2.2 Matriz RBAC (los 2 roles del PRD)
 
 | Recurso / acción | `ciudadano` (estándar) | `analista` (admin) |
@@ -89,7 +111,7 @@ tags: [architecture, api, contract, fastapi, oauth2]
 | Método | Ruta | Rol | Request | Response | Códigos |
 |---|---|---|---|---|---|
 | GET | `/auth/login` | público | — | 302 → Google | 302 |
-| GET | `/auth/callback` | público | `?code` | `TokenPair` | 200, 401 |
+| GET | `/auth/callback` | público | `?code`, `?state` | `TokenPair` | 200, 401 |
 | POST | `/auth/refresh` | público* | `RefreshIn` | `TokenPair` | 200, 401 |
 | GET | `/auth/me` | ciudadano | — | `UserOut` | 200, 401 |
 
@@ -141,11 +163,17 @@ C2/C3), no se retoma como pendiente de US-411.
 - `/predicciones/{cct}` y `/predicciones/batch` leen `gold.predicciones` + `gold.recomendaciones`
   (US-412, cierra BUG-010) vía `RepositorioModelos`; un CCT sin fila en `gold.predicciones` es
   `404`, nunca un valor inventado. `mlflow_run_id` conserva el enlace auditable a la corrida.
-- **Cache y timeouts (US-416):** las lecturas pasan por un cache TTL en memoria por
-  `(cct, id_ciclo)`, compartido entre ambas rutas (`src/api/cache_predicciones.py`). Si Postgres no
-  responde dentro del timeout configurado, la respuesta es `503` `service_unavailable` (§5) —
-  nunca un `500` genérico ni una predicción a medias. El timeout de `/predicciones/batch` es
-  atómico: si falla, falla toda la petición, aunque parte de los CCT ya estuvieran en cache.
+  > **Nota de despliegue:** en el despliegue actual las tablas `gold.predicciones` /
+  > `gold.recomendaciones` están vacías (la publicación de ML-01 a esa base, US-313, aún no
+  > corre), así que **todo CCT devuelve `404` estructurado** hasta esa publicación. La ruta
+  > responde correctamente; lo que falta es dato, no código.
+- **Cache y degradación (US-416):** las lecturas pasan por un cache TTL en memoria por
+  `(cct, id_ciclo)`, compartido entre ambas rutas (`src/api/cache_predicciones.py`). Si Postgres
+  no responde dentro del timeout configurado **o el esquema/tabla `gold.*` no existe o es
+  inalcanzable**, la respuesta es `503` `service_unavailable` (§5) — nunca un `500` genérico ni
+  una predicción a medias (`RepositorioModelosPostgres._con_timeout` traduce cualquier
+  `SQLAlchemyError`). El timeout de `/predicciones/batch` es atómico: si falla, falla toda la
+  petición, aunque parte de los CCT ya estuvieran en cache.
 
 ### 3.5 Agente conversacional `/agente/*`
 | Método | Ruta | Rol | Request | Response | Códigos |
@@ -301,7 +329,7 @@ class ErrorOut(BaseModel):
 | 404 | `not_found` | CCT/municipio inexistente o fuera de `SCOPE_ENTIDADES` |
 | 422 | `validation_error` | Falla la validación Pydantic (formato de entrada) |
 | 429 | `rate_limited` | Exceso de peticiones |
-| 503 | `service_unavailable` | Postgres no respondió a tiempo (timeout de inferencia, US-416) |
+| 503 | `service_unavailable` | Gold no disponible para inferencia: timeout de Postgres **o** esquema/tabla `gold.*` ausente o inalcanzable (US-416) |
 | 500 | `internal_error` | Error interno (detalle solo en logs, nunca en la respuesta) |
 
 ---

@@ -106,7 +106,7 @@ python -m src.modelos.entrenar_ml01 --tracking-uri sqlite:///mlflow.db --registr
 > agosto: ML-01, ML-02 y ML-03 quedaron registrados como versión 1 en un backend SQLite temporal y
 > el verificador conjunto confirmó los tres nombres canónicos.~~
 >
-> **Corregido el 2026-09-02 (BUG-041).** Esa afirmación era engañosa y hay que decirlo con claridad:
+> **Corregido el 2026-09-02 (BUG-043).** Esa afirmación era engañosa y hay que decirlo con claridad:
 > lo que se verificó el 29-ago fue un **SQLite temporal**, no el servidor que se demuestra. Contra el
 > servidor real, `ML01_RegresionMatricula` **v1 era un fantasma** — fila `READY` en el Registry,
 > artefacto inexistente, `load_model()` respondiendo `No such artifact: 'MLmodel'`. **AC-003.4 no
@@ -145,7 +145,7 @@ Verificado a mano: 4 corridas (1 padre + 3 ventanas), métricas y parámetros pr
 
 Las métricas no cambian entre ambas (MAE 0.0141 ± 0.0012, RMSE 0.0177 ± 0.0008): lo que cambia es
 que el modelo **existe** y se puede recuperar. Mientras C5 no aplique el fix a `docker-compose.yml`,
-el servidor que se va a demostrar sigue produciendo versiones fantasma; ver **BUG-041**.
+el servidor que se va a demostrar sigue produciendo versiones fantasma; ver **BUG-043**.
 
 ## 5. Del modelo al tablero
 

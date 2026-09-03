@@ -27,3 +27,4 @@ tags: [security, checklist]
 ## Resultado
 | Fecha | Revisor | Veredicto (🟢/🟡/🔴) | Hallazgos |
 |---|---|---|---|
+| 2026-09-02 | Christian Ruiz (TL C4) | 🟡 | Superficie de auth (US-402/403/404): `SEC-002` resuelto; `SEC-003`…`SEC-006` aceptados. Detalle en [[vault/07_Security/Security_Review_US402_US403_US404]] |

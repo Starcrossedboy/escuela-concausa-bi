@@ -5,7 +5,7 @@ author_human: "Héctor Rafael Morales Marbán"
 agent: "Claude Code"
 model: "claude-opus-5"
 session_duration: "1 sesión — confirmación del registry (US-311) y pipeline local para US-313"
-touches: ["US-311", "US-313", "AC-003.4", "REQ-003", "BUG-041", "BUG-013", "BUG-012"]
+touches: ["US-311", "US-313", "AC-003.4", "REQ-003", "BUG-043", "BUG-013", "BUG-012"]
 tags: [devlog, celula-3, ml, mlflow, registry, gold]
 ---
 
@@ -53,7 +53,7 @@ MlflowException: No such artifact: 'MLmodel'  # ❌ lo que realmente había
 ```
 
 **AC-003.4 llevaba 15 días dado por cumplido sin estarlo**, y con él la ruta de inferencia de C4,
-que carga por `models:/…`. Queda como **BUG-041 (critical)**.
+que carga por `models:/…`. Queda como **BUG-043 (critical)**.
 
 Y el artefacto lo sostenía: `ML01_Entrenamiento` §4 afirmaba que *«AC-003.4 ya se verificó
 localmente»*. Era cierto pero engañoso — se verificó contra un **SQLite temporal**, no contra el
@@ -153,7 +153,7 @@ lo hace.
 
 ## Pendientes
 
-1. **BUG-041 → C5 (Luis Téllez / Edward Ruiz):** agregar `--serve-artifacts` y **recrear el
+1. **BUG-043 → C5 (Luis Téllez / Edward Ruiz):** agregar `--serve-artifacts` y **recrear el
    experimento**. Sin esto, AC-003.4 sigue sin cumplirse y la inferencia de C4 no puede cargar
    modelos.
 2. **BUG-013 → C1 (Diana Alvarez):** que `features_escuela` tome la serie de `matricula_historica`.

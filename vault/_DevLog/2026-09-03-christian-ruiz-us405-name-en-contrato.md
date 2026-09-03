@@ -64,9 +64,11 @@ usar para autorizar sin darse cuenta.
 
 - **Andrés (C3):** cambio de contrato — `UserOut` gana `name` (opcional, `""` por defecto). Es
   aditivo: nada de lo que ya consumes se rompe.
-- **Edgar (PO) — `ANALISTA_EMAILS`:** autorizó poner su correo y el mío en la allowlist. **No se
-  versionan en el repositorio**: son datos personales y el `deploy-cloud-run.sh` lo declara
-  explícitamente ("NO se versiona ningún correo"). Se cargan efímeros por variable de entorno; el
+- **Edgar (PO) — `ANALISTA_EMAILS`:** política definida. Entra **solo Edgar** como `analista`;
+  Christian se queda `ciudadano` a propósito, para poder demostrar los **dos** roles en vivo (con
+  ambos en la allowlist no habría quien enseñara la vista de rol estándar). **Ningún correo se
+  versiona en el repositorio**: son datos personales y el `deploy-cloud-run.sh` lo declara
+  explícitamente ("NO se versiona ningún correo"). Se carga efímero por variable de entorno; el
   comando queda en manos de Luis (C5).
 - **Luis (C5):** falta el redeploy con el código de US-402 ya mergeado, y cargar `ANALISTA_EMAILS`.
   Hasta entonces no se puede validar el login e2e en la URL pública.

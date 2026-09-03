@@ -28,7 +28,9 @@ tags: [devlog]
     `/api/v1/security/login`, resolución de UUID de cada dashboard por slug, `POST
     /api/v1/security/guest_token/` y `iframe_url` firmada por tablero. `tableros_embebidos()` acepta un
     `cliente` inyectado (patrón DI del frontend). Sin token válido NO devuelve tableros.
-  - `src/frontend/pages/1_Dashboards.py`: catálogo DB-01…DB-06/DB-08/DB-09, filtros globales AC-002.2
+    **Catálogo completo DB-01…DB-10** (DB-07 `db07-calidad-cobertura` y DB-10 `db10-monitor-pipeline`
+    se incorporaron tras el merge de Oscar en `main`).
+  - `src/frontend/pages/1_Dashboards.py`: catálogo de 10 tableros, filtros globales AC-002.2
     (ciclo/entidad/nivel), iframes firmados y degradación explícita: si Superset no expone guest token
     (C5 pendiente) NO se muestra ningún tablero (AC-002.1).
   - `src/frontend/app.py`: tarjetas de acceso rápido (elimina `TODO(US-206)`).

@@ -46,7 +46,7 @@ def test_devuelve_los_dashboards_con_iframe_firmado() -> None:
     tableros = tableros_embebidos(rol="ciudadano", cliente=cliente)
 
     assert isinstance(tableros, list)
-    assert len(tableros) == 8
+    assert len(tableros) == 10  # los 10 dashboards DB-01…DB-10
     for t in tableros:
         assert isinstance(t, TableroEmbebido)
         assert t.slug

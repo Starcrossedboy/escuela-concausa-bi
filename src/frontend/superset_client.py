@@ -19,7 +19,7 @@ SUPERSET_URL = os.environ.get("SUPERSET_URL", "http://127.0.0.1:8088").rstrip("/
 ADMIN_USER = os.environ.get("SUPERSET_ADMIN_USERNAME", "faro_superset_admin")
 ADMIN_PASS = os.environ.get("SUPERSET_ADMIN_PASSWORD", "")
 
-# Catálogo de dashboards por slug. DB-07/DB-10 aún sin slug declarado (Oscar, US-222/223).
+# Catálogo de los 10 dashboards por slug (DB-01…DB-10 declarados en superset/dashboards/*.yaml).
 DASHBOARDS: tuple[dict[str, str], ...] = (
     {"id": "db01", "titulo": "Panel Ejecutivo", "slug": "db01-ejecutivo"},
     {"id": "db02", "titulo": "Mapa de Riesgo", "slug": "db02-mapa-riesgo"},
@@ -27,8 +27,10 @@ DASHBOARDS: tuple[dict[str, str], ...] = (
     {"id": "db04", "titulo": "Comparador de Municipio", "slug": "db04-comparador-municipio"},
     {"id": "db05", "titulo": "Análisis de Driver", "slug": "db05-analisis-driver"},
     {"id": "db06", "titulo": "Predicciones", "slug": "db06-predicciones"},
+    {"id": "db07", "titulo": "Calidad de Cobertura", "slug": "db07-calidad-cobertura"},
     {"id": "db08", "titulo": "Explorador de Cubo", "slug": "db08-explorador-cubo"},
     {"id": "db09", "titulo": "Recomendaciones", "slug": "db09-recomendaciones"},
+    {"id": "db10", "titulo": "Monitor de Pipeline", "slug": "db10-monitor-pipeline"},
 )
 
 # RLS por rol. ciudadano ve solo su alcance público; analista ve todo.

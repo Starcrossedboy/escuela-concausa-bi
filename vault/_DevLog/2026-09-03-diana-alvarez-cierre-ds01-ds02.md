@@ -48,11 +48,14 @@ código:
 
 ## Pendiente (no bloqueante para este cierre)
 
-- La ficha de DS-01 dice 6 ciclos validados a mano; la fila previa de la matriz decía "4 ciclos
-  reales cargados" (texto que no se tocó, por no tener certeza de cuántos ciclos están cargados hoy
-  en el Bronze de producción vs. solo validados localmente) — confirmar contra Postgres real cuántos
-  de los 6 están efectivamente en `bronze.formato911_2024_2025` antes de usar esa cifra en algo
-  formal.
+- ~~La ficha de DS-01 dice 6 ciclos validados a mano...~~ **Resuelto el mismo día, ver
+  [[vault/_DevLog/2026-09-03-diana-alvarez-carga-real-historico-bloqueo-ambiente|DevLog de
+  carga real histórica]]:** se confirmó contra Postgres que `bronze.formato911_historico` (la
+  tabla que alimenta el target real de `target_hibrido.py`) **no** tenía los 6 ciclos reales
+  cargados, solo fixture de BUG-026 (30-32 filas/ciclo) — se cargó real (~1.37M filas nuevas) y
+  se corrigió la contaminación resultante en `gold.matricula_municipio_nivel`. Queda deuda nueva
+  y explícita de ese trabajo (dedup en `matricula_historica.sql`, ver ese DevLog) — no se cierra
+  como 100% sin matices.
 - `Risk_Register.md` (RISK-002) sigue `mitigando`: correcto, no se toca — depende de DS-06/DS-08
   (Emilio), no de DS-01/DS-02.
 - Great Expectations para DS-01/DS-02 sigue sin existir (señalado ya por Deni el 30-ago) — deuda

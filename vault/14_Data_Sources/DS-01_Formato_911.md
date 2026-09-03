@@ -106,3 +106,58 @@ tags: [data-source, bronze, hecho-central]
 - Codificación/acentos inconsistentes en campos de texto.
 - Posible desfase de publicación del ciclo más reciente.
 - CCT con formato heterogéneo entre entregas (ceros a la izquierda).
+## 11. Bloqueador de equipo — nadie más tiene Bronze real cargado (2026-09-03)
+
+Edgar reportó que, salvo Diana, nadie del equipo tiene un ambiente local con Bronze real
+cargado — bloquea validación con datos reales de `gold.cubo_pipeline` (DB-10, Oscar), y de
+US-222/US-223/US-224 (Oscar, PR #192). Dos caminos para resolverlo, documentados aquí para que
+cualquiera pueda auto-atenderse sin depender de una sesión en vivo con Diana:
+
+### Camino A — reproducir la carga real (mismo proceso que ya corrió Diana)
+1. Levantar Postgres local: `docker compose up -d` (servicio `db`, ver `docker-compose.yml`,
+   dueño Luis Téllez/C5) — o cualquier Postgres 15 local propio.
+2. Descargar a mano los archivos reales:
+   - DS-01 (6 ciclos): URLs en `SOURCE_URL_POR_CICLO` de
+     `src/ingesta/cargar_bronze_formato911_real.py`.
+   - DS-02 (catálogo CCT, 2 archivos SIGED entidades 01-16/17-32): ver
+     [[vault/_DevLog/2026-08-30-diana-alvarez-ds02-cct-real|DevLog 2026-08-30]].
+3. Cargar en este orden (cada script es idempotente, `ON CONFLICT DO NOTHING`):
+   1. `python -m src.ingesta.cargar_bronze_cct_real ...` (DS-02 — llave que usan los demás)
+   2. `python -m src.ingesta.cargar_bronze_formato911_real --csv ... --ciclo 2024-2025` (DS-01,
+      ciclo único, PR #105)
+   3. `python -m src.ingesta.cargar_bronze_formato911_historico_real` (DS-01, los 6 ciclos —
+      alimenta `target_hibrido.py`, ver nota de esta sesión abajo)
+4. `dbt run` **completo** (no solo `--select`) y luego `dbt test`. Importante: dbt materializa
+   tablas, no vistas vivas — un `ref()` no se recalcula solo, hay que correr el DAG explícito
+   tras cargar Bronze nuevo (visto en vivo 2026-09-03, ver DevLog de esa fecha).
+- **Tiempo estimado:** de un par de horas (descargas: 250+196 MB de DS-02, ~230k filas × 6
+  ciclos de DS-01) — es la razón real por la que nadie más lo ha hecho todavía, no falta de
+  instrucciones.
+
+### Camino B — restaurar el dump de Bronze de Diana (minutos, no horas)
+Más rápido porque salta la descarga. Pendiente de ejecutar por Diana (no se puede correr desde
+esta sesión de IA — sin acceso de red al Postgres local de nadie):
+
+```bash
+# Diana genera el dump (solo el schema bronze, formato custom comprimido):
+pg_dump -h localhost -U postgres -d escuela_concausa_db -n bronze -Fc \
+  -f bronze_real_2026-09-03.dump
+
+# Lo comparte por Drive/Teams del equipo -- NUNCA por git (CLAUDE.md: "Nunca subas datos
+# reales pesados"; data/raw/ está en .gitignore por la misma razón).
+
+# Cualquiera lo restaura en su propio Postgres local (vacío, recién creado):
+pg_restore -h localhost -U postgres -d escuela_concausa_db --no-owner --no-privileges \
+  bronze_real_2026-09-03.dump
+
+# Y luego, igual que en el Camino A:
+dbt run && dbt test
+```
+Incluye `bronze.formato911_historico` (~1.37M filas reales, 6 ciclos, verificado 2026-09-03) y
+`bronze.cct_siged_202608` (385,175 filas, verificado 2026-09-03 contra `silver.escuela` sin
+duplicados). No incluye Silver/Gold: esos se recalculan localmente con `dbt run`, para que el
+pipeline de cada quien se siga ejerciendo de verdad.
+
+> Esto resuelve el bloqueador de *ambiente* (Camino A siempre disponible, Camino B en cuanto
+> Diana genere y comparta el dump). No resuelve la deuda de Great Expectations para DS-01/DS-02,
+> que sigue aparte (ver §9, no bloqueante).

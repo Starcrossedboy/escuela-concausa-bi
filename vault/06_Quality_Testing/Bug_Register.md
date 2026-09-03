@@ -53,6 +53,86 @@ tags: [qa, bugs]
 | BUG-038 | `_layout_tabs()` en `sync_semantic_layer.py` arma `ROOT_ID` con `type: "TABS"` y cuelga los 6 nodos `TAB-D1..D6` directamente como sus hijos. Superset renderiza el contenido del primer tab (D1) correctamente, pero **no dibuja ninguna barra de navegación entre tabs** — D2 a D6 quedan inalcanzables desde la interfaz, aunque sus datos y charts existen y funcionan bien vía API. El test `test_layout_tabs_arma_root_de_tipo_tabs` codifica esta estructura como si fuera la esperada (`assert position["ROOT_ID"]["type"] == "TABS"`), por eso pasaba en verde sin que nadie lo notara — nunca se había confirmado visualmente en un navegador real hasta hoy. **Segundo síntoma, misma causa probable**: los filtros globales de DB-05 (Ciclo/Entidad/Nivel) se pueden editar en el panel (quitar un valor, "Clear all") pero el cambio nunca le llega a los charts — ni al quitar un valor y darle "Apply filters", ni con "Clear all". Probado directo contra `/api/v1/chart/data` (sin pasar por el navegador): el mismo filtro por `cve_ent` sí funciona perfecto ahí (filtrar a `'09'` trae solo Ciudad de México, filtrar a `'19'` trae solo Nuevo León) — el SQL/dataset está bien, el defecto es que el *scope* del filtro nativo (`rootPath: ["ROOT_ID"]`) probablemente no puede resolver qué charts están "dentro" del árbol cuando ese árbol está mal armado para tabs, el mismo defecto de fondo que el síntoma anterior | high | open | US-213 / US-214b / REQ-002 | pendiente — **dos hipótesis probadas en vivo contra este Superset (nunca en el repo), ninguna resuelve ambas cosas a la vez**: (1) insertar un nodo `TABS-1` intermedio entre `ROOT_ID` (cambiado a `type: "ROOT"`) y los 6 `TAB-*` sí hace aparecer la barra de tabs, pero el contenido de todos los tabs queda en blanco (causa no identificada aún); (2) revertir a la estructura original recupera el contenido pero vuelve a perder la barra de tabs. Falta una tercera hipótesis — candidato: revisar si Superset necesita metadata adicional en el nodo `TABS` (tamaño, fondo) o si el problema está en otro lado (`json_metadata`, `filter_scopes`); dado el segundo síntoma, revisar también si arreglar el árbol resuelve el scope de filtros de un solo golpe | Reportado por Monserrat Miranda (2026-08-30), validando US-214b/US-215b en vivo. Sin test de regresión — el test existente (`test_layout_tabs_arma_root_de_tipo_tabs`) codifica la estructura incompleta como correcta y habría que revisarlo también |
 | BUG-039 | **El padrón de propiedad no permitía lo que la plantilla de PR exige: los 21 quedaron sin poder abrir un PR que pasara sus propios gates.** La plantilla marca como obligatorias las casillas «Listado en el `_index.md` de su carpeta» y «Fila actualizada en la matriz de trazabilidad», pero `vault/_DevLog/_index.md` y `vault/02_Requirements/Traceability_Matrix.md` eran alcance exclusivo del PM en `ownership.yml`: quien cumplía la plantilla reprobaba el gate de propiedad, y quien pasaba el gate incumplía la plantilla. `.gitignore` y `.gitattributes` no estaban en el alcance de **nadie** —ni siquiera del PM—, así que el ignore y los drivers de merge quedaban sin mantenimiento posible. 8 personas de C1/C4 tenían un `.md` de `03_Architecture` en verde sin poder tocar su `_index.md`, lo que impide cumplir la regla 4 al crear un documento ahí. Y —el alcance real del defecto, visible al correr el gate contra la propia corrección— **los seis registros de intake que `Definition_of_Filed` obliga a usar a cualquiera** (Bug_Register, Security_Audit_Log, Risk/Blocker/Decision/Incident) estaban cerrados a 0 o 1 persona: la regla que manda reportar un bug o un riesgo era imposible de cumplir para 20 de 21. Verificado con el propio gate: 20 de 21 personas con 4 rutas obligatorias fuera de alcance, el PM con 2, y `Bug_Register.md` sin dueño alguno | high | closed | US-001 / REQ-007 | 11 rutas pasan a `comunes` —índice de DevLog, matriz, infra raíz y los 6 registros de intake—, `03_Architecture/_index.md` al amarillo de C1/C4 y `tests/**` al del PM (mantiene `vault/_Meta/scripts/**`); la matriz y `10_Risk_Governance/**` quedan en `criticos`, de modo que el gate sigue avisando a quién pedirle revisión sin reprobar | `TEST-014` ampliado a 40 casos en `tests/test_check_ownership.py`: recorren a los 21 contra cada ruta que la plantilla exige y contra cada registro de intake de `Definition_of_Filed` |
 | BUG-040 | **El parser del tablero PM partía las filas por los pipes escapados y publicó datos corruptos en silencio.** `table_cells()` hacía `.split("\|")` sobre la línea cruda, así que el `\|` de un wikilink con alias —`[[ruta\|texto]]`, la sintaxis que el vault usa 190+ veces y siempre escapada— partía la celda en dos y desplazaba todas las columnas siguientes. En la fila `US-004` de `Execution_Status.md` eso dejaba `evidence` truncada con un `[[` sin cerrar y metía **texto en el campo `updated`** donde va una fecha. No reventaba nada: la fila conservaba más de 6 celdas y el estado seguía siendo válido, y `validate_pm_dashboard.py` no revisaba `updated`. Estuvo publicado en `main` dentro de `pm-dashboard.json`. **El mismo defecto corrompía las métricas por persona:** 4 filas del índice de DevLog llevaban el pipe sin escapar y atribuían el DevLog a su propia descripción — el tablero contaba **25 autores** en vez de 21. Y al normalizarlas aparecieron 3 variantes de nombre (`Serrania` sin ñ, `Gonzalez` sin acento, `Carlos Mayorga` en corto) que, al cruzarse por coincidencia exacta contra el nombre canónico, dejaban a Manuel con **0 DevLogs teniendo 12**, a Eloísa con 0 de 3 y a Carlos con 0 de 1. Escapar el pipe **no** bastaba: el parser tampoco interpretaba el escape. El propio archivo ya tenía la solución diez líneas más abajo, en `parse_devlog_authors`, que sí protegía `\|` antes de partir — nunca llegó a la función compartida, que usan 6 parsers (`stories`, `execution`, `people`, `github_directory`, `markdown_rows`, `raci`) | high | closed | US-004 / REQ-007 | `table_cells()` protege el pipe escapado antes de partir y lo restituye en la celda (`clean()` ya sabía resolver `[[x\|y]]`, solo se le destruía el enlace antes); `parse_devlog_authors` deja su copia y usa la función canónica (regla 1 del vault); la fila `US-004` escapa su pipe y suelta la fecha sobrante; `validate_pm_dashboard.py` valida que `updated` sea una fecha; las 4 filas del índice de DevLog escapan su pipe y las 3 variantes de nombre se normalizan al padrón | `TEST-015` (`tests/test_generate_pm_dashboard.py`, 8 casos): el contrato del parser con pipes escapados y, sobre la fuente real, que ninguna historia tenga `updated` fuera de formato ni evidencia con wikilink sin cerrar, que toda fila del índice de DevLog tenga 5 columnas y que **todo autor del índice exista en el padrón** (una variante de nombre ya no deja a nadie en cero en silencio). Verificado además que el validador reprueba con la fila rota inyectada |
+| BUG-041 | **El path real `--desde-gold` de ML truena cuando un driver queda 100 % `SIN_DATO`: `pd.read_sql_table` devuelve los nombres de columna como `quoted_name` (subclase de `str`), sklearn exige `type(x) == str` exacto para poblar `feature_names_in_`, así que **nunca lo puebla**; el fallback `getattr(modelo, "feature_names_in_", DRIVERS)` de `construir_predicciones` cae a los 6 `DRIVERS` y reintroduce el driver descartado → `ValueError: X has 6 features, but HistGradientBoostingRegressor is expecting 5 features`. Misma FAMILIA que BUG-015/018/023 pero **causa raíz nueva**: aquí el propio patrón `feature_names_in_` que arregló a los tres nunca se activa al leer de la BD, así que el fix de BUG-015 queda anulado en el path de producción. Los tests no lo cazan porque usan fixtures CSV (`read_csv` → `str` puro). Reportado por Luis Téllez (C5) al cerrar la validación L0 local el 2026-09-02, ejercitando cobertura parcial real (D5 agua 100 % `SIN_DATO`) | high | open | US-311 / US-313 / REQ-003 | **Parche preparado y validado en local (4 líneas), pendiente de aplicar por Célula 3** — `entrenar_ml01.py` implementa US-311/US-313 (dueño **Héctor Morales**, `dev/hector-morales`; coordina el TL de C3 **Andrés González**); `src/modelos/**` es verde solo de C3, así que un PR de otra rama reprueba `check_ownership.py`. Normalizar en el borde: tras `pd.read_sql_table` en `cargar_features_desde_gold` (`entrenar_ml01.py:203`), `df.columns = [str(c) for c in df.columns]`. Detalle abajo | propuesto (a numerar por C3): un caso que lea features vía `read_sql_table` (o simule nombres `quoted_name`) y afirme que `construir_predicciones` puebla `feature_names_in_` con los drivers **usables** y no cae al fallback `DRIVERS` — el fixture CSV nunca lo ejercita (misma lección de BUG-023: el fixture valida la forma, no la realidad) |
+
+## BUG-041 — El `quoted_name` de SQLAlchemy vacía `feature_names_in_` y reintroduce el driver descartado
+
+Reportado por **Luis Téllez (C5)** el 2026-09-02, al cerrar la **validación L0 local** (pipeline ML
+completo contra el Gold local, ~$0, sin GCP). No lo reportó C3: se destapó al ejercitar
+`publicar_gold.py --desde-gold` con **cobertura parcial real** —justo el escenario `SIN_DATO` que FARO
+promete manejar—, no con el fixture sintético.
+
+### Síntoma
+
+```
+ValueError: X has 6 features, but HistGradientBoostingRegressor is expecting 5 features
+```
+
+ML-01 **entrena bien** (con datos de muestra, MAE 0.0844) y truena **en la predicción**, después de
+haber excluido correctamente el driver sin datos.
+
+### Causa raíz
+
+`cargar_features_desde_gold` (`entrenar_ml01.py:203`) lee con `pd.read_sql_table(...)`, y **SQLAlchemy
+devuelve los nombres de columna como `quoted_name`** —una subclase de `str`, no `str` puro—.
+scikit-learn detecta los nombres de features exigiendo **`type(x) == str` exacto**, así que trata cada
+`quoted_name` como "no-string" y **nunca puebla `modelo.feature_names_in_`**. En la predicción,
+`construir_predicciones` hace `getattr(modelo, "feature_names_in_", DRIVERS)` (`publicar_gold.py:267`) →
+cae al fallback `DRIVERS` (los 6) → reintroduce el driver que se descartó por estar 100 % `SIN_DATO` →
+desajuste de forma → crash.
+
+### Por qué es un bug NUEVO y no un duplicado de BUG-015/018/023
+
+Aquellos tres arreglaron el lado de entrenamiento/predicción para **confiar en `feature_names_in_`**
+(el patrón `getattr(modelo, "feature_names_in_", DRIVERS)`). **Este defecto es que ese atributo nunca
+se puebla en el path de la BD**, así que el propio fallback que debía protegernos se dispara y **anula
+el fix de BUG-015** en producción. No es la misma causa: es el eslabón que hace fallar al remedio de
+los otros tres. El arreglo cierra el hueco **en el borde donde entra el `quoted_name`**.
+
+### Por qué los tests no lo cazan
+
+Los tests usan **fixtures CSV** (`read_csv` → nombres `str` puros), donde `feature_names_in_` sí se
+puebla. **Solo el path real `--desde-gold` (lee de la BD) sufre el `quoted_name`.** Y solo se manifiesta
+cuando **un driver queda 100 % `SIN_DATO`** en la ventana de entrenamiento (si no se descarta ninguno,
+`DRIVERS`=6 coincide por casualidad con lo entrenado). Con datos reales de cobertura parcial —D5 agua es
+regional, D6 aire ~80 zonas— es un escenario **plausible en producción**, no solo en la muestra. Misma
+lección que BUG-023: un fixture construido para validar la forma no valida la realidad.
+
+### Alcance del impacto
+
+Todos los consumidores que confían en `feature_names_in_`, todos en archivos de C3:
+`publicar_gold.construir_predicciones` (:267) y `construir_predicciones_municipio_nivel` (:335),
+`entrenar_ml02` (:245, :302) y `evaluar.py` (:212, :244).
+
+### Fix preparado (4 líneas, validado en local)
+
+En `cargar_features_desde_gold`, tras `pd.read_sql_table`, normalizar los nombres a `str` puro:
+
+```python
+df = pd.read_sql_table(tabla, engine, schema=esquema)
+df.columns = [str(c) for c in df.columns]  # SQLAlchemy da quoted_name; sklearn solo
+                                            # puebla feature_names_in_ con str puro (BUG-041)
+```
+
+**Validación (local, 2026-09-02):** con el fix, `feature_names_in_` = los 5 drivers usables y
+`construir_predicciones` produjo **55 filas** (ciclo 2024-2025), `indice_riesgo` ∈ [0.084, 0.742], sin
+saturar. Publicadas 55 predicciones (ML-01) + 55 recomendaciones (ML-02); `/api/v1/kpis` →
+`escuelas_en_riesgo=2`; diferenciador prescriptivo probado (15DJN0049A→D1, 09DSN0042A→D2).
+
+### Propiedad / gobernanza
+
+`entrenar_ml01.py` está bajo `src/modelos/**`, **verde de Célula 3** (Andrés González —TL—, Héctor
+Morales, Estefany Hernández, Carlos Mayorga). Por la regla 9, `check_ownership.py` reprueba un PR de
+cualquier rama fuera de C3 que toque `src/modelos/**` (`return 1`). Por eso el reporte y el parche se dan
+de alta aquí —`Bug_Register.md` es `comunes`, y `Definition_of_Filed` obliga a cualquiera a registrar el
+bug que encuentre— pero **el código lo lleva Célula 3**: lo natural es **Héctor Morales**
+(`dev/hector-morales`), dueño de US-311/US-313, con la coordinación del TL **Andrés González**. Es
+exactamente el patrón de BUG-018 ("queda el parche preparado… para que lo aplique quien corresponde") y
+BUG-008. Seguimiento honesto de la corrida L0 en `_local/L0_ML_realidad_vs_prueba.md` §5.
+
+**Alternativa más defensiva (follow-up de C3):** pasar `drivers_usados` explícito a
+`construir_predicciones` en vez de depender de `feature_names_in_`, para no volver a atarse a un
+atributo que un tipo de columna puede dejar sin poblar.
 
 ## BUG-016 — Filas sin ningún driver rompían la publicación de ML-02
 

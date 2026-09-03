@@ -1,0 +1,42 @@
+---
+project: "FARO"
+date: "2026-09-03"
+author_human: "Andrés González Habib"
+agent: "GitHub Copilot"
+model: "GitHub Copilot"
+session_duration: "1h"
+touches: ["US-302", "US-303", "US-304a", "US-305", "REQ-003", "REQ-006"]
+tags: [devlog, celula-3, validacion, rag, mlflow, oauth]
+---
+
+# DevLog — 2026-09-03 — Validación C3 y preparación de E2E
+
+→ [[vault/_DevLog/_index|Volver al índice]]
+
+## Qué se hizo
+- Se sincronizó `dev/andres-gonzalez` con `origin/main` y se confirmaron integrados US-304b, US-405 y el fix de MLflow para BUG-041.
+- Se revisó el contrato del agente: `AgenteConsultaIn` recibe únicamente `pregunta` y rechaza campos extra; el cliente del chat ya cumple ese contrato.
+- Se verificó la integración de OAuth en el frontend: `auth.py` guarda el token de acceso en sesión y el widget de US-305 lo propaga como Bearer a la API.
+- Los diagnósticos estáticos de `src/agente/**` y `src/modelos/**` no reportaron errores.
+
+## 🤖 Sesión de IA
+- **Agente / modelo:** GitHub Copilot
+- **Archivos creados/modificados:** `vault/_DevLog/2026-09-03-andres-gonzalez-validacion-c3-e2e.md`, `vault/_DevLog/_index.md`
+- **Decisiones autónomas del agente:** no modificar `docker/api.Dockerfile` ni `src/frontend/**`, porque pertenecen a C5 y C2 respectivamente.
+- **Correcciones manuales:** ninguna.
+- **Prompt inicial:** "avanza en todo esto que me estas diciendo".
+
+## Seguridad / calidad
+- [x] Sin secretos hardcodeados
+- [ ] Tests agregados/actualizados (no se modificó código)
+- [x] DevLog enlaza a los IDs afectados
+- Diagnósticos de VS Code: sin errores en `src/agente/**` ni `src/modelos/**`.
+- El entorno existente `.venv` usa Python 3.12; se creó `.venv311` para validar con Python 3.11. El terminal no devolvió resumen de `pytest`, por lo que no se declara una suite verde sin evidencia observable.
+
+## Bloqueantes
+- El E2E real de `widget → API → RAG` dentro de Docker/Cloud Run depende de C5: `docker/api.Dockerfile` instala únicamente `requirements.txt`; no incorpora `chromadb` ni `sentence-transformers` de `requirements/celula-3.txt`.
+- La validación contra la URL pública además requiere el redeploy de C5 con esa imagen y la configuración disponible del LLM.
+
+## Próximos pasos
+- C5 debe incorporar las dependencias de C3 en la imagen API y redesplegar.
+- Con la imagen disponible, ejecutar el E2E autenticado del chat contra la API desplegada y registrar su resultado antes del freeze.

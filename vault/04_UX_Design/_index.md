@@ -21,4 +21,5 @@ tags: [moc, ux]
 | [[vault/04_UX_Design/Cube_Specs_DB10]] | Contrato semántico del cubo de DB-10: estado de la ingesta por fuente, KPI-13, componentes aditivos es_ok/es_sin_dato (US-223) |
 | [[vault/04_UX_Design/Superset_Setup_US202]] | Setup de Superset: conexión, datasets virtuales y capa semántica reutilizable (US-202) |
 | [[vault/04_UX_Design/US221_KPIs_Base]] | Gráficos base de KPIs: series de matrícula, distribución por nivel y tarjetas reutilizables de contexto (US-221) |
+| [[vault/04_UX_Design/Manual_Usuario_Dashboards]] | Guía de usuario de los 10 dashboards en lenguaje de negocio, con narrativa sugerida para el pitch de entrega (US-224) |
 | [[vault/04_UX_Design/Accessibility]] | Requisitos de accesibilidad (a11y) |

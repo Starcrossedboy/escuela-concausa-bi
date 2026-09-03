@@ -13,6 +13,7 @@ from src.modelos.mlflow_utils import (
     RegistroModelo,
     registrar_sklearn,
     validar_nombre_modelo,
+    verificar_artefactos_descargables,
     verificar_modelos_registrados,
 )
 
@@ -170,3 +171,64 @@ def test_reporta_version_invalida_con_el_modelo_afectado(monkeypatch) -> None:
             "http://mlflow:5000",
             frozenset({"ML01_RegresionMatricula"}),
         )
+
+
+def _mlflow_con_carga(cargar) -> SimpleNamespace:
+    """Doble de `mlflow` cuyo `pyfunc.load_model` delega en `cargar`."""
+    return SimpleNamespace(
+        set_tracking_uri=lambda uri: None,
+        pyfunc=SimpleNamespace(load_model=cargar),
+    )
+
+
+def test_artefacto_descargable_pasa_cuando_el_modelo_carga(monkeypatch) -> None:
+    pedidos: list[str] = []
+    monkeypatch.setitem(
+        sys.modules, "mlflow", _mlflow_con_carga(lambda uri: pedidos.append(uri) or object())
+    )
+
+    verificar_artefactos_descargables(
+        "http://mlflow:5000",
+        {"ML01_RegresionMatricula": "2", "ML02_DriverClasificador": "5"},
+    )
+
+    # Se carga por `models:/nombre/version`, la misma ruta que usa la API de la Célula 4.
+    assert pedidos == ["models:/ML01_RegresionMatricula/2", "models:/ML02_DriverClasificador/5"]
+
+
+def test_artefacto_ausente_reprueba_aunque_la_version_exista(monkeypatch) -> None:
+    """El caso de BUG-041: la fila del Registry está `READY` pero el artefacto no llega.
+
+    Es exactamente el estado en que `ML01_RegresionMatricula` v1 estuvo en verde desde el 18-ago:
+    `verificar_modelos_registrados` la reportaba y ningún cliente podía cargarla.
+    """
+
+    def cargar(uri: str):
+        raise RuntimeError('No such artifact: "MLmodel"')
+
+    monkeypatch.setitem(sys.modules, "mlflow", _mlflow_con_carga(cargar))
+
+    with pytest.raises(RuntimeError) as error:
+        verificar_artefactos_descargables("http://mlflow:5000", {"ML01_RegresionMatricula": "1"})
+
+    mensaje = str(error.value)
+    assert "ML01_RegresionMatricula v1" in mensaje       # dice cuál falló
+    assert "--serve-artifacts" in mensaje                # y por qué
+    assert "BUG-041" in mensaje
+
+
+def test_artefacto_reporta_todos_los_modelos_rotos_no_solo_el_primero(monkeypatch) -> None:
+    def cargar(uri: str):
+        raise RuntimeError("No such artifact")
+
+    monkeypatch.setitem(sys.modules, "mlflow", _mlflow_con_carga(cargar))
+
+    with pytest.raises(RuntimeError) as error:
+        verificar_artefactos_descargables(
+            "http://mlflow:5000",
+            {"ML01_RegresionMatricula": "1", "ML03_ClusteringEscuelas": "4"},
+        )
+
+    # Un reporte parcial obligaría a arreglar y re-correr modelo por modelo.
+    assert "ML01_RegresionMatricula v1" in str(error.value)
+    assert "ML03_ClusteringEscuelas v4" in str(error.value)

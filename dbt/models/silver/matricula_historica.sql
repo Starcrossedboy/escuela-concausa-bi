@@ -14,18 +14,23 @@
 -- hoy (ver nota en dim_tiempo.sql sobre esta ambiguedad pendiente de reconciliar). El cambio a
 -- `id_ciclo` que exige unir_target() se hace en Gold, igual que ya hace dim_tiempo.sql.
 --
--- Segundo dedup, a grano (cct, ciclo) -- ver CTE `lote_mas_reciente` abajo. Bronze es
--- append-only (CLAUDE.md: nunca DELETE/UPDATE/DROP desde el agente): filas fixture viejas
--- (p.ej. BUG-026) conviven con la carga real para el mismo cct+ciclo. El primer dedup (por
--- turno) no las toca si su `turno` no aparece en la carga real -- y si su `cve_mun`/`nivel`
--- difieren de la carga real, el GROUP BY final las partia en dos filas para el mismo
--- (cct, ciclo), violando unique_matricula_historica_cct_ciclo (y a veces tambien
--- accepted_values de nivel, si el valor fixture no es PREESCOLAR/PRIMARIA/SECUNDARIA).
--- Verificado real 2026-09-03: 6 filas fixture con cct que coincide con el catalogo real de
--- DS-02 causaban exactamente esto. Fix: por cct+ciclo, quedarse solo con las filas del LOTE
--- mas reciente (max _ingested_at) -- cada corrida de carga real escribe un _ingested_at
--- propio para todas sus filas (ver cargar_bronze_formato911_historico_real.py), asi que un
--- lote fixture viejo nunca gana contra uno real mas nuevo.
+-- Filtro a nivel de educacion BASICA -- ver CTE `nivel_basica` abajo. El propio contrato del
+-- modelo (schema.yml, accepted_values de `nivel`) solo admite PREESCOLAR/PRIMARIA/SECUNDARIA;
+-- INICIAL nunca estuvo en su alcance (mismo criterio que NIVELES_BASICA en
+-- validacion_formato911_historico.py). Verificado real 2026-09-03 con `dbt show --inline` contra
+-- Postgres: cct=11PDI0085S reporta, en los 3 ciclos que rompian los tests (2019-2020,
+-- 2023-2024, 2024-2025), turno=1 con nivel=INICIAL y turno=2 con nivel=PREESCOLAR -- la MISMA
+-- escuela con un turno de educacion inicial ademas del preescolar, no un choque entre lotes
+-- fixture y carga real (esa fue la hipotesis original, descartada con datos reales: el patron se
+-- repite identico en los 3 ciclos, incluido el que solo tiene carga real). Sin filtrar, el turno
+-- INICIAL sobrevive el dedup por turno y el GROUP BY final parte la escuela en dos filas
+-- (INICIAL y PREESCOLAR) para el mismo (cct, ciclo), violando accepted_values de nivel Y
+-- unique_matricula_historica_cct_ciclo. Se filtra ANTES del dedup por turno para que la
+-- educacion inicial de esa escuela no cuente en matricula_total.
+--
+-- NOTA: si en el futuro aparece un cct con dos turnos en DOS niveles de la lista basica (p.ej.
+-- primaria y secundaria en el mismo plantel), este filtro NO lo resuelve -- unique_cct_ciclo
+-- volveria a fallar y habria que decidir con el dueno de Gold como modelar escuelas mixtas.
 
 with normalizado as (
 
@@ -43,6 +48,14 @@ with normalizado as (
 
 ),
 
+nivel_basica as (
+
+    select *
+    from normalizado
+    where nivel in ('PREESCOLAR', 'PRIMARIA', 'SECUNDARIA')
+
+),
+
 deduplicado as (
 
     select *,
@@ -51,7 +64,7 @@ deduplicado as (
             order by _ingested_at desc
         ) as _row_number
 
-    from normalizado
+    from nivel_basica
 
 ),
 
@@ -60,25 +73,6 @@ por_turno as (
     select cct, ciclo, cve_ent, cve_mun, nivel, turno, matricula_total, _ingested_at
     from deduplicado
     where _row_number = 1
-
-),
-
-lote_mas_reciente as (
-
-    select cct, ciclo, max(_ingested_at) as _ingested_at_lote
-    from por_turno
-    group by cct, ciclo
-
-),
-
-del_lote_vigente as (
-
-    select pt.cct, pt.ciclo, pt.cve_ent, pt.cve_mun, pt.nivel, pt.matricula_total
-    from por_turno as pt
-    inner join lote_mas_reciente as lr
-        on pt.cct = lr.cct
-        and pt.ciclo = lr.ciclo
-        and pt._ingested_at = lr._ingested_at_lote
 
 )
 
@@ -90,5 +84,5 @@ select
     nivel,
     sum(matricula_total) as matricula_total
 
-from del_lote_vigente
+from por_turno
 group by cct, ciclo, cve_ent, cve_mun, nivel

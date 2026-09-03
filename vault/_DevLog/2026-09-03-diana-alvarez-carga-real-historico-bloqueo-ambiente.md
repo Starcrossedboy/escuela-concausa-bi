@@ -63,6 +63,10 @@ la deuda de Great Expectations — y, de ser afirmativo que seguían pendientes,
   corregir esto**, porque el `cct` de esas 6 filas sí existe en el catálogo real. Fix propuesto
   (no implementado hoy): un segundo dedup en Silver a grano `(cct, ciclo)`, quedándose con
   `_ingested_at` más reciente. **Queda como deuda explícita, no como "ya resuelto".**
+
+  **Corrección (mismo día, más tarde):** esta hipótesis de causa raíz resultó **incorrecta** —
+  ver "Actualización — dedup fix" más abajo para el diagnóstico real (verificado con datos
+  reales) y el fix efectivamente aplicado.
 - `not_null_dim_escuela_sostenimiento` (6) — no investigado a fondo hoy, posiblemente
   preexistente.
 
@@ -126,18 +130,31 @@ para reflejar que Camino A ya es un comando único, no un runbook manual.
 
 ## Actualización — dedup fix + Great Expectations (mismo día, más tarde)
 
-**Fix de dedup en `matricula_historica.sql` (grano `cct, ciclo`).** Causa raíz ya diagnosticada
-arriba: filas fixture viejas con `cct` real sobreviven el primer dedup (por `turno`) porque su
-`turno` no aparece en la carga real, y si su `cve_mun`/`nivel` difieren de la carga real, el
-`GROUP BY` final las partía en dos filas para el mismo `(cct, ciclo)`. Fix: nueva CTE
-`lote_mas_reciente` — por `cct+ciclo`, se identifica el LOTE más reciente (`max(_ingested_at)`,
-cada corrida de carga real escribe su propio `_ingested_at` para todas sus filas) y solo se
-conservan las filas de ese lote antes del `GROUP BY` final. Bronze es append-only, así que un
-lote fixture viejo nunca gana contra uno real más nuevo. **No verificado contra Postgres real en
-esta sesión** (sin acceso de red al ambiente local desde aquí) — pendiente que Diana corra
-`dbt run --select matricula_historica+ && dbt test --select matricula_historica` para confirmar
-que los 3+1 tests que fallaban (`unique_matricula_historica_cct_ciclo`,
-`accepted_values_matricula_historica_nivel`) ya pasan.
+**Fix de dedup en `matricula_historica.sql` — dos intentos, el primero incorrecto.**
+
+*Primer intento (fallido, confirmado por Diana):* CTE `lote_mas_reciente`, basada en la hipótesis
+de que filas fixture viejas con `cct` real chocaban contra la carga real por `_ingested_at`.
+Diana corrió `dbt run --select matricula_historica+ && dbt test --select matricula_historica`
+contra su Postgres real y el resultado fue **idéntico** al de antes del fix (mismos 3+1 tests en
+rojo) — la hipótesis quedó descartada por datos reales, no se volvió a adivinar un segundo fix.
+
+*Diagnóstico real* (`dbt show --inline` contra Postgres, con Diana): el `cct` que rompe los 3
+tests de unicidad es `11PDI0085S`, en los 3 ciclos que fallaban (2019-2020, 2023-2024,
+2024-2025) — el patrón se repite idéntico en los 3, incluido el ciclo que solo tiene carga real,
+lo que descarta un choque fixture-vs-real. Causa real: esa escuela reporta, en **todos** sus
+ciclos, `turno=1` con `nivel=INICIAL` y `turno=2` con `nivel=PREESCOLAR` — un plantel con
+educación inicial además de preescolar. `INICIAL` nunca estuvo en el alcance declarado del
+modelo (`schema.yml`, `accepted_values` de `nivel`: solo `PREESCOLAR`/`PRIMARIA`/`SECUNDARIA`,
+mismo criterio que `NIVELES_BASICA` en la suite de Great Expectations de este mismo día). Sin
+filtrarlo, el turno `INICIAL` sobrevivía el dedup por turno y el `GROUP BY` final partía la
+escuela en dos filas para el mismo `(cct, ciclo)`.
+
+*Fix real, aplicado:* nueva CTE `nivel_basica`, que filtra a
+`nivel in ('PREESCOLAR', 'PRIMARIA', 'SECUNDARIA')` — el alcance que el propio modelo ya
+declaraba — antes del dedup por turno. Se retiró la CTE `lote_mas_reciente` (basada en la
+hipótesis incorrecta). **Verificado contra Postgres real por Diana:**
+`dbt run --select matricula_historica+ && dbt test --select matricula_historica` →
+`PASS=8 WARN=0 ERROR=0` (los 8 tests del modelo, incluidos los 3+1 que fallaban, en verde).
 
 **Great Expectations para DS-01 (histórico) y DS-02.** Cierra la deuda señalada por Deni Garrido
 el 30-ago. Dos módulos nuevos, mismo patrón que `validacion_sesnsp.py` (TEST-011/US-124b):
@@ -156,8 +173,6 @@ acceso a esos archivos/red desde el entorno de IA).
 
 ## Pendiente (explícito, no resuelto en esta sesión)
 
-- Confirmar contra Postgres real que el fix de dedup de `matricula_historica.sql` sí deja los
-  3+1 tests en verde (implementado, no verificado — ver arriba).
 - Correr `validar_cct()`/`validar_formato911_historico()` contra los archivos reales completos,
   no solo el DataFrame sintético (implementado, no verificado — ver arriba).
 - Confirmar los 2 PRs exactos que rompieron `agua_region`/`rezago_municipio` y avisar a sus

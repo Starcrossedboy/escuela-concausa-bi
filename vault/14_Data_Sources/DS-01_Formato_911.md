@@ -206,8 +206,11 @@ la deuda senalada por Deni Garrido en su auditoria del 30-ago (ver DevLog
   `ciclo` (`AAAA-AAAA`, sin fijar los 6 ciclos actuales -- la fuente sigue publicando ciclos
   nuevos), `matricula_total >= 0`. **No** valida unicidad de `(cct, ciclo, turno)` a proposito
   -- Bronze permite reingestas legitimas del mismo cct+ciclo+turno con `_ingested_at` mas nuevo
-  (ver UNIQUE real de la tabla), eso lo dedupea Silver (`matricula_historica.sql`, ver su fix
-  de segundo dedup del mismo dia).
+  (ver UNIQUE real de la tabla); esa reingesta la dedupea Silver por turno
+  (`matricula_historica.sql`). Tampoco valida un `value_set` de `nivel` -- Bronze SÍ trae
+  valores fuera de educacion basica (p.ej. `INICIAL`, confirmado real 2026-09-03, ver DevLog);
+  el filtro a PREESCOLAR/PRIMARIA/SECUNDARIA es responsabilidad de Silver, no de esta suite de
+  Bronze.
 - **Suite persistida:** `great_expectations/expectations/suite_ds01_formato911_historico.json`.
 - **Pruebas offline (5):** `tests/test_validacion_formato911_historico.py` -- datos limpios
   pasan, y se verifica que la suite SÍ atrapa matricula negativa, ciclo mal formado, cct mal

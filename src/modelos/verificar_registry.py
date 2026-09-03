@@ -5,7 +5,7 @@ Comprueba dos cosas **distintas**, y por eso son dos pasos:
 1. Que cada modelo canónico tenga al menos una versión registrada.
 2. Que esa versión se pueda **cargar de vuelta**. Una fila `READY` en el Registry no prueba que el
    modelo esté ahí: con el servidor sin `--serve-artifacts`, las métricas se guardan pero los
-   artefactos nunca salen del contenedor (**BUG-041**). Sin este segundo paso la verificación da
+   artefactos nunca salen del contenedor (**BUG-043**). Sin este segundo paso la verificación da
    verde sobre un modelo que nadie puede usar, que es justo lo que pasó con
    `ML01_RegresionMatricula` v1 entre el 18-ago y el 2-sep.
 

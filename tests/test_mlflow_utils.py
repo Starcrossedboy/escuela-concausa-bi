@@ -197,7 +197,7 @@ def test_artefacto_descargable_pasa_cuando_el_modelo_carga(monkeypatch) -> None:
 
 
 def test_artefacto_ausente_reprueba_aunque_la_version_exista(monkeypatch) -> None:
-    """El caso de BUG-041: la fila del Registry está `READY` pero el artefacto no llega.
+    """El caso de BUG-043: la fila del Registry está `READY` pero el artefacto no llega.
 
     Es exactamente el estado en que `ML01_RegresionMatricula` v1 estuvo en verde desde el 18-ago:
     `verificar_modelos_registrados` la reportaba y ningún cliente podía cargarla.
@@ -214,7 +214,7 @@ def test_artefacto_ausente_reprueba_aunque_la_version_exista(monkeypatch) -> Non
     mensaje = str(error.value)
     assert "ML01_RegresionMatricula v1" in mensaje       # dice cuál falló
     assert "--serve-artifacts" in mensaje                # y por qué
-    assert "BUG-041" in mensaje
+    assert "BUG-043" in mensaje
 
 
 def test_artefacto_reporta_todos_los_modelos_rotos_no_solo_el_primero(monkeypatch) -> None:

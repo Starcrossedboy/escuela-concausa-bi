@@ -183,7 +183,7 @@ def verificar_artefactos_descargables(
     `search_model_versions`.
 
     Ese hueco dejó `ML01_RegresionMatricula` versión 1 en verde desde el 18-ago sin que ningún
-    cliente pudiera cargarla (**BUG-041**). AC-003.4 pide que el modelo *llegue* al registry, y la
+    cliente pudiera cargarla (**BUG-043**). AC-003.4 pide que el modelo *llegue* al registry, y la
     única prueba de eso es traerlo de vuelta — que es, además, exactamente lo que hace la API de
     la Célula 4 al servir inferencia.
 
@@ -217,7 +217,7 @@ def verificar_artefactos_descargables(
             "Hay versiones en el Registry que NO se pueden cargar: "
             + "; ".join(fallidos)
             + ".\nLa fila existe pero el artefacto no llega al cliente. Causa más común "
-            "(BUG-041): el servidor de MLflow no corre con `--serve-artifacts`, así que su "
+            "(BUG-043): el servidor de MLflow no corre con `--serve-artifacts`, así que su "
             "raíz de artefactos es una ruta interna del contenedor y ningún cliente puede "
             "leerla ni escribirla. Lo define `docker-compose.yml` (Célula 5)."
         )

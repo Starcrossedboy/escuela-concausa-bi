@@ -69,7 +69,7 @@ def test_cli_verifica_los_tres_modelos_por_defecto(monkeypatch, artefactos_ok) -
 
 
 def test_cli_comprueba_que_el_artefacto_carga_por_defecto(monkeypatch, artefactos_ok) -> None:
-    """Sin esto la CLI vuelve a dar verde sobre un modelo inservible (BUG-041)."""
+    """Sin esto la CLI vuelve a dar verde sobre un modelo inservible (BUG-043)."""
     monkeypatch.setattr(
         verificar_registry,
         "verificar_modelos_registrados",

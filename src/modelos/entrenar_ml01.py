@@ -201,6 +201,19 @@ def cargar_features_desde_gold(
         )
 
     df = pd.read_sql_table(tabla, engine, schema=esquema)
+
+    # SQLAlchemy devuelve los nombres de columna como `quoted_name`, subclase de `str` pero NO
+    # `str` puro. scikit-learn exige `type(x) is str` exacto para reconocer nombres de features,
+    # así que con las columnas tal cual **nunca puebla `feature_names_in_`** — sin error, sin aviso.
+    # Aguas abajo, `getattr(modelo, "feature_names_in_", DRIVERS)` cae entonces al fallback de los
+    # 6 DRIVERS y **reintroduce el driver que se descartó por estar 100 % `SIN_DATO`**, con lo que
+    # la predicción truena con `X has 6 features, but ... expecting 5`.
+    #
+    # Es el eslabón que anula el fix de BUG-015/018/023: aquellos enseñaron al lado de predicción a
+    # confiar en `feature_names_in_`, y este tipo de columna deja ese atributo vacío. Sólo ocurre
+    # leyendo de la BD; los fixtures CSV dan `str` puro, por eso la suite no lo veía (BUG-041).
+    df.columns = [str(c) for c in df.columns]
+
     if df.empty:
         raise ValueError(f"`{esquema}.{tabla}` existe pero está vacía; no hay nada que publicar.")
     return _validar_contrato(df, f"`{esquema}.{tabla}`")

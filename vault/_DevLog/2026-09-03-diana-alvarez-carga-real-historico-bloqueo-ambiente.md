@@ -87,6 +87,33 @@ US-222/US-223 (PR #192, Oscar) y US-224. Registrado en
 lo único que falta para que sea `resolved` del todo es que Diana lo comparta por Teams (fuera
 del alcance de esta sesión de IA: no hay forma de subir archivos a Teams desde aquí).
 
+### Actualización — Camino A automatizado (mismo día, más tarde)
+
+A petición de Diana ("queda más automatizado"), se automatizó también Camino A, no solo
+documentado. `src/ingesta/extractor_cct.py` descarga DS-02 en automático llamando a la API real
+que usa el propio portal SIGED — descubierta inspeccionando en vivo el JS del portal
+(`tablas_siged.js`) y su llamada de red real, nunca inventando una URL (CLAUDE.md). Dos
+problemas reales encontrados y resueltos en el camino, ambos verificados con Diana corriendo el
+pipeline en su terminal real:
+
+- **SSL:** `SSLCertVerificationError` al llamar `api.siged.sep.gob.mx` desde Python — `curl -sv`
+  confirmó que el certificado es válido (usa el llavero del SO), así que era el bundle propio de
+  `certifi` el que fallaba, no el servidor. Fix: `truststore.inject_into_ssl()` (agregado a
+  `requirements/celula-1.txt`), que hace que Python use el mismo almacén de confianza del SO que
+  ya usa `curl` — no es bajar la verificación.
+- **Conexión cortada (`RemoteDisconnected`):** la API tolera una llamada pero cortaba la conexión
+  sin responder en la segunda llamada seguida (probable límite de tasa/anti-bot). Fix: sesión
+  compartida con cabeceras de navegador (User-Agent/Referer/Origin) + reintento con backoff +
+  pausa de 2s entre las 2 partes del catálogo.
+
+`src/ingesta/reproducir_bronze_real.py` (nuevo) orquesta DS-02 automático + DS-01 histórico en un
+solo comando. Corrida real de Diana, limpia de punta a punta: 385,204 filas en
+`bronze.cct_siged_202608`, ~1.37M filas nuevas en `bronze.formato911_historico` (6 ciclos). No
+incluye `bronze.formato911_2024_2025` (PR #105, portal distinto, sin automatizar todavía).
+
+`vault/14_Data_Sources/DS-01_Formato_911.md` §11 y `Blocker_Register.md` (BLOCK-004) actualizados
+para reflejar que Camino A ya es un comando único, no un runbook manual.
+
 ## Qué se corrigió/agregó en el vault y el código
 
 - `dbt/models/gold/matricula_municipio_nivel.sql` — fix de contaminación (ver arriba).

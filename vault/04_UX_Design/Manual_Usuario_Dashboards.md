@@ -31,11 +31,16 @@ prueba y ocho placeholders.
 Bronze cargado (local con `dbt run` completo, o el ambiente validado que usó Luis Téllez el
 2026-09-01) puede tomar las capturas y reemplazar los marcadores sin tocar el resto del texto.
 
+**Actualización 2026-09-02:** DB-07 y DB-10 ya tienen su definición de tablero declarativa
+(`superset/dashboards/db07_calidad_cobertura.yaml`, `superset/dashboards/db10_monitor_pipeline.yaml`)
+— antes solo existía su capa semántica (SQL + métricas), sin layout de charts que registrar. Con
+Bronze cargado, `sync_semantic_layer.py` ya puede importar los 10 tableros completos, no 8.
+
 | Dashboard | Estado de datos conocido |
 |---|---|
-| DB-01, DB-02 | Validados con datos reales por Luis Téllez (2026-09-01): 9/9 y 7/7 charts con datos, filtros funcionando. Capturas pendientes de tomarse sobre ese ambiente. |
+| DB-01, DB-02 | **Estructura** validada por Luis Téllez (2026-09-01): 9/9 y 7/7 charts renderizan, filtros responden, ningún chart roto. **Los números todavía no**: falta el recálculo del Carril A (hoy solo hay un ciclo cargado) — ver su DevLog. No presentes como cifras finales en una demo. |
 | DB-03…DB-06, DB-08, DB-09 | Construidos (PR mergeados), sin confirmación reciente de validación en vivo — verificar antes de usar en demo. |
-| DB-07, DB-10 | SQL y 12 pruebas automatizadas en verde contra fixtures; **registro en Superset bloqueado** por falta de Bronze (documentado en sus Cube Specs). No van a aparecer poblados en una demo local hasta resolver ese bloqueo. |
+| DB-07, DB-10 | SQL, capa semántica, **definición de tablero (`superset/dashboards/db07_calidad_cobertura.yaml`, `db10_monitor_pipeline.yaml`)** y 12 pruebas automatizadas en verde contra fixtures; **registro en Superset bloqueado** por falta de Bronze (documentado en sus Cube Specs). No van a aparecer poblados en una demo local hasta resolver ese bloqueo. |
 
 ---
 
@@ -153,9 +158,10 @@ gris "cero" — si no hay dato, el mapa lo deja explícitamente vacío.
 **Qué ves:** al buscar un CCT, obtienes su serie de matrícula, sus 6 drivers (con hueco donde falte
 dato, nunca cero), su predicción de riesgo y — el diferenciador del proyecto — una recomendación
 prescriptiva ligada al driver que más le pesa a esa escuela.
-**Cómo leerlo:** si la escuela aún no tiene predicción (el modelo ML-01 llega en Sprint 4), el
-bloque de predicción dice "sin dato disponible" en vez de desaparecer o mostrar 0 — la ficha se
-sigue viendo completa.
+**Cómo leerlo:** si la escuela aún no tiene predicción, el bloque dice "sin dato disponible" en vez
+de desaparecer o mostrar 0 — la ficha se sigue viendo completa. ML-01 ya está entrenado (US-311,
+PR #28, MAE 0.0141 / RMSE 0.0177) pero la confirmación end-to-end del registry sigue `in_progress`
+— revisa el estado real en `Execution_Status.md` antes de asumir cobertura total en la demo.
 
 [CAPTURA PENDIENTE: DB-03 — ficha completa de una escuela de ejemplo]
 
@@ -195,8 +201,10 @@ señal de alerta temprana que justifica intervenir antes de que la matrícula ya
 territoriales (dónde el Estado literalmente no está midiendo).
 **Cómo leerlo:** es el tablero que convierte una limitación de datos en un hallazgo de valor —
 "aquí no sabemos" es en sí mismo información útil para dónde invertir en instrumentación.
-**Nota de estado:** SQL y 7 pruebas automatizadas en verde; el registro real en Superset está
-bloqueado en este ambiente por falta de Bronze (ver [[vault/04_UX_Design/Cube_Specs_DB07]] §4).
+**Nota de estado:** SQL, capa semántica, definición de tablero
+(`superset/dashboards/db07_calidad_cobertura.yaml`) y 7 pruebas automatizadas, todo en verde; el
+registro real en Superset está bloqueado en este ambiente por falta de Bronze (ver
+[[vault/04_UX_Design/Cube_Specs_DB07]] §4).
 
 [CAPTURA PENDIENTE: DB-07 — mapa de vacíos + completitud por driver]
 
@@ -228,8 +236,9 @@ recomendaciones distintas si su driver dominante es distinto.
 desaparece ni se cuenta como cero filas.
 **Cómo leerlo:** si vas a hacer una demo en vivo, revisa este tablero primero — te dice qué fuentes
 están realmente cargadas antes de prometer un número en los otros 9.
-**Nota de estado:** mismo bloqueo que DB-07 — 5 pruebas en verde contra fixtures, sin validar contra
-Postgres real en este ambiente (ver [[vault/04_UX_Design/Cube_Specs_DB10]] §4).
+**Nota de estado:** mismo bloqueo que DB-07 — SQL, definición de tablero
+(`superset/dashboards/db10_monitor_pipeline.yaml`) y 5 pruebas en verde contra fixtures, sin
+validar contra Postgres real en este ambiente (ver [[vault/04_UX_Design/Cube_Specs_DB10]] §4).
 
 [CAPTURA PENDIENTE: DB-10 — estado de las 8 fuentes]
 

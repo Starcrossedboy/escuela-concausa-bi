@@ -113,26 +113,36 @@ cargado — bloquea validación con datos reales de `gold.cubo_pipeline` (DB-10,
 US-222/US-223/US-224 (Oscar, PR #192). Dos caminos para resolverlo, documentados aquí para que
 cualquiera pueda auto-atenderse sin depender de una sesión en vivo con Diana:
 
-### Camino A — reproducir la carga real (mismo proceso que ya corrió Diana)
+### Camino A — reproducir la carga real, ahora automatizado (2026-09-03, verificado en vivo)
+Actualización 2026-09-03: se automatizó la descarga real de DS-02 y del histórico DS-01 (antes
+había que bajar los archivos a mano). `src/ingesta/extractor_cct.py` llama a la API real que usa
+el propio portal SIGED tras inspeccionar su JS en vivo (nunca se inventó ninguna URL — ver
+docstring del módulo y DevLog 2026-09-03), con las cabeceras y la sesión que hace falta para que
+la API no corte la conexión (User-Agent/Referer/Origin de navegador, reintento con backoff y
+pausa entre las 2 partes — verificado real, la API tolera 1 llamada pero cortaba la conexión sin
+pausa entre 2 seguidas).
+
 1. Levantar Postgres local: `docker compose up -d` (servicio `db`, ver `docker-compose.yml`,
    dueño Luis Téllez/C5) — o cualquier Postgres 15 local propio.
-2. Descargar a mano los archivos reales:
-   - DS-01 (6 ciclos): URLs en `SOURCE_URL_POR_CICLO` de
-     `src/ingesta/cargar_bronze_formato911_real.py`.
-   - DS-02 (catálogo CCT, 2 archivos SIGED entidades 01-16/17-32): ver
-     [[vault/_DevLog/2026-08-30-diana-alvarez-ds02-cct-real|DevLog 2026-08-30]].
-3. Cargar en este orden (cada script es idempotente, `ON CONFLICT DO NOTHING`):
-   1. `python -m src.ingesta.cargar_bronze_cct_real ...` (DS-02 — llave que usan los demás)
-   2. `python -m src.ingesta.cargar_bronze_formato911_real --csv ... --ciclo 2024-2025` (DS-01,
-      ciclo único, PR #105)
-   3. `python -m src.ingesta.cargar_bronze_formato911_historico_real` (DS-01, los 6 ciclos —
-      alimenta `target_hibrido.py`, ver nota de esta sesión abajo)
-4. `dbt run` **completo** (no solo `--select`) y luego `dbt test`. Importante: dbt materializa
+2. Un solo comando para DS-02 (catálogo CCT) + DS-01 histórico (6 ciclos):
+   ```bash
+   python -m src.ingesta.reproducir_bronze_real
+   ```
+   Orquesta `cargar_bronze_cct_automatico` (DS-02, vía `extractor_cct.py`) y
+   `cargar_bronze_formato911_historico_real` (DS-01, los 6 ciclos) en el orden correcto —
+   ambos idempotentes (`ON CONFLICT DO NOTHING`), así que correrlo de nuevo no duplica nada,
+   solo reporta "0 filas nuevas". Verificado real 2026-09-03: corrida limpia de punta a punta,
+   385,204 filas en `bronze.cct_siged_202608` + ~1.37M filas en `bronze.formato911_historico`
+   (6 ciclos), sin intervención manual.
+   - **No incluye** `bronze.formato911_2024_2025` (ciclo único, PR #105) — viene de un portal
+     distinto sin extractor automatizado todavía; si hace falta, se sigue cargando a mano:
+     `python -m src.ingesta.cargar_bronze_formato911_real --csv ... --ciclo 2024-2025`.
+3. `dbt run` **completo** (no solo `--select`) y luego `dbt test`. Importante: dbt materializa
    tablas, no vistas vivas — un `ref()` no se recalcula solo, hay que correr el DAG explícito
    tras cargar Bronze nuevo (visto en vivo 2026-09-03, ver DevLog de esa fecha).
-- **Tiempo estimado:** de un par de horas (descargas: 250+196 MB de DS-02, ~230k filas × 6
-  ciclos de DS-01) — es la razón real por la que nadie más lo ha hecho todavía, no falta de
-  instrucciones.
+- **Tiempo estimado:** minutos, no horas (antes el cuello de botella real era la descarga manual
+  de 250+196 MB de DS-02 más 6 ciclos de DS-01 — con el comando único ya no hace falta bajar
+  nada a mano).
 
 ### Camino B — restaurar el dump de Bronze de Diana (minutos, no horas)
 Más rápido porque salta la descarga. **Dump ya generado** (2026-09-03,

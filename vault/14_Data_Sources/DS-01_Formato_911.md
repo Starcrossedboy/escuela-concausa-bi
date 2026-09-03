@@ -2,14 +2,14 @@
 id: DS-01
 title: "DS-01 · SEP Formato 911"
 owner: "Diana Aracely Alvarez Varela"
-status: draft
+status: done
 traces_up: ["vault/01_Product/PRD", "vault/12_Roadmap_Sprints/PLAN_MAESTRO"]
 tags: [data-source, bronze, hecho-central]
 ---
 
 # DS-01 · SEP Formato 911
 
-> → [[vault/14_Data_Sources/_index]] · Prueba de descarga real — 911 crudo confirmado, **6 ciclos** (2019-2020 a 2024-2025). Target calculado del microdato del 911 (no de SNIEE, sitio caído por DNS — ver §9a)
+> → [[vault/14_Data_Sources/_index]] · **PR #105 mergeado (28-ago-2026)** — cargador real de producción en `main`, 6 ciclos (2019-2020 a 2024-2025), 149/149 tests dbt en verde. Target calculado del microdato del 911 (no de SNIEE, sitio caído por DNS — ver §9a)
 
 ## 1. Identificación
 - **Nombre oficial:** Estadística Educativa — Formato 911.

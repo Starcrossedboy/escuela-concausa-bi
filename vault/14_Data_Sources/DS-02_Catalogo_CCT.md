@@ -2,14 +2,14 @@
 id: DS-02
 title: "DS-02 · SEP Catálogo CCT"
 owner: "Diana Aracely Alvarez Varela"
-status: in_review
+status: done
 traces_up: ["vault/01_Product/PRD", "vault/12_Roadmap_Sprints/PLAN_MAESTRO"]
 tags: [data-source, bronze, llave-primaria]
 ---
 
 # DS-02 · SEP Catálogo CCT
 
-> → [[vault/14_Data_Sources/_index]] · Descarga real oficial ejecutada y verificada (30-ago-2026); ficha en `in_review`.
+> → [[vault/14_Data_Sources/_index]] · **PR #163 mergeado (2-sep-2026)** — cargador real de producción en `main`, 77,712 escuelas en `dim_escuela` (4 `SCOPE_ENTIDADES`), verificado Bronze→Silver→Gold contra Postgres real.
 
 ## 1. Identificación
 - **Nombre oficial:** Catálogo de Centros de Trabajo (CCT).

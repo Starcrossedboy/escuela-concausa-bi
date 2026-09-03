@@ -78,12 +78,6 @@ Carpetas de soporte: `vault/_Templates` (plantillas), `vault/_DevLog` (bitácora
 
 Ver procedimiento completo: [[vault/08_CICD_DevOps/Cloud_Run_Deploy]]
 
-## 📊 Dashboards
-
-10 tableros en Apache Superset (matrícula, riesgo territorial, drivers, predicciones,
-recomendaciones prescriptivas y monitor del pipeline). Guía de usuario, narrativa sugerida para
-demo y cómo acceder: [[vault/04_UX_Design/Manual_Usuario_Dashboards]].
-
 ---
 
 ## Cómo adoptar este vault en tu proyecto

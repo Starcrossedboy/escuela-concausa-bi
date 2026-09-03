@@ -358,6 +358,8 @@
             "type": "integer"
           },
           "variacion_matricula": {
+            "maximum": 1.0,
+            "minimum": -1.0,
             "title": "Variacion Matricula",
             "type": "number"
           }
@@ -417,9 +419,16 @@
             "type": "string"
           },
           "poblacion": {
-            "minimum": 0.0,
-            "title": "Poblacion",
-            "type": "integer"
+            "anyOf": [
+              {
+                "minimum": 0.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Poblacion"
           },
           "pobreza_pct": {
             "anyOf": [
@@ -435,8 +444,7 @@
         },
         "required": [
           "cve_mun",
-          "nombre_municipio",
-          "poblacion"
+          "nombre_municipio"
         ],
         "title": "MunicipioOut",
         "type": "object"
@@ -955,7 +963,7 @@
     },
     "/api/v1/agente/consulta": {
       "post": {
-        "description": "Consulta en lenguaje natural sobre Gold (rol mínimo: ciudadano).",
+        "description": "Consulta en lenguaje natural sobre Gold (rol mínimo: ciudadano).\n\nAplica los guardarraíles reales del agente. Equivale a `procesar_consulta_con_rag()` con el\nrecuperador inyectable, de modo que Andrés (C3) pueda enchufar su LLM/ejecutor por dependencias.",
         "operationId": "consulta_api_v1_agente_consulta_post",
         "requestBody": {
           "content": {
@@ -1002,7 +1010,7 @@
     },
     "/api/v1/auth/callback": {
       "get": {
-        "description": "Callback de Google: valida el `code`, resuelve el rol y emite el par de JWT.",
+        "description": "Callback de Google: valida el `state`, canjea el `code`, resuelve el rol y emite los JWT.",
         "operationId": "callback_api_v1_auth_callback_get",
         "parameters": [
           {
@@ -1012,6 +1020,22 @@
             "schema": {
               "title": "Code",
               "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "state",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "State"
             }
           }
         ],
@@ -1045,7 +1069,7 @@
     },
     "/api/v1/auth/login": {
       "get": {
-        "description": "Inicia OAuth2 con Google redirigiendo a la pantalla de consentimiento.\n\nNota de seguridad: el `state` debe ser un valor aleatorio ligado a la sesión para prevenir CSRF;\nsu generación/almacenamiento se cierra al integrar el flujo e2e con credenciales reales (US-402).",
+        "description": "Inicia OAuth2 con Google redirigiendo a la pantalla de consentimiento.\n\nGenera el `state` anti-CSRF, lo manda a Google en la URL y guarda el mismo valor en una cookie\n`HttpOnly` para poder compararlos al volver.",
         "operationId": "login_api_v1_auth_login_get",
         "responses": {
           "302": {

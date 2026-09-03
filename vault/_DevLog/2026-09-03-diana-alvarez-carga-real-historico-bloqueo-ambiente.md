@@ -167,14 +167,18 @@ DS-01) en `DS-02_Catalogo_CCT.md` §11 y `DS-01_Formato_911.md` §12. **10 prueb
 en esta sesión — las 10 pasan, incluyendo los casos que deben fallar a propósito (nivel fuera de
 básica, cct duplicado/mal formado, matrícula negativa, ciclo mal formado, nulo en columna
 crítica). Las suites (`suite_ds02_cct.json`, `suite_ds01_formato911_historico.json`) quedan
-registradas en `great_expectations/expectations/` con un DataFrame sintético mínimo —
-**pendiente correrlas contra los CSV/Parquet reales completos** (no verificado aquí por falta de
-acceso a esos archivos/red desde el entorno de IA).
+registradas en `great_expectations/expectations/`.
+
+**Actualización — verificado contra los archivos reales completos (mismo día, más tarde).**
+Con `data/bronze/formato911_historico/*.parquet` y `data/bronze/cct/*.csv` ya presentes en el
+repo (de la corrida real de Camino A), se corrieron las dos suites contra los datos reales
+completos, no la muestra sintética: DS-01 histórico, los 6 ciclos (2019-2020: 230,424 filas ·
+2020-2021: 228,852 · 2021-2022: 228,804 · 2022-2023: 229,691 · 2023-2024: 231,534 · 2024-2025:
+231,913), 13/13 expectativas en verde cada uno. DS-02, catálogo completo (los 2 CSV reales de
+SIGED), 15/15 en verde. Sin hallazgos — el catálogo y las 6 cargas históricas pasan limpio.
 
 ## Pendiente (explícito, no resuelto en esta sesión)
 
-- Correr `validar_cct()`/`validar_formato911_historico()` contra los archivos reales completos,
-  no solo el DataFrame sintético (implementado, no verificado — ver arriba).
 - **Corrección:** `agua_region` no estaba "roto por PRs" — confirmado con DevLog de Deni
   (2026-08-30-deni-garrido-ds06-bronze-pipeline.md) y el propio DevLog de Diana de US-105
   (2026-08-19): D5 sigue `SIN_DATO` explícito porque CONAGUA no entrega el contrato

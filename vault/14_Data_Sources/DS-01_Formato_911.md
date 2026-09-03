@@ -216,7 +216,7 @@ la deuda senalada por Deni Garrido en su auditoria del 30-ago (ver DevLog
   pasan, y se verifica que la suite SÍ atrapa matricula negativa, ciclo mal formado, cct mal
   formado y nulo en columna critica (no solo que corre sin tronar). Corren sin red ni Postgres,
   mismo principio que US-124b.
-- **Pendiente:** correr `validar_formato911_historico()` contra el Parquet real (no solo el
-  DataFrame sintetico de las pruebas) para confirmar que los 6 ciclos reales pasan limpio --
-  no verificado en esta sesion por falta de acceso de red al Postgres/filesystem real desde el
-  entorno de IA.
+- **Verificado 2026-09-03 contra los 6 Parquet reales completos** (no la muestra sintetica de
+  las pruebas), uno por ciclo: 2019-2020 (230,424 filas), 2020-2021 (228,852), 2021-2022
+  (228,804), 2022-2023 (229,691), 2023-2024 (231,534), 2024-2025 (231,913) -- los 6 en verde,
+  13/13 expectativas cada uno.

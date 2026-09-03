@@ -128,7 +128,6 @@ Pendiente).
 - **Pruebas offline (5):** `tests/test_validacion_cct.py` — datos limpios pasan (incluida la
   coordenada 0,0 conocida, que no debe romper la suite), y se verifica que SÍ atrapa nivel
   fuera de básica, cct duplicado y cct mal formado. Corren sin red ni CSV reales.
-- **Pendiente:** correr `validar_cct()` contra los CSV reales (no solo el DataFrame sintético
-  de las pruebas) para confirmar que el catálogo completo pasa limpio — no verificado en esta
-  sesión por falta de acceso a los CSV reales (viven en el equipo de Diana) desde el entorno de
-  IA.
+- **Verificado 2026-09-03 contra los 2 CSV reales completos de SIGED**
+  (`CATALOGO_CENTRO_TRABAJO_01_16_CSV.csv` + `..._17_32_CSV.csv`, no la muestra sintética de
+  las pruebas): 15/15 expectativas en verde sobre el catálogo completo.

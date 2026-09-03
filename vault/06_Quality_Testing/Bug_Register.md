@@ -17,6 +17,7 @@ tags: [qa, bugs]
 | BUG-001 | dag_anual.py: falta start_date | high | fixed | US-102 | fix/diana-varela-us102-dag-import-errors | manual (ver detalle) |
 | BUG-002 | dag_censal_estatico.py: preset de cron no soportado | high | fixed | US-102 | fix/diana-varela-us102-dag-import-errors | manual (ver detalle) |
 | BUG-003 | `sklearn` no instalado: `test_entrenar_ml01.py` y `test_entrenar_ml02.py` fallan con `ModuleNotFoundError` en colección de pytest | low | **not_a_bug** | US-311 / REQ-003 | ya resuelto en `main` desde 2026-08-13 (PR #28) — ver detalle | ambiente local desactualizado |
+| BUG-041 | **El servidor de MLflow no corre con `--serve-artifacts`, así que ningún cliente puede escribir ni leer modelos: las métricas se guardan y los MODELOS se pierden.** `docker-compose.yml` arranca `mlflow server` con `--default-artifact-root /mlflow/artifacts`, una ruta **interna del contenedor**. El servidor se la devuelve tal cual al cliente, que intenta resolverla contra **su propio** sistema de archivos: `log_model()` truena con `OSError: [Errno 30] Read-only file system: '/mlflow'` y `load_model()` con `No such artifact: 'MLmodel'`. La corrida y sus métricas sí quedan registradas, así que en la UI todo se ve bien. Peor: `mlflow.register_model()` **crea la versión igual**, que queda `READY` en el Registry apuntando a un artefacto que no existe. Así estuvo `ML01_RegresionMatricula` **v1 desde el 18-ago**: `verificar_registry` la reportaba en verde y ningún cliente podía cargarla — **AC-003.4 nunca estuvo cumplido**. Bloquea también la inferencia de C4, que carga por `models:/…`. Es la misma familia que **BUG-010** y el índice de US-312: el artefacto afirmaba algo que ya era falso | **critical** | open | US-311 / US-303 / REQ-003 / AC-003.4 | **C3 ✅ la guarda** (Héctor, 2-sep): `verificar_artefactos_descargables()` carga cada versión con `pyfunc` y reprueba nombrando la causa; `verificar_registry` la corre por defecto. **Pendiente C5** (Luis Téllez / Edward Ruiz): agregar `--serve-artifacts --artifacts-destination /mlflow/artifacts` al `command:` del servicio `mlflow` en `docker-compose.yml` — **verificado en local por override**, con él ML-01 v2 registra y carga; sin él reprueba | `tests/test_mlflow_utils.py::test_artefacto_ausente_reprueba_aunque_la_version_exista` |
 | BUG-004 | Imagen `apache/superset:latest` no incluye `psycopg2`: conexión a PostgreSQL falla con 422 al crear datasets virtuales | medium | open | US-202 | pendiente (**C5**, Edward Ruiz — US-522c) | — |
 | BUG-005 | Scripts `.sh` se corrompen a CRLF en checkouts de Windows: `.gitattributes` no tiene regla `*.sh text eol=lf`, así que con `core.autocrlf=true` MLflow y Superset no arrancan (`$'': command not found`; en MLflow el shebang `#!/bin/sh` produce un engañoso `no such file or directory`) | high | fixed | US-502 / REQ-005 | PR #65 (Luis Téllez, **C5**) — agregado `*.sh text eol=lf` a `.gitattributes` | pendiente (validar en Windows) |
 | BUG-006 | Healthcheck de `api` usa `curl -f` pero la imagen no incluye `curl` ni `wget` (solo `python`): el contenedor queda `unhealthy` de forma permanente aunque `/health` responda HTTP 200 | medium | fixed | US-502 / REQ-004 | PR #65 (Luis Téllez, **C5**) — removido healthcheck override de api, actualizado chromadb a /api/v2/heartbeat | pendiente (validar healthchecks) |
@@ -1324,3 +1325,144 @@ deja el check en rojo.
 Los dos checks **requeridos** por `main` son «Calidad de codigo y vault» y «Generar y validar
 tablero PM» — viven en `ci.yml` y `pm-dashboard.yml`, no en este workflow, así que el cambio no los
 altera. («Contrato dbt» corre en cada PR pero **no** es required.)
+
+
+## BUG-041 — El Registry acepta versiones cuyo modelo nunca llegó
+
+> Reportado por Héctor Morales (2026-09-02) al correr la confirmación de US-311 que pedía el PM.
+> → [[vault/15_ML_Models/ML01_Entrenamiento]] · [[vault/_DevLog/2026-09-02-hector-morales-registry-us311]]
+
+### Atribución: qué es nuevo aquí y qué no
+
+**La causa de configuración no es un hallazgo de hoy.** Está descrita en
+[[vault/15_ML_Models/ML01_Entrenamiento]] §4 desde el **29 de agosto**, con el fix de
+`--serve-artifacts` ya probado. Lo que faltaba —y es lo que abre este bug— son dos cosas:
+
+1. Que `mlflow.register_model()` **crea la versión aunque el artefacto haya fallado**, dejándola
+   `READY` en el Registry. El fallo de escritura es ruidoso; la versión fantasma que deja atrás, no.
+2. Que por eso `verificar_modelos_registrados()` daba **verde durante 15 días** sobre un modelo que
+   nadie podía cargar, y con ese verde se dio **AC-003.4 por cumplido**.
+
+Dicho de otro modo: el 29-ago se supo que el servidor no guardaba modelos, y aun así el tablero de
+verificación siguió diciendo que sí había modelos. Ese es el defecto que se registra.
+
+### Qué pasa
+
+El servicio `mlflow` de `docker-compose.yml` arranca así:
+
+```
+mlflow server --backend-store-uri ${MLFLOW_BACKEND_STORE_URI}
+              --default-artifact-root ${MLFLOW_ARTIFACT_ROOT}   # = /mlflow/artifacts
+```
+
+`/mlflow/artifacts` existe **dentro del contenedor**. MLflow no lo trata como "una ruta del
+servidor": se la entrega al cliente para que escriba ahí **directamente**. Un cliente en macOS o en
+el CI intenta entonces crear `/mlflow` en la raíz de su propio disco.
+
+Las dos capas se comportan distinto y por eso el fallo es tan silencioso:
+
+| Qué | Por dónde viaja | Resultado |
+|---|---|---|
+| Parámetros, métricas, tags | API REST → Postgres | ✅ se guardan bien |
+| Modelo (artefacto) | sistema de archivos del **cliente** | ❌ `Read-only file system: '/mlflow'` |
+| Fila del Model Registry | API REST → Postgres | ⚠️ **se crea igual**, y queda `READY` |
+
+Esa tercera fila es el defecto real. `mlflow.register_model()` no comprueba que el artefacto exista,
+así que deja una versión que se ve sana y no se puede usar.
+
+### Por qué el verde sobrevivió 15 días al diagnóstico
+
+`verificar_modelos_registrados()` preguntaba `search_model_versions(...)` y daba verde si la fila
+existía. Nunca intentó traer el modelo de vuelta. Con eso, `ML01_RegresionMatricula` v1 —creada el
+18-ago, el día del fix de versiones de PR #45— pasó por buena hasta hoy:
+
+```
+$ python -m src.modelos.verificar_registry --modelo ML01_RegresionMatricula
+ML01_RegresionMatricula: versión 1          # ✅ aparentemente correcto
+
+$ mlflow.sklearn.load_model("models:/ML01_RegresionMatricula/1")
+MlflowException: No such artifact: 'MLmodel'  # ❌ la realidad
+```
+
+**AC-003.4 pide que el modelo *llegue* al registry.** Una fila no prueba eso; traerlo de vuelta sí.
+
+### El arreglo, en dos partes
+
+**C3 (hecho).** `verificar_artefactos_descargables()` carga cada versión con `mlflow.pyfunc` —la
+misma ruta que usa la API de C4 para servir inferencia— y reprueba nombrando el modelo, la versión y
+la causa probable. `verificar_registry` la ejecuta por defecto; `--sin-artefacto` conserva la
+verificación débil y **lo dice en el reporte**, para que nadie la confunda con la fuerte.
+
+**C5 (pendiente).** En el `command:` del servicio `mlflow`:
+
+```
+mlflow server --backend-store-uri ${MLFLOW_BACKEND_STORE_URI}
+              --serve-artifacts --artifacts-destination /mlflow/artifacts
+              --host 0.0.0.0 --port 5000
+```
+
+Con `--serve-artifacts` el servidor **proxya** los artefactos por HTTP y el cliente ya no toca
+rutas del contenedor. Verificado en local con un override fuera del repo: ML-01 registró la
+**versión 2**, y esa versión carga y predice desde un cliente limpio.
+
+### Secuela: las versiones ya registradas
+
+Un experimento guarda su `artifact_location` **al crearse** y no se recalcula. `ML-01-regresion-matricula`
+(experimento 1) quedó fijado a `/mlflow/artifacts/1`, así que **seguirá roto para escrituras nuevas
+aunque el servidor se arregle**. Al aplicar el fix de C5 hay que crear el experimento de nuevo (o
+renombrarlo) y volver a registrar los tres modelos. La verificación de arriba lo detecta.
+
+### Test de regresión
+
+`tests/test_mlflow_utils.py::test_artefacto_ausente_reprueba_aunque_la_version_exista` reproduce el
+estado exacto de v1 —fila presente, artefacto ausente— y exige que repruebe.
+
+## BUG-013 — Causa raíz del «un solo ciclo» en `gold.features_escuela`
+
+> Añadido por Héctor Morales (2026-09-02) al reproducir el pipeline local completo para cerrar
+> US-313. **No es un bug nuevo**: es la causa que faltaba de BUG-013, cuyo síntoma ya estaba
+> registrado por Marina García el 28-ago. La fila de BUG-013 no se reescribe.
+
+### Lo que ya se sabía
+
+Con los fixtures del repo, `--desde-gold` falla:
+
+```
+ValueError: Con 1 ciclos no se puede hacer backtesting: se necesitan al menos 3
+            (entrenar con 2 y evaluar con 1). Ciclos disponibles: ['2024-2025'].
+```
+
+Reproducido hoy, idéntico, tras levantar la cadena Bronze→Silver→Gold completa en local.
+
+### Lo que faltaba: **la serie histórica ya existe, pero Gold no la usa**
+
+Con los fixtures del repo cargados, Silver queda así:
+
+| Tabla | Ciclos |
+|---|---|
+| `silver.matricula` | **2** — 2023-2024, 2024-2025 |
+| `silver.matricula_historica` | **6** — 2019-2020 … 2024-2025 |
+
+`gold/features_escuela.sql` §42 construye su base de matrícula desde `{{ ref('matricula') }}`,
+**no** desde `matricula_historica`. Como el target exige ciclo previo, de los 2 ciclos solo
+sobrevive el más reciente y `features_escuela` sale con **25 filas de un único ciclo**.
+
+Es decir: **el dato que ML necesita ya está en Silver** —lo dejó ahí BUG-026— y se pierde en el
+salto a Gold. No hace falta ninguna fuente nueva ni tocar Bronze.
+
+### Por qué importa ahora
+
+Es lo único que separa a US-313 de cerrarse contra Gold real. El job ya lee de la tabla
+(`--desde-gold`, `cargar_features_desde_gold()`), ya publica con upsert idempotente y ya escribe el
+`mlflow_run_id` real. Lo que no puede es entrenar con un solo ciclo, y **eso es correcto**: la
+partición temporal de AC-003.3 no es negociable.
+
+### Propuesta para C1 (no implementada — `dbt/**` es de Célula 1)
+
+Que el CTE de matrícula de `features_escuela.sql` tome la serie de `matricula_historica` en vez de
+`matricula`. Con los fixtures actuales eso daría **5 ciclos con target** (30 escuelas × 6 ciclos,
+menos el primero por falta de ciclo previo), suficiente para las 3 ventanas de backtesting y para
+que **el CI ejercite la ruta `--desde-gold`**, que hoy no se puede probar en ningún lado.
+
+Queda a criterio de Diana Alvarez (TL C1) si el grano y la cobertura de drivers de
+`matricula_historica` sostienen el contrato `FeaturesEscuela`; no se toca desde C3.

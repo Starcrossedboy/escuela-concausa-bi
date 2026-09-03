@@ -102,9 +102,20 @@ python -m src.modelos.entrenar_ml01 --tracking-uri sqlite:///mlflow.db --registr
 > `artifact_location: /mlflow/artifacts/1`, así que un cliente que entrena **desde el host** intenta
 > escribir esa ruta en su propia máquina y falla con
 > `OSError: [Errno 30] Read-only file system: '/mlflow'`. Las métricas se registran; el modelo no.
-> El servidor compartido sigue bloqueado, pero **AC-003.4 ya se verificó localmente** el 29 de agosto:
-> ML-01, ML-02 y ML-03 quedaron registrados como versión 1 en un backend SQLite temporal y el
-> verificador conjunto confirmó los tres nombres canónicos.
+> ~~El servidor compartido sigue bloqueado, pero **AC-003.4 ya se verificó localmente** el 29 de
+> agosto: ML-01, ML-02 y ML-03 quedaron registrados como versión 1 en un backend SQLite temporal y
+> el verificador conjunto confirmó los tres nombres canónicos.~~
+>
+> **Corregido el 2026-09-02 (BUG-041).** Esa afirmación era engañosa y hay que decirlo con claridad:
+> lo que se verificó el 29-ago fue un **SQLite temporal**, no el servidor que se demuestra. Contra el
+> servidor real, `ML01_RegresionMatricula` **v1 era un fantasma** — fila `READY` en el Registry,
+> artefacto inexistente, `load_model()` respondiendo `No such artifact: 'MLmodel'`. **AC-003.4 no
+> estaba cumplido**, y el verificador lo daba por bueno porque sólo preguntaba si la fila existía.
+>
+> La causa de configuración ya estaba descrita aquí desde el 29-ago; lo que faltaba era ver que
+> `mlflow.register_model()` **crea la versión aunque el artefacto haya fallado**, y que por eso un
+> verificador que sólo mira el Registry nunca lo iba a detectar. Ahora
+> `verificar_artefactos_descargables()` carga cada versión con `pyfunc` y reprueba.
 >
 > **Fix probado** (pendiente de aplicar por la Célula 5): levantando el mismo `faro-mlflow:3.15.1`
 > con `--serve-artifacts` y `--artifacts-destination ${MLFLOW_ARTIFACT_ROOT}`, el experimento queda
@@ -123,8 +134,18 @@ python -m src.modelos.entrenar_ml01 --tracking-uri sqlite:///mlflow.db --registr
 > Además, `mlflow.db` **no está en `.gitignore`**, que sí cubre `airflow.db` y `superset.db`.
 > Reportado a la Célula 5.
 
-Verificado a mano: 4 corridas (1 padre + 3 ventanas), métricas y parámetros presentes, y el modelo
-publicado en el registry como `ML01_RegresionMatricula`.
+Verificado a mano: 4 corridas (1 padre + 3 ventanas), métricas y parámetros presentes.
+
+**Estado del registry al 2026-09-02** (corrida de confirmación pedida por el PM, US-311):
+
+| Versión | Experimento | Carga con `load_model()` |
+|---|---|---|
+| v1 (18-ago) | `ML-01-regresion-matricula` | ❌ fantasma: `No such artifact: 'MLmodel'` |
+| v2 (2-sep) | `ML-01-regresion-matricula-v2` | ✅ carga y predice — servidor con `--serve-artifacts` |
+
+Las métricas no cambian entre ambas (MAE 0.0141 ± 0.0012, RMSE 0.0177 ± 0.0008): lo que cambia es
+que el modelo **existe** y se puede recuperar. Mientras C5 no aplique el fix a `docker-compose.yml`,
+el servidor que se va a demostrar sigue produciendo versiones fantasma; ver **BUG-041**.
 
 ## 5. Del modelo al tablero
 

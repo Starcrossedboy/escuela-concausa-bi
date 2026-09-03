@@ -303,9 +303,9 @@ Actualiza esta tabla **antes de cada standup**. El PM la revisa para el tablero 
 
 | ID | Historia | Estado | % | Bloqueado por | Fecha compromiso |
 |---|---|---|---|---|---|
-| `US-304b` | Capa de recuperacion del agente (RAG) | 🔵 En revisión | 90% | Carga perezosa con logging + prueba en contenedor | Junta de cierre |
+| `US-304b` | Capa de recuperacion del agente (RAG) | ✅ Terminado | 100% | — | Cierre 2 de sept |
 | `US-323` | Construir el set de evaluacion del agente | ✅ Terminado | 100% | — | Cerrada 28 ago |
-| `US-324` | Model cards de ML-01, ML-02 y ML-03 | 🔵 En revisión | 90% | Revisión de dueños y corrección de ficha ML-03 | Junta de cierre |
+| `US-324` | Model cards de ML-01, ML-02 y ML-03 | ✅ Terminado | 100% | — | Cierre 2 de sept |
 
 **Estados válidos:** ⬜ Por iniciar · 🟡 En curso · 🔵 En revisión (PR abierto) · ✅ Terminado · 🔴 Bloqueado
 

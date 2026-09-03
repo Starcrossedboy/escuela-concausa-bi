@@ -5,8 +5,8 @@ author_human: "Diana Aracely Alvarez Varela"
 agent: "Claude (Cowork)"
 model: "claude-sonnet-5"
 session_duration: "sesión larga, multi-etapa"
-touches: ["DS-01", "REQ-001", "BLOCK-004"]
-tags: [devlog, bronze, ds01, carga-real, dbt, gold, bloqueo-equipo]
+touches: ["DS-01", "DS-02", "REQ-001", "BLOCK-004"]
+tags: [devlog, bronze, ds01, ds02, carga-real, dbt, gold, bloqueo-equipo, great-expectations]
 ---
 
 # DevLog — 2026-09-03 — Diana Aracely Alvarez Varela — Carga real histórica DS-01, fix de contaminación en Gold y bloqueo de ambiente (BLOCK-004)
@@ -124,19 +124,48 @@ para reflejar que Camino A ya es un comando único, no un runbook manual.
   (el punto de "confirmar ciclos contra Postgres" ya no aplica tal cual: se confirmó que **no**
   estaba cargado y se cargó real hoy).
 
+## Actualización — dedup fix + Great Expectations (mismo día, más tarde)
+
+**Fix de dedup en `matricula_historica.sql` (grano `cct, ciclo`).** Causa raíz ya diagnosticada
+arriba: filas fixture viejas con `cct` real sobreviven el primer dedup (por `turno`) porque su
+`turno` no aparece en la carga real, y si su `cve_mun`/`nivel` difieren de la carga real, el
+`GROUP BY` final las partía en dos filas para el mismo `(cct, ciclo)`. Fix: nueva CTE
+`lote_mas_reciente` — por `cct+ciclo`, se identifica el LOTE más reciente (`max(_ingested_at)`,
+cada corrida de carga real escribe su propio `_ingested_at` para todas sus filas) y solo se
+conservan las filas de ese lote antes del `GROUP BY` final. Bronze es append-only, así que un
+lote fixture viejo nunca gana contra uno real más nuevo. **No verificado contra Postgres real en
+esta sesión** (sin acceso de red al ambiente local desde aquí) — pendiente que Diana corra
+`dbt run --select matricula_historica+ && dbt test --select matricula_historica` para confirmar
+que los 3+1 tests que fallaban (`unique_matricula_historica_cct_ciclo`,
+`accepted_values_matricula_historica_nivel`) ya pasan.
+
+**Great Expectations para DS-01 (histórico) y DS-02.** Cierra la deuda señalada por Deni Garrido
+el 30-ago. Dos módulos nuevos, mismo patrón que `validacion_sesnsp.py` (TEST-011/US-124b):
+`src/ingesta/validacion_cct.py` (DS-02, reutiliza `parsear_y_combinar()`) y
+`src/ingesta/validacion_formato911_historico.py` (DS-01 histórico, lee el Parquet más reciente).
+Detalle de las expectativas y por qué se excluyó cada cosa que no se pudo verificar con certeza
+(`sostenimiento` de DS-02, coordenadas 0,0 de BUG-034, unicidad de `cct+ciclo+turno` en Bronze
+DS-01) en `DS-02_Catalogo_CCT.md` §11 y `DS-01_Formato_911.md` §12. **10 pruebas offline nuevas**
+(`tests/test_validacion_cct.py`, `tests/test_validacion_formato911_historico.py`) corridas real
+en esta sesión — las 10 pasan, incluyendo los casos que deben fallar a propósito (nivel fuera de
+básica, cct duplicado/mal formado, matrícula negativa, ciclo mal formado, nulo en columna
+crítica). Las suites (`suite_ds02_cct.json`, `suite_ds01_formato911_historico.json`) quedan
+registradas en `great_expectations/expectations/` con un DataFrame sintético mínimo —
+**pendiente correrlas contra los CSV/Parquet reales completos** (no verificado aquí por falta de
+acceso a esos archivos/red desde el entorno de IA).
+
 ## Pendiente (explícito, no resuelto en esta sesión)
 
-- Fix de dedup en `matricula_historica.sql` (grano `cct, ciclo`) — 3+1 tests fallando,
-  diagnosticado, no implementado.
+- Confirmar contra Postgres real que el fix de dedup de `matricula_historica.sql` sí deja los
+  3+1 tests en verde (implementado, no verificado — ver arriba).
+- Correr `validar_cct()`/`validar_formato911_historico()` contra los archivos reales completos,
+  no solo el DataFrame sintético (implementado, no verificado — ver arriba).
 - Confirmar los 2 PRs exactos que rompieron `agua_region`/`rezago_municipio` y avisar a sus
   dueños.
-- Great Expectations para DS-01/DS-02 — deuda conocida, sigue fuera de alcance de esta sesión.
 - Compartir el dump de Bronze ya generado (Camino B de BLOCK-004) por Teams — acción de
   Diana, fuera del alcance de esta sesión de IA (no hay forma de subir archivos a Teams desde
   aquí).
-- Responder a Oscar (DB-10/DB-07) y a Estefany (BUG-026/US-321) — comunicación de equipo, no
-  técnica.
 
 ## IDs tocados
 
-`DS-01` · `REQ-001` · `BLOCK-004`
+`DS-01` · `DS-02` · `REQ-001` · `BLOCK-004`

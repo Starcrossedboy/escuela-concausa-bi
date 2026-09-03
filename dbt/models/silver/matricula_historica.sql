@@ -13,6 +13,19 @@
 -- Se deja la columna como `ciclo` (no `id_ciclo`): mismo nombre que ya expone silver.matricula
 -- hoy (ver nota en dim_tiempo.sql sobre esta ambiguedad pendiente de reconciliar). El cambio a
 -- `id_ciclo` que exige unir_target() se hace en Gold, igual que ya hace dim_tiempo.sql.
+--
+-- Segundo dedup, a grano (cct, ciclo) -- ver CTE `lote_mas_reciente` abajo. Bronze es
+-- append-only (CLAUDE.md: nunca DELETE/UPDATE/DROP desde el agente): filas fixture viejas
+-- (p.ej. BUG-026) conviven con la carga real para el mismo cct+ciclo. El primer dedup (por
+-- turno) no las toca si su `turno` no aparece en la carga real -- y si su `cve_mun`/`nivel`
+-- difieren de la carga real, el GROUP BY final las partia en dos filas para el mismo
+-- (cct, ciclo), violando unique_matricula_historica_cct_ciclo (y a veces tambien
+-- accepted_values de nivel, si el valor fixture no es PREESCOLAR/PRIMARIA/SECUNDARIA).
+-- Verificado real 2026-09-03: 6 filas fixture con cct que coincide con el catalogo real de
+-- DS-02 causaban exactamente esto. Fix: por cct+ciclo, quedarse solo con las filas del LOTE
+-- mas reciente (max _ingested_at) -- cada corrida de carga real escribe un _ingested_at
+-- propio para todas sus filas (ver cargar_bronze_formato911_historico_real.py), asi que un
+-- lote fixture viejo nunca gana contra uno real mas nuevo.
 
 with normalizado as (
 
@@ -44,9 +57,28 @@ deduplicado as (
 
 por_turno as (
 
-    select cct, ciclo, cve_ent, cve_mun, nivel, matricula_total
+    select cct, ciclo, cve_ent, cve_mun, nivel, turno, matricula_total, _ingested_at
     from deduplicado
     where _row_number = 1
+
+),
+
+lote_mas_reciente as (
+
+    select cct, ciclo, max(_ingested_at) as _ingested_at_lote
+    from por_turno
+    group by cct, ciclo
+
+),
+
+del_lote_vigente as (
+
+    select pt.cct, pt.ciclo, pt.cve_ent, pt.cve_mun, pt.nivel, pt.matricula_total
+    from por_turno as pt
+    inner join lote_mas_reciente as lr
+        on pt.cct = lr.cct
+        and pt.ciclo = lr.ciclo
+        and pt._ingested_at = lr._ingested_at_lote
 
 )
 
@@ -58,5 +90,5 @@ select
     nivel,
     sum(matricula_total) as matricula_total
 
-from por_turno
+from del_lote_vigente
 group by cct, ciclo, cve_ent, cve_mun, nivel

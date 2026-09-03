@@ -17,6 +17,7 @@ tags: [qa, bugs]
 | BUG-001 | dag_anual.py: falta start_date | high | fixed | US-102 | fix/diana-varela-us102-dag-import-errors | manual (ver detalle) |
 | BUG-002 | dag_censal_estatico.py: preset de cron no soportado | high | fixed | US-102 | fix/diana-varela-us102-dag-import-errors | manual (ver detalle) |
 | BUG-003 | `sklearn` no instalado: `test_entrenar_ml01.py` y `test_entrenar_ml02.py` fallan con `ModuleNotFoundError` en colección de pytest | low | **not_a_bug** | US-311 / REQ-003 | ya resuelto en `main` desde 2026-08-13 (PR #28) — ver detalle | ambiente local desactualizado |
+| BUG-043 | **El Model Registry acepta versiones cuyo modelo nunca llegó, y las deja `READY`.** `mlflow.register_model()` crea la versión aunque `log_model()` haya fallado, así que la UI y `search_model_versions` muestran un modelo que ningún cliente puede cargar. Dos configuraciones lo provocan: (1) `--default-artifact-root` es una ruta de disco (`/mlflow/artifacts`) en vez del proxy `mlflow-artifacts:/`, y el cliente la resuelve contra su propio disco → `OSError: Read-only file system: '/mlflow'`; (2) falta `--artifacts-destination`, y los artefactos caen en la capa **efímera** del contenedor: **verificado que un solo `docker compose up --force-recreate` convierte los tres modelos en fantasmas**, lo cual es fatal en Cloud Run, donde recrear el contenedor es rutina. `ML01_RegresionMatricula` v1 estuvo así desde el 18-ago y **AC-003.4 se dio por cumplido sin estarlo**. Bloquea la inferencia de C4, que carga por `models:/…` | **critical** | **fixed (parcial)** | US-311 / US-303 / REQ-003 / AC-003.4 | **C3 ✅ (Héctor, 2026-09-03):** la guarda `verificar_artefactos_descargables()` carga cada versión con `pyfunc` y reprueba; `.env.example` pasa a `MLFLOW_ARTIFACT_ROOT=mlflow-artifacts:/`. Con eso **AC-003.4 queda CUMPLIDO**: los tres modelos registrados y **carga verificada** (ML-01 v4, ML-02 v2, ML-03 v2) — sin tocar `docker-compose.yml`. **Corrección de mi diagnóstico del 2-sep:** culpé a la falta de `--serve-artifacts`, pero en MLflow 3.x **viene activo por defecto** (`--help`: `Default: True`); la causa era la raíz de artefactos. **Pendiente C5 ⬜:** agregar `--artifacts-destination /mlflow/artifacts` al `command:` del servicio `mlflow` — sin eso el registry es efímero (probado en los dos sentidos: con el flag los tres sobreviven al `--force-recreate`; sin él, mueren) | `tests/test_mlflow_utils.py::test_artefacto_ausente_reprueba_aunque_la_version_exista` (exige que el mensaje nombre `--artifacts-destination` y `MLFLOW_ARTIFACT_ROOT`) |
 | BUG-004 | Imagen `apache/superset:latest` no incluye `psycopg2`: conexión a PostgreSQL falla con 422 al crear datasets virtuales | medium | open | US-202 | pendiente (**C5**, Edward Ruiz — US-522c) | — |
 | BUG-005 | Scripts `.sh` se corrompen a CRLF en checkouts de Windows: `.gitattributes` no tiene regla `*.sh text eol=lf`, así que con `core.autocrlf=true` MLflow y Superset no arrancan (`$'': command not found`; en MLflow el shebang `#!/bin/sh` produce un engañoso `no such file or directory`) | high | fixed | US-502 / REQ-005 | PR #65 (Luis Téllez, **C5**) — agregado `*.sh text eol=lf` a `.gitattributes` | pendiente (validar en Windows) |
 | BUG-006 | Healthcheck de `api` usa `curl -f` pero la imagen no incluye `curl` ni `wget` (solo `python`): el contenedor queda `unhealthy` de forma permanente aunque `/health` responda HTTP 200 | medium | fixed | US-502 / REQ-004 | PR #65 (Luis Téllez, **C5**) — removido healthcheck override de api, actualizado chromadb a /api/v2/heartbeat | pendiente (validar healthchecks) |
@@ -54,7 +55,7 @@ tags: [qa, bugs]
 | BUG-039 | **El padrón de propiedad no permitía lo que la plantilla de PR exige: los 21 quedaron sin poder abrir un PR que pasara sus propios gates.** La plantilla marca como obligatorias las casillas «Listado en el `_index.md` de su carpeta» y «Fila actualizada en la matriz de trazabilidad», pero `vault/_DevLog/_index.md` y `vault/02_Requirements/Traceability_Matrix.md` eran alcance exclusivo del PM en `ownership.yml`: quien cumplía la plantilla reprobaba el gate de propiedad, y quien pasaba el gate incumplía la plantilla. `.gitignore` y `.gitattributes` no estaban en el alcance de **nadie** —ni siquiera del PM—, así que el ignore y los drivers de merge quedaban sin mantenimiento posible. 8 personas de C1/C4 tenían un `.md` de `03_Architecture` en verde sin poder tocar su `_index.md`, lo que impide cumplir la regla 4 al crear un documento ahí. Y —el alcance real del defecto, visible al correr el gate contra la propia corrección— **los seis registros de intake que `Definition_of_Filed` obliga a usar a cualquiera** (Bug_Register, Security_Audit_Log, Risk/Blocker/Decision/Incident) estaban cerrados a 0 o 1 persona: la regla que manda reportar un bug o un riesgo era imposible de cumplir para 20 de 21. Verificado con el propio gate: 20 de 21 personas con 4 rutas obligatorias fuera de alcance, el PM con 2, y `Bug_Register.md` sin dueño alguno | high | closed | US-001 / REQ-007 | 11 rutas pasan a `comunes` —índice de DevLog, matriz, infra raíz y los 6 registros de intake—, `03_Architecture/_index.md` al amarillo de C1/C4 y `tests/**` al del PM (mantiene `vault/_Meta/scripts/**`); la matriz y `10_Risk_Governance/**` quedan en `criticos`, de modo que el gate sigue avisando a quién pedirle revisión sin reprobar | `TEST-014` ampliado a 40 casos en `tests/test_check_ownership.py`: recorren a los 21 contra cada ruta que la plantilla exige y contra cada registro de intake de `Definition_of_Filed` |
 | BUG-040 | **El parser del tablero PM partía las filas por los pipes escapados y publicó datos corruptos en silencio.** `table_cells()` hacía `.split("\|")` sobre la línea cruda, así que el `\|` de un wikilink con alias —`[[ruta\|texto]]`, la sintaxis que el vault usa 190+ veces y siempre escapada— partía la celda en dos y desplazaba todas las columnas siguientes. En la fila `US-004` de `Execution_Status.md` eso dejaba `evidence` truncada con un `[[` sin cerrar y metía **texto en el campo `updated`** donde va una fecha. No reventaba nada: la fila conservaba más de 6 celdas y el estado seguía siendo válido, y `validate_pm_dashboard.py` no revisaba `updated`. Estuvo publicado en `main` dentro de `pm-dashboard.json`. **El mismo defecto corrompía las métricas por persona:** 4 filas del índice de DevLog llevaban el pipe sin escapar y atribuían el DevLog a su propia descripción — el tablero contaba **25 autores** en vez de 21. Y al normalizarlas aparecieron 3 variantes de nombre (`Serrania` sin ñ, `Gonzalez` sin acento, `Carlos Mayorga` en corto) que, al cruzarse por coincidencia exacta contra el nombre canónico, dejaban a Manuel con **0 DevLogs teniendo 12**, a Eloísa con 0 de 3 y a Carlos con 0 de 1. Escapar el pipe **no** bastaba: el parser tampoco interpretaba el escape. El propio archivo ya tenía la solución diez líneas más abajo, en `parse_devlog_authors`, que sí protegía `\|` antes de partir — nunca llegó a la función compartida, que usan 6 parsers (`stories`, `execution`, `people`, `github_directory`, `markdown_rows`, `raci`) | high | closed | US-004 / REQ-007 | `table_cells()` protege el pipe escapado antes de partir y lo restituye en la celda (`clean()` ya sabía resolver `[[x\|y]]`, solo se le destruía el enlace antes); `parse_devlog_authors` deja su copia y usa la función canónica (regla 1 del vault); la fila `US-004` escapa su pipe y suelta la fecha sobrante; `validate_pm_dashboard.py` valida que `updated` sea una fecha; las 4 filas del índice de DevLog escapan su pipe y las 3 variantes de nombre se normalizan al padrón | `TEST-015` (`tests/test_generate_pm_dashboard.py`, 8 casos): el contrato del parser con pipes escapados y, sobre la fuente real, que ninguna historia tenga `updated` fuera de formato ni evidencia con wikilink sin cerrar, que toda fila del índice de DevLog tenga 5 columnas y que **todo autor del índice exista en el padrón** (una variante de nombre ya no deja a nadie en cero en silencio). Verificado además que el validador reprueba con la fila rota inyectada |
 | BUG-042 | **24 de 91 historias no tenían fila en `Execution_Status.md`, y el generador las contaba como `planned` en silencio.** `build_snapshot()` hacía `state = execution.get(story["id"], {})` y luego `state.get("status", "planned")` — una US ausente del registro no era un error, era indistinguible de "de verdad no ha arrancado". Pasó con **10 de las 24** ya con PR mergeado, algunas terminadas (US-205, US-214b, US-523b), otras con datos reales entregados y solo pendientes de bloqueo ajeno (US-222, US-321). Una de las filas existentes además tenía la evidencia mal etiquetada: `US-206` cargaba el trabajo real de `US-205` (repunteo de capa semántica, PR #134), hallazgo de Manuel Serranía. Detectado auditando el tablero contra los PRs mergeados en `main`, 2026-09-03 | high | fixed | US-004 / REQ-007 | Se agregan las 24 filas faltantes con su estado real verificado contra PR/commit (no un default) y se corrige la etiqueta `US-206`→`US-205`; `build_snapshot()` ya no completa con `.get(..., "planned")` — si una US no tiene fila, el generador falla y lista cuáles faltan | `TEST-034` (`tests/test_generate_pm_dashboard.py`, 2 casos): confirma que las 91 historias reales tienen fila, y que inyectar una historia sin registro hace que `build_snapshot()` truene mencionando `BUG-042` y su ID — no que caiga a `planned` |
-| BUG-041 | **El path real `--desde-gold` de ML truena cuando un driver queda 100 % `SIN_DATO`: `pd.read_sql_table` devuelve los nombres de columna como `quoted_name` (subclase de `str`), sklearn exige `type(x) == str` exacto para poblar `feature_names_in_`, así que **nunca lo puebla**; el fallback `getattr(modelo, "feature_names_in_", DRIVERS)` de `construir_predicciones` cae a los 6 `DRIVERS` y reintroduce el driver descartado → `ValueError: X has 6 features, but HistGradientBoostingRegressor is expecting 5 features`. Misma FAMILIA que BUG-015/018/023 pero **causa raíz nueva**: aquí el propio patrón `feature_names_in_` que arregló a los tres nunca se activa al leer de la BD, así que el fix de BUG-015 queda anulado en el path de producción. Los tests no lo cazan porque usan fixtures CSV (`read_csv` → `str` puro). Reportado por Luis Téllez (C5) al cerrar la validación L0 local el 2026-09-02, ejercitando cobertura parcial real (D5 agua 100 % `SIN_DATO`) | high | open | US-311 / US-313 / REQ-003 | **Parche preparado y validado en local (4 líneas), pendiente de aplicar por Célula 3** — `entrenar_ml01.py` implementa US-311/US-313 (dueño **Héctor Morales**, `dev/hector-morales`; coordina el TL de C3 **Andrés González**); `src/modelos/**` es verde solo de C3, así que un PR de otra rama reprueba `check_ownership.py`. Normalizar en el borde: tras `pd.read_sql_table` en `cargar_features_desde_gold` (`entrenar_ml01.py:203`), `df.columns = [str(c) for c in df.columns]`. Detalle abajo | propuesto (a numerar por C3): un caso que lea features vía `read_sql_table` (o simule nombres `quoted_name`) y afirme que `construir_predicciones` puebla `feature_names_in_` con los drivers **usables** y no cae al fallback `DRIVERS` — el fixture CSV nunca lo ejercita (misma lección de BUG-023: el fixture valida la forma, no la realidad) |
+| BUG-041 | **El path real `--desde-gold` de ML truena cuando un driver queda 100 % `SIN_DATO`: `pd.read_sql_table` devuelve los nombres de columna como `quoted_name` (subclase de `str`), sklearn exige `type(x) == str` exacto para poblar `feature_names_in_`, así que **nunca lo puebla**; el fallback `getattr(modelo, "feature_names_in_", DRIVERS)` de `construir_predicciones` cae a los 6 `DRIVERS` y reintroduce el driver descartado → `ValueError: X has 6 features, but HistGradientBoostingRegressor is expecting 5 features`. Misma FAMILIA que BUG-015/018/023 pero **causa raíz nueva**: aquí el propio patrón `feature_names_in_` que arregló a los tres nunca se activa al leer de la BD, así que el fix de BUG-015 queda anulado en el path de producción. Los tests no lo cazan porque usan fixtures CSV (`read_csv` → `str` puro). Reportado por Luis Téllez (C5) al cerrar la validación L0 local el 2026-09-02, ejercitando cobertura parcial real (D5 agua 100 % `SIN_DATO`) | high | **fixed** | US-311 / US-313 / REQ-003 | **C3 ✅ aplicado por Héctor Morales (2026-09-03)** en `cargar_features_desde_gold` (`entrenar_ml01.py`), tal cual lo preparó Luis Téllez: `df.columns = [str(c) for c in df.columns]` tras el `read_sql_table`. Diagnóstico **verificado de forma independiente** antes de aplicarlo: `pd.read_sql_table` devuelve `quoted_name` (Postgres **y** SQLite) y sklearn 1.9.0 no puebla `feature_names_in_` con él, sí con `str` puro. Fallo reproducido end-to-end contra el Gold local (3 ciclos, D5 100 % `SIN_DATO`) con el mismo `ValueError` y el mismo MAE 0.0844 que reportó C5; con el parche, `--desde-gold` publica **55 predicciones + 55 recomendaciones** (F1 0.6458), las mismas cifras | `tests/test_entrenar_ml01.py::test_las_columnas_leidas_de_gold_son_str_puro` · `::test_entrenar_desde_gold_puebla_feature_names_in` · `::test_predecir_desde_gold_no_cae_al_fallback_de_los_6_drivers` — las tres **reprueban con el parche revertido** (comprobado) y usan SQLite, que también entrega `quoted_name`, así que corren en CI sin Postgres |
 
 ## BUG-041 — El `quoted_name` de SQLAlchemy vacía `feature_names_in_` y reintroduce el driver descartado
 
@@ -1418,3 +1419,194 @@ deja el check en rojo.
 Los dos checks **requeridos** por `main` son «Calidad de codigo y vault» y «Generar y validar
 tablero PM» — viven en `ci.yml` y `pm-dashboard.yml`, no en este workflow, así que el cambio no los
 altera. («Contrato dbt» corre en cada PR pero **no** es required.)
+
+
+## BUG-043 — El Registry acepta versiones cuyo modelo nunca llegó
+
+> Reportado por Héctor Morales (2026-09-02) al correr la confirmación de US-311 que pedía el PM.
+> → [[vault/15_ML_Models/ML01_Entrenamiento]] · [[vault/_DevLog/2026-09-02-hector-morales-registry-us311]]
+
+### Atribución: qué es nuevo aquí y qué no
+
+**La causa de configuración no es un hallazgo de hoy.** Está descrita en
+[[vault/15_ML_Models/ML01_Entrenamiento]] §4 desde el **29 de agosto**, con el fix de
+`--serve-artifacts` ya probado. Lo que faltaba —y es lo que abre este bug— son dos cosas:
+
+1. Que `mlflow.register_model()` **crea la versión aunque el artefacto haya fallado**, dejándola
+   `READY` en el Registry. El fallo de escritura es ruidoso; la versión fantasma que deja atrás, no.
+2. Que por eso `verificar_modelos_registrados()` daba **verde durante 15 días** sobre un modelo que
+   nadie podía cargar, y con ese verde se dio **AC-003.4 por cumplido**.
+
+Dicho de otro modo: el 29-ago se supo que el servidor no guardaba modelos, y aun así el tablero de
+verificación siguió diciendo que sí había modelos. Ese es el defecto que se registra.
+
+### Qué pasa
+
+El servicio `mlflow` de `docker-compose.yml` arranca así:
+
+```
+mlflow server --backend-store-uri ${MLFLOW_BACKEND_STORE_URI}
+              --default-artifact-root ${MLFLOW_ARTIFACT_ROOT}   # = /mlflow/artifacts
+```
+
+`/mlflow/artifacts` existe **dentro del contenedor**. MLflow no lo trata como "una ruta del
+servidor": se la entrega al cliente para que escriba ahí **directamente**. Un cliente en macOS o en
+el CI intenta entonces crear `/mlflow` en la raíz de su propio disco.
+
+Las dos capas se comportan distinto y por eso el fallo es tan silencioso:
+
+| Qué | Por dónde viaja | Resultado |
+|---|---|---|
+| Parámetros, métricas, tags | API REST → Postgres | ✅ se guardan bien |
+| Modelo (artefacto) | sistema de archivos del **cliente** | ❌ `Read-only file system: '/mlflow'` |
+| Fila del Model Registry | API REST → Postgres | ⚠️ **se crea igual**, y queda `READY` |
+
+Esa tercera fila es el defecto real. `mlflow.register_model()` no comprueba que el artefacto exista,
+así que deja una versión que se ve sana y no se puede usar.
+
+### Por qué el verde sobrevivió 15 días al diagnóstico
+
+`verificar_modelos_registrados()` preguntaba `search_model_versions(...)` y daba verde si la fila
+existía. Nunca intentó traer el modelo de vuelta. Con eso, `ML01_RegresionMatricula` v1 —creada el
+18-ago, el día del fix de versiones de PR #45— pasó por buena hasta hoy:
+
+```
+$ python -m src.modelos.verificar_registry --modelo ML01_RegresionMatricula
+ML01_RegresionMatricula: versión 1          # ✅ aparentemente correcto
+
+$ mlflow.sklearn.load_model("models:/ML01_RegresionMatricula/1")
+MlflowException: No such artifact: 'MLmodel'  # ❌ la realidad
+```
+
+**AC-003.4 pide que el modelo *llegue* al registry.** Una fila no prueba eso; traerlo de vuelta sí.
+
+### El arreglo, en dos partes
+
+**C3 (hecho).** `verificar_artefactos_descargables()` carga cada versión con `mlflow.pyfunc` —la
+misma ruta que usa la API de C4 para servir inferencia— y reprueba nombrando el modelo, la versión y
+la causa probable. `verificar_registry` la ejecuta por defecto; `--sin-artefacto` conserva la
+verificación débil y **lo dice en el reporte**, para que nadie la confunda con la fuerte.
+
+**C5 (pendiente).** En el `command:` del servicio `mlflow`:
+
+```
+mlflow server --backend-store-uri ${MLFLOW_BACKEND_STORE_URI}
+              --serve-artifacts --artifacts-destination /mlflow/artifacts
+              --host 0.0.0.0 --port 5000
+```
+
+Con `--serve-artifacts` el servidor **proxya** los artefactos por HTTP y el cliente ya no toca
+rutas del contenedor. Verificado en local con un override fuera del repo: ML-01 registró la
+**versión 2**, y esa versión carga y predice desde un cliente limpio.
+
+### Secuela: las versiones ya registradas
+
+Un experimento guarda su `artifact_location` **al crearse** y no se recalcula. `ML-01-regresion-matricula`
+(experimento 1) quedó fijado a `/mlflow/artifacts/1`, así que **seguirá roto para escrituras nuevas
+aunque el servidor se arregle**. Al aplicar el fix de C5 hay que crear el experimento de nuevo (o
+renombrarlo) y volver a registrar los tres modelos. La verificación de arriba lo detecta.
+
+### Test de regresión
+
+`tests/test_mlflow_utils.py::test_artefacto_ausente_reprueba_aunque_la_version_exista` reproduce el
+estado exacto de v1 —fila presente, artefacto ausente— y exige que repruebe.
+
+## BUG-013 — Corrección: la causa que publiqué el 2-sep era equivocada
+
+> Escrito por Héctor Morales el 2026-09-02 y **corregido por él mismo el 2026-09-03**.
+> Se deja el error a la vista en vez de borrarlo, porque alguien pudo haberlo leído.
+
+### Lo que afirmé el 2-sep, y es falso
+
+Afirmé que `gold.features_escuela` salía con un solo ciclo porque `features_escuela.sql` §42 arma
+su base desde `{{ ref('matricula') }}` y no desde `matricula_historica`, y propuse a C1 cambiar ese
+`ref`. **Eso era incorrecto y la propuesta habría sido trabajo inútil.**
+
+### Qué pasó de verdad
+
+No cargué los **tres** fixtures de Formato 911 en `bronze.formato911_2024_2025`, sólo dos. Faltaba
+`bronze_formato911_serie_historica_sample.csv` —justamente el que BUG-026 creó para dar grano
+escuela multi-ciclo—, que aporta 2021-2022 y 2022-2023:
+
+| Fixture | Ciclos que aporta |
+|---|---|
+| `bronze_formato911_sample` | 2023-2024, 2024-2025 |
+| `bronze_formato911_ciclo_anterior_sample` | 2024-2025 |
+| `bronze_formato911_serie_historica_sample` | **2021-2022, 2022-2023** ← el que faltaba |
+
+Con los tres cargados y `dbt run --full-refresh`, Gold sale así:
+
+```
+gold.fact_escuela_ciclo   145 filas
+gold.features_escuela     145 filas · 3 ciclos (2022-2023: 60, 2023-2024: 30, 2024-2025: 55)
+```
+
+Las mismas 145 filas y los mismos 3 ciclos que reportó Luis Téllez el 2-sep. **`features_escuela`
+nunca estuvo mal**: mi carga de Bronze estaba incompleta, y le atribuí a un modelo de C1 un defecto
+que era mío.
+
+### Consecuencia
+
+`--desde-gold` **sí funciona** con los fixtures del repo. Ya no hay nada que pedirle a C1 por este
+motivo, y **la parte de BUG-013 que bloqueaba a US-313 queda cerrada** — lo que faltaba después era
+BUG-041, ya corregido.
+
+### La lección, que es la parte útil
+
+BUG-012 sigue abierto: no hay runbook del pipeline local. Reconstruí los pasos leyendo el DevLog de
+Marina del 27-ago, que dice *«cargar DOS fixtures de Formato 911 en la MISMA tabla»* — cierto el
+27-ago, incompleto después de que BUG-026 agregara el tercero. **Un runbook que vive en un DevLog no
+se actualiza cuando cambia el repo.** Ese es el costo real de BUG-012, y me lo cobró a mí.
+
+
+## BUG-043 — Corrección del diagnóstico y fix verificado en dos partes
+
+> Héctor Morales, 2026-09-03. Corrige lo que yo mismo escribí el 2-sep.
+
+### Lo que dije mal
+
+Escribí que el servidor «no corre con `--serve-artifacts`» y que ése era el arreglo. **Falso.** En
+MLflow 3.15.1 esa opción viene activa por defecto — lo dice su propio `--help`:
+
+```
+--serve-artifacts / --no-serve-artifacts   ...   Default: True
+```
+
+Pedirle a C5 que agregara ese flag habría sido un no-op. La causa real es la **raíz de artefactos**.
+
+### Las dos causas, verificadas por separado
+
+**1. `--default-artifact-root` apunta a disco, no al proxy.** El servidor entrega esa raíz al
+cliente *tal cual*; si es `/mlflow/artifacts` —que sólo existe dentro del contenedor— el cliente
+intenta escribirla en su propio disco. Se corrige con `MLFLOW_ARTIFACT_ROOT=mlflow-artifacts:/`
+en el `.env`, **sin tocar `docker-compose.yml`**. Con sólo esto, los tres modelos registran y cargan:
+
+```
+ML01_RegresionMatricula: versión 3 — carga verificada ✅
+ML02_DriverClasificador: versión 1 — carga verificada ✅
+ML03_ClusteringEscuelas: versión 1 — carga verificada ✅
+```
+
+**2. Sin `--artifacts-destination`, el registry es efímero.** Con la raíz corregida los artefactos
+van al `./mlartifacts` del contenedor —**no** al volumen `faro-mlflow-artifacts`, montado en
+`/mlflow/artifacts`—. Probado:
+
+| Configuración | Tras `docker compose up --force-recreate` |
+|---|---|
+| sólo la raíz corregida | ❌ **los tres modelos quedan `READY` sin artefacto** |
+| raíz + `--artifacts-destination /mlflow/artifacts` | ✅ los tres siguen cargando |
+
+En local eso cuesta re-registrar. **En Cloud Run el contenedor se recrea de rutina**, así que sin la
+segunda parte el registry de la demo se vacía solo.
+
+### Reparto
+
+- **C3 ✅ hecho:** la guarda que detecta el estado, y `.env.example` con la raíz correcta.
+- **C5 ⬜ pendiente:** una línea en el `command:` del servicio `mlflow`:
+
+```
+--artifacts-destination /mlflow/artifacts
+```
+
+Para Cloud Run conviene que ese destino sea un bucket de GCS, no una ruta local; queda a criterio de
+Célula 5.

@@ -76,6 +76,12 @@ class RefreshIn(EntradaEstricta):
     refresh_token: StrictStr
 
 
+class ExchangeIn(EntradaEstricta):
+    """Canje del codigo de un solo uso por la sesion (US-405). Ver ADR-010."""
+
+    code: StrictStr = Field(min_length=16, max_length=256)
+
+
 class UserOut(BaseModel):
     sub: StrictStr
     email: StrictStr

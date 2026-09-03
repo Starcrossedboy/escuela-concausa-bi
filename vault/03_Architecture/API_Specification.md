@@ -74,6 +74,23 @@ navegador.
 > case con la cookie) ahora devuelve **401**, no 200. El flujo correcto siempre entra por
 > `/auth/login`; no se debe llamar al callback a mano.
 
+### 2.1.2 Puente al frontend: código de un solo uso (US-405)
+
+FARO Web no puede leer cookies del navegador (limitación de Streamlit), y mandarle el token por la
+query string dejaría la credencial en el historial, en los logs del proxy y en el `Referer`. Por eso:
+
+1. El front llama a `/auth/login?redirect=<su URL>`. El destino se valida contra la **allowlist**
+   `FRONTEND_REDIRECT_URIS` (comparación **exacta**, no por prefijo) y viaja **dentro del `state`
+   firmado**, así que Google lo devuelve intacto y nadie puede alterarlo.
+2. `/auth/callback` guarda la identidad verificada, emite un **código opaco de un solo uso** (60 s) y
+   responde **302** a `<front>?code_faro=<código>`. **Por la URL nunca viaja un token.**
+3. El servidor del front canjea el código en `POST /auth/exchange` y recibe ahí el `TokenPair`.
+
+Del código solo se almacena su SHA-256, el canje es atómico y el rol se **re-resuelve** al canjear
+con la política vigente. Sin `redirect`, `/auth/callback` sigue devolviendo el `TokenPair` como JSON
+(clientes que no son navegador). Detalle y alternativas descartadas en
+[[vault/03_Architecture/ADRs/ADR-010-puente-oauth-frontend|ADR-010]].
+
 ### 2.2 Matriz RBAC (los 2 roles del PRD)
 
 | Recurso / acción | `ciudadano` (estándar) | `analista` (admin) |
@@ -110,12 +127,15 @@ navegador.
 ### 3.2 Autenticación `/auth/*`
 | Método | Ruta | Rol | Request | Response | Códigos |
 |---|---|---|---|---|---|
-| GET | `/auth/login` | público | — | 302 → Google | 302 |
-| GET | `/auth/callback` | público | `?code`, `?state` | `TokenPair` | 200, 401 |
+| GET | `/auth/login` | público | `?redirect` (opcional, allowlist) | 302 → Google | 302, 400 |
+| GET | `/auth/callback` | público | `?code`, `?state` | `TokenPair`, o 302 al front con `?code_faro` | 200, 302, 401 |
+| POST | `/auth/exchange` | público* | `ExchangeIn` | `TokenPair` | 200, 401, 422 |
 | POST | `/auth/refresh` | público* | `RefreshIn` | `TokenPair` | 200, 401 |
 | GET | `/auth/me` | ciudadano | — | `UserOut` | 200, 401 |
 
-\* requiere un refresh token válido en el cuerpo, no un access token.
+\* requiere un refresh token válido en el cuerpo, no un access token. `/auth/exchange` requiere un
+código de un solo uso vigente (§2.1.2); un código usado, expirado o inventado devuelve 401 sin
+distinguir entre los casos.
 
 ### 3.3 Lectura sobre Gold
 | Método | Ruta | Rol | Request | Response | Códigos |
@@ -227,6 +247,11 @@ class TokenPair(BaseModel):
     expires_in: StrictInt = 900          # 15 min
 class RefreshIn(BaseModel):
     refresh_token: StrictStr
+class ExchangeIn(BaseModel):
+    # Codigo de un solo uso del puente OAuth -> frontend (US-405, ADR-010). Opaco: no transporta
+    # identidad, solo apunta a ella en el almacen del servidor.
+    code: StrictStr = Field(min_length=16, max_length=256)
+
 class UserOut(BaseModel):
     sub: StrictStr
     email: StrictStr

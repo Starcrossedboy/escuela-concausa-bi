@@ -103,7 +103,7 @@ def create_token_pair(sub: str, role: Rol | str, email: str = "", name: str = ""
     )
 
 
-def create_state_token() -> str:
+def create_state_token(redirect: str = "") -> str:
     """Emite el `state` anti-CSRF del flujo OAuth2 (US-402).
 
     Es un JWT propio, de vida muy corta, con un `nonce` aleatorio. Al ser **firmado** no hace falta
@@ -118,6 +118,10 @@ def create_state_token() -> str:
     return _encode(
         {
             "nonce": secrets.token_urlsafe(16),
+            # Destino al que volver tras el login (US-405). Viaja DENTRO del state firmado, no como
+            # parametro suelto: asi Google nos lo devuelve intacto y nadie puede cambiarlo por el
+            # camino. Ya viene validado contra la allowlist en /auth/login.
+            "redirect": redirect,
             "type": TIPO_STATE,
             "iat": int(ahora.timestamp()),
             "exp": int(exp.timestamp()),

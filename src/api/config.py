@@ -52,6 +52,15 @@ class Settings(BaseSettings):
     # pantalla de consentimiento.
     oauth_state_expire_minutes: int = 10
 
+    # ---- Puente OAuth -> frontend (US-405, ADR-010) ----
+    # Destinos permitidos para el `?redirect=` de /auth/login (CSV). ALLOWLIST ESTRICTA: sin ella
+    # tendriamos un open redirect, y uno en el flujo de login es el vehiculo clasico para robar el
+    # codigo de autorizacion. Un destino fuera de esta lista se rechaza con 400.
+    frontend_redirect_uris: str = "http://localhost:8501"
+    # Vida del codigo de un solo uso que el front canjea en /auth/exchange. Muy corta: solo cubre
+    # el redirect del navegador, que es inmediato.
+    login_code_expire_segundos: int = 60
+
     # ---- Política de rol (PROVISIONAL; la definitiva la decide Edgar/PO) ----
     # Allowlist de correos con rol `analista`. Mínimo privilegio: vacío => todos ciudadano.
     analista_emails: str = ""
@@ -114,6 +123,11 @@ class Settings(BaseSettings):
             f"postgresql+psycopg2://{self.postgres_user}:{self.postgres_password}"
             f"@{self.postgres_host}:{self.postgres_port}/{self.postgres_db}"
         )
+
+    @property
+    def frontend_redirect_list(self) -> list[str]:
+        """Destinos permitidos del `?redirect=` de `/auth/login`, parseados del CSV."""
+        return [u.strip() for u in self.frontend_redirect_uris.split(",") if u.strip()]
 
     @property
     def google_issuer_list(self) -> list[str]:

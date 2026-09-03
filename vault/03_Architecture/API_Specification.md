@@ -7,7 +7,7 @@ version: "1.1"
 source_of_truth: true
 traces_up: ["REQ-004", "vault/03_Architecture/Data_Model"]
 traces_down: ["US-401", "US-402", "US-403", "US-404", "US-405", "US-411", "US-412", "US-415", "US-416"]
-last_reviewed: "2026-09-02"
+last_reviewed: "2026-09-03"
 tags: [architecture, api, contract, fastapi, oauth2]
 ---
 
@@ -231,6 +231,11 @@ class UserOut(BaseModel):
     sub: StrictStr
     email: StrictStr
     role: Rol
+    # `name` agregado 2026-09-03 (US-405): nombre para mostrar, del claim `name` del id_token de
+    # Google (scope `profile`). OPCIONAL -- default "" cuando el perfil no lo expone. Es solo de
+    # presentacion: el rol se resuelve por `email`, nunca por `name`. El front cae a `email` si
+    # viene vacio. Acordado entre Christian Ruiz (C4) y Manuel Serrania (C2); avisado a C3.
+    name: StrictStr = ""
 
 # ---- lectura sobre Gold ----
 # EscuelaOut/EscuelaDetalleOut actualizados 2026-08-20: indice_riesgo/driver_dominante pasan

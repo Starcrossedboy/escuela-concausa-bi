@@ -722,6 +722,11 @@
             "title": "Email",
             "type": "string"
           },
+          "name": {
+            "default": "",
+            "title": "Name",
+            "type": "string"
+          },
           "role": {
             "$ref": "#/components/schemas/Rol"
           },

@@ -119,7 +119,9 @@ def callback(
             status.HTTP_401_UNAUTHORIZED, detail="No se pudo verificar la identidad."
         ) from exc
     role = resolve_role(identity.email)
-    return create_token_pair(sub=identity.sub, role=role, email=identity.email)
+    return create_token_pair(
+        sub=identity.sub, role=role, email=identity.email, name=identity.name
+    )
 
 
 @router.post("/refresh", response_model=TokenPair)
@@ -133,7 +135,10 @@ def refresh(body: RefreshIn) -> TokenPair:
         ) from exc
     email = claims.get("email", "")
     role = resolve_role(email)
-    return create_token_pair(sub=claims["sub"], role=role, email=email)
+    # El `name` viaja tambien en el refresh: al renovar no hay id_token de Google que reconsultar.
+    return create_token_pair(
+        sub=claims["sub"], role=role, email=email, name=claims.get("name", "")
+    )
 
 
 @router.get("/me", response_model=UserOut)

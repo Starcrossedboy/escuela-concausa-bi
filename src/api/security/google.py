@@ -39,10 +39,15 @@ _ALGORITMOS_ID_TOKEN = ["RS256"]
 
 @dataclass(frozen=True)
 class GoogleIdentity:
-    """Identidad mínima que necesitamos de Google para emitir nuestros JWT."""
+    """Identidad mínima que necesitamos de Google para emitir nuestros JWT.
+
+    `name` es el nombre para mostrar (claim `name` del `id_token`, scope `profile`). Es **opcional**:
+    si el perfil no lo expone queda vacío y el front cae a `email`. Nunca se usa para autorizar.
+    """
 
     sub: str
     email: str
+    name: str = ""
 
 
 class GoogleNotConfigured(RuntimeError):
@@ -146,7 +151,7 @@ class RealGoogleVerifier:
             raise ValueError("el id_token no trae sub/email")
         if claims.get("email_verified") is not True:
             raise ValueError("el correo de Google no esta verificado")
-        return GoogleIdentity(sub=str(sub), email=str(email))
+        return GoogleIdentity(sub=str(sub), email=str(email), name=str(claims.get("name") or ""))
 
     def _intercambiar_code(self, code: str) -> str:
         """Canjea el `code` por el `id_token`. Nunca registra el `code` ni el `client_secret`."""

@@ -24,25 +24,33 @@ mapea a 503 `service_unavailable`, nunca a un 500 genérico ni a un valor invent
 
 from __future__ import annotations
 
+import logging
 from functools import lru_cache
 from typing import Protocol
 
 from sqlalchemy import select, text
 from sqlalchemy.engine import Engine
-from sqlalchemy.exc import OperationalError
+from sqlalchemy.exc import SQLAlchemyError
 
 from src.api.config import get_settings
 from src.api.db import get_engine, get_tablas
+
+_logger = logging.getLogger("faro.api")
 
 MODELO_ML01 = "ML-01"
 GRANO_ESCUELA = "escuela"
 
 
 class RepositorioModelosNoDisponible(Exception):
-    """Postgres no respondió dentro del timeout configurado (US-416).
+    """Gold no está disponible para responder la predicción (US-416).
+
+    Cubre dos casos que para el cliente son el mismo: Postgres no respondió dentro del
+    `statement_timeout` configurado, **o** el esquema/tabla `gold.*` no existe o es inalcanzable
+    en el despliegue (p. ej. la publicación de ML aún no corrió contra esa base).
 
     No es "el CCT no tiene predicción" (eso es un `None`/lista vacía, ver BUG-010) -- es "no
-    pudimos saberlo a tiempo". El llamador debe responder 503, nunca inventar un valor.
+    pudimos saberlo". El llamador debe responder 503, nunca inventar un valor ni dejar caer un
+    500 genérico.
     """
 
 
@@ -104,14 +112,23 @@ class RepositorioModelosPostgres:
         param): `SET` no acepta parámetros de protocolo extendido de forma confiable con
         psycopg2/poolers, y aquí es seguro porque sale de `Settings` (nunca de input de usuario) y
         ya pasó por `int()` en `__init__`.
+
+        **Cualquier** fallo de SQLAlchemy se traduce a `RepositorioModelosNoDisponible` (→ 503),
+        no solo el timeout (`OperationalError`): un `ProgrammingError` por esquema/tabla `gold`
+        ausente en el despliegue -- caso real mientras la publicación de ML no haya corrido contra
+        esa base -- se escapaba antes al handler genérico de `app.py` y se volvía un **500**. La
+        excepción concreta se registra en el log; al cliente solo le llega el 503 uniforme.
         """
         try:
             with self._engine.begin() as conexion:
                 conexion.execute(text(f"SET LOCAL statement_timeout = {self._timeout_ms}"))
                 return conexion.execute(consulta).mappings().all()
-        except OperationalError as exc:
+        except SQLAlchemyError as exc:
+            _logger.warning(
+                "gold.predicciones no disponible (%s): %s", type(exc).__name__, exc
+            )
             raise RepositorioModelosNoDisponible(
-                f"Postgres no respondió en {self._timeout_ms}ms."
+                f"Gold no disponible ({type(exc).__name__})."
             ) from exc
 
     def obtener_prediccion(self, cct: str, id_ciclo: str) -> dict | None:

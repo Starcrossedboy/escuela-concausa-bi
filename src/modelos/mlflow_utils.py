@@ -174,13 +174,17 @@ def verificar_artefactos_descargables(
 ) -> None:
     """Confirma que cada versión registrada se pueda **cargar de vuelta**, no sólo que exista.
 
-    Una fila en el Model Registry no prueba que el modelo esté ahí. Si el servidor de MLflow no
-    corre con `--serve-artifacts`, su `--default-artifact-root` es una ruta **dentro del
-    contenedor** (`/mlflow/artifacts`): las métricas viajan por la API REST y se guardan bien,
-    pero los artefactos se resuelven contra el sistema de archivos del **cliente**. Escribir
-    falla con `OSError: Read-only file system: '/mlflow'` y leer devuelve
-    `No such artifact: 'MLmodel'` — mientras la versión sigue apareciendo `READY` en la UI y en
-    `search_model_versions`.
+    Una fila en el Model Registry no prueba que el modelo esté ahí. Si el
+    `--default-artifact-root` es una ruta de disco (`/mlflow/artifacts`) en vez del esquema de
+    proxy `mlflow-artifacts:/`, el servidor se la entrega al cliente tal cual y éste la resuelve
+    contra **su propio** disco: las métricas viajan por la API REST y se guardan bien, pero
+    escribir el modelo falla con `OSError: Read-only file system: '/mlflow'` y leerlo devuelve
+    `No such artifact: 'MLmodel'` — mientras la versión sigue `READY` en la UI.
+
+    El segundo modo de fallo es más silencioso: con la raíz correcta pero **sin**
+    `--artifacts-destination` apuntando al volumen, los artefactos caen en el `./mlartifacts`
+    de la capa efímera del contenedor. Todo funciona hasta que el contenedor se recrea —y en
+    Cloud Run eso pasa de rutina—, y entonces las versiones quedan `READY` sin artefacto.
 
     Ese hueco dejó `ML01_RegresionMatricula` versión 1 en verde desde el 18-ago sin que ningún
     cliente pudiera cargarla (**BUG-043**). AC-003.4 pide que el modelo *llegue* al registry, y la
@@ -216,8 +220,13 @@ def verificar_artefactos_descargables(
         raise RuntimeError(
             "Hay versiones en el Registry que NO se pueden cargar: "
             + "; ".join(fallidos)
-            + ".\nLa fila existe pero el artefacto no llega al cliente. Causa más común "
-            "(BUG-043): el servidor de MLflow no corre con `--serve-artifacts`, así que su "
-            "raíz de artefactos es una ruta interna del contenedor y ningún cliente puede "
-            "leerla ni escribirla. Lo define `docker-compose.yml` (Célula 5)."
+            + ".\nLa fila existe pero el artefacto no llega al cliente (BUG-043). Dos causas, "
+            "las dos de configuración del servidor:\n"
+            "  1. `--default-artifact-root` es una ruta de disco en vez de `mlflow-artifacts:/`, "
+            "así que el cliente la resuelve contra su propio disco. Lo define "
+            "`MLFLOW_ARTIFACT_ROOT` en el `.env`.\n"
+            "  2. Falta `--artifacts-destination /mlflow/artifacts`, así que los artefactos "
+            "caen en la capa efímera del contenedor y mueren al recrearlo. Lo define el "
+            "`command:` del servicio `mlflow` en `docker-compose.yml` (Célula 5).\n"
+            "`--serve-artifacts` NO es la causa: en MLflow 3.x viene activo por defecto."
         )

@@ -4,8 +4,8 @@ date: "2026-09-03"
 author_human: "Héctor Rafael Morales Marbán"
 agent: "Claude Code"
 model: "claude-opus-5"
-session_duration: "1 sesión — aplicar BUG-041 (parche de C5) y corregir un diagnóstico mío equivocado"
-touches: ["BUG-041", "BUG-043", "BUG-013", "US-313", "US-311", "REQ-003"]
+session_duration: "1 sesión — BUG-041 aplicado, AC-003.4 cumplido y dos diagnósticos míos corregidos"
+touches: ["BUG-041", "BUG-043", "BUG-013", "BLOCK-001", "US-313", "US-311", "AC-003.4", "REQ-003"]
 tags: [devlog, celula-3, ml, gold, bugfix, correccion]
 ---
 
@@ -86,6 +86,49 @@ módulos y las dos pruebas que lo citan. Sin huecos reciclados (regla 3).
 **BUG-043 sigue abierto y sigue siendo de C5:** falta `--serve-artifacts` en `docker-compose.yml` y
 recrear el experimento. No lo destraba este PR.
 
+
+## Cierre de BLOCK-001: AC-003.4 queda cumplido hoy
+
+Ayer reporté que el registry no servía modelos y que el arreglo era de C5. **Al revisarlo hoy
+encontré que mi diagnóstico estaba mal en la parte que importaba.**
+
+Dije que faltaba `--serve-artifacts`. En MLflow 3.15.1 esa opción **viene activa por defecto** —lo
+dice su propio `--help`: `Default: True`—. Pedirle eso a C5 habría sido un no-op y habría costado
+un día de espera.
+
+La causa real es la **raíz de artefactos**: `--default-artifact-root` recibía `/mlflow/artifacts`,
+una ruta que sólo existe dentro del contenedor, y el servidor se la entrega al cliente *tal cual*.
+Ese valor sale de `MLFLOW_ARTIFACT_ROOT`, que vive en el `.env` —**no** en `docker-compose.yml`—.
+Cambiarlo a `mlflow-artifacts:/` está en `comunes`, así que es alcance mío.
+
+Con ese único cambio, y sin tocar nada de C5:
+
+```
+ML01_RegresionMatricula: versión 4 — carga verificada ✅
+ML02_DriverClasificador: versión 2 — carga verificada ✅
+ML03_ClusteringEscuelas: versión 2 — carga verificada ✅
+```
+
+**AC-003.4 pide exactamente eso: los 3 modelos registrados en MLflow con versión.** Cumplido, y
+verificado por carga real, no por la fila del Registry. **BLOCK-001 puede cerrarse.**
+
+## El hallazgo que sí urge, y no es mío
+
+Al registrar noté que los artefactos no estaban cayendo en el volumen `faro-mlflow-artifacts` sino
+en el `./mlartifacts` de la capa efímera del contenedor. Lo probé en vez de suponerlo:
+
+| Configuración | Tras `docker compose up --force-recreate` |
+|---|---|
+| sólo la raíz corregida | ❌ **los tres modelos quedan `READY` sin artefacto** |
+| raíz + `--artifacts-destination /mlflow/artifacts` | ✅ los tres siguen cargando |
+
+En local eso sólo cuesta re-registrar. **En Cloud Run el contenedor se recrea de rutina**, así que
+sin la segunda parte el registry de la demo se vacía solo — y el domingo 6 toca verificar
+predicciones en la URL pública.
+
+Es una línea en el `command:` del servicio `mlflow`, que es de C5. Queda como el pendiente vivo de
+BUG-043.
+
 ## Verificación
 
 - Suite completa: **817 passed, 6 skipped**. **3 pruebas nuevas**, validadas revirtiendo el parche.
@@ -110,9 +153,10 @@ recrear el experimento. No lo destraba este PR.
 
 ## Pendientes
 
-1. **Follow-up defensivo** (6 sitios con `getattr(modelo, "feature_names_in_", DRIVERS)`): el
+1. **BUG-043 → C5:** `--artifacts-destination /mlflow/artifacts` en el `command:` del servicio
+   `mlflow`. Sin eso el registry es efímero y en Cloud Run se vacía al recrear el contenedor.
+2. **Follow-up defensivo** (6 sitios con `getattr(modelo, "feature_names_in_", DRIVERS)`): el
    fallback silencioso es lo que convirtió un tipo de columna en un crash. Coordinar con Andrés.
-2. **BUG-043 → C5:** `--serve-artifacts` y recrear el experimento de MLflow.
 3. **BUG-012 → sigue abierto** y hoy me costó un diagnóstico equivocado. El runbook debería listar
    los **tres** fixtures.
 4. **BUG-020** sigue abierto; L1.3 lo destraba parcialmente pero el 500 de la API es de C4.

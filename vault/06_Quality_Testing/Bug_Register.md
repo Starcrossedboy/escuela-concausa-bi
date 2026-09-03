@@ -17,7 +17,7 @@ tags: [qa, bugs]
 | BUG-001 | dag_anual.py: falta start_date | high | fixed | US-102 | fix/diana-varela-us102-dag-import-errors | manual (ver detalle) |
 | BUG-002 | dag_censal_estatico.py: preset de cron no soportado | high | fixed | US-102 | fix/diana-varela-us102-dag-import-errors | manual (ver detalle) |
 | BUG-003 | `sklearn` no instalado: `test_entrenar_ml01.py` y `test_entrenar_ml02.py` fallan con `ModuleNotFoundError` en colección de pytest | low | **not_a_bug** | US-311 / REQ-003 | ya resuelto en `main` desde 2026-08-13 (PR #28) — ver detalle | ambiente local desactualizado |
-| BUG-043 | **El servidor de MLflow no corre con `--serve-artifacts`, así que ningún cliente puede escribir ni leer modelos: las métricas se guardan y los MODELOS se pierden.** `docker-compose.yml` arranca `mlflow server` con `--default-artifact-root /mlflow/artifacts`, una ruta **interna del contenedor**. El servidor se la devuelve tal cual al cliente, que intenta resolverla contra **su propio** sistema de archivos: `log_model()` truena con `OSError: [Errno 30] Read-only file system: '/mlflow'` y `load_model()` con `No such artifact: 'MLmodel'`. La corrida y sus métricas sí quedan registradas, así que en la UI todo se ve bien. Peor: `mlflow.register_model()` **crea la versión igual**, que queda `READY` en el Registry apuntando a un artefacto que no existe. Así estuvo `ML01_RegresionMatricula` **v1 desde el 18-ago**: `verificar_registry` la reportaba en verde y ningún cliente podía cargarla — **AC-003.4 nunca estuvo cumplido**. Bloquea también la inferencia de C4, que carga por `models:/…`. Es la misma familia que **BUG-010** y el índice de US-312: el artefacto afirmaba algo que ya era falso | **critical** | open | US-311 / US-303 / REQ-003 / AC-003.4 | **C3 ✅ la guarda** (Héctor, 2-sep): `verificar_artefactos_descargables()` carga cada versión con `pyfunc` y reprueba nombrando la causa; `verificar_registry` la corre por defecto. **Pendiente C5** (Luis Téllez / Edward Ruiz): agregar `--serve-artifacts --artifacts-destination /mlflow/artifacts` al `command:` del servicio `mlflow` en `docker-compose.yml` — **verificado en local por override**, con él ML-01 v2 registra y carga; sin él reprueba | `tests/test_mlflow_utils.py::test_artefacto_ausente_reprueba_aunque_la_version_exista` |
+| BUG-043 | **El Model Registry acepta versiones cuyo modelo nunca llegó, y las deja `READY`.** `mlflow.register_model()` crea la versión aunque `log_model()` haya fallado, así que la UI y `search_model_versions` muestran un modelo que ningún cliente puede cargar. Dos configuraciones lo provocan: (1) `--default-artifact-root` es una ruta de disco (`/mlflow/artifacts`) en vez del proxy `mlflow-artifacts:/`, y el cliente la resuelve contra su propio disco → `OSError: Read-only file system: '/mlflow'`; (2) falta `--artifacts-destination`, y los artefactos caen en la capa **efímera** del contenedor: **verificado que un solo `docker compose up --force-recreate` convierte los tres modelos en fantasmas**, lo cual es fatal en Cloud Run, donde recrear el contenedor es rutina. `ML01_RegresionMatricula` v1 estuvo así desde el 18-ago y **AC-003.4 se dio por cumplido sin estarlo**. Bloquea la inferencia de C4, que carga por `models:/…` | **critical** | **fixed (parcial)** | US-311 / US-303 / REQ-003 / AC-003.4 | **C3 ✅ (Héctor, 2026-09-03):** la guarda `verificar_artefactos_descargables()` carga cada versión con `pyfunc` y reprueba; `.env.example` pasa a `MLFLOW_ARTIFACT_ROOT=mlflow-artifacts:/`. Con eso **AC-003.4 queda CUMPLIDO**: los tres modelos registrados y **carga verificada** (ML-01 v4, ML-02 v2, ML-03 v2) — sin tocar `docker-compose.yml`. **Corrección de mi diagnóstico del 2-sep:** culpé a la falta de `--serve-artifacts`, pero en MLflow 3.x **viene activo por defecto** (`--help`: `Default: True`); la causa era la raíz de artefactos. **Pendiente C5 ⬜:** agregar `--artifacts-destination /mlflow/artifacts` al `command:` del servicio `mlflow` — sin eso el registry es efímero (probado en los dos sentidos: con el flag los tres sobreviven al `--force-recreate`; sin él, mueren) | `tests/test_mlflow_utils.py::test_artefacto_ausente_reprueba_aunque_la_version_exista` (exige que el mensaje nombre `--artifacts-destination` y `MLFLOW_ARTIFACT_ROOT`) |
 | BUG-004 | Imagen `apache/superset:latest` no incluye `psycopg2`: conexión a PostgreSQL falla con 422 al crear datasets virtuales | medium | open | US-202 | pendiente (**C5**, Edward Ruiz — US-522c) | — |
 | BUG-005 | Scripts `.sh` se corrompen a CRLF en checkouts de Windows: `.gitattributes` no tiene regla `*.sh text eol=lf`, así que con `core.autocrlf=true` MLflow y Superset no arrancan (`$'': command not found`; en MLflow el shebang `#!/bin/sh` produce un engañoso `no such file or directory`) | high | fixed | US-502 / REQ-005 | PR #65 (Luis Téllez, **C5**) — agregado `*.sh text eol=lf` a `.gitattributes` | pendiente (validar en Windows) |
 | BUG-006 | Healthcheck de `api` usa `curl -f` pero la imagen no incluye `curl` ni `wget` (solo `python`): el contenedor queda `unhealthy` de forma permanente aunque `/health` responda HTTP 200 | medium | fixed | US-502 / REQ-004 | PR #65 (Luis Téllez, **C5**) — removido healthcheck override de api, actualizado chromadb a /api/v2/heartbeat | pendiente (validar healthchecks) |
@@ -1558,3 +1558,55 @@ Marina del 27-ago, que dice *«cargar DOS fixtures de Formato 911 en la MISMA ta
 27-ago, incompleto después de que BUG-026 agregara el tercero. **Un runbook que vive en un DevLog no
 se actualiza cuando cambia el repo.** Ese es el costo real de BUG-012, y me lo cobró a mí.
 
+
+## BUG-043 — Corrección del diagnóstico y fix verificado en dos partes
+
+> Héctor Morales, 2026-09-03. Corrige lo que yo mismo escribí el 2-sep.
+
+### Lo que dije mal
+
+Escribí que el servidor «no corre con `--serve-artifacts`» y que ése era el arreglo. **Falso.** En
+MLflow 3.15.1 esa opción viene activa por defecto — lo dice su propio `--help`:
+
+```
+--serve-artifacts / --no-serve-artifacts   ...   Default: True
+```
+
+Pedirle a C5 que agregara ese flag habría sido un no-op. La causa real es la **raíz de artefactos**.
+
+### Las dos causas, verificadas por separado
+
+**1. `--default-artifact-root` apunta a disco, no al proxy.** El servidor entrega esa raíz al
+cliente *tal cual*; si es `/mlflow/artifacts` —que sólo existe dentro del contenedor— el cliente
+intenta escribirla en su propio disco. Se corrige con `MLFLOW_ARTIFACT_ROOT=mlflow-artifacts:/`
+en el `.env`, **sin tocar `docker-compose.yml`**. Con sólo esto, los tres modelos registran y cargan:
+
+```
+ML01_RegresionMatricula: versión 3 — carga verificada ✅
+ML02_DriverClasificador: versión 1 — carga verificada ✅
+ML03_ClusteringEscuelas: versión 1 — carga verificada ✅
+```
+
+**2. Sin `--artifacts-destination`, el registry es efímero.** Con la raíz corregida los artefactos
+van al `./mlartifacts` del contenedor —**no** al volumen `faro-mlflow-artifacts`, montado en
+`/mlflow/artifacts`—. Probado:
+
+| Configuración | Tras `docker compose up --force-recreate` |
+|---|---|
+| sólo la raíz corregida | ❌ **los tres modelos quedan `READY` sin artefacto** |
+| raíz + `--artifacts-destination /mlflow/artifacts` | ✅ los tres siguen cargando |
+
+En local eso cuesta re-registrar. **En Cloud Run el contenedor se recrea de rutina**, así que sin la
+segunda parte el registry de la demo se vacía solo.
+
+### Reparto
+
+- **C3 ✅ hecho:** la guarda que detecta el estado, y `.env.example` con la raíz correcta.
+- **C5 ⬜ pendiente:** una línea en el `command:` del servicio `mlflow`:
+
+```
+--artifacts-destination /mlflow/artifacts
+```
+
+Para Cloud Run conviene que ese destino sea un bucket de GCS, no una ruta local; queda a criterio de
+Célula 5.

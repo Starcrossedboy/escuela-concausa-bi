@@ -21,7 +21,7 @@ def main() -> None:
         login_button()
         return
 
-    st.sidebar.success(f"{user['name']} · rol: {user['role']}")
+    st.sidebar.success(f"{user.get('name') or user['email']} · rol: {user['role']}")
     logout_button()
     st.title("FARO Web")
     st.write(

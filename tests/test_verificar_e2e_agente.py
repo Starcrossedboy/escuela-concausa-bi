@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import unittest
+from typing import Self
 from unittest.mock import patch
 
 from src.agente.verificar_e2e import ErrorVerificacion, verificar_e2e
@@ -17,7 +18,7 @@ class _RespuestaHTTP:
     def __init__(self, payload: dict[str, object]) -> None:
         self._payload = payload
 
-    def __enter__(self) -> _RespuestaHTTP:
+    def __enter__(self) -> Self:
         return self
 
     def __exit__(self, exc_type: object, exc_value: object, traceback: object) -> bool:
@@ -72,6 +73,8 @@ class VerificarE2EAgenteTests(unittest.TestCase):
             ]
         )
 
-        with patch("src.agente.verificar_e2e.urlopen", side_effect=respuestas):
-            with self.assertRaisesRegex(ErrorVerificacion, "no están listos"):
-                verificar_e2e("https://api.example", "token-efimero")
+        with (
+            patch("src.agente.verificar_e2e.urlopen", side_effect=respuestas),
+            self.assertRaisesRegex(ErrorVerificacion, "no están listos"),
+        ):
+            verificar_e2e("https://api.example", "token-efimero")

@@ -41,6 +41,7 @@ tags: [devlog, celula-3, validacion, rag, mlflow, oauth]
 - El entorno existente `.venv` usa Python 3.12; se creó `.venv311` para validar con Python 3.11. El terminal no devolvió resumen de `pytest`, por lo que no se declara una suite verde sin evidencia observable.
 - La sonda comprobó que falla de forma explícita y segura cuando faltan las variables obligatorias, sin hacer llamadas de red.
 - `python -m unittest discover -s tests -p test_verificar_e2e_agente.py -v`: 3 pruebas en verde con Python 3.11.
+- Ruff sobre `tests/test_verificar_e2e_agente.py`: limpio tras ajustar el tipo de retorno del context manager y combinar contextos `with`.
 
 ## Bloqueantes
 - El E2E real de `widget → API → RAG` dentro de Docker/Cloud Run depende de C5: `docker/api.Dockerfile` instala únicamente `requirements.txt`; no incorpora `chromadb` ni `sentence-transformers` de `requirements/celula-3.txt`.

@@ -78,14 +78,14 @@ US-222/US-223 (PR #192, Oscar) y US-224. Registrado en
 - **Camino A** (reproducir la carga real): ya disponible para cualquiera hoy mismo, ahora que el
   script histórico está commiteado — no dependía de nada más.
 - **Camino B** (restaurar un `pg_dump` del schema `bronze` de Diana, minutos en vez de horas):
-  comandos documentados y listos para correr, **pendiente de que Diana lo genere y lo comparta**
-  por un canal fuera de git (Drive/Teams del equipo — nunca datos reales pesados en git, CLAUDE.md
-  §3). Esta sesión de IA no tiene acceso de red al Postgres local de Diana para generarlo por
-  ella.
+  **dump ya generado** por Diana (`bronze_real_2026-09-03.dump`, 33 MB, corrido en su propia
+  terminal — esta sesión de IA no tiene acceso de red a su Postgres local), movido fuera del
+  repo (`~/Documents/MTIIA/bronze_dumps/`) y `*.dump` agregado a `.gitignore` como candado extra.
+  Pendiente solo de que Diana lo suba al canal de Teams del equipo y comparta el link.
 
-**Nota de precisión:** el bloqueo queda `mitigating`, no `resolved` — el Camino A cierra la
-brecha de "no hay instrucciones", pero el Camino B (la vía rápida) sigue pendiente de una acción
-física de Diana fuera de esta sesión.
+**Nota de precisión:** el bloqueo queda `mitigating`, no `resolved` — con el dump ya generado,
+lo único que falta para que sea `resolved` del todo es que Diana lo comparta por Teams (fuera
+del alcance de esta sesión de IA: no hay forma de subir archivos a Teams desde aquí).
 
 ## Qué se corrigió/agregó en el vault y el código
 
@@ -104,8 +104,9 @@ física de Diana fuera de esta sesión.
 - Confirmar los 2 PRs exactos que rompieron `agua_region`/`rezago_municipio` y avisar a sus
   dueños.
 - Great Expectations para DS-01/DS-02 — deuda conocida, sigue fuera de alcance de esta sesión.
-- Generar y compartir el dump de Bronze (Camino B de BLOCK-004) — acción de Diana, fuera del
-  alcance de esta sesión de IA.
+- Compartir el dump de Bronze ya generado (Camino B de BLOCK-004) por Teams — acción de
+  Diana, fuera del alcance de esta sesión de IA (no hay forma de subir archivos a Teams desde
+  aquí).
 - Responder a Oscar (DB-10/DB-07) y a Estefany (BUG-026/US-321) — comunicación de equipo, no
   técnica.
 

@@ -135,28 +135,30 @@ cualquiera pueda auto-atenderse sin depender de una sesión en vivo con Diana:
   instrucciones.
 
 ### Camino B — restaurar el dump de Bronze de Diana (minutos, no horas)
-Más rápido porque salta la descarga. Pendiente de ejecutar por Diana (no se puede correr desde
-esta sesión de IA — sin acceso de red al Postgres local de nadie):
+Más rápido porque salta la descarga. **Dump ya generado** (2026-09-03,
+`bronze_real_2026-09-03.dump`, 33 MB, todo el schema `bronze` real) — pendiente solo de que
+Diana lo suba al canal de Teams del equipo y comparta el link (nunca por git: CLAUDE.md "Nunca
+subas datos reales pesados"; `data/raw/` está en `.gitignore` por la misma razón, y `*.dump`
+también se agregó al `.gitignore` como candado extra).
 
 ```bash
-# Diana genera el dump (solo el schema bronze, formato custom comprimido):
+# Ya generado por Diana:
 pg_dump -h localhost -U postgres -d escuela_concausa_db -n bronze -Fc \
   -f bronze_real_2026-09-03.dump
 
-# Lo comparte por Drive/Teams del equipo -- NUNCA por git (CLAUDE.md: "Nunca subas datos
-# reales pesados"; data/raw/ está en .gitignore por la misma razón).
-
-# Cualquiera lo restaura en su propio Postgres local (vacío, recién creado):
+# Cualquiera lo restaura en su propio Postgres local (vacío, recién creado), una vez que
+# Diana lo comparta por Teams:
 pg_restore -h localhost -U postgres -d escuela_concausa_db --no-owner --no-privileges \
   bronze_real_2026-09-03.dump
 
 # Y luego, igual que en el Camino A:
 dbt run && dbt test
 ```
-Incluye `bronze.formato911_historico` (~1.37M filas reales, 6 ciclos, verificado 2026-09-03) y
+Incluye `bronze.formato911_historico` (~1.37M filas reales, 6 ciclos, verificado 2026-09-03),
 `bronze.cct_siged_202608` (385,175 filas, verificado 2026-09-03 contra `silver.escuela` sin
-duplicados). No incluye Silver/Gold: esos se recalculan localmente con `dbt run`, para que el
-pipeline de cada quien se siga ejerciendo de verdad.
+duplicados) y `bronze.formato911_2024_2025` (ciclo único, PR #105). No incluye Silver/Gold: esos
+se recalculan localmente con `dbt run`, para que el pipeline de cada quien se siga ejerciendo de
+verdad.
 
 > Esto resuelve el bloqueador de *ambiente* (Camino A siempre disponible, Camino B en cuanto
 > Diana genere y comparta el dump). No resuelve la deuda de Great Expectations para DS-01/DS-02,

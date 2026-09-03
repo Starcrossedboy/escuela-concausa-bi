@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import logging
 import os
 from typing import Any
 
@@ -15,6 +16,9 @@ except ImportError:
 NOMBRE_COLECCION = "faro_gold_schema"
 NOMBRE_MODELO_EMBEDDINGS = "all-MiniLM-L6-v2"
 
+logger = logging.getLogger(__name__)
+_modelo_cache = None
+
 
 class ErrorRecuperacion(RuntimeError):
     """La capa RAG no está disponible."""
@@ -25,11 +29,17 @@ class ContextoNoEncontrado(ErrorRecuperacion):
 
 
 def _cargar_modelo() -> Any:
+    global _modelo_cache
+    if _modelo_cache is not None:
+        return _modelo_cache
+
     if SentenceTransformer is None:
         raise ErrorRecuperacion("sentence-transformers no está instalado.")
     try:
-        return SentenceTransformer(NOMBRE_MODELO_EMBEDDINGS)
+        _modelo_cache = SentenceTransformer(NOMBRE_MODELO_EMBEDDINGS)
+        return _modelo_cache
     except Exception as exc:
+        logger.exception("Falló la descarga o inicialización del modelo de embeddings %r.", NOMBRE_MODELO_EMBEDDINGS)
         raise ErrorRecuperacion("No se pudo cargar el modelo de embeddings.") from exc
 
 

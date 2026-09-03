@@ -126,6 +126,21 @@ class TableroEmbebido:
     iframe_url: str
 
 
+def url_con_filtros(iframe_url: str, ciclo: str, entidad: str, nivel: str) -> str:
+    """Append de los filtros AC-002.2 a la URL del iframe (ciclo/entidad/nivel)."""
+    import urllib.parse
+
+    sep = "&" if "&" in iframe_url else "?"
+    filtros = []
+    if ciclo:
+        filtros.append(f"native_filters=!()&filters={urllib.parse.quote(ciclo, safe='')}")
+    if entidad:
+        filtros.append(f"entidad={urllib.parse.quote(entidad, safe='')}")
+    if nivel:
+        filtros.append(f"nivel={urllib.parse.quote(nivel, safe='')}")
+    return iframe_url + (sep + "&".join(filtros) if filtros else "")
+
+
 def tableros_embebidos(rol: str = "ciudadano", cliente: httpx.Client | None = None) -> list[TableroEmbebido]:
     """Devuelve los dashboards con su iframe firmado para el rol, o lanza SupersetDeshabilitado.
 

@@ -10,6 +10,7 @@ from src.frontend.superset_client import (
     SupersetDeshabilitado,
     TableroEmbebido,
     tableros_embebidos,
+    url_con_filtros,
 )
 
 
@@ -91,3 +92,26 @@ def test_falla_claramente_si_no_hay_password_de_admin(monkeypatch: pytest.Monkey
     cliente = _cliente_fake(handler)
     with pytest.raises(Exception, match="SUPERSET_ADMIN_PASSWORD no está definido"):
         tableros_embebidos(rol="ciudadano", cliente=cliente)
+
+
+def test_url_con_filtros_sin_filtros_no_anade_nada() -> None:
+    url = f"{SUPERSET_URL}/superset/dashboard/db01-ejecutivo/?standalone=true&guest_token=t"
+    assert url_con_filtros(url, ciclo="", entidad="", nivel="") == url
+
+
+def test_url_con_filtros_agrega_ciclo_entidad_y_nivel() -> None:
+    url = f"{SUPERSET_URL}/superset/dashboard/db01/?standalone=true&guest_token=t"
+    resultado = url_con_filtros(url, ciclo="2024-2025", entidad="09", nivel="Primaria")
+
+    assert "guest_token=t" in resultado
+    assert "filters=2024-2025" in resultado
+    assert "entidad=09" in resultado
+    assert "nivel=Primaria" in resultado
+    assert "native_filters=!()" in resultado
+
+
+def test_url_con_filtros_escapa_valores_con_caracteres_especiales() -> None:
+    url = "http://superset/superset/dashboard/db01/?standalone=true"
+    resultado = url_con_filtros(url, ciclo="2024-2025", entidad="09 Distrito A", nivel="")
+    # El espacio en la entidad debe quedar percent-codificado.
+    assert "entidad=09%20Distrito%20A" in resultado

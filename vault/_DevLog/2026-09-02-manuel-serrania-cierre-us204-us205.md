@@ -32,11 +32,20 @@ tags: [devlog]
     (ciclo/entidad/nivel), iframes firmados y degradación explícita: si Superset no expone guest token
     (C5 pendiente) NO se muestra ningún tablero (AC-002.1).
   - `src/frontend/app.py`: tarjetas de acceso rápido (elimina `TODO(US-206)`).
-  - `tests/test_frontend_superset_client.py` (nuevo): 4 pruebas con `httpx.MockTransport` (token ok,
-    401→deshabilitado, sin UUID→error, password ausente→error).
-- Verificación: `ruff check` limpio (src/frontend + test) · `pytest` frontend 15 passed · ownership
-  `test_check_ownership.py` 40 passed. Los 10 errores de colección del suite global son preexistentes
-  (módulos externos como `limits`), ajenos a este cambio.
+  - `tests/test_frontend_superset_client.py` (nuevo): 7 casos con `httpx.MockTransport` (token ok,
+    401→deshabilitado, sin UUID→error, password ausente→error) + `url_con_filtros` (sin filtros,
+    ciclo/entidad/nivel, escape percent) para cubrir AC-002.2 a nivel de URL.
+  - `tests/test_frontend_dashboards_streamlit.py` (nuevo, `importorskip`): prueba `render()` con un
+    Superset HTTP simulado — con token válido dibuja los filtros; con 401 el guest token NO muestra
+    tableros ni filtros (AC-002.1). Se omite en ejecución local porque `streamlit` no está instalado
+    (igual que `test_frontend_chat_streamlit.py`).
+  - Refactor: `url_con_filtros` movida de `pages/1_Dashboards.py` a `superset_client.py` para poder
+    probarla sin el stack Streamlit.
+- Verificación: `ruff check` limpio (src/frontend + tests) · `pytest` frontend 18 passed (7 de
+  superset_client/url_con_filtros + agente + chat) · ownership `test_check_ownership.py` 40 passed.
+  La prueba de `render()` (Streamlit) se omite localmente por falta de `streamlit`, igual que la del
+  chat. Los 10 errores de colección del suite global son preexistentes (módulos externos como
+  `limits`), ajenos a este cambio.
 
 ## 🤖 Sesión de IA
 - **Agente / modelo:** OpenCode / opencode/big-pickle

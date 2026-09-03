@@ -15,6 +15,7 @@ from superset_client import (
     SupersetDeshabilitado,
     SupersetError,
     tableros_embebidos,
+    url_con_filtros,
 )
 
 CICLOS = ("2021-2022", "2022-2023", "2023-2024", "2024-2025")
@@ -25,21 +26,6 @@ NIVELES = ("Preescolar", "Primaria", "Secundaria", "Media Superior")
 def _tableros(rol: str) -> list:
     """Cachea el guest token por rol durante 60 s para no saturar Superset."""
     return tableros_embebidos(rol=rol)
-
-
-def _url_con_filtros(iframe_url: str, ciclo: str, entidad: str, nivel: str) -> str:
-    """Append de los filtros AC-002.2 a la URL del iframe."""
-    import urllib.parse
-
-    sep = "&" if "&" in iframe_url else "?"
-    filtros = []
-    if ciclo:
-        filtros.append(f"native_filters=!()&filters={urllib.parse.quote(ciclo, safe='')}")
-    if entidad:
-        filtros.append(f"entidad={urllib.parse.quote(entidad, safe='')}")
-    if nivel:
-        filtros.append(f"nivel={urllib.parse.quote(nivel, safe='')}")
-    return iframe_url + (sep + "&".join(filtros) if filtros else "")
 
 
 def render() -> None:
@@ -75,7 +61,7 @@ def render() -> None:
 
     for tablero in tableros:
         st.subheader(tablero.titulo)
-        url = _url_con_filtros(tablero.iframe_url, ciclo, entidad, nivel)
+        url = url_con_filtros(tablero.iframe_url, ciclo, entidad, nivel)
         st.components.v1.html(
             f"""
             <iframe

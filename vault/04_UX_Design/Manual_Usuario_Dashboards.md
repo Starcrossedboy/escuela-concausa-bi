@@ -3,10 +3,10 @@ id: DOC-MANUAL-DASHBOARDS
 title: "Manual de Usuario — Dashboards FARO"
 owner: "Oscar Antonio Quiroz Lázaro"
 status: approved
-version: "1.1"
+version: "1.2"
 traces_up: ["vault/04_UX_Design/Screen_Specs", "US-224"]
 traces_down: []
-last_reviewed: "2026-09-03"
+last_reviewed: "2026-09-04"
 tags: [ux, dashboards, manual, celula-2, us-224, pitch]
 ---
 
@@ -19,18 +19,18 @@ tags: [ux, dashboards, manual, celula-2, us-224, pitch]
 
 ## ⚠️ Estado de este manual (léelo antes de usarlo)
 
-**Actualización 2026-09-03 — 9/10 con captura real.** El bloqueo de Bronze que motivó la primera
-versión de este manual (2026-09-02) ya se resolvió para 9 de los 10 tableros: Diana Álvarez cargó
-CCT y Formato 911 reales, y Deni Garrido tiene el extractor oficial de CONEVAL
-(`src/ingesta/extractor_coneval.py` + `cargar_bronze_coneval_real.py`), que se corrió hoy y
-destrabó `dim_municipio` — la dependencia que bloqueaba en cascada a casi todo Gold. Con `dbt run`
-completo, 22 de 24 modelos materializaron con datos reales.
+**Actualización 2026-09-04 — 10/10 con captura real.** El bloqueo de Bronze que motivó la primera
+versión de este manual (2026-09-02) ya se resolvió para los 10 tableros: Diana Álvarez cargó CCT y
+Formato 911 reales; Deni Garrido tiene el extractor oficial de CONEVAL; Emilio Galnares ya tenía
+listo (desde el 28-ago, `done`) el extractor real de CONAGUA. Con `dbt run` completo, 23 de 24
+modelos materializaron con datos reales (solo `silver.agua_region`/D5 sigue con placeholder
+falso a propósito — BUG-030, decisión ya documentada del equipo, no relacionado con esto).
 
-**Solo DB-10 sigue sin registrarse**, y por una causa ya aislada y distinta: `gold.cubo_pipeline`
-necesita `bronze.conagua_presas` (CONAGUA/DS-06, Emilio Galnares, C1), que todavía no existe en
-este ambiente. No tiene relación con CONEVAL ni con BUG-029 — es la única pieza que falta.
+**Se encontró y corrigió un bug real en el sync** al registrar DB-10: `FORMATO_D3` en
+`superset/sync_semantic_layer.py` no tenía entrada para `formato: fecha` — Superset rechazaba el
+PUT completo del dataset y ninguna métrica se aplicaba. Corregido con prueba de regresión.
 
-**Limitación real, visible en las 9 capturas:** `gold.predicciones` y `gold.recomendaciones`
+**Limitación real, visible en las 10 capturas:** `gold.predicciones` y `gold.recomendaciones`
 (salidas de ML-01/ML-02) siguen siendo el mock sembrado en agosto, con CCT que no cruzan contra el
 catálogo real de 77,712 escuelas recién cargado. Por eso todo lo que depende de predicciones o
 recomendaciones muestra "No data"/SIN_DATO consistentemente — es una degradación correcta (R1: la
@@ -41,7 +41,7 @@ ficha no desaparece, dice "sin dato"), no un error de estos tableros. Refrescar 
 |---|---|
 | DB-01, DB-02, DB-03, DB-04, DB-05, DB-06, DB-08, DB-09 | **Vivos en Superset local con datos reales** (2026-09-03). KPIs de matrícula, drivers, infraestructura y territorio: reales. KPIs de predicción/recomendación (ML): SIN_DATO por el mock desactualizado, no por falta de dato real. |
 | DB-07 | **Vivo con datos reales** (2026-09-02, reconfirmado 2026-09-03 con `dbt run` completo): 7/7 charts. El mapa carga pero el autozoom no centra en México — zoom manual pendiente. |
-| DB-10 | Código, tablero y 5 pruebas listos; **no se registra** — depende de `bronze.conagua_presas` (Emilio Galnares, C1). Único tablero sin captura real. |
+| DB-10 | **Vivo con datos reales** (2026-09-04): 1,296,326 filas, 8/8 fuentes con dato, 0 SIN_DATO. El tile "Última ingesta" muestra ".527ms" por un límite de formato de `big_number_total` en Superset (no un dato faltante) — ver nota en su sección. |
 
 ---
 
@@ -284,13 +284,24 @@ otro. No usar esta captura sola en el pitch sin explicar el porqué del "0".
 desaparece ni se cuenta como cero filas.
 **Cómo leerlo:** si vas a hacer una demo en vivo, revisa este tablero primero — te dice qué fuentes
 están realmente cargadas antes de prometer un número en los otros 9.
-**Nota de estado (actualizada 2026-09-03):** el bloqueo de CONEVAL que compartía con DB-07 **ya se
-resolvió** (Parquet reales de DS-07 cargados). Lo único que sigue bloqueando este tablero
-específicamente es CONAGUA/DS-06 — `gold.cubo_pipeline` referencia `bronze.conagua_presas`
-directo y esa tabla no existe todavía en este ambiente. Es dependencia de Emilio Galnares (C1),
-no de Diana/Deni. SQL, tablero y 5 pruebas siguen en verde; solo falta esa fuente.
+**Nota de estado (actualizada 2026-09-03 · vivo con datos reales):** el bloqueo de CONEVAL se
+resolvió con el extractor real de Deni Garrido, y CONAGUA/DS-06 con el extractor ya construido por
+Emilio Galnares (`extractor_conagua.py` + `cargar_bronze_conagua_real.py`, sus historias US-121a…
+124a ya estaban `done` desde el 28-ago — solo faltaba correrlo en este ambiente). De paso se
+encontró y corrigió un bug real en `sync_semantic_layer.py`: `FORMATO_D3` no tenía entrada para
+`formato: fecha` (única métrica de fecha del proyecto, `ultima_ingesta`), así que Superset
+rechazaba el PUT completo del dataset y **ninguna** de las 4 métricas de DB-10 se aplicaba, no solo
+la de fecha. Ya corregido, con prueba de regresión (`tests/test_sync_formato_d3_cobertura.py`).
 
-[CAPTURA PENDIENTE: DB-10 — estado de las 8 fuentes, bloqueada por CONAGUA/DS-06 (Emilio Galnares)]
+![DB-10 · Monitor del pipeline, datos reales 2026-09-04](capturas/db10-monitor-pipeline.png)
+
+**Captura real.** 1,296,326 filas ingeridas, 0 fuentes SIN_DATO, las 8 fuentes reales con su
+conteo exacto (Formato 911: 908,312 · CCT: 385,175 · CONEVAL: 2,469 · CONAGUA: 180 · SESNSP: 72 ·
+CEMABE: 72 · CONAPO: 36 · SINAICA: 10). **Límite cosmético conocido, no oculto:** el tile "Última
+ingesta" muestra ".527ms" en vez de una fecha — `big_number_total` de Superset formatea su métrica
+con d3-format (numérico), no con d3-time-format, así que un `MAX(_ingested_at)` crudo no se puede
+formatear bien ahí por diseño de ese tipo de chart. Se probaron 3 valores de formato distintos sin
+éxito; no es un dato faltante, es una limitación de ese tipo de visualización.
 
 ---
 
@@ -322,7 +333,6 @@ en tiempo real qué fuente está fallando, en vez de que parezca un bug silencio
 - **Consume:** [[vault/04_UX_Design/Screen_Specs]] (catálogo de KPIs y arquitectura de los 10
   dashboards, US-201) · [[vault/04_UX_Design/Cube_Specs_DB07]] · [[vault/04_UX_Design/Cube_Specs_DB10]]
   (bloqueo de datos documentado)
-- **Pendiente:** solo queda 1 marcador `[CAPTURA PENDIENTE]` (DB-10), condicionado a que Emilio
-  Galnares resuelva `bronze.conagua_presas` (CONAGUA/DS-06). Refrescar el mock de ML-01/ML-02
-  contra el catálogo real de escuelas destrabaría los KPIs de predicción/recomendación en las
-  9 capturas ya reales
+- **Pendiente:** ningún marcador `[CAPTURA PENDIENTE]` — 10/10. Lo único que sigue abierto es
+  refrescar el mock de ML-01/ML-02 contra el catálogo real de escuelas, que destrabaría los KPIs
+  de predicción/recomendación en las 10 capturas (fuera de mi alcance, Célula 3)

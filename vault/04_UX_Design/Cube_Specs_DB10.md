@@ -82,6 +82,14 @@ de Deni Garrido). Confirmado con `dbt run`: `gold.cubo_pipeline` **solo** falla 
 único de los 10 dashboards que sigue sin registrarse en Superset; ver
 [[vault/10_Risk_Governance/Blocker_Register]] (BLOCK-004).
 
+**Actualización 2026-09-04 — bloqueo resuelto por completo.** Emilio Galnares ya tenía el extractor
+real de CONAGUA listo desde el 28-ago (US-121a…124a, `done`) — solo faltaba correrlo en este
+ambiente. `bronze.conagua_presas` cargado (180 presas reales), `dbt run --select cubo_pipeline`
+materializa con **10 filas**. DB-10 registrado y vivo en Superset con captura real en
+[[vault/04_UX_Design/Manual_Usuario_Dashboards]]. De paso se corrigió un bug real en
+`sync_semantic_layer.py` (`FORMATO_D3` sin entrada para `formato: fecha`, hacía que ninguna
+métrica del dataset se aplicara) — ver `tests/test_sync_formato_d3_cobertura.py`.
+
 ## 5. Trazabilidad
 
 - **Implementa:** US-223 (REQ-002)

@@ -8,8 +8,10 @@ tags: [ux, accessibility, a11y]
 
 # Accessibility — FARO
 
-> Requisitos mínimos de accesibilidad, verificados en CI (Lighthouse a11y).
-> → [[vault/04_UX_Design/_index]] · [[vault/08_CICD_DevOps/CI_Quality_Gates]]
+> Requisitos mínimos de accesibilidad. **Sin gate automatizado todavía** — se verifican a mano
+> (Marina García, 2026-09-03: no hay "lighthouse" en `.github/` ni en
+> [[vault/08_CICD_DevOps/CI_Quality_Gates]]; este documento lo daba por hecho).
+> → [[vault/04_UX_Design/_index]]
 
 ## Checklist
 - [ ] Contraste AA (texto ≥ 4.5:1)
@@ -19,5 +21,6 @@ tags: [ux, accessibility, a11y]
 - [ ] Focus visible
 - [ ] Respeta `prefers-reduced-motion`
 
-## Meta en CI
-- Lighthouse Accessibility ≥ 0.9 (bloqueante).
+## Meta objetivo (no bloqueante — sin CI que lo mida)
+- Lighthouse Accessibility ≥ 0.9. Aspiracional hasta que exista el gate; verificar a mano con
+  Lighthouse en el navegador antes de la demo.

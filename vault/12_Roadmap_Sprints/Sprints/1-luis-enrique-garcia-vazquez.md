@@ -62,6 +62,12 @@ Tienes historias **acotadas y bien definidas**, pensadas para que aprendas hacie
 | **Entregable** | Código en su carpeta + documento en el vault con frontmatter + fila en la matriz |
 | **Cómo se entrega** | Rama fija `dev/luis-garcia` (sincronizada con `main`) → PR con plantilla → 1 aprobación del PM → merge a `main` |
 
+> **Nota (2026-09-02):** preparados los cargadores reales Bronze→Postgres
+> (`src/ingesta/cargar_bronze_sesnsp_real.py`, `src/ingesta/cargar_bronze_sinaica_real.py`),
+> idempotentes por snapshot `_source`+`_ingested_at`, listos para correr contra el corte real de
+> datos. Pendiente: actualizar `dbt/models/sources.yml` para dejar los fixtures `_test`. Ver
+> [[vault/_DevLog/2026-09-02-luis-garcia-us122b-cargadores-bronze-real|DevLog]].
+
 ### `US-123b` · Validaciones Great Expectations de DS-04 y DS-05
 
 | | |

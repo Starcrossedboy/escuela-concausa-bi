@@ -441,15 +441,38 @@ día por su cuenta, que es la comprobación de que no es un ambiente afortunado.
 
 ### 8.ter.3 KPI-02 concuerda por cinco caminos (BUG-031)
 
-| Origen | KPI-02 |
-|---|---|
-| `gold.fact_escuela_ciclo` (fuente de verdad) | **−0.192 %** |
-| `gold.cubo_matricula` → DB-01, DB-06 | **−0.192 %** |
-| `gold.cubo_riesgo_territorial` → DB-02 | **−0.192 %** |
-| `gold.cubo_escuela_360` → DB-03 | **−0.192 %** |
-| `gold.cubo_comparador_municipio` → DB-04 | **−0.192 %** |
+> **Corregido el 2026-09-04.** La primera versión de esta sección daba **−0.192 %** como
+> "el" KPI-02. Ese número es la **mezcla de los tres ciclos**, no el valor de un ciclo, y
+> por lo tanto no es lo que el tablero muestra. Ver §8.quater: es el mismo defecto de
+> agregación que motivó el ciclo por defecto. El número correcto del ciclo vigente es
+> **−0.496 %**. La concordancia entre cubos —que es lo que BUG-031 verificaba— **se
+> sostiene igual**, y ahora se comprueba al grano correcto.
 
-Sobre 32 312 / 32 374 alumnos: los mismos valores del reporte original del 29-ago.
+KPI-02 del ciclo **2024-2025**, por los cinco caminos que lo alimentan:
+
+| Origen | KPI-02 (2024-2025) |
+|---|---|
+| `gold.fact_escuela_ciclo` (fuente de verdad) | **−0.496 %** |
+| `gold.cubo_matricula` → DB-01, DB-06 | **−0.496 %** |
+| `gold.cubo_riesgo_territorial` → DB-02 | **−0.496 %** |
+| `gold.cubo_escuela_360` → DB-03 | **−0.496 %** |
+| `gold.cubo_comparador_municipio` → DB-04 | **−0.496 %** |
+
+Sobre 11 828 / 11 887 alumnos del ciclo.
+
+Por qué importa la distinción, y no es cosmética: los tres ciclos **no van en la misma
+dirección**, así que el promedio mezclado esconde el signo.
+
+| Ciclo | Matrícula | Anterior | KPI-02 |
+|---|---|---|---|
+| 2022-2023 | 13 267 | 13 235 | **+0.242 %** |
+| 2023-2024 | 7 217 | 7 252 | −0.483 % |
+| 2024-2025 | 11 828 | 11 887 | −0.496 % |
+| *(mezcla de los tres)* | *32 312* | *32 374* | *−0.192 %* |
+
+Un tablero que respondiera "la matrícula cayó 0.19 %" estaría promediando un año que
+**subió** con dos que bajaron. La cifra parece razonable y significa otra cosa — el mismo
+modo de falla que BUG-017 y BUG-031.
 
 ### 8.ter.4 La regla `SIN_DATO` aguanta de punta a punta
 
@@ -473,6 +496,127 @@ Donde el Estado no mide, el tablero lo dice; no inventa un cero.
 - El criterio de cierre por URL pública **no aplica** a US-212: Edgar lo precisó el 29-ago —
   ese gate se escribió para rutas HTTP de la API. Un tablero cierra con evidencia de código
   más capa de datos validada.
+
+---
+
+## 8.quinquies `escuelas_en_riesgo = 0` — análisis para la mesa (2026-09-04)
+
+> **Insumo de decisión, no una decisión.** El umbral lo fija **DEC-006**, ratificado por
+> Manuel Serranía y registrado por Edgar Coronel. Esta sección aporta la evidencia; el
+> cambio —si lo hay— no es de Célula 2.
+
+### 8.quinquies.1 Qué se reportó
+
+Luis Téllez lo marcó el 2026-09-04 como **H1** al liberar la URL pública: *"ojo con
+`escuelas_en_riesgo=0` — el riesgo real máximo es 0.401 y el umbral del KPI es 0.6, hay
+que ajustar umbral o narrativa antes de la demo"*. Afecta `KPI-04` (DB-04) y `KPI-17`
+(DB-03), que son de esta historia.
+
+### 8.quinquies.2 No es un defecto: el cero es correcto
+
+`src/modelos/riesgo.py` (C3) define el `indice_riesgo` como una sigmoide fijada por **dos
+anclas de negocio explícitas**, no por constantes arbitrarias:
+
+| Variación de matrícula | `indice_riesgo` |
+|---|---|
+| `0.00` (matrícula estable) | 0.30 |
+| **`-0.05` (pierde 5 %)** | **0.60 — exactamente el umbral de DEC-006** |
+
+Es decir: **`indice_riesgo ≥ 0.6` significa "se proyecta que pierda 5 % o más de su
+matrícula"**. Verificado contra los datos (ciclo 2024-2025, 55 escuelas con predicción):
+
+| `indice_riesgo` | Variación proyectada |
+|---|---|
+| 0.56 (el máximo observado) | **−4.37 %** |
+| 0.52 | −3.73 % |
+| 0.50 | −3.36 % |
+| 0.41 | −1.97 % |
+
+**Ninguna escuela llega a −5 %.** El cero no es un KPI roto: es la afirmación verdadera de
+que, con estos datos, ninguna escuela cruza el criterio de negocio que el propio equipo
+definió. La sigmoide, el umbral y el conteo son internamente coherentes.
+
+Bajar el umbral "para que se vea algo" **rompería esa coherencia**: desharía el
+significado de −5 % que DEC-006 fijó, y volvería el número incomparable entre ciclos —
+justo la propiedad por la que C3 eligió una sigmoide absoluta sobre un percentil relativo.
+
+### 8.quinquies.3 Qué se vería con cada umbral
+
+Si aun así se decide mover el umbral, este es el costo en interpretación:
+
+| Umbral | Escuelas en riesgo | % del universo | Qué significaría |
+|---|---|---|---|
+| **0.60** (hoy, DEC-006) | 0 | 0 % | "pierde ≥ 5 %" — coherente, pero muestra cero |
+| 0.50 | 5 | 9.1 % | ≈ "pierde ≥ 3.4 %" — hay que redefinir el criterio |
+| 0.40 | 15 | 27.3 % | ≈ "pierde ≥ 1.9 %" — el 27 % del universo "en riesgo" diluye la señal |
+| 0.35 | 23 | 41.8 % | casi la mitad marcada: deja de ser una alerta |
+
+Distribución real (55 escuelas con predicción, ciclo 2024-2025): mínimo 0.164, mediana
+0.317, p90 0.499, p95 0.515, máximo **0.562**.
+
+### 8.quinquies.4 Recomendación de Célula 2
+
+**No mover DEC-006.** Tres razones: el cero es verdadero, el umbral tiene un significado
+de negocio explícito y trazable, y cambiarlo a dos días del freeze reabre una decisión
+ratificada sin ganar información.
+
+Lo que sí resuelve el problema de la demo, sin tocar la decisión: **dejar de contar y
+empezar a ordenar**. El valor del proyecto no es "cuántas escuelas cruzan un umbral", es
+"cuáles son las más urgentes y por qué driver" — que es el diferenciador prescriptivo y ya
+funciona. Un ranking de las escuelas de mayor riesgo con su driver dominante y su
+recomendación cuenta la historia completa aunque ninguna llegue a 0.60.
+
+Alternativa si se quiere conservar un conteo: **una banda intermedia** ("atención",
+0.40–0.60) como KPI adicional, sin redefinir "en riesgo". No toca DEC-006 y da 15 escuelas
+que mostrar. Requiere aval de Manuel (catálogo de KPIs) y de Edgar.
+
+---
+
+## 8.quater Ciclo por defecto en los filtros — US-214a (2026-09-04)
+
+### 8.quater.1 El defecto
+
+Un filtro nativo de Superset **sin valor inicial** deja el tablero sin filtrar al abrirlo.
+Cualquier tarjeta que agregue sobre un cubo con grano multi-ciclo suma **todos** los ciclos:
+
+| | Matrícula que pintaba `KPI-15` / `KPI-01` |
+|---|---|
+| Al abrir el tablero (sin filtro) | **32 312** |
+| Ciclo 2024-2025 (lo correcto) | **11 828** |
+
+2.7× inflado, sin ningún error en el sync, en la API ni en la consola del navegador.
+Afectaba a las **8 tarjetas** de DB-03 y DB-04, no solo a las de matrícula: toda métrica
+agregada sin dimensión tiene el mismo problema.
+
+Lo detonó el aviso de **Luis Téllez del 2026-09-04**: el mismo defecto en
+`/api/v1/kpis` de producción pintaba 20 638 574 contra ~6.7 M reales. Allá se corrigió en
+la API; **los tableros no pasan por la API** —consultan la base directo— así que ese
+arreglo no los cubría y necesitaban el suyo.
+
+### 8.quater.2 El arreglo
+
+Clave nueva `valor_por_defecto` en las entradas de `filtros_globales`, que
+`_filtros_nativos()` traduce al `defaultDataMask` que Superset entiende — la misma
+estructura que ya usan los links de drill-down en su parámetro `native_filters`, así que
+el formato estaba verificado contra 6.1.0 desde US-214b.
+
+**Es aditivo y opt-in.** `sync_semantic_layer.py` es herramienta compartida de la Célula 2
+(la usan DB-01/02/05/06/07/08/09/10): un tablero que no declara la clave se comporta
+exactamente igual que antes, y hay una prueba de compatibilidad hacia atrás que lo exige.
+
+> **Mantenimiento:** el valor es explícito (`"2024-2025"`), no se deriva de los datos. Al
+> cargar un ciclo nuevo hay que actualizarlo en los dos YAML. Se eligió explícito sobre
+> dinámico por ser predecible y revisable a dos días del freeze; si el proyecto sigue
+> vivo después de la demo, derivarlo de `MAX(id_ciclo)` es la mejora natural.
+
+### 8.quater.3 Guarda
+
+`tests/test_filtro_ciclo_por_defecto.py` (8 casos) cubre las dos **clases** de error:
+que un tablero multi-ciclo publique tarjetas agregadas sin ciclo por defecto, y que el
+traductor deje de emitir el `defaultDataMask` o rompa a quien no usa la clave. Validado
+reintroduciendo ambos defectos. Verificado además en vivo contra el Superset desplegado:
+los dos tableros persisten su ciclo por defecto, y el drill-down de §8.bis sigue apuntando
+a los índices correctos (el filtro nuevo no corrió ninguna posición).
 
 ---
 

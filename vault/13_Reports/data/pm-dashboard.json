@@ -1,10 +1,10 @@
 {
   "meta": {
-    "generated_at": "2026-09-04T21:35:52+00:00",
+    "generated_at": "2026-09-04T21:38:24+00:00",
     "generated_date": "2026-09-04",
-    "commit": "aec3e8d",
+    "commit": "29435d9",
     "branch": "dev/edgar-coronel",
-    "working_tree": "clean",
+    "working_tree": "modified",
     "source_fingerprint": "16e0971a3414",
     "source": "Fuentes canónicas del vault",
     "offline": true,
@@ -3704,6 +3704,17 @@
         "signal": "8 PR · 12 DevLog · 4 US activas"
       },
       {
+        "name": "Edgar Ulises Jiménez López",
+        "cell": "Célula 5",
+        "cell_group": "Célula 5 · Cloud Infrastructure & DevOps",
+        "active": true,
+        "prs_merged": 6,
+        "devlogs": 5,
+        "active_us": 4,
+        "activity": 15,
+        "signal": "6 PR · 5 DevLog · 4 US activas"
+      },
+      {
         "name": "Luis Enrique García Vázquez",
         "cell": "Célula 1",
         "cell_group": "Célula 1 · Data Engineering & Quality",
@@ -3713,17 +3724,6 @@
         "active_us": 4,
         "activity": 15,
         "signal": "5 PR · 6 DevLog · 4 US activas"
-      },
-      {
-        "name": "Edgar Ulises Jiménez López",
-        "cell": "Célula 5",
-        "cell_group": "Célula 5 · Cloud Infrastructure & DevOps",
-        "active": true,
-        "prs_merged": 6,
-        "devlogs": 4,
-        "active_us": 4,
-        "activity": 14,
-        "signal": "6 PR · 4 DevLog · 4 US activas"
       },
       {
         "name": "Alejandro Velázquez Mendoza",

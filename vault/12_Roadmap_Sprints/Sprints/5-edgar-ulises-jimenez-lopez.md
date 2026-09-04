@@ -322,8 +322,8 @@ Actualiza esta tabla **antes de cada standup**. El PM la revisa para el tablero 
 |---|---|---|---|---|---|
 | `US-521b` | Guia ambiente local: Airflow y ML | 🟡 En curso | 70% | Confirmar cobertura del compose del ecosistema | Junta de cierre |
 | `US-522b` | Contenerizar Airflow y jobs ML | 🔵 En revisión (PR #87) | 90% | Resolver checks/revisión y merge | Junta de cierre |
-| `US-523b` | Quality gate CI: lint y pruebas | ⬜ Por iniciar | 0% | — | Dom 23 ago |
-| US-524b | Monitoreo de Airflow y jobs ML | 🔵 En revisión (PR abierto) | 90% | Revisión de Luis Téllez | Dom 6 sep |
+| `US-523b`  | Quality gate CI: lint y pruebas | ✅ Terminado | 100% | PR #165 merged 2026-09-02 | — |
+| `US-524b` | Monitoreo de Airflow y jobs ML | 🔵 En revisión (PR abierto) | 90% | Revisión de Luis Téllez | Dom 6 sep |
 | `US-525b` | Runbook rollback Airflow y ML | ⬜ Por iniciar | 0% | — | Mar 8 sep |
 
 **Estados válidos:** ⬜ Por iniciar · 🟡 En curso · 🔵 En revisión (PR abierto) · ✅ Terminado · 🔴 Bloqueado

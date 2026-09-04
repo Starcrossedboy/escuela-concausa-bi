@@ -430,6 +430,12 @@ tags: [requirements, traceability, matrix]
 | `REQ-003` | `US-313` | **Hallazgo al verificar el runbook**: con el pipeline completo post-BUG-045 el ambiente de fixtures devuelve **2 escuelas en riesgo** (máx. `indice_riesgo` **0.7423**, peor variación proyectada **−7.60 %**) y 12 en la banda 0.40–0.60 ⬜ · Las corridas del 3-sep reportaban **0** con máximo 0.5615. No es aleatoriedad —ML-01 fija `random_state: 0`— sino **cobertura de datos**: aquel día CONEVAL no tenía fixture compatible y **D1 iba vacío**; hoy `d1_pobreza` tiene dato en **145 de 145** ✅ · No invalida la ratificación de DEC-006 (el umbral 0.60 ↔ −5 % sigue siendo el criterio correcto y el ranking sigue siendo la narrativa de la demo), pero **sí invalida la premisa de que el conteo siempre dará cero**: quien cite aquel «0» está citando un ambiente con un driver menos | Reconfirmar el conteo contra los datos reales de producción antes del 9-sep | ⬜ Insumo para la demo |
 | `REQ-005` | `US-502` | Pendiente ajeno detectado y **no corregido** por alcance: `scripts/verificar-servicios.sh` consulta `localhost:8000/health`, pero `src/api/app.py:131` monta todo bajo `/api/v1` → reporta un **FAIL falso** de la API a quien lo use para verificar su ambiente. También consulta ChromaDB en `/api/v1/heartbeat` cuando el healthcheck del compose usa `/api/v2/heartbeat` ⬜ · `scripts/**` es amarillo de C5, no del PM | Luis Téllez corrige las dos rutas | ⬜ Abierto, de C5 |
 
+## Evidencia incremental — 2026-09-04 · plan de cierre de Estefany post-PR #197
+
+| REQ | Historias | Evidencia / decisión de estado | Próxima validación | Estado |
+|---|---|---|---|---|
+| `REQ-003` | `US-321`, `US-322`, `US-325` | Revisión contra código, pruebas, fichas y `Execution_Status`: PR #197 ya resolvió la reproducción de Bronze DS-01/DS-02 y sus suites GE, pero aún se requiere materializar Gold y ejecutar la evidencia real. Se publica [[vault/15_ML_Models/Plan_Cierre_Estefany_US321_US322_US325]] con fases, criterios de paro, prompt maestro y revisores. Se conserva el baseline de ML-03 (**Silhouette 0.1086 < 0.30**) y no se cambia ninguna historia a `done` sin nueva evidencia | Ejecutar Bronze → Silver → Gold; correr EDA/cobertura real; iterar ML-03 y solicitar decisión de Andrés/Edgar si no alcanza el umbral | 🟡 Plan listo; ejecución pendiente |
+
 ## Evidencia incremental — 2026-09-04 · BUG-048: producción sirve un Gold empobrecido (PM)
 
 | REQ | Historias | Evidencia / decisión de estado | Próxima validación | Estado |

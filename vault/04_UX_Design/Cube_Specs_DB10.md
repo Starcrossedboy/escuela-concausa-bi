@@ -6,7 +6,7 @@ status: approved
 version: "1.0"
 traces_up: ["vault/04_UX_Design/Screen_Specs", "US-223"]
 traces_down: []
-last_reviewed: "2026-09-02"
+last_reviewed: "2026-09-04"
 tags: [ux, dashboards, kpis, celula-2, pipeline]
 ---
 
@@ -74,6 +74,21 @@ dependencia ya resuelta).
 Mismo bloqueo de infraestructura documentado en US-222 — no es error de
 este SQL, y no se simuló con datos inventados por la misma razón: no es
 contrato que le corresponda definir a esta historia.
+
+**Actualización 2026-09-03 — bloqueo reducido a una sola fuente, aislada.** De las 8 tablas Silver,
+7 ya materializan con Bronze real (incluida `rezago_municipio`/CONEVAL, vía el extractor oficial
+de Deni Garrido). Confirmado con `dbt run`: `gold.cubo_pipeline` **solo** falla por
+`bronze.conagua_presas` (CONAGUA/DS-06) — dependencia de Emilio Galnares, no de Diana/Deni. Es el
+único de los 10 dashboards que sigue sin registrarse en Superset; ver
+[[vault/10_Risk_Governance/Blocker_Register]] (BLOCK-004).
+
+**Actualización 2026-09-04 — bloqueo resuelto por completo.** Emilio Galnares ya tenía el extractor
+real de CONAGUA listo desde el 28-ago (US-121a…124a, `done`) — solo faltaba correrlo en este
+ambiente. `bronze.conagua_presas` cargado (180 presas reales), `dbt run --select cubo_pipeline`
+materializa con **10 filas**. DB-10 registrado y vivo en Superset con captura real en
+[[vault/04_UX_Design/Manual_Usuario_Dashboards]]. De paso se corrigió un bug real en
+`sync_semantic_layer.py` (`FORMATO_D3` sin entrada para `formato: fecha`, hacía que ninguna
+métrica del dataset se aplicara) — ver `tests/test_sync_formato_d3_cobertura.py`.
 
 ## 5. Trazabilidad
 

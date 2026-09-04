@@ -41,7 +41,8 @@ tags: [devlog, ml, ml-03, plan-cierre, prompt]
 - [x] Sin secretos hardcodeados ni datos reales en el repositorio.
 - [x] No se modificó código ni contratos de áreas ajenas.
 - [x] DevLog enlaza a `US-321`, `US-322`, `US-325` y `REQ-003`.
-- [ ] Suite enfocada: el `.venv` local no importa NumPy; se documentará como limitación del entorno.
+- [x] `pytest tests/ -q` ejecutado por el CI del PR #226: paso Pytest en verde; el `.venv` local no
+  importa NumPy y esa limitación permanece documentada sin atribuirle un falso resultado local.
 - [x] `vault_lint.py` ejecutado: `✅ Vault limpio`.
 
 ## Bloqueantes

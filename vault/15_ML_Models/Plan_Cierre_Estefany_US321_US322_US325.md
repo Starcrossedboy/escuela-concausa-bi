@@ -162,3 +162,20 @@ fuera de mi alcance. Formula una pregunta concreta al dueño correcto. No uses u
   ML-03 si no alcanza 0.30.
 - **Diana Alvarez:** sólo si la reconstrucción de Gold falla o el contrato real no coincide; el PR
   #197 ya resolvió la disponibilidad reproducible de Bronze y no debe reabrirse sin evidencia nueva.
+
+## 6. Control de cumplimiento del Vault
+
+| Regla | Evidencia en este cambio | Resultado |
+|---|---|---|
+| Identidad y rama fija | `stephi-coder` · `dev/estefany-hernandez` | Cumple |
+| Sincronía antes del PR | `origin/main` incorporado mediante merge; la rama no está detrás de `main` | Cumple |
+| Alcance de Estefany | `check_ownership.py`: 10 archivos, todos dentro del alcance | Cumple |
+| Definition of Filed | ID, carpeta, frontmatter, trazas, `_index` y matriz presentes | Cumple |
+| Sesión con IA | DevLog creado y listado en `vault/_DevLog/_index.md` | Cumple |
+| Calidad automatizada | Vault lint, tablero PM, Ruff, Pytest, dbt parse y Quality Gate en verde | Cumple |
+| Seguridad | Sin secretos, `.env`, datos reales ni archivos mayores de 5 MB | Cumple |
+| Compuerta única | Revisión de Edgar solicitada por tocar la matriz; el PR no se autoaprueba | Pendiente del PM |
+
+La aprobación del PM es una compuerta deliberadamente pendiente, no un incumplimiento del autor. No
+se propone cambiar `US-321`, `US-322` o `US-325` a `done`: este PR entrega el plan verificable de
+cierre y mantiene visibles la evidencia real aún necesaria y el Silhouette inferior al umbral.

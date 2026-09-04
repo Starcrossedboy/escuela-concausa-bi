@@ -2,12 +2,12 @@
 id: DOC-LINEAGE
 title: "Linaje de datos completo — fuente → dashboard (US-106)"
 owner: "Diana Aracely Alvarez Varela"
-status: approved
-version: "1.0"
+status: draft
+version: "0.1"
 source_of_truth: true
 traces_up: ["US-106", "vault/03_Architecture/Data_Model", "REQ-001"]
 traces_down: ["vault/02_Requirements/Traceability_Matrix"]
-last_reviewed: "2026-09-04"
+last_reviewed: "2026-08-23"
 tags: [architecture, lineage, freeze, us-106]
 ---
 
@@ -23,22 +23,12 @@ tags: [architecture, lineage, freeze, us-106]
 
 ## 1. Estado de este documento
 
-**`status: approved`** — freeze declarado el **2026-09-04**, dos días antes del objetivo original
-del Sprint S5 (6-sep-2026). Los 5 ítems sustantivos del checklist de §4 quedaron cerrados con
-evidencia real y verificada dos veces (por Deni Garrido Fragoso el 30-ago, y reproducidos en vivo
-por Diana Alvarez Varela el 2026-09-04 con los mismos resultados): los 4 cubos de DEC-009
-materializados y probados (134/134 tests), y `coneval_periodo_medicion` resuelto de raíz. No
-tenía sentido esperar al 6-sep sin ninguna verificación pendiente real — declarar antes le da a
-**C2** (Superset), **C3** (ML) y **C4** (API) más días de esquema Gold estable antes de la demo
-del 9-sep, y queda antes del *code freeze* general del proyecto (también 6-sep, `CLAUDE.md`).
-
-**Transparencia sobre un pendiente no bloqueante:** `RISK-008` en
-[[vault/10_Risk_Governance/Risk_Register]] todavía muestra `abierto` — Diana le pidió directamente
-a Deni (dueña de DS-07) que lo cierre formalmente, pendiente al momento de este freeze. La
-sustancia del riesgo (confirmar `coneval_periodo_medicion` contra la fuente oficial) **ya está
-resuelta y verificada**, ver arriba — lo que falta es solo la actualización de esa fila del
-registro, no una verificación adicional. Se declara el freeze con este pendiente a la vista, no
-oculto.
+**`status: draft`** — no es un freeze todavía. US-106 vence en el **Sprint S5 (31 ago – 6 sep
+2026)**; el freeze real se declara el **6 de septiembre**, una vez cerrados los pendientes de la
+§4. Este documento se prepara ahora (23-ago) porque el esquema Gold ya está mayormente estable y
+no tiene sentido esperar al último día para documentar el linaje — pero **declarar el freeze hoy
+sería prematuro** mientras sigan abiertos BUG-009, la materialización de los 4 cubos de DEC-009 y
+el PR de Monserrat.
 
 ## 2. Cómo leer el diagrama
 
@@ -98,15 +88,15 @@ flowchart TD
     end
 
     subgraph GOLD_CUBOS["GOLD — cubos materializados (§4.3 Data_Model)"]
-        C_matricula["gold.cubo_matricula<br/>✅ materializado (US-113, Deni, cierre 30-ago)"]
-        C_riesgo["gold.cubo_riesgo_territorial<br/>✅ materializado (US-113, Deni, cierre 30-ago)"]
+        C_matricula["gold.cubo_matricula<br/>⏳ pendiente US-113 (Deni)<br/>SQL ref. mergeado (PR #71, Manuel)"]
+        C_riesgo["gold.cubo_riesgo_territorial<br/>⏳ pendiente US-113<br/>SQL ref. mergeado (PR #71)"]
         C_360["gold.cubo_escuela_360<br/>✅ SQL semántico (db03)"]
         C_comparador["gold.cubo_comparador_municipio<br/>✅ SQL semántico (db04, DEC-008)"]
-        C_driver["gold.cubo_driver<br/>✅ materializado (US-113, Deni, cierre 30-ago)"]
-        C_completitud["gold.cubo_completitud<br/>✅ materializado (US-113, Deni, cierre 30-ago)"]
-        C_pivot["gold.cubo_pivot<br/>✅ materializado (US-113, cierre 30-ago)"]
-        C_recomendaciones["gold.cubo_recomendaciones<br/>✅ materializado (US-113, cierre 30-ago)"]
-        C_pipeline["gold.cubo_pipeline<br/>✅ materializado (US-113, cierre 30-ago)"]
+        C_driver["gold.cubo_driver<br/>⏳ pendiente US-211b (Monserrat, PR sin abrir)"]
+        C_completitud["gold.cubo_completitud<br/>⏳ pendiente, sin SQL aún (DEC-009)"]
+        C_pivot["gold.cubo_pivot<br/>⏳ pendiente"]
+        C_recomendaciones["gold.cubo_recomendaciones<br/>⏳ pendiente"]
+        C_pipeline["gold.cubo_pipeline<br/>⏳ pendiente"]
     end
 
     subgraph ML["ML — Célula 3 (MLflow, walk-forward, ADR-003)"]
@@ -229,16 +219,16 @@ flowchart TD
 
 ---
 
-## 3. Qué está materializado hoy (última verificación: 2026-09-04) vs. qué falta
+## 3. Qué está materializado hoy (23-ago-2026) vs. qué falta
 
 | Capa | Materializado | Pendiente |
 |---|---|---|
 | Bronze | 10/10 tablas reciben datos (aunque 7 sin `identifier` por default, BUG-009) | `conagua` sin ninguna tabla real ingerida |
 | Silver | 8/9 modelos dbt construidos y probados | `agua_region` sin datos reales (depende de bronze conagua) |
 | Gold — estrella | `dim_escuela`, `dim_municipio`, `dim_tiempo`, `fact_escuela_ciclo`, `features_escuela`, `matricula_municipio_nivel` — construidos, testeados (dbt tests nativos) | `dim_driver` es catálogo estático (ADR-005), no depende de pipeline |
-| Gold — cubos | **Verificado 2026-09-04:** los 9 cubos están materializados y probados (cierre runtime real US-113, Deni, 2026-08-30 — `dbt run`+`dbt test` de los 9 cubos: 134/134 PASS, 0 cubos faltantes, 0 vacíos, filas reales por cubo, cierre `OK_US113_RUNTIME_REAL`) | Ninguno — los 4 cubos de DEC-009 (`cubo_matricula`, `cubo_riesgo_territorial`, `cubo_driver`, `cubo_completitud`) ya no están pendientes |
-| ML | Contratos y estrategia documentados (ADR-003, `vault/15_ML_Models/`). **Verificado 2026-09-04:** el cierre runtime de US-113 (Deni, 30-ago) corrió `publicar_gold --desde-gold` sobre `gold.features_escuela` real (UPSERT canónico) y `cubo_recomendaciones` quedó con 145 filas reales, no de fixture | Pendiente que Célula 3 confirme directamente si sus propias corridas de ML-01/ML-02/ML-03 (no solo la publicación a Gold) ya son sobre datos reales — esto no se verificó en esta pasada |
-| Gobernanza de esquema | DEC-008 (14-ago) y DEC-009 (23-ago) registradas y en `Data_Model.md` §4.3. **Verificado 2026-09-04:** ambas están en `vault/10_Risk_Governance/Decision_Log.md` en `main` | Ninguno |
+| Gold — cubos | `cubo_escuela_360` y `cubo_comparador_municipio` tienen SQL semántico mergeado (Manuel, PR #71) | `cubo_matricula`, `cubo_riesgo_territorial` (SQL ref. mergeado, falta el cubo real — US-113, Deni); `cubo_driver` (SQL ref. en rama sin PR — US-211b, Monserrat); `cubo_completitud`, `cubo_pivot`, `cubo_recomendaciones`, `cubo_pipeline` sin construir |
+| ML | Contratos y estrategia documentados (ADR-003, `vault/15_ML_Models/`) | Verificar en Célula 3 si `gold.predicciones`/`gold.recomendaciones` ya tienen corridas reales o siguen en fixture (`generar_fixture*.py`) |
+| Gobernanza de esquema | DEC-008 (14-ago) y DEC-009 (23-ago) registradas y en `Data_Model.md` §4.3 | Confirmar que ambas están mergeadas a `main` antes del freeze |
 
 ## 4. Checklist para el freeze del 6 de septiembre
 
@@ -246,31 +236,21 @@ No declarar el freeze hasta que:
 
 - [x] PR #74 (fix D6 IDW), #75 (DEC-009) y #76 (hallazgos BUG-009) estén mergeados a `main`
       — los tres mergeados el 2026-08-23, junto con #73, #77, #78 y #79
-- [x] Los 4 cubos de DEC-009 (`cubo_matricula`, `cubo_riesgo_territorial`, `cubo_driver`,
-      `cubo_completitud`) estén materializados con el grano nuevo (US-113, Deni)
-      — **verificado 2026-09-04** contra `vault/_DevLog/2026-08-30-deni-garrido-us113-runtime-real-cierre.md`:
-      commits `4737d8d`/`11dedd8`/`4fa2186`/`e1f86a0` (22-ago) + cierre `86fc37c` (25-ago),
-      cierre runtime real 30-ago con `dbt test` 134/134 PASS sobre los 9 cubos Gold, 0 faltantes,
-      0 vacíos, filas reales confirmadas por cubo (`OK_US113_RUNTIME_REAL`)
+- [ ] Los 4 cubos de DEC-009 (`cubo_matricula`, `cubo_riesgo_territorial`, `cubo_driver`,
+      `cubo_completitud`) estén materializados con el grano nuevo (US-113, Deni) o, si no alcanza
+      el tiempo, quede documentado explícitamente como deuda técnica aceptada por Edgar
 - [x] BUG-009 tenga default permanente en `sources.yml` (o, alternativa, se documenten los valores
       reales como configuración estándar del ambiente) — Edgar decide el reparto
       — cerrado por **DEC-011**: las 11 vars (no 7) con default permanente, identifiers inline en
       `sources.yml` y vars de modelo en `dbt_project.yml`; `dbt parse` en CI como test de regresión
-- [x] `coneval_periodo_medicion` esté confirmado por Deni (no el placeholder `2020`)
-      — **resuelto 2026-08-30, verificado 2026-09-04**: Deni no solo confirmó el valor, resolvió
-      la causa de raíz (`vault/_DevLog/2026-08-30-deni-garrido-ds07-silver-real.md`). Se elimina
-      `coneval_periodo_medicion` de `dbt_project.yml` por completo (confirmado por grep — ya no
-      existe en `dbt/`); el período viaja como metadato real `_periodo_medicion` desde el
-      extractor oficial, no como constante. Además `coneval_v2`/`coneval_test` quedan **ambas**
-      superadas — no eran la pregunta correcta: se declaran `bronze.coneval_irs_2020` y
-      `bronze.coneval_pobreza_2020` como sources reales (confirmado en `dbt/models/sources.yml`).
-      Runtime real: `silver.rezago_municipio` 2469/2469 municipios, IRS 2469 OK, Pobreza 2466 OK
-      + 3 SIN_DATO oficiales. **`RISK-008` en `Risk_Register.md` sigue mostrando `abierto`** —
-      desalineado con esta evidencia; ya se avisó a Deni para que lo cierre formalmente
+- [ ] `coneval_periodo_medicion` esté confirmado por Deni (no el placeholder `2020`)
+      — **sigue abierto**: `2020` quedó como deuda técnica aceptada explícitamente por Edgar Coronel
+      (PM) en DEC-011, no como valor confirmado. Rastreado como **RISK-008** (dueña: Deni, fecha
+      objetivo: 6-sep). Si no lo confirma antes del freeze, se declara con esta deuda a la vista, no
+      cerrada en silencio. Incluye confirmar que `coneval_v2` es la tabla correcta y no `coneval_test`
 - [x] El PR de Monserrat (`feat/monserrat-olivas-us211b-cubos-db05-db08`) esté abierto y su SQL de
       `cubo_driver` revisado — PR #73, revisado y aprobado por Manuel Serranía, mergeado el 2026-08-23
-- [x] Este documento pase de `status: draft` a `status: approved` con fecha de freeze real
-      — **declarado 2026-09-04** (ver §1)
+- [ ] Este documento pase de `status: draft` a `status: approved` con fecha de freeze real
 
 ## 5. Qué significa "congelar" el esquema
 

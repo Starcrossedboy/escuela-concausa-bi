@@ -6,7 +6,7 @@ status: approved
 version: "1.0"
 traces_up: ["vault/04_UX_Design/Screen_Specs", "US-223"]
 traces_down: []
-last_reviewed: "2026-09-02"
+last_reviewed: "2026-09-04"
 tags: [ux, dashboards, kpis, celula-2, pipeline]
 ---
 

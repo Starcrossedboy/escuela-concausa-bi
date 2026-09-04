@@ -26,7 +26,7 @@ tags: [qa, bugs]
 | BUG-009 | 11 vars de dbt sin valor por default (7 `identifier` de fuentes Bronze + 4 vars de modelo): cualquier `dbt parse`/`build`/`run` falla al renderizar el manifest aunque el modelo probado no use esas fuentes | high | fixed | US-111 | defaults inline en `sources.yml` + bloque `vars:` en `dbt_project.yml` (DEC-011) | `dbt parse` en `ci.yml` (job `dbt-contract`) |
 | BUG-010 | `/api/v1/predicciones/*` sigue leyendo `src/api/mock_data.py` en vez de `gold.predicciones` + `gold.recomendaciones`: la verificación **#4 del ensayo E2E** («≥1 modelo sirviendo por API») devolvería un valor fijo, no la predicción de ML-01 | **high** | fixed | US-412 / US-415 / REQ-004 / REQ-003 | `feat/juan-mayen-us415-pydantic-schemas` — `src/api/repositorio_modelos.py` (`RepositorioModelos` sobre Postgres, mismo patrón `Depends` que `RepositorioGold`); `PrediccionOut.cluster` pasa a `StrictInt \| None` (ML-03 sin productor, US-321) · `tests/test_api_contract.py::test_prediccion_combina_ml`, `test_prediccion_cct_sin_fila_404`, `test_prediccion_batch_omite_ccts_sin_fila` (fake en `tests/fixtures_modelos.py`) |
 | BUG-011 | `sync_semantic_layer.py` lee YAML/SQL con la codificación del sistema (`read_text()` sin `encoding`): en Windows usa cp1252 y truena con los acentos de cualquier `metrics_*.yaml`; el script solo corre con `PYTHONUTF8=1`. Misma familia que BUG-005 (locale de Windows) | medium | fixed | US-203 / US-212 | `fix/manuel-serrania-bug010-sync-charts-utf8` — `encoding="utf-8"` explícito en las 3 lecturas (`_read_yaml`, `_read_sql`) | pendiente (validar en Windows) |
-| BUG-012 | No existe runbook para levantar el pipeline local: `dbt/README.md` es el scaffold por defecto de dbt, no hay `profiles.yml` ni se documenta dónde ponerlo, y **cargar solo `bronze_formato911_sample.csv` deja `gold.fact_escuela_ciclo` en 0 filas** — hay que cargar también `bronze_formato911_ciclo_anterior_sample.csv` en la MISMA tabla para que `lag()` encuentre pares. Nada de esto está escrito. | high | open | US-112 / US-113 / REQ-001 | pendiente (**C1**) — pasos verificados en `vault/_DevLog/2026-08-27-marina-garcia-pipeline-local-us212.md` | pendiente — **asignado a Edgar Coronel (PM) el 29-ago tras 3 días sin dueño en C1.** Los 7 pasos verificados de Marina en `vault/_DevLog/2026-08-27-marina-garcia-pipeline-local-us212.md` se convierten en `dbt/README.md`. Con BUG-026 cerrado el pipeline ya es reproducible desde fixtures, así que el runbook por fin puede escribirse completo y verificarse |
+| BUG-012 | No existe runbook para levantar el pipeline local: `dbt/README.md` es el scaffold por defecto de dbt, no hay `profiles.yml` ni se documenta dónde ponerlo, y **cargar solo `bronze_formato911_sample.csv` deja `gold.fact_escuela_ciclo` en 0 filas** — hay que cargar también `bronze_formato911_ciclo_anterior_sample.csv` en la MISMA tabla para que `lag()` encuentre pares. Nada de esto está escrito. | high | **fixed** | US-112 / US-113 / REQ-001 | resuelto 2026-09-04 (**Edgar Coronel, PM**): [[vault/00_Start_Here/Runbook_Ambiente_Local]] — runbook canónico `approved`/`source_of_truth`, verificado de punta a punta en una máquina sin `.env` ni perfil de dbt. Documenta los 4 pasos que ningún documento recogía: `dbt seed` antes de `dbt run`, el orden ML-antes-de-cubos, `export POSTGRES_HOST=localhost` (el `.env` trae `db`) y `DATABASE_URL` para `publicar_gold`. Corrige además el conteo de fixtures: son **tres** de Formato 911 a la misma tabla (242 filas) y **ocho** de drivers, no siete — CONEVAL se partió en `irs`/`pobreza` con BUG-045 | ✅ verificado corriéndolo el 2026-09-04, con la cifra esperada por paso: 242 filas en bronze, `gold.fact_escuela_ciclo` 145, `features_escuela` 145/3 ciclos, ML-01 MAE 0.0844, 55 predicciones + 55 recomendaciones, 8 de 9 cubos, 103 charts y 9 tableros en Superset, `/api/v1/kpis` = 11 828 (ciclo vigente). Cada número queda escrito en el runbook para que una desviación futura se note en el paso exacto donde ocurre. Pendiente ajeno, anotado y no corregido aquí: `scripts/verificar-servicios.sh` consulta `/health` cuando la app monta `/api/v1/health` (falso FAIL de la API) — `scripts/**` es alcance de C5
 | BUG-013 | `publicar_gold.py` usa por defecto el fixture sintético `tests/fixtures/features_escuela_mock.csv`, no `gold.features_escuela`: publica 80 filas de **ciclo 2023-2024** mientras el hecho real tiene 25 de **2024-2025**. El JOIN por `(cct, id_ciclo)` da cero, así que DB-03 muestra `cobertura_prediccion = SIN_DATO` en el 100% de las escuelas y los bloques de predicción y recomendación (AC-002.4) quedan vacíos. Apuntarlo al Gold real tampoco basta hoy: `features_escuela` tiene un solo ciclo y ML exige partición temporal. | high | **fixed** | US-313 / US-113 / REQ-003 | **C3 ✅** (`a76c748`, Héctor): el hueco era que `publicar_gold.py` no sabía leer de una tabla; `cargar_features_desde_gold()` + `--desde-gold`. **C1 ✅ con datos reales** (Diana, 27-ago): 4 ciclos reales cargados en `bronze.formato911_2024_2025` → estrella completa y 8 cubos, 149/149 tests. **Lo que queda ⬜:** no es reproducible fuera del ambiente de Diana — con los fixtures del repo `features_escuela` sigue saliendo con 1 ciclo, así que **la dueña de DB-03 no puede verificar sus propios bloques ML (AC-002.4)** ni CI ejercitar la ruta. Ver **BUG-026** · **2026-09-03 ✅ RESUELTO — verificado por Marina García.** Ese último hueco cerró: con los **tres** fixtures de Formato 911 (el tercero, `bronze_formato911_serie_historica_sample.csv`, lo creó Diana para BUG-026) `gold.features_escuela` sale con **145 filas y 3 ciclos**, y `publicar_gold --desde-gold` publica **55 predicciones + 55 recomendaciones** — mismas cifras que reprodujo Héctor Morales el mismo día. **AC-002.4 ya es verificable en un ambiente armado solo con fixtures del repo**: DB-03 muestra 55 escuelas con `cobertura_prediccion = OK` y 90 con `SIN_DATO` (los ciclos sin predicción), y el `indice_riesgo` va de 0.1637 a 0.5615 — ya no saturado, que era el síntoma de BUG-017 | verificado en local (Marina, 28-ago): `--desde-gold` → `ValueError: Con 1 ciclos no se puede hacer backtesting… Ciclos disponibles: ['2024-2025']` |
 | BUG-014 | `quality_gate.yml` busca el token de casilla sin marcar en **todo el cuerpo del PR** con `grep -q "\[ \]"`, no solo en ítems de lista: basta con **mencionar** esa sintaxis dentro de una explicación —aunque vaya en backticks— para que el check falle. Sumado a que la plantilla oficial trae la casilla de aprobación del PM sin marcar (le toca marcarla a él al revisar), **la plantilla del repo no puede pasar su propio gate** y empuja a los autores a borrar el registro de aprobación o a marcarlo ellos mismos. | medium | **fixed** | US-503 / REQ-007 | `fix/edgar-navarrete-mojibake-higiene-vault` (Edgar Coronel, PM — **revisión de C5 solicitada a Luis Téllez por regla 7**). Tres cambios: el patrón se acota a `grep -qE '^[[:space:]]*-[[:space:]]*\[ \]'`; la sección `## Aprobación` se recorta antes de evaluar, porque es del PM y se marca al revisar; y se agrega el evento **`edited`**, sin el cual un cuerpo corregido después del push se quedaba en rojo para siempre; además, las dos casillas que un autor honesto no puede marcar —`(Alternativa) No usé IA` y `Si toqué esquema…`— se marcan `<!-- opcional -->` en la plantilla y el gate las omite (hallado al revisar el PR #110) | `.github/scripts/probar_verificar_plantilla.sh` — 7 casos contra el script real, leyendo `.github/PULL_REQUEST_TEMPLATE.md` del archivo (no una copia): la plantilla llenada por el autor pasa, sin llenar reprueba, las casillas opcionales marcadas con `<!-- opcional -->` no cuentan, y mencionar la sintaxis en prosa ya no reprueba |
 | BUG-015 | ML-01 no podía entrenar sobre `gold.features_escuela` real: un driver **100 % `SIN_DATO`** (D5 agua, DS-06 sin descarga) rompe el binning de `HistGradientBoostingRegressor` con `window shape cannot be larger than input array shape`, un error que no delata la causa. Además el default `--ventanas 3` pedía 5 ciclos y el Gold real sólo tiene 3 utilizables | high | **fixed** | US-311 / US-313 / REQ-003 | `fix/hector-marban-driver-sin-datos` | — |
@@ -57,7 +57,94 @@ tags: [qa, bugs]
 | BUG-042 | **24 de 91 historias no tenían fila en `Execution_Status.md`, y el generador las contaba como `planned` en silencio.** `build_snapshot()` hacía `state = execution.get(story["id"], {})` y luego `state.get("status", "planned")` — una US ausente del registro no era un error, era indistinguible de "de verdad no ha arrancado". Pasó con **10 de las 24** ya con PR mergeado, algunas terminadas (US-205, US-214b, US-523b), otras con datos reales entregados y solo pendientes de bloqueo ajeno (US-222, US-321). Una de las filas existentes además tenía la evidencia mal etiquetada: `US-206` cargaba el trabajo real de `US-205` (repunteo de capa semántica, PR #134), hallazgo de Manuel Serranía. Detectado auditando el tablero contra los PRs mergeados en `main`, 2026-09-03 | high | fixed | US-004 / REQ-007 | Se agregan las 24 filas faltantes con su estado real verificado contra PR/commit (no un default) y se corrige la etiqueta `US-206`→`US-205`; `build_snapshot()` ya no completa con `.get(..., "planned")` — si una US no tiene fila, el generador falla y lista cuáles faltan | `TEST-034` (`tests/test_generate_pm_dashboard.py`, 2 casos): confirma que las 91 historias reales tienen fila, y que inyectar una historia sin registro hace que `build_snapshot()` truene mencionando `BUG-042` y su ID — no que caiga a `planned` |
 | BUG-044 | **Sin `ciclo` explícito, `/escuelas`, `/escuelas/{cct}` y `/kpis` sumaban/listaban TODOS los ciclos materializados a la vez, no solo el actual.** `listar_escuelas`/`obtener_kpis`/`obtener_escuela` (`src/api/repositorio_gold.py`) solo filtraban por `fact.c.id_ciclo` cuando el caller mandaba `ciclo`; al omitirlo (el caso más común), la consulta quedaba sin acotar sobre `gold.fact_escuela_ciclo`, que materializa ~3 ciclos. Verificado en producción: `/escuelas?cve_ent=09` sin `ciclo` → 19 456 filas; con `ciclo=2024-2025` → 6 378 (razón ≈3, una fila por ciclo por escuela, sin campo `id_ciclo` en `EscuelaOut` para distinguirlas); `/kpis` sin `ciclo` → `matricula_total=20 638 574` (nacional aparente) cuando el real de las 4 entidades es ~7M — la matrícula estaba **triplicada**, no fuera de alcance. `obtener_escuela` (detalle) tenía el mismo hueco: sin filtro, `.first()` devolvía una fila cualquiera entre los ciclos de una escuela, no determinista. Detectado por Karla Monter validando el cierre de US-411 (BUG-020 ya curado) el 2026-09-03 | **critical** | **fixed** | US-411 / REQ-004 | `dev/karla-monter` (Karla Monter, C4) — los tres métodos de `RepositorioGoldPostgres` ahora usan `_ciclo_mas_reciente()` (`MAX(id_ciclo)`) como default cuando `ciclo` es `None`; `tests/fixtures_gold.py::RepositorioGoldFake` refleja el mismo default para que la suite rápida lo ejerza sin Postgres | `tests/test_api_contract.py::test_escuelas_sin_ciclo_no_duplica_entre_ciclos` · `::test_escuelas_ciclo_explicito_trae_el_ciclo_pedido` · `::test_kpis_sin_ciclo_no_suma_ciclos_anteriores` — las tres usan el fixture con la misma escuela en dos ciclos (`09DPR0001A`, 2024-2025 y 2023-2024) para que la deduplicación se ejerza de verdad, no por casualidad de datos |
 | BUG-041 | **El path real `--desde-gold` de ML truena cuando un driver queda 100 % `SIN_DATO`: `pd.read_sql_table` devuelve los nombres de columna como `quoted_name` (subclase de `str`), sklearn exige `type(x) == str` exacto para poblar `feature_names_in_`, así que **nunca lo puebla**; el fallback `getattr(modelo, "feature_names_in_", DRIVERS)` de `construir_predicciones` cae a los 6 `DRIVERS` y reintroduce el driver descartado → `ValueError: X has 6 features, but HistGradientBoostingRegressor is expecting 5 features`. Misma FAMILIA que BUG-015/018/023 pero **causa raíz nueva**: aquí el propio patrón `feature_names_in_` que arregló a los tres nunca se activa al leer de la BD, así que el fix de BUG-015 queda anulado en el path de producción. Los tests no lo cazan porque usan fixtures CSV (`read_csv` → `str` puro). Reportado por Luis Téllez (C5) al cerrar la validación L0 local el 2026-09-02, ejercitando cobertura parcial real (D5 agua 100 % `SIN_DATO`) | high | **fixed** | US-311 / US-313 / REQ-003 | **C3 ✅ aplicado por Héctor Morales (2026-09-03)** en `cargar_features_desde_gold` (`entrenar_ml01.py`), tal cual lo preparó Luis Téllez: `df.columns = [str(c) for c in df.columns]` tras el `read_sql_table`. Diagnóstico **verificado de forma independiente** antes de aplicarlo: `pd.read_sql_table` devuelve `quoted_name` (Postgres **y** SQLite) y sklearn 1.9.0 no puebla `feature_names_in_` con él, sí con `str` puro. Fallo reproducido end-to-end contra el Gold local (3 ciclos, D5 100 % `SIN_DATO`) con el mismo `ValueError` y el mismo MAE 0.0844 que reportó C5; con el parche, `--desde-gold` publica **55 predicciones + 55 recomendaciones** (F1 0.6458), las mismas cifras | `tests/test_entrenar_ml01.py::test_las_columnas_leidas_de_gold_son_str_puro` · `::test_entrenar_desde_gold_puebla_feature_names_in` · `::test_predecir_desde_gold_no_cae_al_fallback_de_los_6_drivers` — las tres **reprueban con el parche revertido** (comprobado) y usan SQLite, que también entrega `quoted_name`, así que corren en CI sin Postgres |
-| BUG-045 | **CONEVAL (DS-07) no es reproducible desde el repositorio: el fixture y el modelo hablan esquemas distintos, y no existe ninguno compatible.** `dbt/models/silver/rezago_municipio.sql` consume el esquema del **extracto oficial**, con columnas hasheadas — exige `c_b9548dbd414b`, `c_deef5d1bd71a`, `c_9b370f449788`, `c_9e8609cad84d`, `c_5d0523b1d4a3`, `c_91fd46c9babe`, `c_9bd1a7aa7fca`, `c_764f3baf1395`, `c_1a3c72ae6dd1` y `_periodo_medicion`. El único fixture de CONEVAL del repo (`tests/fixtures/bronze_coneval_sample.csv`, generado por `tests/fixtures/generate_bronze_drivers_fixtures.py::generar_coneval`) emite `cve_mun, entidad, municipio, indice_rezago_social, grado_rezago, pobreza_pct` — el contrato **viejo**, anterior a la migración de Deni, y su propio docstring lo cita (`Data_Model.md §6`). **Ningún CSV del repo tiene columnas `c_…`.** Sin los dos Excel reales de CONEVAL no se construye `silver.rezago_municipio` → sin él no hay `gold.dim_municipio` → sin él **no se materializa ningún cubo** → **sin cubos no funciona ningún tablero**. Reproducido corriéndolo: `dbt run` reprueba con `column "c_b9548dbd414b" does not exist`. **CI no lo atrapa**: el job `dbt-contract` solo hace `dbt parse`, que renderiza el manifest sin ejecutar Silver contra datos | **high** | open | US-112 / US-113 / REQ-001 / REQ-002 / DS-07 | pendiente (**C1 — Diana Alvarez / Deni Garrido**). Dos caminos, cualquiera sirve: publicar un fixture con las columnas `c_…` que el modelo espera, o extender `generate_bronze_drivers_fixtures.py::generar_coneval` para que emita ese esquema. Hay precedente directo: existen **4 generadores** de Formato 911 (`generate_bronze_formato911_*.py`) que hacen exactamente eso | ⬜ sin prueba de regresión — hoy nada falla en CI cuando el fixture y el modelo divergen (ver §Guarda propuesta en el detalle) |
+| BUG-045 | **CONEVAL (DS-07) no es reproducible desde el repositorio: el fixture y el modelo hablan esquemas distintos, y no existe ninguno compatible.** `dbt/models/silver/rezago_municipio.sql` consume el esquema del **extracto oficial**, con columnas hasheadas — exige `c_b9548dbd414b`, `c_deef5d1bd71a`, `c_9b370f449788`, `c_9e8609cad84d`, `c_5d0523b1d4a3`, `c_91fd46c9babe`, `c_9bd1a7aa7fca`, `c_764f3baf1395`, `c_1a3c72ae6dd1` y `_periodo_medicion`. El único fixture de CONEVAL del repo (`tests/fixtures/bronze_coneval_sample.csv`, generado por `tests/fixtures/generate_bronze_drivers_fixtures.py::generar_coneval`) emite `cve_mun, entidad, municipio, indice_rezago_social, grado_rezago, pobreza_pct` — el contrato **viejo**, anterior a la migración de Deni, y su propio docstring lo cita (`Data_Model.md §6`). **Ningún CSV del repo tiene columnas `c_…`.** Sin los dos Excel reales de CONEVAL no se construye `silver.rezago_municipio` → sin él no hay `gold.dim_municipio` → sin él **no se materializa ningún cubo** → **sin cubos no funciona ningún tablero**. Reproducido corriéndolo: `dbt run` reprueba con `column "c_b9548dbd414b" does not exist`. **CI no lo atrapa**: el job `dbt-contract` solo hace `dbt parse`, que renderiza el manifest sin ejecutar Silver contra datos | **high** | fixed | US-112 / US-113 / REQ-001 / REQ-002 / DS-07 | resuelto 2026-09-04 (**C1 — Diana Alvarez**): se extendió `ESQUEMAS` en `src/ingesta/cargar_bronze_fixture.py` con las entradas `coneval_irs`/`coneval_pobreza` (columnas `c_…` hasheadas, verificadas contra los manifiestos reales de la carga DS-07 del 2026-09-04) y se regeneraron los fixtures vía `generate_bronze_drivers_fixtures.py::generar_coneval`: `bronze_coneval_irs_sample.csv` + `bronze_coneval_pobreza_sample.csv`. Se retiró el fixture huérfano `bronze_coneval_sample.csv` y el esquema `coneval` obsoleto (`--esquema coneval` ahora lanza `ValueError`). Ver §Arreglo aplicado en el detalle | ✅ verificado real contra Postgres por Diana (`dbt run`+`dbt test` sobre `rezago_municipio`, `pytest` 884 passed) — sigue pendiente solo la guarda de CI propuesta, no implementada en este fix (ver §Guarda propuesta) |
+| BUG-046 | **El verifier OAuth rechaza TODO `id_token` real de Google porque `jwt.decode` no desactiva la verificación de `at_hash`.** El `id_token` del *authorization code flow* siempre trae el claim `at_hash`; `_verificar_id_token` (`src/api/security/google.py`) llama a `jwt.decode` **sin `access_token` y sin `options`**, y jose —con `verify_at_hash=True` por defecto— lanza `JWTClaimsError("No access_token provided to compare against at_hash claim")`. `verify()` lo traduce a `ValueError` → **401 uniforme en TODO login real, analista y ciudadano**. La lectura pública y la URL pública NO se ven afectadas (dependen de `AUTH_LECTURA_PUBLICA`), pero el login interactivo e2e (US-402) y la demostración de RBAC 200/403 con cuentas reales (US-403) quedan **100% bloqueados**. Reproducido en prod (rev `faro-api-00010`) al intentar el primer login real: respuesta `{"error":"unauthorized",...}` con `JWTClaimsError` (`name=faro.api.google`) en los logs de Cloud Run. Los tests nunca lo cazaron porque el fixture emitía `id_token` **sin** `at_hash`, el único claim que Google siempre añade en producción. Reportado por Luis Téllez (C5) el 2026-09-04 | **critical** | fixed | US-402 / US-403 / REQ-004 | **parche + test de regresión preparados y validados en local por Luis Téllez (C5), rama `dev/luis-tellez`** — 1 línea (`options={"verify_at_hash": False}`) en `_verificar_id_token`. **Mergeado por Edgar Coronel (PO)** como excepción de propiedad: toca `src/api/security/**` (**alcance C4, Christian Ruiz**) y es **cambio de seguridad (regla 7)** → `check_ownership.py` reprueba, correctamente, un PR desde una rama C5. **Revisión de regla 7 de C4 firmada el 2026-09-04 — 🟢 aprobado sin cambios** (verificado por reversión del parche: reprueba con el mismo `JWTClaimsError` de prod; 66 passed en la familia de auth con el parche puesto). Ver [[vault/07_Security/Security_Review_US402_US403_US404]] Anexo A y `SEC-009`. **✅ `fixed` 2026-09-04:** redespliegue C5 → revisión `faro-api-00011-hr5` (rebuild `linux/amd64` desde `origin/main` `33fcbbb` + `gcloud run services update --image`, patrón BUG-044/DEC-012: preserva env/secrets/SA/VPC → `ANALISTA_EMAILS` efímero intacto). `/version`=`33fcbbb`. **Login e2e real validado por Luis Téllez (C5):** analista→**200**, ciudadano (2º correo fuera de `ANALISTA_EMAILS`)→**403**, sin token→**401** (AC-004.5). Ver [[vault/_DevLog/2026-09-04-luis-tellez-redeploy-bug046-e2e]] | `tests/test_oauth_google.py::test_verifier_acepta_id_token_con_at_hash` (emite un `id_token` con `at_hash`; **reprueba con el parche revertido**, comprobado — mismo `JWTClaimsError` del log de prod) |
+| BUG-047 | **Espejo en dashboards de BUG-044: los filtros globales de ciclo existen pero sin `valor_por_defecto`, así que al abrir cada tablero sin haber filtrado, toda métrica agregada suma los ~3 ciclos materializados del cubo a la vez.** A diferencia del fix de BUG-044 (que vive en la API `/api/v1/kpis`), los tableros no pasan por la API — leen la base directo, así que el fix de BUG-044 no los cubre. Afecta a los 7 dashboards que declaran `id_ciclo` y no fijaban ciclo al abrir: DB-01 ejecutivo, DB-02 mapa de riesgo, DB-05 analisis driver, DB-06 predicciones, DB-07 calidad cobertura, DB-08 explorador cubo, DB-09 recomendaciones (DB-03/DB-04 ya los cubrió Marina García dentro de US-214a; DB-10 monitoreo de pipeline no declara `id_ciclo` y no aplica). Mismo defecto que detonó el aviso de Luis Téllez el 2026-09-04: producción `/api/v1/kpis` pintaba 20.6M contra 6.7M reales | **high** | **fixed** | US-203 / US-204 / US-205 / US-213 / US-222 / REQ-002 | `dev/manuel-serrania` (Manuel Serranía, C2) — clave opcional `valor_por_defecto: "2024-2025"` en el YAML de cada dashboard, traducida al `defaultDataMask` de Superset por `sync_semantic_layer.py`, **aditiva y opt-in** (los tableros sin la clave no cambian); selectbox de ciclo en `1_Dashboards.py` fija `index=len(CICLOS)-1` (2024-2025) por defecto; `cct` agregado al final de `filtros_globales` (índice 3) en DB-06/DB-09 para destrabar el drill-down de Marina | `tests/test_frontend_dashboards_streamlit.py` (2 passed — el archivo tiene 2 tests; de los 3 archivos de frontend que el CI se saltaba en silencio y ya corren) + guarda de compatibilidad hacia atrás exigiendo que sin la clave no se escriba `defaultDataMask` |
+
+## BUG-046 — El verifier OAuth rechaza todo `id_token` real por no desactivar la verificación de `at_hash`
+
+Reportado por **Luis Téllez (C5)** el 2026-09-04, al validar el **primer login real end-to-end** en
+producción (revisión `faro-api-00010`, con `ANALISTA_EMAILS` y la consola de Google ya configuradas).
+No es un fallo de la cuenta ni de la consola: es un defecto de código que rompe **todos** los logins
+reales por igual.
+
+### Síntoma
+
+Tras autenticarse con una cuenta real de Google, el callback responde **401**:
+
+```json
+{"error":"unauthorized","message":"No hay credenciales válidas para esta operación.","request_id":"req_…"}
+```
+
+En los logs de Cloud Run, el origen exacto:
+
+```
+id_token de Google invalido: JWTClaimsError   (logger name=faro.api.google)
+```
+
+`/auth/login` (302), `/health` (200) y la lectura pública siguen funcionando; lo que revienta es el
+último paso del callback: la verificación del `id_token`.
+
+### Causa raíz
+
+`_verificar_id_token` (`src/api/security/google.py`) llama a `jwt.decode(...)` **sin `access_token` y
+sin `options`**. El `id_token` que Google emite en el *authorization code flow* **siempre** incluye el
+claim `at_hash`. python-jose trae `verify_at_hash=True` por defecto, y `_validate_at_hash` lanza
+
+```
+JWTClaimsError: No access_token provided to compare against at_hash claim.
+```
+
+cuando `at_hash` está presente pero no se pasa `access_token`. `_verificar_id_token` captura cualquier
+`JWTError` (del que `JWTClaimsError` es subclase) y lo convierte en `ValueError("id_token invalido")`,
+que la capa HTTP traduce al **401 uniforme**. Resultado: **ningún login real completa** —analista o
+ciudadano, da igual el correo—, porque el rechazo ocurre antes de resolver el rol.
+
+### Por qué los tests no lo cazaban
+
+El fixture `google_falso` de `tests/test_oauth_google.py` fabrica `id_token` firmados de verdad, pero
+**sin `at_hash`**. Sin ese claim, jose no ejecuta `_validate_at_hash` y la verificación pasa. `at_hash`
+es justamente **el único claim que Google añade en producción y las pruebas nunca emitían**. Misma
+lección que BUG-023 y BUG-041: un fixture construido para validar la forma no valida la realidad.
+
+### Fix (1 línea, validado en local)
+
+En la llamada `jwt.decode` de `_verificar_id_token`, desactivar la verificación de `at_hash`:
+
+```python
+options={"verify_at_hash": False},
+```
+
+**Por qué es seguro:** en el *authorization code flow* server-side el `id_token` llega por un canal
+TLS directo servidor↔Google, y su integridad ya la garantizan **firma RS256 + `aud` + `iss` + `exp`**,
+todas verificadas aquí. `at_hash` es una defensa pensada para el *implicit flow* —donde el token viaja
+por el navegador y conviene atarlo al `access_token`—; en este flujo el `access_token` ni se usa
+(`_intercambiar_code` solo devuelve el `id_token`). El resto de comprobaciones quedan intactas.
+
+*Alternativa más purista (descartada):* capturar el `access_token` en `_intercambiar_code` y pasarlo a
+`jwt.decode(access_token=...)`. Más código y estado que mantener, sin ganancia real de seguridad aquí,
+porque el `access_token` se descarta acto seguido.
+
+### Verificación (local, 2026-09-04, venv 3.11)
+
+- Con el fix: `pytest tests/test_oauth_google.py tests/test_auth_jwt.py tests/test_frontend_auth.py
+  tests/test_puente_oauth_frontend.py` → **54 passed, 1 skipped**.
+- Test de regresión nuevo (`test_verifier_acepta_id_token_con_at_hash`): **reprueba con el parche
+  revertido** (`ValueError: id_token invalido`, log `JWTClaimsError` — idéntico al de prod) y **pasa con
+  el fix**.
+
+### Propiedad / gobernanza
+
+`src/api/security/**` está **verde de Célula 4** (Christian Ruiz —TL— y su célula). Por la regla 9,
+`check_ownership.py` reprueba un PR de cualquier rama fuera de C4 que toque `src/api/**`. Además es un
+**cambio de seguridad → regla 7** (revisión humana explícita). El reporte y el parche se dan de alta
+aquí —`Bug_Register.md` es `comunes` y `Definition_of_Filed` obliga a registrar el bug a quien lo
+encuentre—, patrón de BUG-041 y BUG-008.
+
+**En modo reparación**, y por la proximidad del CODE FREEZE (2026-09-06), **Luis Téllez (C5, TL de
+Cloud & DevOps) autorizó preparar el parche + test en su rama `dev/luis-tellez`**; el **merge lo decide
+Edgar Coronel (PO)** pese al gate de ownership, con la revisión de C4 recomendada. El gate reprobará el
+check de propiedad: es esperado y queda advertido en el PR.
 
 ## BUG-041 — El `quoted_name` de SQLAlchemy vacía `feature_names_in_` y reintroduce el driver descartado
 
@@ -1691,7 +1778,7 @@ todavía.
 | | |
 |---|---|
 | **Severidad** | high — bloquea la construcción de Gold completa a cualquiera sin los Excel reales |
-| **Estado** | `open` |
+| **Estado** | `fixed` — 2026-09-04, por Diana Alvarez Varela (Célula 1) |
 | **Owner** | **Célula 1** — Diana Alvarez Varela / Deni Garrido Fragoso |
 | **Detectado** | 2026-09-03, por Marina García del Buey, al reconstruir su ambiente local desde cero |
 | **Validado** | 2026-09-04, por Luis Téllez Domínguez, en revisión de solo lectura, claim por claim |
@@ -1797,6 +1884,89 @@ Hay precedente directo y reciente: existen **cuatro** generadores de Formato 911
 (`generate_bronze_formato911_*.py`), y uno de ellos —el de la serie histórica— nació
 justo para cerrar un hueco equivalente en BUG-026.
 
+### Arreglo aplicado (2026-09-04, Célula 1 — Diana Alvarez)
+
+Se tomó el camino 2 de los dos propuestos arriba: **extender el generador**, no publicar
+fixtures sueltos a mano, para quedar consistente con el patrón que ya usan las demás
+fuentes (`ESQUEMAS` en `src/ingesta/cargar_bronze_fixture.py`).
+
+**Evidencia usada — no se adivinó ningún hash.** Los manifiestos reales generados por la
+propia carga DS-07 de ayer (`data/bronze/coneval/manifests/ds07_postgres_columns_irs_2020.json`
+y `..._pobreza_2020.json`, artefactos locales, no versionados) dan el mapeo completo
+hash → encabezado original — no solo los 4 que ya estaban documentados arriba:
+
+| Hash | Columna original | Tabla |
+|---|---|---|
+| `c_b9548dbd414b` | `Clave entidad` | irs |
+| `c_deef5d1bd71a` | `Clave municipio` | irs |
+| `c_9b370f449788` | `Entidad federativa` | irs / pobreza |
+| `c_9e8609cad84d` | `Municipio` | irs / pobreza |
+| `c_5d0523b1d4a3` | `Índice de rezago social` | irs |
+| `c_91fd46c9babe` | `Grado de rezago social` | irs |
+| `c_9bd1a7aa7fca` | `Clave de entidad` | pobreza |
+| `c_764f3baf1395` | `Clave de municipio` | pobreza |
+| `c_1a3c72ae6dd1` | `Pobreza \| Porcentaje 2020` | pobreza |
+
+**Cambios de código:**
+
+1. `src/ingesta/cargar_bronze_fixture.py` — se quitó el `DDL_BRONZE_CONEVAL` /
+   `COLUMNAS_CONEVAL` viejos (esquema de una sola tabla, ya huérfano) y la clave
+   `"coneval"` de `ESQUEMAS`. Se agregaron `DDL_BRONZE_CONEVAL_IRS` /
+   `COLUMNAS_CONEVAL_IRS` y `DDL_BRONZE_CONEVAL_POBREZA` / `COLUMNAS_CONEVAL_POBREZA`
+   (6 y 5 columnas de negocio hasheadas respectivamente, más `_periodo_medicion`,
+   `_ingested_at`, `_source`, `_source_url`), y las claves `"coneval_irs"` /
+   `"coneval_pobreza"` en `ESQUEMAS`, con conflicto de unicidad en
+   `(_source, _ingested_at, c_b9548dbd414b, c_deef5d1bd71a)` e
+   `(_source, _ingested_at, c_9bd1a7aa7fca, c_764f3baf1395)` respectivamente — mismo
+   patrón que las demás fuentes de este archivo, sin tocar
+   `src/ingesta/cargar_bronze_coneval_real.py` (el loader de producción, que ya emite
+   este esquema correctamente y no tenía el bug).
+2. `tests/fixtures/generate_bronze_drivers_fixtures.py::generar_coneval` — reescrito
+   para emitir **dos** archivos (`bronze_coneval_irs_sample.csv`,
+   `bronze_coneval_pobreza_sample.csv`) con el esquema `c_…` real en vez de uno solo
+   con el esquema viejo. Reutiliza los mismos 12 municipios sintéticos que ya usan los
+   generadores hermanos (vía `_leer_ccts_y_municipios()`), incluida una fila
+   `SIN_DATO` para ejercitar cobertura parcial.
+3. Se corrió el generador y se borró `tests/fixtures/bronze_coneval_sample.csv`
+   (el fixture huérfano que causaba el bug).
+
+**Verificado sin Postgres** (`device_bash` no tiene Docker ni alcanza `127.0.0.1:5432`,
+así que esto se validó a nivel de esquema, no de base de datos real): las dos CSV nuevas,
+leídas con `pd.read_csv(..., dtype=str, keep_default_na=False)`, no tienen columnas
+faltantes contra `COLUMNAS_CONEVAL_IRS` / `COLUMNAS_CONEVAL_POBREZA` — 12 filas cada una,
+1 fila `SIN_DATO`. `tests/test_cargar_bronze_fixture_conteo.py` (único test existente que
+toca este módulo) solo ejercita `esquema="cct"` y no se ve afectado.
+
+**Verificación real contra Postgres (Diana, 2026-09-04, misma tarde).** `pytest tests/ -q`
+→ **884 passed, 7 skipped**, nada roto por el fix. `dbt run --select rezago_municipio` →
+**éxito, `SELECT 2469`** contra las tablas reales `bronze.coneval_irs_2020` /
+`coneval_pobreza_2020` que Diana ya tenía cargadas de su propia corrida real de DS-07 del
+mismo día. `dbt test --select rezago_municipio` → **6 de 7 en verde** (los 3
+`accepted_values`/`not_null`/`valid_rezago_municipio` propios del modelo, todos `PASS`); el
+único `ERROR` es `cubo_pipeline_rows_parity` por `relation "bronze.conagua_presas" does not
+exist` — **ajeno a este bug**, es DS-06/CONAGUA (Emilio Galnares), no CONEVAL. Esto prueba
+el mapeo hash→columna de punta a punta contra datos reales, no solo contra los manifiestos.
+
+**Hallazgo real durante la verificación, ya corregido.** Cargar el fixture con
+`cargar_bronze_fixture.py --esquema coneval_irs --tabla coneval_irs_2020` (incluyendo
+`--fixture`, que las instrucciones iniciales omitieron) reventó con
+`psycopg2.errors.InvalidColumnReference: no unique or exclusion constraint matching the ON
+CONFLICT specification`. Causa real: **la tabla `bronze.coneval_irs_2020` de Diana ya
+existía**, creada antes por el loader de producción (`cargar_bronze_coneval_real.py`), que
+es idempotente por snapshot (`_source`, `_ingested_at`) y **no** define ningún `UNIQUE` —
+`CREATE TABLE IF NOT EXISTS` de este script fue entonces un no-op contra una tabla sin la
+restricción que el `ON CONFLICT` necesita. No es un defecto del mapeo de columnas (que
+`dbt run` ya probó correcto) ni algo que corresponda "arreglar" insertando de todos modos:
+mezclar filas sintéticas de fixture en una tabla con datos reales sería justo el tipo de
+inconsistencia silenciosa que CLAUDE.md pide evitar. Arreglo: `cargar_fixture()` ahora
+detecta ese error específico, hace `rollback()` (no toca ni una fila de la tabla real) y
+levanta un `RuntimeError` explicando la causa y sugiriendo cargar el fixture bajo un
+`--tabla` nuevo si de verdad se necesita ahí — en vez del traceback crudo de psycopg2. Este
+camino aplica solo quien ya tiene datos reales cargados (como Diana); en un ambiente
+limpio (CI, o alguien reconstruyendo desde cero como hizo Marina) la tabla no existe de
+antemano y el flujo normal de `CREATE TABLE` + `INSERT ON CONFLICT` corre sin tocar este
+caso — ese es justo el escenario que este fix de BUG-045 existe para resolver.
+
 ### Guarda propuesta (no existe hoy)
 
 Nada en CI falla cuando un fixture y su modelo divergen. Valdría una prueba que, para cada
@@ -1804,3 +1974,85 @@ Nada en CI falla cuando un fixture y su modelo divergen. Valdría una prueba que
 contenga las columnas que el modelo Silver correspondiente referencia**. Cubriría la clase
 de error —fixture desalineado del contrato— y no solo esta instancia. Se propone, no se
 implementa aquí: `dbt/**` y `tests/fixtures/**` de C1 son alcance de Célula 1.
+
+## BUG-047 — Filtro de ciclo sin `valor_por_defecto` infla las métricas en 7 dashboards
+
+Reportado como **espejo de BUG-044 en los tableros**. BUG-044 (C4, Karla Monter) fija el
+ciclo por defecto en la API; pero los dashboards de Superset **no pasan por la API** — leen
+la base directo —, así que el fix de BUG-044 no los cubre. Detonado por el aviso de **Luis
+Téllez (2026-09-04)**: en producción `/api/v1/kpis` pintaba matrícula **20.6M** contra **6.7M**
+reales. Allá se arregló en la API; los tableros necesitaban su propio arreglo.
+
+### El defecto
+
+Los filtros globales de ciclo existían desde US-212 pero **sin valor inicial**. Al abrir un
+tablero nadie ha filtrado todavía, así que toda métrica agregada sobre `gold.fact_escuela_ciclo`
+(que materializa ~3 ciclos) sumaba los tres a la vez — la matrícula quedaba ≈3× inflada, sin
+ningún error visible en pantalla. Marinas lo detectó en DB-03 (KPI-15) y DB-04 (KPI-01):
+**32 312 donde el ciclo tiene 11 828**, 2.7×.
+
+El mismo patrón vivía en los otros 7 tableros que declaran `id_ciclo`. El dato numérico
+concreto por dashboard no se revalidó uno a uno (la inflación es el mismo mecanismo en todos),
+pero DB-01/DB-02 ya están cubiertos por el AC-002.2 y el E2E de Playwright, que validan el
+filtro ciclo sobre todo el tablero.
+
+### El arreglo (aditivo y opt-in)
+
+Clave opcional `valor_por_defecto: "2024-2025"` en el YAML de cada dashboard, traducida al
+`defaultDataMask` de Superset por `sync_semantic_layer.py` (mecanismo aditivo en la fila
+`defaultDataMask`). Sin la clave, el tablero no cambia — compatibilidad hacia atrás exigida
+por prueba. Los tableros de Manuel, Monserrat y Oscar no se ven afectados.
+
+En **`src/frontend/pages/1_Dashboards.py`**, el selectbox de ciclo fija
+`index=len(CICLOS)-1` (2024-2025) por defecto, idéntico al `defaultDataMask`.
+
+Cobertura por dashboard:
+
+| Dashboard | `valor_por_defecto` | `cct` (index 3) |
+|---|---|---|
+| DB-01 ejecutivo | ✅ | — |
+| DB-02 mapa de riesgo | ✅ | — |
+| DB-05 analisis driver | ✅ | — |
+| DB-06 predicciones | ✅ | ✅ |
+| DB-07 calidad cobertura | ✅ | — |
+| DB-08 explorador cubo | ✅ | — |
+| DB-09 recomendaciones | ✅ | ✅ |
+
+DB-03/DB-04 ya los cubrió Marina García dentro de US-214a. **DB-10 (monitoreo de pipeline)
+no declara `id_ciclo`** y no aplica.
+
+Además, con el mismo PR se destraba a Marina: el filtro `cct` se agrega **al final**
+(índice 3) de `filtros_globales` en DB-06 y DB-09 — los IDs de filtro se generan por
+posición, insertar en medio rompería la navegación del drill-down DB-03→DB-06/DB-09 sin
+error visible.
+
+### Otros cambios del mismo PR (migración Streamlit)
+
+- `st.components.v1.html` → `st.html()` en `1_Dashboards.py` (deprecado a remover tras
+  2026-06-01). Se mantuvo `st.html()` (no deprecado) en lugar de `st.iframe` para conservar
+  borde/border-radius + `allow=fullscreen`; `st.html()` no acepta `height`/`scrolling`, esos
+  parámetros se quitaron (el iframe inline define `height="800"`).
+- Fix de caché + transporte: `st.cache_data.clear()` + `_tableros.clear()` en los
+  `except SupersetDeshabilitado` / `except SupersetError`, y nuevo `except httpx.HTTPError`.
+- `requirements.txt` raíz: `streamlit==1.62.0` — el CI solo instala el `requirements.txt`
+  raíz, así que los tests de frontend se saltaban en silencio (hallazgo Marina/Christian).
+
+### Pruebas
+
+`tests/test_frontend_dashboards_streamlit.py` — **2 passed** (el archivo tiene 2 tests). Era uno de
+los 3 archivos de frontend que el CI se saltaba en silencio (por no instalar streamlit) y que ahora
+corren; además lleva el fix real de la causa raíz del test en secuencia:
+AppTest comparte `sys.modules` entre `.run()` y `superset_client.SUPERSET_URL` quedaba
+congelada del test previo → "Connection refused". El fixture purga `sys.modules` de
+`MODULOS_FRONTEND = ("superset_client", "auth", "1_Dashboards")`.
+
+Guarda de compatibilidad hacia atrás: sin la clave `valor_por_defecto` no se escribe
+`defaultDataMask`.
+
+Todo el alcance de C2 de este PR (frontend + capa semántica + sync) pasa en verde:
+**226 passed** en los archivos de la célula, incluido `test_frontend_dashboards_streamlit.py`
+(2). En ambiente limpio (CI con `requirements.txt` raíz) la suite completa corre sin `failed`
+(0). Los 21 `failed` de tests de validación (`great_expectations` — `'project_root_dir' and
+'context_root_dir' are conflicting args`, conflicto de versión de la librería) y los 12 módulos
+que no colectan por faltar el módulo `limits` (slowapi de `src/api`) son artefactos de este venv
+local, no del PR. `vault_lint` limpio.

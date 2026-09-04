@@ -26,6 +26,7 @@ dashboards:
     filtros_globales:
       - columna: id_ciclo
         etiqueta: "Ciclo escolar"
+        valor_por_defecto: "2024-2025"
         datasets: [db07_cubo_completitud, db07_mapa_vacios]
       - columna: nombre_entidad
         etiqueta: "Entidad"

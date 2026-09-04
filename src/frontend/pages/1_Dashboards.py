@@ -8,6 +8,7 @@ Ver vault/03_Architecture/Frontend_Architecture.md §4.
 """
 from __future__ import annotations
 
+import httpx
 import streamlit as st
 
 from auth import current_user
@@ -38,6 +39,8 @@ def render() -> None:
     try:
         tableros = _tableros(rol)
     except SupersetDeshabilitado as exc:
+        st.cache_data.clear()
+        _tableros.clear()
         st.warning(
             "El embebido de Superset no está disponible todavía: "
             "falta habilitar el guest token del lado de despliegue (C5). "
@@ -46,7 +49,14 @@ def render() -> None:
         st.caption(str(exc))
         return
     except SupersetError as exc:
+        st.cache_data.clear()
+        _tableros.clear()
         st.error(f"No se pudo obtener el guest token de Superset: {exc}")
+        return
+    except httpx.HTTPError as exc:
+        st.cache_data.clear()
+        _tableros.clear()
+        st.error(f"Superset no respondió correctamente: {exc}")
         return
 
     if not tableros:
@@ -54,7 +64,7 @@ def render() -> None:
         return
 
     st.sidebar.subheader("Filtros globales (AC-002.2)")
-    ciclo = st.sidebar.selectbox("Ciclo escolar", CICLOS, index=0)
+    ciclo = st.sidebar.selectbox("Ciclo escolar", CICLOS, index=len(CICLOS) - 1)
     entidad = st.sidebar.text_input("Entidad (opcional)", placeholder="e.g. 09 (CDMX)")
     nivel = st.sidebar.selectbox("Nivel", ["Todos"] + list(NIVELES), index=0)
     nivel = "" if nivel == "Todos" else nivel
@@ -62,7 +72,7 @@ def render() -> None:
     for tablero in tableros:
         st.subheader(tablero.titulo)
         url = url_con_filtros(tablero.iframe_url, ciclo, entidad, nivel)
-        st.components.v1.html(
+        st.html(
             f"""
             <iframe
                 src="{url}"
@@ -71,9 +81,7 @@ def render() -> None:
                 style="border:1px solid #ddd; border-radius:8px;"
                 allow="fullscreen"
             ></iframe>
-            """,
-            height=820,
-            scrolling=True,
+            """
         )
 
 

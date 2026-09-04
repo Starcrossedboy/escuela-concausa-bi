@@ -206,6 +206,15 @@ class RealGoogleVerifier:
                 algorithms=_ALGORITMOS_ID_TOKEN,
                 audience=s.google_client_id,
                 issuer=tuple(s.google_issuer_list),
+                # El id_token del *authorization code flow* SIEMPRE trae `at_hash`. jose lo
+                # valida contra el access_token por defecto (`verify_at_hash=True`), pero aquí
+                # no tenemos —ni necesitamos— el access_token: la integridad ya la garantizan
+                # firma RS256 + `aud` + `iss` + `exp` sobre un canal directo servidor->Google.
+                # `at_hash` es una defensa del *implicit flow* (donde el token viaja por el
+                # navegador). Sin desactivarla, jose lanza JWTClaimsError("No access_token
+                # provided to compare against at_hash claim") y TODO login real muere con 401
+                # (BUG-046). El resto de verificaciones siguen activas.
+                options={"verify_at_hash": False},
             )
         except JWTError as exc:
             _logger.warning("id_token de Google invalido: %s", type(exc).__name__)

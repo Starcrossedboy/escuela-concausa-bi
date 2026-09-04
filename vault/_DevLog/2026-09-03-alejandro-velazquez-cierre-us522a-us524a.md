@@ -1,7 +1,7 @@
 ---
 project: "FARO"
 date: "2026-09-03"
-author_human: "Alejandro Velazquez Mendoza"
+author_human: "Alejandro Velázquez Mendoza"
 agent: "Antigravity"
 model: "claude-opus-4.6"
 session_duration: "1h"

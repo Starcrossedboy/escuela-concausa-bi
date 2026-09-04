@@ -453,6 +453,11 @@ comunes:
   # una sola célula.
   - "vault/03_Architecture/ADRs/**"
   - ".env.example"
+  # Hueco real hallado 2026-09-04 (Diana Alvarez, freeze de US-106): el archivo del freeze
+  # del esquema Gold no estaba en ningun verde/amarillo de C1 ni en comunes -- ni la propia
+  # dueña del contenido podia aplicar su flip draft->approved. Freezes de esquema son
+  # decision compartida (regla 7, TL de C1 + PM), mismo espiritu que ADRs/**.
+  - "vault/03_Architecture/Data_Lineage_US106.md"
   # Hueco real hallado 2026-09-04 (Christian Ruiz, US-405): requirements.txt de
   # la raíz -- el que instala el job "quality" de ci.yml -- no tenía dueño; el
   # padrón solo cubría requirements/** (la carpeta). Sin esto nadie podía agregar

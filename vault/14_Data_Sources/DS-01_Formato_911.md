@@ -189,5 +189,34 @@ se recalculan localmente con `dbt run`, para que el pipeline de cada quien se si
 verdad.
 
 > Esto resuelve el bloqueador de *ambiente* (Camino A siempre disponible, Camino B en cuanto
-> Diana genere y comparta el dump). No resuelve la deuda de Great Expectations para DS-01/DS-02,
-> que sigue aparte (ver §9, no bloqueante).
+> Diana genere y comparta el dump). La deuda de Great Expectations para DS-01/DS-02 -- que
+> seguia aparte -- se cierra en la misma sesion, ver SS12.
+
+## 12. Calidad de datos (Great Expectations) -- 2026-09-03
+
+Suite nueva para la distribucion HISTORICA de Bronze (`bronze.formato911_historico`), cerrando
+la deuda senalada por Deni Garrido en su auditoria del 30-ago (ver DevLog
+2026-08-30-diana-alvarez-ds02-cct-real, seccion Pendiente).
+
+- **Modulo:** `src/ingesta/validacion_formato911_historico.py` (`validar_formato911_historico()`),
+  mismo patron que `validacion_sesnsp.py` (TEST-011/US-124b): corre sobre el Parquet mas
+  reciente de `data/bronze/formato911_historico/`, o sobre un DataFrame explicito.
+- **Expectativas:** not_null en columnas criticas, formato real de `cct`/`entidad`/`municipio`
+  (verificado contra `tests/fixtures/bronze_formato911_historico_sample.csv`), formato de
+  `ciclo` (`AAAA-AAAA`, sin fijar los 6 ciclos actuales -- la fuente sigue publicando ciclos
+  nuevos), `matricula_total >= 0`. **No** valida unicidad de `(cct, ciclo, turno)` a proposito
+  -- Bronze permite reingestas legitimas del mismo cct+ciclo+turno con `_ingested_at` mas nuevo
+  (ver UNIQUE real de la tabla); esa reingesta la dedupea Silver por turno
+  (`matricula_historica.sql`). Tampoco valida un `value_set` de `nivel` -- Bronze SÍ trae
+  valores fuera de educacion basica (p.ej. `INICIAL`, confirmado real 2026-09-03, ver DevLog);
+  el filtro a PREESCOLAR/PRIMARIA/SECUNDARIA es responsabilidad de Silver, no de esta suite de
+  Bronze.
+- **Suite persistida:** `great_expectations/expectations/suite_ds01_formato911_historico.json`.
+- **Pruebas offline (5):** `tests/test_validacion_formato911_historico.py` -- datos limpios
+  pasan, y se verifica que la suite SÍ atrapa matricula negativa, ciclo mal formado, cct mal
+  formado y nulo en columna critica (no solo que corre sin tronar). Corren sin red ni Postgres,
+  mismo principio que US-124b.
+- **Verificado 2026-09-03 contra los 6 Parquet reales completos** (no la muestra sintetica de
+  las pruebas), uno por ciclo: 2019-2020 (230,424 filas), 2020-2021 (228,852), 2021-2022
+  (228,804), 2022-2023 (229,691), 2023-2024 (231,534), 2024-2025 (231,913) -- los 6 en verde,
+  13/13 expectativas cada uno.

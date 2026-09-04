@@ -102,7 +102,15 @@ jobs:
           # Cualquier archivo que TERMINE en .env, no solo el literal ".env" — un nombre como
           # configuracion.env quedaba fuera del patrón anterior (hallazgo de Marina García,
           # 2026-09-03). El respaldo real de contenido es G5 GitLeaks, más abajo.
-          if git ls-files | grep -E '(^|/)[^/]*\.env$|\.pem$|\.key$|credentials.*\.json$'; then
+          #
+          # PR-208 lo probó en carne propia: este check corre sobre TODO `git ls-files`, no solo
+          # lo que cambia el PR, así que ampliar el patrón dejó bloqueado a CUALQUIER PR futuro
+          # por un archivo ya commiteado antes del hallazgo. `guia-ambiente-local/configuracion.env`
+          # queda con excepción explícita — contenido verificado sin secretos (solo puertos y una
+          # URI local), y GitLeaks lo sigue escaneando por contenido en cada PR igual que a todo
+          # lo demás. La excepción es del nombre de archivo, no del escaneo.
+          if git ls-files | grep -E '(^|/)[^/]*\.env$|\.pem$|\.key$|credentials.*\.json$' \
+              | grep -vxF 'guia-ambiente-local/configuracion.env'; then
             echo "Archivos sensibles detectados"; exit 1
           fi
           echo "OK"

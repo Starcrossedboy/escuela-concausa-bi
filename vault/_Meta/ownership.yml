@@ -36,6 +36,10 @@ personas:
       - "AGENTS.md"
       - "GEMINI.md"
       - ".cursorrules"
+      # Hallazgo 2026-09-03: el frontmatter de este documento lo declara owner (soy el
+      # steward de contenido), pero vive en 04_UX_Design/, verde de C2. Path-scoped y
+      # content-owner son cosas distintas; sin esto, el gate rechaza al dueño real del doc.
+      - "vault/04_UX_Design/Accessibility.md"
       - ".github/**"
 
   diana-alvarez:

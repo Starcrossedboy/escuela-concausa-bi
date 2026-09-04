@@ -61,7 +61,8 @@ La corrida encontró 68 claves temporales que no cumplen el patrón oficial, por
 - `py_compile` sobre extractor, cargador y DAG: PASS.
 - `pytest tests/test_extractor_cemabe.py -q`: 2/2 PASS; cubre mapeo físico, CCT + turno,
   consolidación de turnos y exclusión de claves temporales con datos sintéticos.
-- `pytest tests/ -q`: 780 PASS, 5 skipped; una advertencia ambiental de deprecación Starlette.
+- `pytest tests/ -q` después del merge final de `origin/main`: 842 PASS, 7 skipped; una
+  advertencia ambiental de deprecación Starlette.
 - `dbt parse --no-partial-parse`: PASS; una deprecación preexistente en
   `models/silver/schema.yml`.
 - `dbt build --select cemabe --exclude cubo_pipeline_rows_parity`: **9/9 PASS** (un modelo y
@@ -72,5 +73,5 @@ La corrida encontró 68 claves temporales que no cumplen el patrón oficial, por
 ## Dependencia operativa
 
 La API de SIGED requiere el almacén TLS del sistema en este entorno. Se validó con
-`truststore==0.10.4`, dependencia que Diana ya agregó en `origin/dev/diana-alvarez`; este cambio
-debe llegar a `main` antes de ejecutar el extractor desde un ambiente limpio.
+`truststore==0.10.4`; la dependencia llegó a `main` con el cierre de DS-01/DS-02 de Diana y quedó
+incorporada a esta rama mediante el merge final de `origin/main`.

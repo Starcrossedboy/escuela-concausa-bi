@@ -235,6 +235,23 @@ def test_verifier_devuelve_la_identidad(google_falso) -> None:
     assert identidad.email == "persona@faro.mx"
 
 
+def test_verifier_acepta_id_token_con_at_hash(google_falso) -> None:
+    """Regresión BUG-046: el `id_token` del *authorization code flow* SIEMPRE trae `at_hash`.
+
+    jose valida `at_hash` contra el access_token por defecto (`verify_at_hash=True`), pero el
+    flujo server-side no tiene —ni necesita— el access_token, así que `google.py` desactiva esa
+    comprobación. Sin el fix, jose lanza `JWTClaimsError("No access_token provided to compare
+    against at_hash claim")`, `verify()` lo traduce a `ValueError` y **todo login real —analista
+    y ciudadano— muere con 401**. El fixture no lo cazaba porque emitía `id_token` sin `at_hash`,
+    el único claim que Google añade en producción y las pruebas nunca. (Este test reprueba con el
+    parche revertido.)
+    """
+    google_falso(at_hash="fake-at-hash-que-google-siempre-incluye")
+    identidad = RealGoogleVerifier().verify("code")
+    assert identidad.sub == "google-sub-1"
+    assert identidad.email == "persona@faro.mx"
+
+
 def test_verifier_rechaza_audiencia_ajena(google_falso) -> None:
     google_falso(aud="otro-cliente.apps.googleusercontent.com")
     with pytest.raises(ValueError):

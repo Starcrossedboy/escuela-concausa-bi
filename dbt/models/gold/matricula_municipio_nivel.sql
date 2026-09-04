@@ -18,18 +18,44 @@
 --
 -- SCOPE_ENTIDADES (Data_Model.md §7): aplicado aqui, en el limite Silver->Gold -- ver
 -- scope_entidades.sql. silver.matricula_historica es nacional/sin filtrar, como todo Silver.
+--
+-- FIX (2026-09-03, Diana/DS-01): bronze.formato911_historico es append-only (medallion, no se
+-- borra), y trae 182 filas fixture antiguas junto a los ~1.37M reales cargados hoy
+-- (cargar_bronze_formato911_historico_real.py). De esas 182, varias traen un cct que no existe
+-- en el catalogo real de DS-02 -- sumarian matricula fantasma al agregado real que consume
+-- target_hibrido.py. Se exige que el cct exista en silver.escuela (catalogo real) antes de
+-- sumar, igual que el filtro de scope_entidades() de arriba. Verificado 2026-09-03: de 182
+-- filas fixture, solo 6 coinciden con un cct real -- y esas 6 ya compiten en el dedup de
+-- matricula_historica.sql (partition by cct, ciclo, turno) contra la carga real, mucho mas
+-- reciente en _ingested_at.
+
+with real_data as (
+
+    select
+        cct,
+        cve_mun,
+        nivel,
+        ciclo,
+        matricula_total
+
+    from {{ ref('matricula_historica') }}
+
+    where cve_ent in {{ scope_entidades() }}
+
+)
 
 select
-    cve_mun,
-    nivel,
-    ciclo as id_ciclo,
-    sum(matricula_total) as matricula_total
+    real_data.cve_mun,
+    real_data.nivel,
+    real_data.ciclo as id_ciclo,
+    sum(real_data.matricula_total) as matricula_total
 
-from {{ ref('matricula_historica') }}
+from real_data
 
-where cve_ent in {{ scope_entidades() }}
+inner join {{ ref('escuela') }} as catalogo_real
+    on {{ normalize_cct('real_data.cct') }} = catalogo_real.cct
 
 group by
-    cve_mun,
-    nivel,
-    ciclo
+    real_data.cve_mun,
+    real_data.nivel,
+    real_data.ciclo

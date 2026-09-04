@@ -211,6 +211,72 @@ def test_falla_si_gold_no_cumple_el_contrato(features: pd.DataFrame, tmp_path) -
         cargar_features_desde_gold(engine, esquema=None)
 
 
+# ------------------------------------- quoted_name de SQLAlchemy (BUG-041)
+
+
+def test_las_columnas_leidas_de_gold_son_str_puro(features: pd.DataFrame, tmp_path) -> None:
+    """BUG-041: SQLAlchemy entrega `quoted_name`, y sklearn sólo acepta `str` exacto.
+
+    `quoted_name` es subclase de `str`, así que todo lo demás funciona y el defecto no se ve.
+    Pero scikit-learn comprueba `type(x) is str` para reconocer nombres de features: con
+    `quoted_name` **no puebla `feature_names_in_`**, sin error ni aviso.
+    """
+    engine = _engine_tmp(tmp_path)
+    features.to_sql("features_escuela", engine, index=False)
+
+    leidas = cargar_features_desde_gold(engine, esquema=None)
+
+    assert all(type(c) is str for c in leidas.columns), (
+        f"columnas que no son str puro: "
+        f"{[(c, type(c).__name__) for c in leidas.columns if type(c) is not str]}"
+    )
+
+
+def test_entrenar_desde_gold_puebla_feature_names_in(features: pd.DataFrame, tmp_path) -> None:
+    """El síntoma real de BUG-041, con el driver vacío que lo dispara.
+
+    Sin normalizar los nombres, `feature_names_in_` queda sin poblar y
+    `getattr(modelo, "feature_names_in_", DRIVERS)` cae al fallback de los 6 drivers,
+    reintroduciendo el que se descartó por estar 100 % `SIN_DATO`. La predicción entonces truena
+    con `X has 6 features, but ... expecting 5`.
+
+    Es el eslabón que anulaba el fix de BUG-015/018/023 justo en el path de producción.
+    """
+    sin_agua = features.copy()
+    sin_agua["d5_agua"] = float("nan")  # el caso real: DS-06 sin descarga verificada
+    engine = _engine_tmp(tmp_path)
+    sin_agua.to_sql("features_escuela", engine, index=False)
+
+    resultado = entrenar_y_evaluar(cargar_features_desde_gold(engine, esquema=None), n_ventanas=1)
+
+    assert "d5_agua" in resultado.drivers_excluidos
+    nombres = getattr(resultado.modelo, "feature_names_in_", None)
+    assert nombres is not None, "feature_names_in_ sin poblar: el fallback DRIVERS se dispararía"
+    # Lo que importa no es que el atributo exista, sino que NO reintroduzca el driver descartado.
+    assert list(nombres) == list(resultado.drivers_usados)
+    assert "d5_agua" not in nombres
+
+
+def test_predecir_desde_gold_no_cae_al_fallback_de_los_6_drivers(
+    features: pd.DataFrame, tmp_path
+) -> None:
+    """La reproducción end-to-end: leer de la BD, entrenar y predecir sin `ValueError`."""
+    from src.modelos.publicar_gold import construir_predicciones
+
+    sin_agua = features.copy()
+    sin_agua["d5_agua"] = float("nan")
+    engine = _engine_tmp(tmp_path)
+    sin_agua.to_sql("features_escuela", engine, index=False)
+
+    leidas = cargar_features_desde_gold(engine, esquema=None)
+    resultado = entrenar_y_evaluar(leidas, n_ventanas=1)
+
+    # Antes del fix esto reventaba con "X has 6 features, but ... expecting 5".
+    predicciones = construir_predicciones(leidas, resultado.modelo, "run-bug041")
+
+    assert not predicciones.empty
+
+
 # ------------------------------- driver sin ningún dato (caso real de gold.features_escuela)
 
 

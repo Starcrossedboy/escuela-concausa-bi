@@ -6,8 +6,8 @@ status: in_review
 version: "1.1"
 source_of_truth: true
 traces_up: ["REQ-004", "vault/03_Architecture/Data_Model"]
-traces_down: ["US-401", "US-402", "US-403", "US-411", "US-412", "US-415", "US-416"]
-last_reviewed: "2026-08-27"
+traces_down: ["US-401", "US-402", "US-403", "US-404", "US-405", "US-411", "US-412", "US-415", "US-416"]
+last_reviewed: "2026-09-03"
 tags: [architecture, api, contract, fastapi, oauth2]
 ---
 
@@ -52,6 +52,45 @@ tags: [architecture, api, contract, fastapi, oauth2]
 3. El access token lleva los *claims* `sub` (usuario), `role` (`ciudadano`|`analista`) y `exp`.
 4. Al expirar el access token, el cliente usa el refresh token para obtener uno nuevo sin re-login.
 
+**Verificación de la identidad (cerrada en S5, US-402).** `/auth/callback` no confía en el `code`:
+lo canjea en el *token endpoint* de Google y **verifica el `id_token`** — firma `RS256` contra la
+llave del JWKS público que corresponde al `kid`, `aud` == `GOOGLE_CLIENT_ID`, `iss` de Google y `exp`
+vigente — y además exige `email_verified == true`, porque el rol se resuelve por correo. La lista de
+algoritmos se pasa explícita: nunca se confía en el `alg` que traiga el token.
+
+### 2.1.1 `state` anti-CSRF del callback
+
+`/auth/login` genera un `state` **firmado** (JWT propio de 10 min con un `nonce` aleatorio), lo manda
+a Google en la URL y guarda el mismo valor en la cookie `faro_oauth_state` (`HttpOnly`, `Secure`
+fuera de local, `SameSite=Lax`, un solo uso). `/auth/callback` exige que el parámetro `state` **y** la
+cookie existan y coincidan, y que el token sea válido y esté vigente; si no, responde **401**. Un
+tercero puede provocar la llamada al callback, pero no puede leer ni fabricar la cookie.
+
+Se eligió un `state` firmado, y no uno guardado en memoria del servidor, porque Cloud Run corre
+varias instancias sin estado compartido: un `state` en RAM se perdería entre la ida y la vuelta del
+navegador.
+
+> **Cambio de contrato para los clientes:** un `GET /auth/callback` sin `state` (o con uno que no
+> case con la cookie) ahora devuelve **401**, no 200. El flujo correcto siempre entra por
+> `/auth/login`; no se debe llamar al callback a mano.
+
+### 2.1.2 Puente al frontend: código de un solo uso (US-405)
+
+FARO Web no puede leer cookies del navegador (limitación de Streamlit), y mandarle el token por la
+query string dejaría la credencial en el historial, en los logs del proxy y en el `Referer`. Por eso:
+
+1. El front llama a `/auth/login?redirect=<su URL>`. El destino se valida contra la **allowlist**
+   `FRONTEND_REDIRECT_URIS` (comparación **exacta**, no por prefijo) y viaja **dentro del `state`
+   firmado**, así que Google lo devuelve intacto y nadie puede alterarlo.
+2. `/auth/callback` guarda la identidad verificada, emite un **código opaco de un solo uso** (60 s) y
+   responde **302** a `<front>?code_faro=<código>`. **Por la URL nunca viaja un token.**
+3. El servidor del front canjea el código en `POST /auth/exchange` y recibe ahí el `TokenPair`.
+
+Del código solo se almacena su SHA-256, el canje es atómico y el rol se **re-resuelve** al canjear
+con la política vigente. Sin `redirect`, `/auth/callback` sigue devolviendo el `TokenPair` como JSON
+(clientes que no son navegador). Detalle y alternativas descartadas en
+[[vault/03_Architecture/ADRs/ADR-010-puente-oauth-frontend|ADR-010]].
+
 ### 2.2 Matriz RBAC (los 2 roles del PRD)
 
 | Recurso / acción | `ciudadano` (estándar) | `analista` (admin) |
@@ -88,12 +127,15 @@ tags: [architecture, api, contract, fastapi, oauth2]
 ### 3.2 Autenticación `/auth/*`
 | Método | Ruta | Rol | Request | Response | Códigos |
 |---|---|---|---|---|---|
-| GET | `/auth/login` | público | — | 302 → Google | 302 |
-| GET | `/auth/callback` | público | `?code` | `TokenPair` | 200, 401 |
+| GET | `/auth/login` | público | `?redirect` (opcional, allowlist) | 302 → Google | 302, 400 |
+| GET | `/auth/callback` | público | `?code`, `?state` | `TokenPair`, o 302 al front con `?code_faro` | 200, 302, 401 |
+| POST | `/auth/exchange` | público* | `ExchangeIn` | `TokenPair` | 200, 401, 422 |
 | POST | `/auth/refresh` | público* | `RefreshIn` | `TokenPair` | 200, 401 |
 | GET | `/auth/me` | ciudadano | — | `UserOut` | 200, 401 |
 
-\* requiere un refresh token válido en el cuerpo, no un access token.
+\* requiere un refresh token válido en el cuerpo, no un access token. `/auth/exchange` requiere un
+código de un solo uso vigente (§2.1.2); un código usado, expirado o inventado devuelve 401 sin
+distinguir entre los casos.
 
 ### 3.3 Lectura sobre Gold
 | Método | Ruta | Rol | Request | Response | Códigos |
@@ -205,10 +247,20 @@ class TokenPair(BaseModel):
     expires_in: StrictInt = 900          # 15 min
 class RefreshIn(BaseModel):
     refresh_token: StrictStr
+class ExchangeIn(BaseModel):
+    # Codigo de un solo uso del puente OAuth -> frontend (US-405, ADR-010). Opaco: no transporta
+    # identidad, solo apunta a ella en el almacen del servidor.
+    code: StrictStr = Field(min_length=16, max_length=256)
+
 class UserOut(BaseModel):
     sub: StrictStr
     email: StrictStr
     role: Rol
+    # `name` agregado 2026-09-03 (US-405): nombre para mostrar, del claim `name` del id_token de
+    # Google (scope `profile`). OPCIONAL -- default "" cuando el perfil no lo expone. Es solo de
+    # presentacion: el rol se resuelve por `email`, nunca por `name`. El front cae a `email` si
+    # viene vacio. Acordado entre Christian Ruiz (C4) y Manuel Serrania (C2); avisado a C3.
+    name: StrictStr = ""
 
 # ---- lectura sobre Gold ----
 # EscuelaOut/EscuelaDetalleOut actualizados 2026-08-20: indice_riesgo/driver_dominante pasan

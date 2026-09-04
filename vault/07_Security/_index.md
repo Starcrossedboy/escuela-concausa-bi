@@ -18,4 +18,5 @@ tags: [moc, security]
 | [[vault/07_Security/Secrets_Policy]] | Política de secretos y rotación |
 | [[vault/07_Security/Security_Review_Checklist]] | Checklist pre-deploy |
 | [[vault/07_Security/Security_Audit_Log]] | Hallazgos `SEC-###` |
+| [[vault/07_Security/Security_Review_US402_US403_US404]] | Revisión humana explícita (regla 7) del cierre de US-402/403/404: correcciones, checklist y riesgos residuales |
 | [[vault/07_Security/Compliance]] | Licencias, privacidad, atribuciones |

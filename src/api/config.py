@@ -38,6 +38,28 @@ class Settings(BaseSettings):
     google_client_secret: str = ""
     google_redirect_uri: str = "http://localhost:8000/api/v1/auth/callback"
     google_authorization_endpoint: str = "https://accounts.google.com/o/oauth2/v2/auth"
+    # Endpoints OpenID Connect de Google usados por `RealGoogleVerifier` (US-402 e2e). Son
+    # constantes publicas del proveedor; se exponen como settings solo para poder apuntarlos a un
+    # doble en pruebas de integracion, nunca para cambiarlos en produccion.
+    google_token_endpoint: str = "https://oauth2.googleapis.com/token"
+    google_jwks_uri: str = "https://www.googleapis.com/oauth2/v3/certs"
+    # Emisores validos del `id_token` (Google usa las dos formas indistintamente).
+    google_issuers: str = "https://accounts.google.com,accounts.google.com"
+    # Timeout de las dos llamadas salientes (token endpoint y JWKS). Cloud Run corta a los 60 s;
+    # fallamos antes y devolvemos 401 en vez de dejar la peticion colgada.
+    google_http_timeout_s: float = 10.0
+    # Vida del `state` anti-CSRF del flujo OAuth (US-402). Corta: solo cubre el ida y vuelta a la
+    # pantalla de consentimiento.
+    oauth_state_expire_minutes: int = 10
+
+    # ---- Puente OAuth -> frontend (US-405, ADR-010) ----
+    # Destinos permitidos para el `?redirect=` de /auth/login (CSV). ALLOWLIST ESTRICTA: sin ella
+    # tendriamos un open redirect, y uno en el flujo de login es el vehiculo clasico para robar el
+    # codigo de autorizacion. Un destino fuera de esta lista se rechaza con 400.
+    frontend_redirect_uris: str = "http://localhost:8501"
+    # Vida del codigo de un solo uso que el front canjea en /auth/exchange. Muy corta: solo cubre
+    # el redirect del navegador, que es inmediato.
+    login_code_expire_segundos: int = 60
 
     # ---- Política de rol (PROVISIONAL; la definitiva la decide Edgar/PO) ----
     # Allowlist de correos con rol `analista`. Mínimo privilegio: vacío => todos ciudadano.
@@ -101,6 +123,26 @@ class Settings(BaseSettings):
             f"postgresql+psycopg2://{self.postgres_user}:{self.postgres_password}"
             f"@{self.postgres_host}:{self.postgres_port}/{self.postgres_db}"
         )
+
+    @property
+    def frontend_redirect_list(self) -> list[str]:
+        """Destinos permitidos del `?redirect=` de `/auth/login`, parseados del CSV."""
+        return [u.strip() for u in self.frontend_redirect_uris.split(",") if u.strip()]
+
+    @property
+    def google_issuer_list(self) -> list[str]:
+        """Emisores aceptados en el claim `iss` del `id_token`, parseados del CSV."""
+        return [i.strip() for i in self.google_issuers.split(",") if i.strip()]
+
+    @property
+    def google_configurado(self) -> bool:
+        """True si estan las tres piezas que exige el intercambio del `code` con Google."""
+        return bool(self.google_client_id and self.google_client_secret and self.google_redirect_uri)
+
+    @property
+    def cookies_seguras(self) -> bool:
+        """`Secure` en las cookies salvo en local (http://localhost no acepta cookies Secure)."""
+        return self.environment.lower() != "local"
 
     @property
     def analista_email_set(self) -> set[str]:

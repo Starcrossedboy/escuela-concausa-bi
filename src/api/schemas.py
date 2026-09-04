@@ -76,10 +76,20 @@ class RefreshIn(EntradaEstricta):
     refresh_token: StrictStr
 
 
+class ExchangeIn(EntradaEstricta):
+    """Canje del codigo de un solo uso por la sesion (US-405). Ver ADR-010."""
+
+    code: StrictStr = Field(min_length=16, max_length=256)
+
+
 class UserOut(BaseModel):
     sub: StrictStr
     email: StrictStr
     role: Rol
+    # Nombre para mostrar, del claim `name` del id_token de Google (scope `profile`). Puede venir
+    # vacio: no todo perfil lo expone y no queremos que la sesion dependa de un dato opcional del
+    # proveedor. El front cae a `email` cuando esta vacio (acordado con C2, US-405).
+    name: StrictStr = ""
 
 
 # --------------------------------------------------------------------------- #

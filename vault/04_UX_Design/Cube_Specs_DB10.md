@@ -75,6 +75,13 @@ Mismo bloqueo de infraestructura documentado en US-222 — no es error de
 este SQL, y no se simuló con datos inventados por la misma razón: no es
 contrato que le corresponda definir a esta historia.
 
+**Actualización 2026-09-03 — bloqueo reducido a una sola fuente, aislada.** De las 8 tablas Silver,
+7 ya materializan con Bronze real (incluida `rezago_municipio`/CONEVAL, vía el extractor oficial
+de Deni Garrido). Confirmado con `dbt run`: `gold.cubo_pipeline` **solo** falla por
+`bronze.conagua_presas` (CONAGUA/DS-06) — dependencia de Emilio Galnares, no de Diana/Deni. Es el
+único de los 10 dashboards que sigue sin registrarse en Superset; ver
+[[vault/10_Risk_Governance/Blocker_Register]] (BLOCK-004).
+
 ## 5. Trazabilidad
 
 - **Implementa:** US-223 (REQ-002)

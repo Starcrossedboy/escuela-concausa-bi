@@ -2,11 +2,11 @@
 id: DOC-MANUAL-DASHBOARDS
 title: "Manual de Usuario — Dashboards FARO"
 owner: "Oscar Antonio Quiroz Lázaro"
-status: draft
-version: "1.0"
+status: approved
+version: "1.1"
 traces_up: ["vault/04_UX_Design/Screen_Specs", "US-224"]
 traces_down: []
-last_reviewed: "2026-09-02"
+last_reviewed: "2026-09-03"
 tags: [ux, dashboards, manual, celula-2, us-224, pitch]
 ---
 
@@ -19,40 +19,29 @@ tags: [ux, dashboards, manual, celula-2, us-224, pitch]
 
 ## ⚠️ Estado de este manual (léelo antes de usarlo)
 
-Este documento se escribió sin capturas de pantalla reales. La razón: el Postgres local no tiene
-Bronze cargado (mismo bloqueo estructural que documentan [[vault/04_UX_Design/Cube_Specs_DB07]] y
-[[vault/04_UX_Design/Cube_Specs_DB10]]), así que ningún dashboard puede renderizarse con datos de
-producción en este ambiente. Se evaluó usar los mocks sintéticos ya sancionados por el equipo
-(`superset/mock/*.sql`, mismo patrón de US-203/US-212) para al menos DB-01/DB-02, pero se decidió
-no forzarlo por tiempo — más vale un manual completo y honesto hoy que dos dashboards con datos de
-prueba y ocho placeholders.
+**Actualización 2026-09-03 — 9/10 con captura real.** El bloqueo de Bronze que motivó la primera
+versión de este manual (2026-09-02) ya se resolvió para 9 de los 10 tableros: Diana Álvarez cargó
+CCT y Formato 911 reales, y Deni Garrido tiene el extractor oficial de CONEVAL
+(`src/ingesta/extractor_coneval.py` + `cargar_bronze_coneval_real.py`), que se corrió hoy y
+destrabó `dim_municipio` — la dependencia que bloqueaba en cascada a casi todo Gold. Con `dbt run`
+completo, 22 de 24 modelos materializaron con datos reales.
 
-**Cada sección de dashboard tiene un marcador `[CAPTURA PENDIENTE]`.** Quien tenga el ambiente con
-Bronze cargado (local con `dbt run` completo, o el ambiente validado que usó Luis Téllez el
-2026-09-01) puede tomar las capturas y reemplazar los marcadores sin tocar el resto del texto.
+**Solo DB-10 sigue sin registrarse**, y por una causa ya aislada y distinta: `gold.cubo_pipeline`
+necesita `bronze.conagua_presas` (CONAGUA/DS-06, Emilio Galnares, C1), que todavía no existe en
+este ambiente. No tiene relación con CONEVAL ni con BUG-029 — es la única pieza que falta.
 
-**Actualización 2026-09-02 (1/10 con captura real):** tras arreglar **BUG-029**,
-`gold.cubo_completitud` resultó estar ya materializado en este ambiente — **DB-07 ya tiene captura
-real** (sección correspondiente, más abajo). Los otros 9 siguen con `[CAPTURA PENDIENTE]`: sus
-propios cubos (`gold.cubo_pipeline` para DB-10, y el resto) no están materializados aquí y sí
-dependen de Bronze (Diana Álvarez, C1) — arreglar BUG-029 no los destraba, solo evitaba que uno
-roto tumbara el registro de los demás.
-
-**Actualización 2026-09-02:** DB-07 y DB-10 ya tienen su definición de tablero declarativa
-(`superset/dashboards/db07_calidad_cobertura.yaml`, `superset/dashboards/db10_monitor_pipeline.yaml`)
-— antes solo existía su capa semántica (SQL + métricas), sin layout de charts que registrar.
-Además se corrigió **BUG-029** (el sync abortaba toda la corrida al toparse con un dataset roto),
-así que un cubo faltante ya no le impide registrarse a los demás. Con eso, **DB-07 ya está viva en
-Superset local** — captura real más abajo. DB-10 sigue sin poder registrarse: su propio cubo
-(`gold.cubo_pipeline`) no existe todavía, y eso sí depende de que Bronze se cargue (Diana Álvarez,
-C1) — BUG-029 nunca fue la causa de ese bloqueo específico, solo evitaba que se propagara a otros.
+**Limitación real, visible en las 9 capturas:** `gold.predicciones` y `gold.recomendaciones`
+(salidas de ML-01/ML-02) siguen siendo el mock sembrado en agosto, con CCT que no cruzan contra el
+catálogo real de 77,712 escuelas recién cargado. Por eso todo lo que depende de predicciones o
+recomendaciones muestra "No data"/SIN_DATO consistentemente — es una degradación correcta (R1: la
+ficha no desaparece, dice "sin dato"), no un error de estos tableros. Refrescar el mock de ML
+(o esperar las salidas reales de Célula 3) es lo único que falta para números completos.
 
 | Dashboard | Estado de datos conocido |
 |---|---|
-| DB-01, DB-02 | **Estructura** validada por Luis Téllez (2026-09-01): 9/9 y 7/7 charts renderizan, filtros responden, ningún chart roto. **Los números todavía no**: falta el recálculo del Carril A (hoy solo hay un ciclo cargado) — ver su DevLog. No presentes como cifras finales en una demo. |
-| DB-03…DB-06, DB-08, DB-09 | Construidos (PR mergeados), sin confirmación reciente de validación en vivo — verificar antes de usar en demo. |
-| DB-07 | **Viva en Superset local** (2026-09-02): 7/7 charts con datos reales de `gold.cubo_completitud` (72 filas). El mapa carga pero el autozoom no centra en México — zoom manual pendiente, no es falta de datos. Captura real incluida abajo. |
-| DB-10 | SQL, capa semántica y definición de tablero (`db10_monitor_pipeline.yaml`) listos, 5 pruebas en verde; **no se registra** porque `gold.cubo_pipeline` no existe — depende de que Bronze se cargue (Diana Álvarez, C1), sin relación con BUG-029. |
+| DB-01, DB-02, DB-03, DB-04, DB-05, DB-06, DB-08, DB-09 | **Vivos en Superset local con datos reales** (2026-09-03). KPIs de matrícula, drivers, infraestructura y territorio: reales. KPIs de predicción/recomendación (ML): SIN_DATO por el mock desactualizado, no por falta de dato real. |
+| DB-07 | **Vivo con datos reales** (2026-09-02, reconfirmado 2026-09-03 con `dbt run` completo): 7/7 charts. El mapa carga pero el autozoom no centra en México — zoom manual pendiente. |
+| DB-10 | Código, tablero y 5 pruebas listos; **no se registra** — depende de `bronze.conagua_presas` (Emilio Galnares, C1). Único tablero sin captura real. |
 
 ---
 
@@ -150,7 +139,14 @@ tiempo de matrícula y la distribución del driver dominante.
 **Cómo leerlo:** empieza por la tarjeta de matrícula total y su variación — si baja, el resto del
 tablero te dice por qué (el pie de drivers) y a quién le pasa (da clic en un municipio → DB-02).
 
-[CAPTURA PENDIENTE: DB-01 — panel completo con las 9 visualizaciones]
+![DB-01 · Ejecutivo, datos reales 2026-09-03](capturas/db01-ejecutivo.png)
+
+**Captura real, 2026-09-03.** Matrícula total 768,569, 4,263 escuelas en alcance, distribución por
+nivel y sostenimiento — todo real, de `gold.cubo_matricula` tras cargar Bronze real (CCT + Formato
+911 histórico) y CONEVAL real. Único hueco: KPI-07 (driver dominante) marca todas las escuelas
+"Sin recomendación" porque `gold.recomendaciones` sigue siendo el mock de ML sembrado antes de
+tener el catálogo real de escuelas — sus CCT no cruzan con las 77,712 reales. No es un error de
+este tablero.
 
 ### DB-02 · Mapa de riesgo territorial
 
@@ -162,7 +158,12 @@ proyectada).
 individuales y de ahí a la ficha de cualquiera (DB-03). Ningún municipio sin predicción se pinta de
 gris "cero" — si no hay dato, el mapa lo deja explícitamente vacío.
 
-[CAPTURA PENDIENTE: DB-02 — coroplético + puntos de escuela + leyenda]
+![DB-02 · Mapa de riesgo territorial, datos reales 2026-09-03](capturas/db02-mapa-riesgo.png)
+
+**Captura real, 2026-09-03.** El mapa de puntos por escuela sí zoom-ea y muestra las escuelas
+reales georreferenciadas en el territorio. El coroplético (KPI-10) y los KPIs de riesgo (KPI-03/04)
+muestran "No data": dependen de `gold.predicciones` (mock de ML-01), cuyos CCT tampoco cruzan con
+el catálogo real — mismo hueco que en DB-01, no un problema de este mapa.
 
 ### DB-03 · Ficha de escuela
 
@@ -175,7 +176,12 @@ de desaparecer o mostrar 0 — la ficha se sigue viendo completa. ML-01 ya está
 PR #28, MAE 0.0141 / RMSE 0.0177) pero la confirmación end-to-end del registry sigue `in_progress`
 — revisa el estado real en `Execution_Status.md` antes de asumir cobertura total en la demo.
 
-[CAPTURA PENDIENTE: DB-03 — ficha completa de una escuela de ejemplo]
+![DB-03 · Ficha de escuela, datos reales 2026-09-03](capturas/db03-ficha-escuela.png)
+
+**Captura real, 2026-09-03.** Matrícula, variación, perfil del plantel, infraestructura CEMABE y
+ubicación georreferenciada, todo real. KPI-17 (índice de riesgo) y la recomendación prescriptiva
+muestran "sin dato disponible" — degradación correcta por diseño (R1), consistente con que el mock
+de ML no cubre el catálogo real todavía.
 
 ### DB-04 · Comparador de municipios
 
@@ -185,7 +191,12 @@ que elijas, en paralelo.
 **Cómo leerlo:** útil para justificar dónde priorizar intervención cuando dos municipios se ven
 parecidos en matrícula pero muy distintos en rezago social.
 
-[CAPTURA PENDIENTE: DB-04 — comparación de 2-3 municipios]
+![DB-04 · Comparador de municipios, datos reales 2026-09-03](capturas/db04-comparador-municipio.png)
+
+**Captura real, 2026-09-03.** Comparativa de Naucalpan, Coyoacán y Benito Juárez con matrícula,
+escuelas y contexto socioeconómico (CONEVAL real: pobreza, rezago social) — el mismo dato de
+CONEVAL que destrabó DB-01/02/07 aquí alimenta directo el contexto municipal. Los drivers D1-D6 y
+KPI-04 siguen SIN_DATO por el mismo hueco de ML mock que el resto.
 
 ### DB-05 · Análisis por driver
 
@@ -195,7 +206,12 @@ estrés hídrico, D6 calidad del aire) con su distribución territorial.
 **Cómo leerlo:** si un driver tiene mucho `SIN_DATO` en cierta zona, es la pista para saltar a DB-07
 y ver el mapa de vacíos completo.
 
-[CAPTURA PENDIENTE: DB-05 — un tab de driver como ejemplo]
+![DB-05 · Análisis por driver, datos reales 2026-09-03](capturas/db05-analisis-driver.png)
+
+**Captura real, 2026-09-03.** Tab D1 (pobreza y rezago social) con la tabla de municipios real —
+309 escuelas en Naucalpan/Coyoacán con su nivel y total. Los charts de driver dominante/
+recomendación muestran "No data"/SIN_DATO por el mismo hueco de ML mock. Es el tablero más pesado
+(36 charts, 6 tabs) — si retomas capturas, dale más tiempo de carga que a los demás.
 
 ### DB-06 · Predicciones
 
@@ -204,7 +220,11 @@ y ver el mapa de vacíos completo.
 **Cómo leerlo:** compara la proyección contra la variación histórica (DB-01) — la diferencia es la
 señal de alerta temprana que justifica intervenir antes de que la matrícula ya haya caído.
 
-[CAPTURA PENDIENTE: DB-06 — proyección de variación]
+![DB-06 · Predicciones, datos reales 2026-09-03](capturas/db06-predicciones.png)
+
+**Captura real, 2026-09-03.** Matrícula observada real por ciclo (266,491 → 244,571). La variación
+proyectada (ML-01) y el ranking de riesgo muestran "No data"/N/A — el mock de ML sigue sin cubrir
+el catálogo real, mismo hueco que en el resto de los tableros.
 
 ### DB-07 · Calidad y cobertura de datos
 
@@ -235,7 +255,11 @@ prearmado para su pregunta específica.
 sostenimiento y territorio.
 **Cómo leerlo:** úsalo cuando ninguno de los otros 9 tableros responda exactamente tu pregunta.
 
-[CAPTURA PENDIENTE: DB-08 — vista pivote de ejemplo]
+![DB-08 · Explorador del cubo, datos reales 2026-09-03](capturas/db08-explorador-cubo.png)
+
+**Captura real, 2026-09-03.** 1,466 escuelas en el explorador, tabla dinámica real por municipio/
+nivel/driver, y detalle escuela × driver navegable. Prácticamente completo con datos reales —
+este tablero no depende de las salidas de ML, así que no tiene el hueco de los demás.
 
 ### DB-09 · Recomendaciones prescriptivas
 
@@ -245,7 +269,12 @@ sostenimiento y territorio.
 puramente descriptivo — dos escuelas con el mismo nivel de riesgo pueden aparecer aquí con
 recomendaciones distintas si su driver dominante es distinto.
 
-[CAPTURA PENDIENTE: DB-09 — recomendaciones por prioridad]
+![DB-09 · Recomendaciones prescriptivas, datos reales 2026-09-03](capturas/db09-recomendaciones.png)
+
+**Captura real, 2026-09-03.** El tablero renderiza correcto contra 1,466 escuelas reales, pero
+"0 recomendaciones emitidas" y SIN_DATO en toda la tabla — este es el tablero que más depende de
+`gold.recomendaciones` (ML-02), así que el hueco del mock es más visible aquí que en cualquier
+otro. No usar esta captura sola en el pitch sin explicar el porqué del "0".
 
 ### DB-10 · Monitor del pipeline
 
@@ -255,11 +284,13 @@ recomendaciones distintas si su driver dominante es distinto.
 desaparece ni se cuenta como cero filas.
 **Cómo leerlo:** si vas a hacer una demo en vivo, revisa este tablero primero — te dice qué fuentes
 están realmente cargadas antes de prometer un número en los otros 9.
-**Nota de estado:** mismo bloqueo que DB-07 — SQL, definición de tablero
-(`superset/dashboards/db10_monitor_pipeline.yaml`) y 5 pruebas en verde contra fixtures, sin
-validar contra Postgres real en este ambiente (ver [[vault/04_UX_Design/Cube_Specs_DB10]] §4).
+**Nota de estado (actualizada 2026-09-03):** el bloqueo de CONEVAL que compartía con DB-07 **ya se
+resolvió** (Parquet reales de DS-07 cargados). Lo único que sigue bloqueando este tablero
+específicamente es CONAGUA/DS-06 — `gold.cubo_pipeline` referencia `bronze.conagua_presas`
+directo y esa tabla no existe todavía en este ambiente. Es dependencia de Emilio Galnares (C1),
+no de Diana/Deni. SQL, tablero y 5 pruebas siguen en verde; solo falta esa fuente.
 
-[CAPTURA PENDIENTE: DB-10 — estado de las 8 fuentes]
+[CAPTURA PENDIENTE: DB-10 — estado de las 8 fuentes, bloqueada por CONAGUA/DS-06 (Emilio Galnares)]
 
 ---
 
@@ -291,6 +322,7 @@ en tiempo real qué fuente está fallando, en vez de que parezca un bug silencio
 - **Consume:** [[vault/04_UX_Design/Screen_Specs]] (catálogo de KPIs y arquitectura de los 10
   dashboards, US-201) · [[vault/04_UX_Design/Cube_Specs_DB07]] · [[vault/04_UX_Design/Cube_Specs_DB10]]
   (bloqueo de datos documentado)
-- **Pendiente:** reemplazar los 9 marcadores `[CAPTURA PENDIENTE]` restantes (DB-07 ya tiene
-  captura real) cuando el ambiente tenga Bronze cargado
-  cargado; actualizar la tabla de la sección "Estado de este manual" en cada revisión
+- **Pendiente:** solo queda 1 marcador `[CAPTURA PENDIENTE]` (DB-10), condicionado a que Emilio
+  Galnares resuelva `bronze.conagua_presas` (CONAGUA/DS-06). Refrescar el mock de ML-01/ML-02
+  contra el catálogo real de escuelas destrabaría los KPIs de predicción/recomendación en las
+  9 capturas ya reales

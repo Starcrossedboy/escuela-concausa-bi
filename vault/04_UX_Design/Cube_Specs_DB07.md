@@ -88,6 +88,14 @@ Manuel y fuera del alcance de esta historia (US-222).
 `gold.cubo_completitud` sí pudo materializarse porque su única dependencia,
 `gold.fact_escuela_ciclo`, ya existía como tabla en este ambiente.
 
+**Actualización 2026-09-03 — bloqueo resuelto.** BUG-029 corregido (el sync ya no aborta en
+cascada) y Bronze real cargado (CCT, Formato 911, CONEVAL vía el extractor oficial de Deni
+Garrido). `dbt run` completo materializa `gold.cubo_completitud` con 162 filas reales; DB-07 está
+registrado y vivo en Superset local, con captura real en
+[[vault/04_UX_Design/Manual_Usuario_Dashboards]]. Pendiente aparte, no bloqueante: los KPIs que
+dependen de `gold.predicciones`/`recomendaciones` (mock ML-01/02) siguen en SIN_DATO porque ese
+mock no cruza con el catálogo real de escuelas.
+
 ## 5. Trazabilidad
 
 - **Implementa:** US-222 (REQ-002)

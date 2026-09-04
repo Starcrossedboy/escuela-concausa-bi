@@ -33,6 +33,10 @@ dashboards:
       - columna: id_ciclo
         etiqueta: "Ciclo escolar"
         datasets: [db04_cubo_comparador_municipio]
+        # US-214a — ver la nota equivalente en db03_ficha_escuela.yaml. Sin valor inicial,
+        # `KPI-01 · Matrícula de los municipios` suma los tres ciclos (32 312 en vez de
+        # 11 828). Al cargar un ciclo nuevo hay que actualizar este valor.
+        valor_por_defecto: "2024-2025"
       - columna: nombre_entidad
         etiqueta: "Entidad"
         datasets: [db04_cubo_comparador_municipio]
@@ -41,6 +45,13 @@ dashboards:
         datasets: [db04_cubo_comparador_municipio]
       - columna: nivel
         etiqueta: "Nivel educativo"
+        datasets: [db04_cubo_comparador_municipio]
+      # US-214a · destino del drill-down DB-03 -> DB-04 (`link_db04`).
+      # AL FINAL A PROPOSITO: los indices 0..3 ya estan cableados en links y
+      # moverlos rompe la navegacion sin ningun error visible. Ver la nota
+      # equivalente en db03_ficha_escuela.yaml.
+      - columna: cve_mun
+        etiqueta: "Municipio (clave INEGI)"
         datasets: [db04_cubo_comparador_municipio]
 
     charts:
@@ -87,8 +98,13 @@ dashboards:
         viz: table
         ancho: 12
         alto: 60
-        dimensiones: [nombre_entidad, nombre_municipio, nivel, escuelas, escuelas_con_prediccion, escuelas_en_riesgo, cobertura_riesgo]
+        dimensiones: [nombre_entidad, nombre_municipio, nivel, escuelas, escuelas_con_prediccion, escuelas_en_riesgo, cobertura_riesgo, link_db03]
         row_limit: 100
+        params_extra:
+          # US-214a: sin `allow_render_html` la celda muestra el <a href> como
+          # texto plano. El sanitizador de Superset es DOMPurify, que permite
+          # <a href> http(s)/relativo por default (verificado en 6.1.0, US-214b).
+          allow_render_html: true
 
       # ----- Fila 3: riesgo y contexto -----------------------------------------
       - nombre: "KPI-03 · Riesgo promedio por municipio"

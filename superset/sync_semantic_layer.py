@@ -68,6 +68,15 @@ FORMATO_D3 = {
     "decimal_2": ",.2f",
     "porcentaje_0": ",.0%",
     "porcentaje_1": ",.1%",
+    # "fecha": sin esta entrada, FORMATO_D3.get("fecha", "") caia a cadena
+    # vacia y Superset rechazaba el PUT del dataset completo (d3format exige
+    # 1-128 caracteres) -- NINGUNA metrica del dataset se aplicaba, no solo
+    # la de fecha (hallado en metrics_db10.yaml -> ultima_ingesta, US-223).
+    # "smart_date" (el sentinel de Superset para ejes de serie de tiempo) se
+    # probo primero pero en un big_number_total interpreta el timestamp como
+    # numero crudo ("​.527ms" en vez de una fecha) -- un d3-time-format
+    # explicito si renderiza la fecha real.
+    "fecha": "%Y-%m-%d",
 }
 
 ALTO_TILE_KPI = 38      # altura de un tile KPI (unidades de grilla Superset)
@@ -1054,7 +1063,7 @@ def _filtros_nativos(cfg_dashboard: dict, datasets_uuids: dict[str, str]) -> lis
                 targets.append({"column": {"name": f_cfg["columna"]}, "datasetUuid": ds_uuid})
         if not targets:
             continue
-        filtros.append({
+        filtro = {
             "id": f"NATIVE_FILTER-US203-{i}",
             "name": f_cfg.get("etiqueta", f_cfg["columna"]),
             "filterType": "filter_select",
@@ -1062,7 +1071,37 @@ def _filtros_nativos(cfg_dashboard: dict, datasets_uuids: dict[str, str]) -> lis
             "controlValues": {"enableEmptyFilter": False, "multiSelect": True},
             "targets": targets,
             "scope": {"rootPath": ["ROOT_ID"], "excluded": []},
-        })
+        }
+
+        # `valor_por_defecto` (US-214a) — OPCIONAL y aditivo: un tablero que no lo
+        # declara se comporta exactamente igual que antes.
+        #
+        # Por qué existe: un filtro nativo sin valor inicial deja el tablero SIN filtrar
+        # al abrirlo, y una tarjeta `SUM(matricula_total)` sobre un cubo con varios ciclos
+        # suma TODOS los ciclos. En DB-03/DB-04 eso pintaba 32 312 alumnos donde el ciclo
+        # real tiene 11 828 — 2.7x inflado, sin ningun error visible. Es el mismo defecto
+        # que Luis Tellez reporto el 2026-09-04 sobre `/api/v1/kpis` en produccion
+        # (20.6M contra 6.7M reales); alla se arreglo en la API, pero los tableros no pasan
+        # por la API: leen la base directo, asi que necesitan su propio arreglo.
+        #
+        # `defaultDataMask` es la misma forma que Superset usa en el parametro
+        # `native_filters` de la URL (ver los links de drill-down en
+        # db03_cubo_escuela_360.sql), asi que el formato ya esta verificado contra 6.1.0.
+        if (valor := f_cfg.get("valor_por_defecto")) is not None:
+            valores = valor if isinstance(valor, list) else [valor]
+            filtro["defaultDataMask"] = {
+                "extraFormData": {
+                    "filters": [{"col": f_cfg["columna"], "op": "IN", "val": valores}]
+                },
+                "filterState": {
+                    "label": ", ".join(str(v) for v in valores),
+                    "validateStatus": False,
+                    "value": valores,
+                },
+                "ownState": {},
+            }
+
+        filtros.append(filtro)
     return filtros
 
 

@@ -20,3 +20,4 @@ tags: [moc, qa, testing]
 | [[vault/06_Quality_Testing/Bug_Register]] | Registro de defectos `BUG-###` |
 | [[vault/06_Quality_Testing/Guion_E2E_Verificacion_4]] | Guion de la verificación #4 del ensayo E2E: ML-01 sirviendo por API (C3) |
 | [[vault/06_Quality_Testing/Usability_Accessibility_Test_Plan_DB05_DB08]] | Plan de pruebas de usabilidad/accesibilidad de DB-05/DB-08 (US-215b) |
+| [[vault/06_Quality_Testing/Usability_Accessibility_Test_Plan_DB03_DB04]] | Plan de pruebas de usabilidad/accesibilidad de DB-03/DB-04, incluido el drill-down cruzado (US-215a) |

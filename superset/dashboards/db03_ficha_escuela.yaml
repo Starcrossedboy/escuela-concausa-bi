@@ -35,11 +35,26 @@ dashboards:
       - columna: id_ciclo
         etiqueta: "Ciclo escolar"
         datasets: [db03_cubo_escuela_360]
+        # US-214a — SIN esto el tablero abre sin filtrar y las tarjetas suman TODOS los
+        # ciclos: `KPI-15 · Matrícula de la escuela` pintaba 32 312 donde 2024-2025 tiene
+        # 11 828 (2.7x), sin ningún error visible. Mismo defecto que Luis Téllez reportó
+        # el 2026-09-04 en `/api/v1/kpis` de producción (20.6M contra 6.7M); allá se
+        # arregló en la API, pero los tableros leen la base directo y no pasan por ella.
+        # Al cargar un ciclo nuevo hay que actualizar este valor.
+        valor_por_defecto: "2024-2025"
       - columna: nombre_entidad
         etiqueta: "Entidad"
         datasets: [db03_cubo_escuela_360]
       - columna: nivel
         etiqueta: "Nivel educativo"
+        datasets: [db03_cubo_escuela_360]
+      # US-214a · destino del drill-down DB-04 -> DB-03 (`link_db03`).
+      # SE AGREGA AL FINAL A PROPOSITO: `_filtros_nativos()` numera los filtros
+      # por posicion (NATIVE_FILTER-US203-{indice}), asi que insertarlo antes
+      # correria los indices 0..3 y romperia en silencio cualquier link que ya
+      # apunte a este tablero. Nuevo filtro = siempre al final.
+      - columna: cve_mun
+        etiqueta: "Municipio (clave INEGI)"
         datasets: [db03_cubo_escuela_360]
 
     charts:
@@ -92,8 +107,11 @@ dashboards:
         viz: table
         ancho: 6
         alto: 60
-        dimensiones: [cct, nombre_escuela, nivel, sostenimiento, nombre_municipio, nombre_entidad]
+        dimensiones: [cct, nombre_escuela, nivel, sostenimiento, nombre_municipio, nombre_entidad, link_db04]
         row_limit: 25
+        params_extra:
+          # US-214a: ver la nota equivalente en db04_comparador_municipio.yaml.
+          allow_render_html: true
 
       # ----- Fila 3: los seis drivers con su bandera ---------------------------
       # Cada driver viaja junto a su d#_cobertura: la bandera es la fuente de

@@ -44,11 +44,14 @@ POSTGRES_USER="${POSTGRES_USER:-faro_app}"
 GOOGLE_CLIENT_ID="${GOOGLE_CLIENT_ID:-526490367142-gctkloa4dsnp7m56r0fu62n7ehuhpkcs.apps.googleusercontent.com}"
 GOOGLE_REDIRECT_URI="${GOOGLE_REDIRECT_URI:-https://faro-api-eanzfglvyq-uc.a.run.app/api/v1/auth/callback}"
 
-# ANALISTA_EMAILS: allowlist del rol `analista` (US-403). DUEÑO: PO/Edgar — pendiente de definir
-# (task_0c696e2e). Hoy vacío => todos `ciudadano`. NO se versiona ningún correo (dato personal).
-# Para probar el rol cuando C4 cierre el verifier, setéalo EFÍMERO sin versionarlo:
-#   gcloud run services update faro-api --region=us-central1 --update-env-vars=ANALISTA_EMAILS=<correo1,correo2>
-# ANALISTA_EMAILS="${ANALISTA_EMAILS:-}"
+# ANALISTA_EMAILS: allowlist del rol `analista` (US-403). DUEÑO: PO/Edgar (correo definido).
+# Se LEE del entorno y se pasa en --set-env-vars de abajo. NO se versiona ningún correo aquí
+# (dato personal -> Secrets_Policy.md). Vacío por defecto => todos `ciudadano`. Para desplegar
+# con analistas, inyéctalo EFÍMERO al invocar el script (no queda en el repo, solo en la revisión):
+#   ANALISTA_EMAILS=<correo-del-analista> ./deploy-cloud-run.sh
+# OJO con la coma: --set-env-vars separa pares por ",". Con UN correo va directo; para VARIOS usa
+# el delimitador alterno de gcloud (--set-env-vars="^@^K1=v1@ANALISTA_EMAILS=a@x,b@y") o --update-env-vars.
+ANALISTA_EMAILS="${ANALISTA_EMAILS:-}"
 
 # Secretos inyectados en runtime desde Secret Manager (nunca en la imagen ni en env plano)
 SECRETS="JWT_SECRET_KEY=jwt-secret-key:latest,POSTGRES_PASSWORD=db-password:latest,GOOGLE_CLIENT_SECRET=google-client-secret:latest"
@@ -80,7 +83,7 @@ gcloud run deploy ${SERVICE_NAME} \
   --min-instances=0 \
   --max-instances=10 \
   --timeout=300s \
-  --set-env-vars="ENVIRONMENT=production,POSTGRES_HOST=${POSTGRES_HOST},POSTGRES_PORT=${POSTGRES_PORT},POSTGRES_DB=${POSTGRES_DB},POSTGRES_USER=${POSTGRES_USER},GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID},GOOGLE_REDIRECT_URI=${GOOGLE_REDIRECT_URI}" \
+  --set-env-vars="ENVIRONMENT=production,POSTGRES_HOST=${POSTGRES_HOST},POSTGRES_PORT=${POSTGRES_PORT},POSTGRES_DB=${POSTGRES_DB},POSTGRES_USER=${POSTGRES_USER},GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID},GOOGLE_REDIRECT_URI=${GOOGLE_REDIRECT_URI},ANALISTA_EMAILS=${ANALISTA_EMAILS}" \
   --set-secrets="${SECRETS}"
 
 echo ""

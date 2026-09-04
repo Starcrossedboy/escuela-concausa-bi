@@ -1,8 +1,9 @@
 ---
+id: DOC-ALERTAS-US524A
 title: Alertas y Monitoreo de API y Postgres
 owner: Alejandro Velázquez Mendoza
 traces_up: [US-524a, REQ-005]
-status: in_progress
+status: done
 ---
 
 # Política de Monitoreo y Alertas (US-524a)

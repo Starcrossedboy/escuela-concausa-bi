@@ -130,25 +130,25 @@
   <script>
   window.PM_DATA = {
   "meta": {
-    "generated_at": "2026-09-04T01:06:59+00:00",
+    "generated_at": "2026-09-04T06:08:34+00:00",
     "generated_date": "2026-09-04",
-    "commit": "c6cbd92",
+    "commit": "1ef402c",
     "branch": "main",
     "working_tree": "clean",
-    "source_fingerprint": "ca45698465a0",
+    "source_fingerprint": "3038d57e06f1",
     "source": "Fuentes canónicas del vault",
     "offline": true,
     "schema_version": "2.4"
   },
   "summary": {
     "total": 91,
-    "done": 43,
+    "done": 44,
     "planned": 11,
     "in_progress": 15,
-    "in_review": 22,
+    "in_review": 21,
     "blocked": 0,
-    "wip": 37,
-    "progress": 68.7,
+    "wip": 36,
+    "progress": 69.1,
     "days_to_demo": 5
   },
   "delivery": {
@@ -1283,11 +1283,11 @@
       "sprint": "S4",
       "req": "REQ-004",
       "cell": "Célula 4 · Backend, API & Seguridad",
-      "status": "in_review",
+      "status": "done",
       "started": "2026-08-26",
       "blocked_since": "—",
-      "evidence": "vault/_DevLog/2026-08-26-juan-macias-us412-repositorio-modelos-bug010 · PR #95 mergeado: /predicciones/* lee gold.predicciones + gold.recomendaciones mediante repositorio inyectable, BUG-010 fixed, contrato/OpenAPI y pruebas de 200/404/batch. No cierra: BUG-020 critical hace que /predicciones y /predicciones/batch respondan 500 en producción — son las rutas que esta historia entrega y de las que depende la demo de ML. Se cierra igual que US-411: cuando la ruta responda en el despliegue. La integración Postgres E2E sigue trazada a US-422",
-      "updated": "2026-08-28",
+      "evidence": "vault/_DevLog/2026-08-26-juan-macias-us412-repositorio-modelos-bug010 · PR #95 mergeado: /predicciones/* lee gold.predicciones + gold.recomendaciones mediante repositorio inyectable, BUG-010 fixed, contrato/OpenAPI y pruebas de 200/404/batch. BUG-020 curado en prod (US-505 Fase 2, C5) y verificado en vivo el 2026-09-02: /predicciones/{cct} → 404 estructurado, /predicciones/batch → 200 vacío, /escuelas → 200 — vault/_DevLog/2026-09-02-juan-macias-cierre-us412-us416. La integración Postgres E2E sigue trazada a US-422",
+      "updated": "2026-09-02",
       "objective": "Rutas que sirven las predicciones de los 3 modelos, leyendo gold.predicciones y gold.recomendaciones por SQL. Modo unitario y batch, con validación de entrada. Cierra BUG-010.",
       "deliverable": "Código en su carpeta + documento en el vault con frontmatter + fila en la matriz",
       "age_days": 9
@@ -1358,8 +1358,8 @@
       "status": "in_review",
       "started": "2026-08-27",
       "blocked_since": "—",
-      "evidence": "vault/_DevLog/2026-08-27-juan-macias-us416-cache-timeouts · PR #101 mergeado: cache TTL por fila, cache negativo, timeout SQL y error 503; suite 390 pass. Falta que el TL C4 ratifique el diseño y acepte que la prueba con Postgres real corresponde a US-422",
-      "updated": "2026-08-28",
+      "evidence": "vault/_DevLog/2026-08-27-juan-macias-us416-cache-timeouts · PR #101 mergeado: cache TTL por fila, cache negativo, timeout SQL y error 503. Última pieza cerrada el 2-sep: RepositorioModelosPostgres._con_timeout traduce SQLAlchemyError a RepositorioModelosNoDisponible → 503 (antes un esquema gold ausente escapaba como 500) — vault/_DevLog/2026-09-02-juan-macias-cierre-us412-us416, suite 778 passed. Único pendiente: Christian Ruiz (TL C4) no ha ratificado el diseño (cache/endurecimiento) ni confirmado que la prueba con Postgres real corresponde a US-422",
+      "updated": "2026-09-02",
       "objective": "Cache de predicciones batch, timeouts, y respuesta degradada cuando falta el dato.",
       "deliverable": "Código en su carpeta + documento en el vault con frontmatter + fila en la matriz",
       "age_days": 8
@@ -1821,8 +1821,8 @@
         "US-525a"
       ],
       "pr_count": 5,
-      "pr_open": 1,
-      "pr_merged": 4,
+      "pr_open": 0,
+      "pr_merged": 5,
       "stories": 5,
       "done": 2,
       "wip": 2,
@@ -1942,8 +1942,8 @@
         "US-114"
       ],
       "pr_count": 8,
-      "pr_open": 1,
-      "pr_merged": 7,
+      "pr_open": 0,
+      "pr_merged": 8,
       "stories": 4,
       "done": 2,
       "wip": 1,
@@ -2006,8 +2006,8 @@
         "US-006"
       ],
       "pr_count": 32,
-      "pr_open": 1,
-      "pr_merged": 28,
+      "pr_open": 0,
+      "pr_merged": 29,
       "stories": 6,
       "done": 3,
       "wip": 1,
@@ -2037,8 +2037,8 @@
         "US-525b"
       ],
       "pr_count": 5,
-      "pr_open": 1,
-      "pr_merged": 4,
+      "pr_open": 0,
+      "pr_merged": 5,
       "stories": 5,
       "done": 1,
       "wip": 3,
@@ -2217,10 +2217,10 @@
       "pr_open": 0,
       "pr_merged": 0,
       "stories": 3,
-      "done": 1,
-      "wip": 2,
+      "done": 2,
+      "wip": 1,
       "blocked": 0,
-      "progress": 76.7
+      "progress": 88.3
     },
     {
       "name": "Karla Alejandra Monter Benitez",
@@ -2242,9 +2242,9 @@
         "US-413",
         "US-414"
       ],
-      "pr_count": 1,
+      "pr_count": 2,
       "pr_open": 0,
-      "pr_merged": 1,
+      "pr_merged": 2,
       "stories": 3,
       "done": 0,
       "wip": 1,
@@ -2273,8 +2273,8 @@
         "US-124b"
       ],
       "pr_count": 5,
-      "pr_open": 1,
-      "pr_merged": 4,
+      "pr_open": 0,
+      "pr_merged": 5,
       "stories": 4,
       "done": 4,
       "wip": 0,
@@ -2303,9 +2303,9 @@
         "US-504",
         "US-505"
       ],
-      "pr_count": 34,
+      "pr_count": 36,
       "pr_open": 0,
-      "pr_merged": 33,
+      "pr_merged": 35,
       "stories": 5,
       "done": 3,
       "wip": 2,
@@ -2366,9 +2366,9 @@
         "US-214a",
         "US-215a"
       ],
-      "pr_count": 7,
+      "pr_count": 9,
       "pr_open": 0,
-      "pr_merged": 7,
+      "pr_merged": 9,
       "stories": 5,
       "done": 1,
       "wip": 2,
@@ -2426,9 +2426,9 @@
         "US-223",
         "US-224"
       ],
-      "pr_count": 7,
+      "pr_count": 8,
       "pr_open": 0,
-      "pr_merged": 7,
+      "pr_merged": 8,
       "stories": 4,
       "done": 2,
       "wip": 2,
@@ -2499,10 +2499,10 @@
         "Karla Alejandra Monter Benitez"
       ],
       "stories": 14,
-      "done": 4,
-      "wip": 8,
+      "done": 5,
+      "wip": 7,
       "blocked": 0,
-      "progress": 57.1
+      "progress": 59.6
     },
     {
       "name": "Célula 5 · Cloud Infrastructure & DevOps",
@@ -2555,9 +2555,9 @@
       "name": "Backend/API/Auth",
       "points": 1.5,
       "stories": 14,
-      "done": 4,
-      "progress": 57.1,
-      "secured_points": 0.86,
+      "done": 5,
+      "progress": 59.6,
+      "secured_points": 0.89,
       "band": "green"
     },
     {
@@ -2620,12 +2620,12 @@
       "id": "DS-03",
       "name": "DS-03 · SEP CEMABE",
       "owner": "Deni Garrido Fragoso",
-      "document_status": "draft",
+      "document_status": "in_review",
       "frequency": "- Censo único 2013 (no se actualiza periódicamente). Se trata como snapshot estructural.",
       "coverage": "Nacional · nivel escuela.",
-      "proof": "pending",
-      "checks_done": 0,
-      "checks_total": 5,
+      "proof": "ok",
+      "checks_done": 10,
+      "checks_total": 10,
       "path": "vault/14_Data_Sources/DS-03_CEMABE.md"
     },
     {
@@ -2840,9 +2840,9 @@
       "story": "US-222/US-223/US-224",
       "provider": "Célula 1 (Diana — Bronze real)",
       "consumer": "Célula 2 (Oscar — gold.cubo_pipeline/DB-10, validación real de US-222/US-223 en PR #192, capturas reales de US-224)",
-      "description": "Nadie del equipo salvo Diana tiene un ambiente local con Bronze real cargado (reportado por Edgar 2026-09-03) — bloquea validar con datos reales gold.cubo_pipeline (DB-10) y gold.cubo_completitud (DB-07, BUG-029 de Oscar, no bloqueante por sí solo pero también espera números reales). No es falta de scripts: es que descargar+cargar a mano toma horas y solo Diana lo ha hecho.",
+      "description": "Nadie del equipo salvo Diana tiene un ambiente local con Bronze real cargado (reportado por Edgar 2026-09-03) — bloquea validar con datos reales gold.cubo_pipeline (DB-10) y gold.cubo_completitud (DB-07, BUG-029 de Oscar, no bloqueante por sí solo pero también espera números reales). No es falta de scripts: es que descargar+cargar a mano toma horas y solo Diana lo ha hecho. · 2026-09-03 · Diana compartió el dump por Teams (canal general, además de mandárselo directo a Luis Téllez para RISK-001) — Camino B queda disponible para cualquiera. · 2026-09-03 (tarde) · Oscar Quiroz — verificación de punta a punta. Restauré ese dump (Camino B) + corrí extractor_coneval.py/cargar_bronze_coneval_real.py (flujo real de Deni Garrido) para poblar bronze.coneval_irs_2020/coneval_pobreza_2020 con datos oficiales. dbt run completo: 22 de 24 modelos materializaron — dim_municipio (el que bloqueaba en cascada) ya construye, y con él gold.cubo_completitud, cubo_matricula, cubo_riesgo_territorial, cubo_driver, cubo_escuela_360, cubo_pivot, cubo_recomendaciones, cubo_comparador_municipio. Sync a Superset: 9 de 10 tableros (DB-01…DB-09) registrados con datos reales, capturas tomadas y en el manual (Manual_Usuario_Dashboards.md). El bloqueador de *ambiente* (que nadie salvo Diana tuviera Bronze real) queda resuelto y confirmado independientemente. Queda un blocker nuevo, aislado y distinto, sin relación con este: gold.cubo_pipeline (solo DB-10) referencia bronze.conagua_presas (CONAGUA/DS-06), que no existe — dependencia de Emilio Galnares, no de Diana/Deni; requiere seguimiento aparte. Aparte, gold.predicciones/gold.recomendaciones (mock de ML-01/02) tienen CCT que no cruzan con el catálogo real de 77,712 escuelas — todo KPI de predicción/recomendación en las 9 capturas muestra SIN_DATO por eso, no por error. · 2026-09-04 · Oscar Quiroz — cierre total. Verifiqué que las historias de Emilio Galnares (US-121a…124a, CONAGUA/DS-06) ya estaban done desde el 28-ago antes de contactarlo. Corrí su extractor/loader real: bronze.conagua_presas cargado (180 presas), dbt run --select cubo_pipeline → 10 filas. sync_semantic_layer.py registró DB-10; de paso se encontró y corrigió un bug real (FORMATO_D3 sin entrada para formato: fecha, tumbaba el PUT completo del dataset — ver tests/test_sync_formato_d3_cobertura.py). Los 10 dashboards ya tienen captura real. BLOCK-004 no tiene ningún pendiente abierto.",
       "since": "2026-09-03",
-      "alternative": "Camino A (reproducir la carga real) automatizado en vault/14_Data_Sources/DS-01_Formato_911 §11 — un solo comando (python -m src.ingesta.reproducir_bronze_real), verificado en vivo de punta a punta 2026-09-03 (385,204 filas DS-02 + ~1.37M filas DS-01 histórico), disponible ya para cualquiera sin esperar a Diana. Camino B (restaurar el dump de Bronze de Diana, minutos en vez de horas) documentado en la misma sección — dump ya generado 2026-09-03 (33 MB). 2026-09-03 · Diana compartió el dump por Teams (canal general del equipo, además de mandárselo directo a Luis Téllez para el cierre de RISK-001) — Camino B queda disponible para cualquiera, no solo Camino A. Bloqueador de *ambiente* cerrado por completo.",
+      "alternative": "Camino A (reproducir la carga real) automatizado en vault/14_Data_Sources/DS-01_Formato_911 §11 — un solo comando (python -m src.ingesta.reproducir_bronze_real), verificado en vivo de punta a punta 2026-09-03 (385,204 filas DS-02 + ~1.37M filas DS-01 histórico), disponible ya para cualquiera sin esperar a Diana. Camino B (restaurar el dump de Bronze de Diana, compartido por Teams) verificado exitoso 2026-09-03 por Oscar Quiroz de punta a punta, combinado con el extractor real de CONEVAL de Deni Garrido.",
       "owner": "Diana Aracely Alvarez Varela",
       "status": "resolved"
     }
@@ -2903,9 +2903,9 @@
         "name": "Luis Enrique García Vázquez",
         "cell": "Célula 1",
         "engagement": 100.0,
-        "commits": 6,
-        "prs_merged": 4,
-        "prs_open": 1,
+        "commits": 9,
+        "prs_merged": 5,
+        "prs_open": 0,
         "risk": "en_tiempo",
         "by_sprint": {
           "S1": {
@@ -3023,6 +3023,47 @@
         }
       },
       {
+        "name": "Juan Carlos Macías Mayen",
+        "cell": "Célula 4",
+        "engagement": 88.3,
+        "commits": 0,
+        "prs_merged": 0,
+        "prs_open": 0,
+        "risk": "en_tiempo",
+        "by_sprint": {
+          "S1": {
+            "n": 0,
+            "done": 0,
+            "state": "idle"
+          },
+          "S2": {
+            "n": 0,
+            "done": 0,
+            "state": "idle"
+          },
+          "S3": {
+            "n": 0,
+            "done": 0,
+            "state": "idle"
+          },
+          "S4": {
+            "n": 2,
+            "done": 2,
+            "state": "done"
+          },
+          "S5": {
+            "n": 1,
+            "done": 0,
+            "state": "wip"
+          },
+          "S6": {
+            "n": 0,
+            "done": 0,
+            "state": "idle"
+          }
+        }
+      },
+      {
         "name": "Monserrat Xcaret Miranda Olivas",
         "cell": "Célula 2",
         "engagement": 83.8,
@@ -3105,52 +3146,11 @@
         }
       },
       {
-        "name": "Juan Carlos Macías Mayen",
-        "cell": "Célula 4",
-        "engagement": 76.7,
-        "commits": 0,
-        "prs_merged": 0,
-        "prs_open": 0,
-        "risk": "en_tiempo",
-        "by_sprint": {
-          "S1": {
-            "n": 0,
-            "done": 0,
-            "state": "idle"
-          },
-          "S2": {
-            "n": 0,
-            "done": 0,
-            "state": "idle"
-          },
-          "S3": {
-            "n": 0,
-            "done": 0,
-            "state": "idle"
-          },
-          "S4": {
-            "n": 2,
-            "done": 1,
-            "state": "wip"
-          },
-          "S5": {
-            "n": 1,
-            "done": 0,
-            "state": "wip"
-          },
-          "S6": {
-            "n": 0,
-            "done": 0,
-            "state": "idle"
-          }
-        }
-      },
-      {
         "name": "Luis Téllez Domínguez",
         "cell": "Célula 5",
         "engagement": 74.0,
-        "commits": 89,
-        "prs_merged": 33,
+        "commits": 94,
+        "prs_merged": 35,
         "prs_open": 0,
         "risk": "en_tiempo",
         "by_sprint": {
@@ -3231,8 +3231,8 @@
         "name": "Oscar Antonio Quiroz Lázaro",
         "cell": "Célula 2",
         "engagement": 67.5,
-        "commits": 18,
-        "prs_merged": 7,
+        "commits": 24,
+        "prs_merged": 8,
         "prs_open": 0,
         "risk": "en_tiempo",
         "by_sprint": {
@@ -3354,9 +3354,9 @@
         "name": "Deni Garrido Fragoso",
         "cell": "Célula 1",
         "engagement": 66.2,
-        "commits": 37,
-        "prs_merged": 7,
-        "prs_open": 1,
+        "commits": 40,
+        "prs_merged": 8,
+        "prs_open": 0,
         "risk": "retraso",
         "by_sprint": {
           "S1": {
@@ -3395,9 +3395,9 @@
         "name": "Alejandro Velázquez Mendoza",
         "cell": "Célula 5",
         "engagement": 66.0,
-        "commits": 22,
-        "prs_merged": 4,
-        "prs_open": 1,
+        "commits": 26,
+        "prs_merged": 5,
+        "prs_open": 0,
         "risk": "en_tiempo",
         "by_sprint": {
           "S1": {
@@ -3436,9 +3436,9 @@
         "name": "Edgar Edmundo Coronel Navarrete",
         "cell": "PO",
         "engagement": 60.8,
-        "commits": 380,
-        "prs_merged": 28,
-        "prs_open": 1,
+        "commits": 406,
+        "prs_merged": 29,
+        "prs_open": 0,
         "risk": "retraso",
         "by_sprint": {
           "S1": {
@@ -3559,9 +3559,9 @@
         "name": "Edgar Ulises Jiménez López",
         "cell": "Célula 5",
         "engagement": 47.0,
-        "commits": 11,
-        "prs_merged": 4,
-        "prs_open": 1,
+        "commits": 12,
+        "prs_merged": 5,
+        "prs_open": 0,
         "risk": "en_tiempo",
         "by_sprint": {
           "S1": {
@@ -3641,8 +3641,8 @@
         "name": "Marina García del Buey",
         "cell": "Célula 2",
         "engagement": 40.0,
-        "commits": 18,
-        "prs_merged": 7,
+        "commits": 26,
+        "prs_merged": 9,
         "prs_open": 0,
         "risk": "en_tiempo",
         "by_sprint": {
@@ -3682,8 +3682,8 @@
         "name": "Karla Alejandra Monter Benitez",
         "cell": "Célula 4",
         "engagement": 21.7,
-        "commits": 0,
-        "prs_merged": 1,
+        "commits": 1,
+        "prs_merged": 2,
         "prs_open": 0,
         "risk": "retraso",
         "by_sprint": {
@@ -3728,22 +3728,22 @@
         "cell": "PO",
         "cell_group": "Célula 0 · PO — Dirección de Proyecto",
         "active": true,
-        "prs_merged": 28,
-        "devlogs": 39,
+        "prs_merged": 29,
+        "devlogs": 40,
         "active_us": 4,
-        "activity": 71,
-        "signal": "28 PR · 39 DevLog · 4 US activas"
+        "activity": 73,
+        "signal": "29 PR · 40 DevLog · 4 US activas"
       },
       {
         "name": "Luis Téllez Domínguez",
         "cell": "Célula 5",
         "cell_group": "Célula 5 · Cloud Infrastructure & DevOps",
         "active": true,
-        "prs_merged": 33,
-        "devlogs": 24,
+        "prs_merged": 35,
+        "devlogs": 26,
         "active_us": 5,
-        "activity": 62,
-        "signal": "33 PR · 24 DevLog · 5 US activas"
+        "activity": 66,
+        "signal": "35 PR · 26 DevLog · 5 US activas"
       },
       {
         "name": "Diana Aracely Alvarez Varela",
@@ -3779,6 +3779,17 @@
         "signal": "18 PR · 19 DevLog · 5 US activas"
       },
       {
+        "name": "Deni Garrido Fragoso",
+        "cell": "Célula 1",
+        "cell_group": "Célula 1 · Data Engineering & Quality",
+        "active": true,
+        "prs_merged": 8,
+        "devlogs": 18,
+        "active_us": 3,
+        "activity": 29,
+        "signal": "8 PR · 18 DevLog · 3 US activas"
+      },
+      {
         "name": "Manuel Alejandro Serranía Reinada",
         "cell": "Célula 2",
         "cell_group": "Célula 2 · Analytics & Business Intelligence",
@@ -3790,15 +3801,26 @@
         "signal": "10 PR · 13 DevLog · 6 US activas"
       },
       {
-        "name": "Deni Garrido Fragoso",
-        "cell": "Célula 1",
-        "cell_group": "Célula 1 · Data Engineering & Quality",
+        "name": "Oscar Antonio Quiroz Lázaro",
+        "cell": "Célula 2",
+        "cell_group": "Célula 2 · Analytics & Business Intelligence",
         "active": true,
-        "prs_merged": 7,
-        "devlogs": 17,
+        "prs_merged": 8,
+        "devlogs": 12,
+        "active_us": 4,
+        "activity": 24,
+        "signal": "8 PR · 12 DevLog · 4 US activas"
+      },
+      {
+        "name": "Marina García del Buey",
+        "cell": "Célula 2",
+        "cell_group": "Célula 2 · Analytics & Business Intelligence",
+        "active": true,
+        "prs_merged": 9,
+        "devlogs": 11,
         "active_us": 3,
-        "activity": 27,
-        "signal": "7 PR · 17 DevLog · 3 US activas"
+        "activity": 23,
+        "signal": "9 PR · 11 DevLog · 3 US activas"
       },
       {
         "name": "Christian Imanol Ruiz Hurtado",
@@ -3812,37 +3834,26 @@
         "signal": "8 PR · 9 DevLog · 5 US activas"
       },
       {
-        "name": "Oscar Antonio Quiroz Lázaro",
-        "cell": "Célula 2",
-        "cell_group": "Célula 2 · Analytics & Business Intelligence",
-        "active": true,
-        "prs_merged": 7,
-        "devlogs": 9,
-        "active_us": 4,
-        "activity": 20,
-        "signal": "7 PR · 9 DevLog · 4 US activas"
-      },
-      {
-        "name": "Marina García del Buey",
-        "cell": "Célula 2",
-        "cell_group": "Célula 2 · Analytics & Business Intelligence",
-        "active": true,
-        "prs_merged": 7,
-        "devlogs": 8,
-        "active_us": 3,
-        "activity": 18,
-        "signal": "7 PR · 8 DevLog · 3 US activas"
-      },
-      {
         "name": "Luis Enrique García Vázquez",
         "cell": "Célula 1",
         "cell_group": "Célula 1 · Data Engineering & Quality",
         "active": true,
-        "prs_merged": 4,
-        "devlogs": 5,
+        "prs_merged": 5,
+        "devlogs": 6,
+        "active_us": 4,
+        "activity": 15,
+        "signal": "5 PR · 6 DevLog · 4 US activas"
+      },
+      {
+        "name": "Alejandro Velázquez Mendoza",
+        "cell": "Célula 5",
+        "cell_group": "Célula 5 · Cloud Infrastructure & DevOps",
+        "active": true,
+        "prs_merged": 5,
+        "devlogs": 4,
         "active_us": 4,
         "activity": 13,
-        "signal": "4 PR · 5 DevLog · 4 US activas"
+        "signal": "5 PR · 4 DevLog · 4 US activas"
       },
       {
         "name": "Monserrat Xcaret Miranda Olivas",
@@ -3856,26 +3867,15 @@
         "signal": "4 PR · 5 DevLog · 4 US activas"
       },
       {
-        "name": "Alejandro Velázquez Mendoza",
-        "cell": "Célula 5",
-        "cell_group": "Célula 5 · Cloud Infrastructure & DevOps",
-        "active": true,
-        "prs_merged": 4,
-        "devlogs": 3,
-        "active_us": 4,
-        "activity": 11,
-        "signal": "4 PR · 3 DevLog · 4 US activas"
-      },
-      {
         "name": "Edgar Ulises Jiménez López",
         "cell": "Célula 5",
         "cell_group": "Célula 5 · Cloud Infrastructure & DevOps",
         "active": true,
-        "prs_merged": 4,
+        "prs_merged": 5,
         "devlogs": 3,
         "active_us": 4,
-        "activity": 11,
-        "signal": "4 PR · 3 DevLog · 4 US activas"
+        "activity": 12,
+        "signal": "5 PR · 3 DevLog · 4 US activas"
       },
       {
         "name": "Carlos Guillermo Mayorga Tapia",
@@ -3948,11 +3948,11 @@
         "cell": "Célula 4",
         "cell_group": "Célula 4 · Backend, API & Seguridad",
         "active": true,
-        "prs_merged": 1,
-        "devlogs": 1,
+        "prs_merged": 2,
+        "devlogs": 2,
         "active_us": 1,
-        "activity": 3,
-        "signal": "1 PR · 1 DevLog · 1 US activas"
+        "activity": 5,
+        "signal": "2 PR · 2 DevLog · 1 US activas"
       }
     ],
     "active": 21,
@@ -4129,15 +4129,6 @@
       "cell": "Célula 4 · Backend, API & Seguridad",
       "sprint": "S4",
       "status": "in_progress",
-      "su_turno": false
-    },
-    {
-      "id": "US-412",
-      "objective": "Rutas que sirven las predicciones de los 3 modelos, leyendo gold.predicciones y gold.recomendaciones por SQL. Modo unitario y batch, con validación de entrada. Cierra BUG-010.",
-      "owner": "Juan Carlos Macías Mayen",
-      "cell": "Célula 4 · Backend, API & Seguridad",
-      "sprint": "S4",
-      "status": "in_review",
       "su_turno": false
     },
     {
@@ -4432,7 +4423,7 @@
       "design": "Cubierto",
       "exec_band": "green",
       "exec_label": "En ejecución",
-      "progress": 57.1
+      "progress": 59.6
     },
     {
       "criterion": "5 · Deploy GCP + Docker + URL",
@@ -4613,39 +4604,141 @@
   "git_activity": {
     "available": true,
     "repository": "edgarcoroneln/escuela-concausa-bi",
-    "generated_at": "2026-09-04T01:06:59+00:00",
+    "generated_at": "2026-09-04T06:08:34+00:00",
     "scope": "Todos los PR del repositorio, hasta 2,000 por ejecución",
     "prs": [
       {
-        "number": 204,
-        "title": "[Diana Alvarez] - Suites GE + fix real de dedup en matricula_historica (REQ-001) - [sync|CI|DoF|DevLog]",
+        "number": 214,
+        "title": "[Marina Garcia] - Ciclo por defecto en DB-03/DB-04, plan de usabilidad y BUG-045 (US-214a, US-215a) - [sync|CI|DoF|DevLog]",
         "state": "merged",
-        "author": "DianaVarela96",
-        "created_at": "2026-09-03T22:17:24Z",
-        "merged_at": "2026-09-04T01:05:59Z",
-        "url": "https://github.com/edgarcoroneln/escuela-concausa-bi/pull/204",
-        "story_ids": []
+        "author": "marina-gdb",
+        "created_at": "2026-09-04T05:44:55Z",
+        "merged_at": "2026-09-04T06:07:50Z",
+        "url": "https://github.com/edgarcoroneln/escuela-concausa-bi/pull/214",
+        "story_ids": [
+          "US-204",
+          "US-212",
+          "US-214a",
+          "US-214b",
+          "US-215a",
+          "US-405"
+        ]
       },
       {
-        "number": 207,
-        "title": "[Deni Garrido] - Desbloquea pipeline real CEMABE y confirma RISK-008 (DS-03) - [sync|CI|DoF|DevLog]",
-        "state": "open",
-        "author": "dgdeni",
-        "created_at": "2026-09-04T00:24:22Z",
-        "merged_at": null,
-        "url": "https://github.com/edgarcoroneln/escuela-concausa-bi/pull/207",
+        "number": 202,
+        "title": "[Edgar Jimenez] - Marca US-523b como Done en Traceability + Sprint (US-523b) - [sync|CI|DoF|DevLog]",
+        "state": "merged",
+        "author": "EJ-by-Me",
+        "created_at": "2026-09-03T20:08:40Z",
+        "merged_at": "2026-09-04T05:43:05Z",
+        "url": "https://github.com/edgarcoroneln/escuela-concausa-bi/pull/202",
         "story_ids": [
-          "US-111",
-          "US-113"
+          "US-523b"
+        ]
+      },
+      {
+        "number": 213,
+        "title": "[Luis Téllez] - DevLog del redeploy correctivo en prod (BUG-044) - [sync|CI|DoF|DevLog]",
+        "state": "merged",
+        "author": "LuisTellez03",
+        "created_at": "2026-09-04T05:00:30Z",
+        "merged_at": "2026-09-04T05:12:39Z",
+        "url": "https://github.com/edgarcoroneln/escuela-concausa-bi/pull/213",
+        "story_ids": [
+          "US-411",
+          "US-505"
+        ]
+      },
+      {
+        "number": 205,
+        "title": "[Luis Enrique García Vázquez] - Cargadores reales Bronze DS-04/DS-05 (US-122b) - [sync|CI|DoF|DevLog]",
+        "state": "merged",
+        "author": "LuisEGarciaV",
+        "created_at": "2026-09-04T00:07:56Z",
+        "merged_at": "2026-09-04T05:08:03Z",
+        "url": "https://github.com/edgarcoroneln/escuela-concausa-bi/pull/205",
+        "story_ids": [
+          "US-122b"
+        ]
+      },
+      {
+        "number": 206,
+        "title": "[Alejandro Velazquez] - Cierre documental US-522a, US-524a y corte US-525a (US-522a, US-524a, US-525a) - [sync|CI|DoF|DevLog]",
+        "state": "merged",
+        "author": "avmxk01",
+        "created_at": "2026-09-04T00:17:23Z",
+        "merged_at": "2026-09-04T04:42:39Z",
+        "url": "https://github.com/edgarcoroneln/escuela-concausa-bi/pull/206",
+        "story_ids": [
+          "US-522a",
+          "US-524a",
+          "US-525a"
+        ]
+      },
+      {
+        "number": 211,
+        "title": "[Marina Garcia] - Drill-down cruzado en DB-03/DB-04 y cierre de US-212 (US-214a, US-212) - [sync|CI|DoF|DevLog]",
+        "state": "merged",
+        "author": "marina-gdb",
+        "created_at": "2026-09-04T01:57:29Z",
+        "merged_at": "2026-09-04T04:36:38Z",
+        "url": "https://github.com/edgarcoroneln/escuela-concausa-bi/pull/211",
+        "story_ids": [
+          "US-212",
+          "US-214a"
+        ]
+      },
+      {
+        "number": 212,
+        "title": "[Oscar Quiroz] - 10/10 dashboards con datos reales, BLOCK-004 cerrado (US-222, US-223, US-224) - [sync|CI|DoF|DevLog]",
+        "state": "merged",
+        "author": "oscarqlazaro-lab",
+        "created_at": "2026-09-04T02:10:20Z",
+        "merged_at": "2026-09-04T04:26:01Z",
+        "url": "https://github.com/edgarcoroneln/escuela-concausa-bi/pull/212",
+        "story_ids": [
+          "US-121a",
+          "US-222",
+          "US-223",
+          "US-224"
+        ]
+      },
+      {
+        "number": 210,
+        "title": "[Karla Monter] - Cierra US-411, valida endpoints Gold post-BUG-020 (US-411) - [sync|CI|DoF|DevLog]",
+        "state": "merged",
+        "author": "marlakonter",
+        "created_at": "2026-09-04T01:09:53Z",
+        "merged_at": "2026-09-04T04:09:27Z",
+        "url": "https://github.com/edgarcoroneln/escuela-concausa-bi/pull/210",
+        "story_ids": [
+          "US-411",
+          "US-412",
+          "US-416"
+        ]
+      },
+      {
+        "number": 209,
+        "title": "[Luis Téllez] - L1: datos reales, OAuth real y RBAC en prod (US-505) - [sync|CI|DoF|DevLog]",
+        "state": "merged",
+        "author": "LuisTellez03",
+        "created_at": "2026-09-04T01:08:54Z",
+        "merged_at": "2026-09-04T03:39:22Z",
+        "url": "https://github.com/edgarcoroneln/escuela-concausa-bi/pull/209",
+        "story_ids": [
+          "US-402",
+          "US-403",
+          "US-405",
+          "US-505"
         ]
       },
       {
         "number": 208,
         "title": "[Edgar Coronel] - Cierra hallazgos de la auditoría de Marina García (US-207, US-215a, US-215b, US-412, US-416) - [sync|CI|DoF|DevLog]",
-        "state": "open",
+        "state": "merged",
         "author": "edgarcoroneln",
         "created_at": "2026-09-04T00:37:08Z",
-        "merged_at": null,
+        "merged_at": "2026-09-04T03:16:24Z",
         "url": "https://github.com/edgarcoroneln/escuela-concausa-bi/pull/208",
         "story_ids": [
           "US-207",
@@ -4656,30 +4749,27 @@
         ]
       },
       {
-        "number": 206,
-        "title": "[Alejandro Velazquez] - Cierre documental US-522a, US-524a y corte US-525a (US-522a, US-524a, US-525a) - [DoF]",
-        "state": "open",
-        "author": "avmxk01",
-        "created_at": "2026-09-04T00:17:23Z",
-        "merged_at": null,
-        "url": "https://github.com/edgarcoroneln/escuela-concausa-bi/pull/206",
+        "number": 207,
+        "title": "[Deni Garrido] - Desbloquea pipeline real CEMABE y confirma RISK-008 (DS-03) - [sync|CI|DoF|DevLog]",
+        "state": "merged",
+        "author": "dgdeni",
+        "created_at": "2026-09-04T00:24:22Z",
+        "merged_at": "2026-09-04T01:11:32Z",
+        "url": "https://github.com/edgarcoroneln/escuela-concausa-bi/pull/207",
         "story_ids": [
-          "US-522a",
-          "US-524a",
-          "US-525a"
+          "US-111",
+          "US-113"
         ]
       },
       {
-        "number": 205,
-        "title": "[Luis Enrique García Vázquez] - Cargadores reales Bronze DS-04/DS-05 (US-122b) - [sync|DevLog]",
-        "state": "open",
-        "author": "LuisEGarciaV",
-        "created_at": "2026-09-04T00:07:56Z",
-        "merged_at": null,
-        "url": "https://github.com/edgarcoroneln/escuela-concausa-bi/pull/205",
-        "story_ids": [
-          "US-122b"
-        ]
+        "number": 204,
+        "title": "[Diana Alvarez] - Suites GE + fix real de dedup en matricula_historica (REQ-001) - [sync|CI|DoF|DevLog]",
+        "state": "merged",
+        "author": "DianaVarela96",
+        "created_at": "2026-09-03T22:17:24Z",
+        "merged_at": "2026-09-04T01:05:59Z",
+        "url": "https://github.com/edgarcoroneln/escuela-concausa-bi/pull/204",
+        "story_ids": []
       },
       {
         "number": 203,
@@ -4696,18 +4786,6 @@
           "US-304b",
           "US-305",
           "US-405"
-        ]
-      },
-      {
-        "number": 202,
-        "title": "[Edgar Jimenez] - Marca US-523b como Done en Traceability + Sprint (meta) - [sync|CI|DoF|DevLog]",
-        "state": "open",
-        "author": "EJ-by-Me",
-        "created_at": "2026-09-03T20:08:40Z",
-        "merged_at": null,
-        "url": "https://github.com/edgarcoroneln/escuela-concausa-bi/pull/202",
-        "story_ids": [
-          "US-523b"
         ]
       },
       {
@@ -7466,23 +7544,23 @@
     "commits": [
       {
         "author": "edgarcoroneln",
-        "count": 380,
-        "last_at": "2026-09-04T01:05:58Z"
+        "count": 406,
+        "last_at": "2026-09-04T06:07:50Z"
       },
       {
         "author": "github-actions[bot]",
-        "count": 164,
-        "last_at": "2026-09-03T21:56:09Z"
+        "count": 175,
+        "last_at": "2026-09-04T05:44:01Z"
+      },
+      {
+        "author": "LuisTellez03",
+        "count": 94,
+        "last_at": "2026-09-04T04:57:05Z"
       },
       {
         "author": "DianaVarela96",
         "count": 93,
         "last_at": "2026-09-03T22:43:28Z"
-      },
-      {
-        "author": "LuisTellez03",
-        "count": 89,
-        "last_at": "2026-09-03T15:30:15Z"
       },
       {
         "author": "hector677-mm",
@@ -7491,8 +7569,8 @@
       },
       {
         "author": "dgdeni",
-        "count": 37,
-        "last_at": "2026-08-30T19:37:22Z"
+        "count": 40,
+        "last_at": "2026-09-04T00:18:05Z"
       },
       {
         "author": "andreshabib10",
@@ -7500,24 +7578,24 @@
         "last_at": "2026-09-03T21:40:18Z"
       },
       {
-        "author": "mserraniaa-png",
-        "count": 24,
-        "last_at": "2026-09-03T14:07:09Z"
+        "author": "marina-gdb",
+        "count": 26,
+        "last_at": "2026-09-04T05:36:49Z"
       },
       {
         "author": "avmxk01",
-        "count": 22,
-        "last_at": "2026-08-29T03:15:41Z"
+        "count": 26,
+        "last_at": "2026-09-04T01:22:19Z"
       },
       {
         "author": "oscarqlazaro-lab",
-        "count": 18,
-        "last_at": "2026-09-03T05:19:51Z"
+        "count": 24,
+        "last_at": "2026-09-04T02:55:25Z"
       },
       {
-        "author": "marina-gdb",
-        "count": 18,
-        "last_at": "2026-08-30T02:32:27Z"
+        "author": "mserraniaa-png",
+        "count": 24,
+        "last_at": "2026-09-03T14:07:09Z"
       },
       {
         "author": "Starcrossedboy",
@@ -7541,8 +7619,13 @@
       },
       {
         "author": "EJ-by-Me",
-        "count": 11,
-        "last_at": "2026-08-31T07:10:01Z"
+        "count": 12,
+        "last_at": "2026-09-03T19:59:06Z"
+      },
+      {
+        "author": "LuisEGarciaV",
+        "count": 9,
+        "last_at": "2026-09-04T03:48:45Z"
       },
       {
         "author": "juanmmayen98-pixel",
@@ -7560,136 +7643,136 @@
         "last_at": "2026-08-29T16:27:05Z"
       },
       {
-        "author": "LuisEGarciaV",
-        "count": 6,
-        "last_at": "2026-08-25T20:32:36Z"
-      },
-      {
         "author": "Dr4wde064",
         "count": 5,
         "last_at": "2026-08-22T04:09:42Z"
+      },
+      {
+        "author": "marlakonter",
+        "count": 1,
+        "last_at": "2026-09-04T01:02:31Z"
       }
     ],
     "ci": [
       {
-        "name": "Update Project Graph",
-        "status": "completed",
-        "conclusion": "success",
-        "url": "https://github.com/edgarcoroneln/escuela-concausa-bi/actions/runs/33824433047"
-      },
-      {
         "name": "CI",
         "status": "in_progress",
         "conclusion": null,
-        "url": "https://github.com/edgarcoroneln/escuela-concausa-bi/actions/runs/33824432941"
+        "url": "https://github.com/edgarcoroneln/escuela-concausa-bi/actions/runs/33843111117"
       },
       {
         "name": "PM Dashboard",
         "status": "completed",
         "conclusion": "success",
-        "url": "https://github.com/edgarcoroneln/escuela-concausa-bi/actions/runs/33824432934"
+        "url": "https://github.com/edgarcoroneln/escuela-concausa-bi/actions/runs/33843111083"
       },
       {
         "name": "Refresh PM Dashboard",
         "status": "in_progress",
         "conclusion": null,
-        "url": "https://github.com/edgarcoroneln/escuela-concausa-bi/actions/runs/33824432921"
-      },
-      {
-        "name": "PR Quality Gate",
-        "status": "completed",
-        "conclusion": "success",
-        "url": "https://github.com/edgarcoroneln/escuela-concausa-bi/actions/runs/33824274939"
+        "url": "https://github.com/edgarcoroneln/escuela-concausa-bi/actions/runs/33843110991"
       },
       {
         "name": "CI",
         "status": "completed",
         "conclusion": "success",
-        "url": "https://github.com/edgarcoroneln/escuela-concausa-bi/actions/runs/33823959961"
+        "url": "https://github.com/edgarcoroneln/escuela-concausa-bi/actions/runs/33842855472"
       },
       {
         "name": "PR Quality Gate",
         "status": "completed",
         "conclusion": "success",
-        "url": "https://github.com/edgarcoroneln/escuela-concausa-bi/actions/runs/33823959911"
+        "url": "https://github.com/edgarcoroneln/escuela-concausa-bi/actions/runs/33842855437"
       },
       {
         "name": "PM Dashboard",
         "status": "completed",
         "conclusion": "success",
-        "url": "https://github.com/edgarcoroneln/escuela-concausa-bi/actions/runs/33823959905"
-      },
-      {
-        "name": "PR Quality Gate",
-        "status": "completed",
-        "conclusion": "success",
-        "url": "https://github.com/edgarcoroneln/escuela-concausa-bi/actions/runs/33823930663"
-      },
-      {
-        "name": "PR Quality Gate",
-        "status": "completed",
-        "conclusion": "success",
-        "url": "https://github.com/edgarcoroneln/escuela-concausa-bi/actions/runs/33823926110"
-      },
-      {
-        "name": "PR Quality Gate",
-        "status": "completed",
-        "conclusion": "success",
-        "url": "https://github.com/edgarcoroneln/escuela-concausa-bi/actions/runs/33823880262"
-      },
-      {
-        "name": "PR Quality Gate",
-        "status": "completed",
-        "conclusion": "failure",
-        "url": "https://github.com/edgarcoroneln/escuela-concausa-bi/actions/runs/33823801892"
+        "url": "https://github.com/edgarcoroneln/escuela-concausa-bi/actions/runs/33842855430"
       },
       {
         "name": "PM Dashboard",
         "status": "completed",
         "conclusion": "success",
-        "url": "https://github.com/edgarcoroneln/escuela-concausa-bi/actions/runs/33823424666"
+        "url": "https://github.com/edgarcoroneln/escuela-concausa-bi/actions/runs/33841651583"
       },
       {
         "name": "CI",
         "status": "completed",
-        "conclusion": "failure",
-        "url": "https://github.com/edgarcoroneln/escuela-concausa-bi/actions/runs/33823424593"
-      },
-      {
-        "name": "PR Quality Gate",
-        "status": "completed",
-        "conclusion": "failure",
-        "url": "https://github.com/edgarcoroneln/escuela-concausa-bi/actions/runs/33823424579"
+        "conclusion": "success",
+        "url": "https://github.com/edgarcoroneln/escuela-concausa-bi/actions/runs/33841651572"
       },
       {
         "name": "PR Quality Gate",
         "status": "completed",
         "conclusion": "success",
-        "url": "https://github.com/edgarcoroneln/escuela-concausa-bi/actions/runs/33823262346"
+        "url": "https://github.com/edgarcoroneln/escuela-concausa-bi/actions/runs/33841651568"
+      },
+      {
+        "name": "PM Dashboard",
+        "status": "completed",
+        "conclusion": "success",
+        "url": "https://github.com/edgarcoroneln/escuela-concausa-bi/actions/runs/33841534195"
+      },
+      {
+        "name": "Refresh PM Dashboard",
+        "status": "completed",
+        "conclusion": "success",
+        "url": "https://github.com/edgarcoroneln/escuela-concausa-bi/actions/runs/33841534191"
+      },
+      {
+        "name": "CI",
+        "status": "completed",
+        "conclusion": "success",
+        "url": "https://github.com/edgarcoroneln/escuela-concausa-bi/actions/runs/33841534182"
+      },
+      {
+        "name": "PR Quality Gate",
+        "status": "completed",
+        "conclusion": "success",
+        "url": "https://github.com/edgarcoroneln/escuela-concausa-bi/actions/runs/33840447053"
       },
       {
         "name": "PR Quality Gate",
         "status": "completed",
         "conclusion": "failure",
-        "url": "https://github.com/edgarcoroneln/escuela-concausa-bi/actions/runs/33823163972"
+        "url": "https://github.com/edgarcoroneln/escuela-concausa-bi/actions/runs/33840440984"
       },
       {
         "name": "PR Quality Gate",
         "status": "completed",
         "conclusion": "failure",
-        "url": "https://github.com/edgarcoroneln/escuela-concausa-bi/actions/runs/33822693347"
+        "url": "https://github.com/edgarcoroneln/escuela-concausa-bi/actions/runs/33840037784"
       },
       {
-        "name": "PR Quality Gate",
+        "name": "PM Dashboard",
         "status": "completed",
-        "conclusion": "failure",
-        "url": "https://github.com/edgarcoroneln/escuela-concausa-bi/actions/runs/33822665519"
+        "conclusion": "success",
+        "url": "https://github.com/edgarcoroneln/escuela-concausa-bi/actions/runs/33840037778"
       },
       {
-        "name": "PR Quality Gate",
+        "name": "CI",
         "status": "completed",
-        "conclusion": "failure",
-        "url": "https://github.com/edgarcoroneln/escuela-concausa-bi/actions/runs/33822600547"
+        "conclusion": "success",
+        "url": "https://github.com/edgarcoroneln/escuela-concausa-bi/actions/runs/33840037760"
+      },
+      {
+        "name": "CI",
+        "status": "completed",
+        "conclusion": "success",
+        "url": "https://github.com/edgarcoroneln/escuela-concausa-bi/actions/runs/33839647635"
+      },
+      {
+        "name": "Refresh PM Dashboard",
+        "status": "completed",
+        "conclusion": "success",
+        "url": "https://github.com/edgarcoroneln/escuela-concausa-bi/actions/runs/33839647602"
+      },
+      {
+        "name": "PM Dashboard",
+        "status": "completed",
+        "conclusion": "success",
+        "url": "https://github.com/edgarcoroneln/escuela-concausa-bi/actions/runs/33839538909"
       }
     ],
     "note": "Actividad agregada; no determina Done ni se usa como ranking individual."
@@ -7927,20 +8010,20 @@
     },
     {
       "date": "2026-09-03",
-      "remaining": 48,
-      "weighted_remaining": 28.5,
-      "done": 43,
+      "remaining": 47,
+      "weighted_remaining": 28.1,
+      "done": 44,
       "scope": 91,
-      "wip": 37,
+      "wip": 36,
       "blocked": 0
     },
     {
       "date": "2026-09-04",
-      "remaining": 48,
-      "weighted_remaining": 28.5,
-      "done": 43,
+      "remaining": 47,
+      "weighted_remaining": 28.1,
+      "done": 44,
       "scope": 91,
-      "wip": 37,
+      "wip": 36,
       "blocked": 0
     }
   ]

@@ -20,6 +20,7 @@ Toda sesión con IA **debe** generar una entrada de DevLog **antes del push** (p
 ## Entradas
 | Fecha | Descripción | Autor | Agente/Modelo | IDs tocados |
 |---|---|---|---|---|
+| [[vault/_DevLog/2026-09-04-estefany-hernandez-plan-cierre-ml03\|2026-09-04]] | Revisión de US-321/322/325 post-PR #197; propuesta por fases y prompt maestro para pasar de fixtures a evidencia sobre Gold real sin ocultar el Silhouette 0.1086 ni la cobertura parcial | Estefany Lucero Hernández Loredo | Codex / GPT-5.6 | US-321, US-322, US-325, REQ-003 |
 | [[vault/_DevLog/2026-09-03-andres-gonzalez-validacion-c3-e2e\|2026-09-03]] | Validación de C3, contrato del chat con OAuth y bloqueo operativo del E2E RAG en Docker | Andrés González Habib | GitHub Copilot | US-302, US-303, US-304a, US-305, REQ-003, REQ-006 |
 | 2026-08-01 | (ejemplo) inicialización | Edgar Edmundo Coronel Navarrete | Claude Code | — |
 | [[vault/_DevLog/2026-08-02-edgar-edmundo-coronel-navarrete\|2026-08-02]] | Frontmatter PRD-GENERAL, redacción PRD FARO e índice 01_Product | Edgar Edmundo Coronel Navarrete | Claude Code / opus-4-8 | PRD-GENERAL, PRD, MOC-01 |

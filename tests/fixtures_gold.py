@@ -117,6 +117,28 @@ ESCUELAS_FAKE: list[dict] = [
         "indice_completitud_drivers": 0.5,
         "d1": 0.2, "d2": None, "d3": 0.3, "d4": None, "d5": None, "d6": None,
     },
+    {
+        # Ciclo ANTERIOR de la misma escuela que la primera fila (mismo cct, otro id_ciclo) --
+        # ejercita BUG-044: sin `ciclo` explícito, el default debe quedarse con el más reciente
+        # (2024-2025) y nunca sumar/listar esta fila también.
+        "cct": "09DPR0001A",
+        "nombre": "Primaria Benito Juárez",
+        "nivel": "PRIMARIA",
+        "cve_ent": "09",
+        "cve_mun": "09010",
+        "id_ciclo": "2023-2024",
+        "matricula_total": 500,
+        "matricula_ciclo_anterior": 510,
+        "variacion_matricula": -10,
+        "indice_riesgo": 0.65,
+        "driver_dominante": "D2",
+        "tiene_prediccion": True,
+        "sostenimiento": "PUBLICO",
+        "latitud": 19.3578,
+        "longitud": -99.2036,
+        "indice_completitud_drivers": 1.0,
+        "d1": 0.41, "d2": 0.83, "d3": 0.22, "d4": 0.35, "d5": 0.18, "d6": 0.55,
+    },
 ]
 
 MUNICIPIOS_FAKE: list[dict] = [
@@ -169,6 +191,13 @@ class RepositorioGoldFake:
         self._escuelas = deepcopy(ESCUELAS_FAKE)
         self._municipios = deepcopy(MUNICIPIOS_FAKE)
 
+    def _ciclo_mas_reciente(self) -> str | None:
+        """Mismo default que `RepositorioGoldPostgres._ciclo_mas_reciente` (BUG-044): el `id_ciclo`
+        más alto entre las escuelas del fixture, formato `AAAA-AAAA` (orden lexicográfico ==
+        cronológico)."""
+        ciclos = {e["id_ciclo"] for e in self._escuelas}
+        return max(ciclos) if ciclos else None
+
     def _filtrar_escuelas(
         self,
         *,
@@ -177,6 +206,7 @@ class RepositorioGoldFake:
         nivel: str | None = None,
         ciclo: str | None = None,
     ) -> list[dict]:
+        ciclo = ciclo or self._ciclo_mas_reciente()
         return [
             e
             for e in self._escuelas
@@ -218,10 +248,12 @@ class RepositorioGoldFake:
         return items, total
 
     def obtener_escuela(self, cct: str) -> dict | None:
-        for e in self._escuelas:
-            if e["cct"] == cct:
-                return dict(e)
-        return None
+        """Detalle en el ciclo más reciente (BUG-044): una escuela puede tener fila en más de un
+        `id_ciclo`; nunca se devuelve "la primera que aparezca en la lista"."""
+        candidatas = [e for e in self._escuelas if e["cct"] == cct]
+        if not candidatas:
+            return None
+        return dict(max(candidatas, key=lambda e: e["id_ciclo"]))
 
     def listar_municipios(
         self, *, cve_ent: str | None, order_by: str | None, order: str, page: int, size: int

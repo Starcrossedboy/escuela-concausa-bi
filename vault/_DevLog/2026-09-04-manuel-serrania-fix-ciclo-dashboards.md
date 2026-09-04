@@ -5,11 +5,11 @@ author_human: "Manuel Alejandro Serranía Reinada"
 agent: "OpenCode"
 model: "opencode/big-pickle"
 session_duration: "2h"
-touches: ["US-203", "US-204", "US-205", "US-213", "US-222", "REQ-002", "BUG-044", "BUG-046"]
+touches: ["US-203", "US-204", "US-205", "US-213", "US-222", "REQ-002", "BUG-044", "BUG-047"]
 tags: [devlog]
 ---
 
-# DevLog — 2026-09-04 — Fix ciclo por defecto en 7 dashboards + filtro cct + migración st.html (BUG-046)
+# DevLog — 2026-09-04 — Fix ciclo por defecto en 7 dashboards + filtro cct + migración st.html (BUG-047)
 
 → [[vault/_DevLog/_index|Volver al índice]]
 
@@ -19,9 +19,9 @@ tags: [devlog]
 7 dashboards con bug de ciclo (espejo de BUG-044), migración `st.html()`, fix de caché + transporte,
 `cct` para destrabar a Marina, y Streamlit en requirements.
 
-- **BUG-046 dado de alta** (espejo de BUG-044 en dashboards). BUG-044 (C4, Karla) fija el ciclo en la
+- **BUG-047 dado de alta** (espejo de BUG-044 en dashboards). BUG-044 (C4, Karla) fija el ciclo en la
   API; los tableros no pasan por la API, leen la base directo, así que no estaban cubiertos. `high`,
-  `fixed`, owner C2. ID según DEC-013: BUG-045 era el máximo en `main`.
+  `fixed`, owner C2. ID según DEC-013: BUG-045 era el máximo en `main` al abrir esta rama. **Nota del PM (2026-09-04):** colisión con `dev/luis-tellez`, que registró BUG-046 en paralelo para un bug distinto (OAuth `at_hash`) partiendo del mismo commit — su PR mergea primero (critico/producción), este se renumera a BUG-047 antes del merge, sin cambiar nada del fix.
 - **`valor_por_defecto: "2024-2025"` en 7 dashboards** que declaran `id_ciclo` y no fijaban ciclo al
   abrir: DB-01 ejecutivo, DB-02 mapa de riesgo, DB-05 analisis driver, DB-06 predicciones,
   DB-07 calidad cobertura, DB-08 explorador cubo, DB-09 recomendaciones. DB-03/DB-04 ya los cubrió
@@ -68,10 +68,10 @@ tags: [devlog]
     `except httpx.HTTPError`
   - `tests/test_frontend_dashboards_streamlit.py` — fixture purga `sys.modules`
   - `requirements.txt` — `streamlit==1.62.0`
-  - `vault/06_Quality_Testing/Bug_Register.md` — BUG-046 dado de alta + sección de detalle
+  - `vault/06_Quality_Testing/Bug_Register.md` — BUG-047 dado de alta + sección de detalle
   - `vault/02_Requirements/Traceability_Matrix.md` — fila de evidencia incremental
   - `vault/_DevLog/_index.md` — entrada de esta sesión
-- **IDs tocados:** US-203, US-204, US-205, US-213, US-222, REQ-002, BUG-044 (espejo), BUG-046 (nuevo)
+- **IDs tocados:** US-203, US-204, US-205, US-213, US-222, REQ-002, BUG-044 (espejo), BUG-047 (nuevo)
 
 ## Próximo paso
 

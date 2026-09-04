@@ -234,27 +234,76 @@ datasets:
         kpi: KPI-14
 
 # -----------------------------------------------------------------------------
-# Navegacion cruzada (se implementa en US-214a)
+# Navegacion cruzada — US-214a
 # -----------------------------------------------------------------------------
+# El contrato lo declaro US-211a; US-214a lo implementa y, al hacerlo, encontro
+# que tres de las siete rutas no eran ejecutables como estaban escritas. Se
+# corrigen aqui y cada una lleva su `estado`, para que la brecha entre lo
+# declarado y lo construido sea legible sin abrir el codigo.
+#
+# Mecanismo (US-214b, Monserrat): columna calculada con <a href> +
+# `native_filters` en RISON. Superset no tiene columna tipo link nativa
+# (SIP-77 rechazada) y ni el cross-filtering ni "Drill to Detail" cruzan de un
+# tablero a otro. Los IDs de filtro se fijan POR POSICION en `filtros_globales`
+# del tablero destino: NATIVE_FILTER-US203-{indice}.
+#
+# estado: implementado | bloqueado | ajeno
 drill_down:
   - desde: DB-01
     hacia: DB-03
     llave: cct
+    estado: ajeno
+    nota: >
+      El link vive en el SQL de DB-01 (`db01_*.sql`, US-203 · Manuel Serrania),
+      no en los archivos de esta historia. Pendiente de acordar con el.
   - desde: DB-02
     hacia: DB-03
     llave: cct
+    estado: ajeno
+    nota: >
+      Igual que la anterior: el origen es `db02_puntos_escuela.sql` (Manuel).
   - desde: DB-02
     hacia: DB-04
     llave: cve_mun
+    estado: ajeno
+    nota: >
+      Origen ajeno (Manuel). El destino ya quedo listo: US-214a agrego el
+      filtro `cve_mun` a db04_comparador_municipio.yaml en el indice 4, asi
+      que cuando Manuel escriba el link solo tiene que apuntar a ese indice.
   - desde: DB-03
     hacia: DB-04
     llave: cve_mun
+    estado: implementado
+    nota: >
+      Columna `link_db04` en db03_cubo_escuela_360.sql. Fija id_ciclo
+      (indice 0) y cve_mun (indice 4) del tablero destino.
   - desde: DB-03
     hacia: DB-06
     llave: [cct, id_ciclo]
+    estado: bloqueado
+    nota: >
+      DB-06 no expone filtro `cct` — sus filtros_globales son solo id_ciclo,
+      nombre_entidad y nivel. Sin ese filtro el link aterriza en el tablero
+      completo, no en la escuela, que es justo lo que la ruta promete. Requiere
+      que Manuel Serrania (US-204) agregue `cct` a db06_predicciones.yaml,
+      AL FINAL de la lista para no correr los indices existentes.
   - desde: DB-03
     hacia: DB-09
     llave: [cct, id_ciclo]
+    estado: bloqueado
+    nota: >
+      Misma causa que DB-03 -> DB-06: db09_recomendaciones.yaml tampoco expone
+      filtro `cct`. Requiere que Manuel Serrania (US-204) lo agregue al final
+      de sus filtros_globales.
   - desde: DB-04
     hacia: DB-03
-    llave: cct
+    llave: cve_mun
+    estado: implementado
+    nota: >
+      CORRECCION DE CONTRATO (US-214a). US-211a declaro esta ruta con llave
+      `cct`, y es imposible: DEC-008 fijo el grano de DB-04 en
+      [cve_mun, nivel, id_ciclo] y `gold.cubo_comparador_municipio` no tiene
+      columna `cct`. La llave real es `cve_mun` — desde un municipio se baja a
+      SUS escuelas, y el usuario elige cual. Columna `link_db03` en
+      db04_cubo_comparador_municipio.sql; fija id_ciclo (indice 1) y cve_mun
+      (indice 4) de DB-03, y deja `cct` (indice 0) libre a proposito.

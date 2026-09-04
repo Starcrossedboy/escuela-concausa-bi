@@ -3,10 +3,10 @@ id: DOC-CUBESPEC-DB0304
 title: "Cube Specs — Contrato semántico de los cubos de DB-03 y DB-04"
 owner: "Marina García del Buey"
 status: approved
-version: "1.0"
-traces_up: ["DOC-SCREENSPECS", "DOC-DATAMODEL", "US-211a", "REQ-002"]
+version: "1.1"
+traces_up: ["DOC-SCREENSPECS", "DOC-DATAMODEL", "US-211a", "US-214a", "REQ-002"]
 traces_down: ["US-212", "US-214a", "US-215a"]
-last_reviewed: "2026-08-21"
+last_reviewed: "2026-09-03"
 tags: [bi, cubos, capa-semantica, dashboards, celula-2]
 ---
 
@@ -401,9 +401,83 @@ este documento. Coinciden en fórmula, grano, tipo de `JOIN`, umbral 0.6 y bande
 
 ---
 
+## 8.bis Navegación cruzada — US-214a
+
+> Sección añadida el 2026-09-03 al implementar US-214a. El contrato de rutas vive en el
+> bloque `drill_down:` de `superset/semantic/metrics_db03_db04.yaml`, con el `estado` de
+> cada una; aquí queda el **porqué** y lo que hay que pedirle a quién.
+
+### 8.bis.1 Por qué un `<a href>` y no una función de Superset
+
+Superset **no tiene** navegación entre tableros. El *cross-filtering* y el *Drill to Detail*
+nativos operan **solo dentro del mismo tablero**, y la propuesta de una columna tipo enlace
+(SIP-77) fue rechazada. El único mecanismo disponible es una **columna calculada con un
+`<a href>`** que lleva el parámetro `native_filters` codificado en RISON, más
+`allow_render_html: true` en el chart. Lo estableció Monserrat Miranda en US-214b
+(DB-05 → DB-08), verificado contra Superset 6.1.0 real; US-214a **reusa ese patrón**.
+
+### 8.bis.2 La fragilidad que hay que conocer
+
+Los IDs de filtro nativo los genera `_filtros_nativos()` **por posición**:
+`NATIVE_FILTER-US203-{índice}` sobre `filtros_globales` del tablero **destino**.
+
+> **Reordenar o insertar un filtro en medio de esa lista rompe la navegación en silencio.**
+> El link sigue existiendo y sigue navegando, pero preselecciona la columna equivocada. No
+> hay error en el sync, ni en la API, ni en la consola del navegador.
+
+Por eso: **todo filtro nuevo se agrega al final de la lista**, y la correspondencia
+índice ↔ columna está protegida por `tests/test_drill_down_db03_db04.py`.
+
+Índices vigentes:
+
+| Tablero | 0 | 1 | 2 | 3 | 4 |
+|---|---|---|---|---|---|
+| **DB-03** | `cct` | `id_ciclo` | `nombre_entidad` | `nivel` | `cve_mun` ← US-214a |
+| **DB-04** | `id_ciclo` | `nombre_entidad` | `nombre_municipio` | `nivel` | `cve_mun` ← US-214a |
+
+Ambos valores viajan citados con `%27`: `cve_mun` (`09002`) e `id_ciclo` (`2024-2025`)
+tienen forma que RISON obliga a citar, y es el mismo reemplazo que hace el backend de
+Superset en `reports/models.py`.
+
+### 8.bis.3 Corrección de contrato: `DB-04 → DB-03`
+
+US-211a declaró esta ruta con llave **`cct`**, y es **imposible**: DEC-008 fijó el grano de
+`cubo_comparador_municipio` en `[cve_mun, nivel, id_ciclo]` y ese cubo **no tiene columna
+`cct`**. La llave real es **`cve_mun`** — desde un municipio se baja a *sus* escuelas y el
+usuario elige cuál; por eso el link deja libre el filtro `cct` de DB-03 a propósito.
+
+El contrato quedó corregido y hay una prueba que rechaza la **clase** de error, no solo esta
+instancia: `test_ninguna_ruta_declara_una_llave_que_el_cubo_de_origen_no_tiene`.
+
+### 8.bis.4 Estado de las siete rutas
+
+| Ruta | Llave | Estado | Qué falta |
+|---|---|---|---|
+| DB-03 → DB-04 | `cve_mun` | ✅ implementado | — |
+| DB-04 → DB-03 | `cve_mun` | ✅ implementado | — |
+| DB-03 → DB-06 | `[cct, id_ciclo]` | ⬜ bloqueado | **Manuel Serranía**: DB-06 no expone filtro `cct` |
+| DB-03 → DB-09 | `[cct, id_ciclo]` | ⬜ bloqueado | **Manuel Serranía**: DB-09 no expone filtro `cct` |
+| DB-01 → DB-03 | `cct` | ⬜ ajeno | El link vive en el SQL de DB-01 (Manuel) |
+| DB-02 → DB-03 | `cct` | ⬜ ajeno | El link vive en el SQL de DB-02 (Manuel) |
+| DB-02 → DB-04 | `cve_mun` | ⬜ ajeno | Origen de Manuel; **el destino ya está listo** (`cve_mun`, índice 4) |
+
+### 8.bis.5 Dependencia operativa: BUG-037
+
+Al agregar una columna a un `.sql` de `superset/semantic/`, `sync_semantic_layer.py`
+actualiza el texto del SQL pero **no vuelve a leer las columnas del dataset**. Los charts
+revientan con `Columns missing in dataset: ['link_db04']`, y el error **solo aparece al
+abrir el tablero**, nunca en la corrida del sync. Reproducido el 2026-09-03 al construir
+esta historia, exactamente como lo describe **BUG-037** (abierto, reportado por Monserrat).
+
+Mitigación mientras siga abierto: `PUT /api/v1/dataset/<id>/refresh` después del sync.
+El arreglo de fondo toca `sync_semantic_layer.py`, que es herramienta compartida de la
+Célula 2 — requiere acuerdo con Manuel Serranía antes de tocarla.
+
+---
+
 ## 9. Trazabilidad
 
-- **Implementa:** US-211a (REQ-002)
+- **Implementa:** US-211a (REQ-002) · US-214a (navegación cruzada, §8.bis)
 - **Consume:** [[vault/03_Architecture/Data_Model]] §4 · [[vault/04_UX_Design/Screen_Specs]] §4 · [[vault/15_ML_Models/Indice_Riesgo_ML01]]
 - **Alimenta:** US-212 (construcción de DB-03/DB-04), US-214a (filtros y drill-down), US-215a (usabilidad)
 - **Insumo para:** US-113 (construcción de los cubos, Célula 1)

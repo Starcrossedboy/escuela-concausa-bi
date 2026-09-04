@@ -105,3 +105,29 @@ del proyecto (confirmado contra el fixture real de DS-01: solo trae PREESCOLAR/P
 - Homologación de claves de municipio (3 vs 5 dígitos): **confirmado real** — `INMUEBLE_CV_MUN`
   es el código local de 3 dígitos; `normalize_cve_mun(entidad, municipio)` en
   `silver/escuela.sql` ya sabe concatenar, no requiere cambios.
+
+## 11. Calidad de datos (Great Expectations) — 2026-09-03
+
+Suite nueva para Bronze (`bronze.cct_siged_202608`), cerrando la deuda señalada por Deni
+Garrido en su auditoría del 30-ago (ver DevLog 2026-08-30-diana-alvarez-ds02-cct-real, sección
+Pendiente).
+
+- **Módulo:** `src/ingesta/validacion_cct.py` (`validar_cct()`), mismo patrón que
+  `validacion_sesnsp.py` (TEST-011/US-124b): reutiliza `parsear_y_combinar()` de
+  `cargar_bronze_cct_real.py` (no duplica esa lógica), o acepta un DataFrame explícito.
+- **Expectativas:** not_null en columnas críticas, formato real de `cct` (`EE` + 3 letras +
+  4 dígitos + 1 letra), `entidad`/`municipio` (2/3 dígitos), `nivel` restringido a
+  PREESCOLAR/PRIMARIA/SECUNDARIA (el loader ya filtra a esto, si falla es regresión real del
+  filtro), `cct` único dentro de una extracción (el loader ya truena si hay duplicado entre
+  las dos partes). **No** excluye `latitud`/`longitud` en `0,0` — BUG-034 (6 filas reales
+  conocidas) es un defecto de la fuente que corrige Silver, no Bronze; exigirlo aquí duplicaría
+  esa responsabilidad y haría fallar la suite en datos reales conocidos. No se valida
+  `sostenimiento` contra un catálogo — el loader lo pasa tal cual sin traducir, no se conoce su
+  value_set real crudo con certeza.
+- **Suite persistida:** `great_expectations/expectations/suite_ds02_cct.json`.
+- **Pruebas offline (5):** `tests/test_validacion_cct.py` — datos limpios pasan (incluida la
+  coordenada 0,0 conocida, que no debe romper la suite), y se verifica que SÍ atrapa nivel
+  fuera de básica, cct duplicado y cct mal formado. Corren sin red ni CSV reales.
+- **Verificado 2026-09-03 contra los 2 CSV reales completos de SIGED**
+  (`CATALOGO_CENTRO_TRABAJO_01_16_CSV.csv` + `..._17_32_CSV.csv`, no la muestra sintética de
+  las pruebas): 15/15 expectativas en verde sobre el catálogo completo.

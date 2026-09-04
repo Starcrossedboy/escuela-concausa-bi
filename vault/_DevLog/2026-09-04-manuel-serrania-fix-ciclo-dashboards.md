@@ -49,12 +49,14 @@ tags: [devlog]
 ## Verificación
 
 - Suite de la célula (frontend + capa semántica + sync + filtro ciclo): **226 passed**, incluido
-  `tests/test_frontend_dashboards_streamlit.py` (33, los 3 antes-saltados ahora corren).
+  `tests/test_frontend_dashboards_streamlit.py` (**2** — el archivo tiene 2 tests). Son 3 los archivos
+  de frontend que el CI se saltaba en silencio (por `importorskip` sin streamlit) y que ahora corren:
+  este (2) + `test_frontend_chat_streamlit.py` (1) + `test_frontend_auth.py` (12) = **15 tests**.
 - `ruff check` limpio · ownership `test_check_ownership.py` 40 passed · `vault_lint` limpio.
-- En la suite observable completa del ambiente se ven 21 `failed` en tests de validación
-  (`great_expectations`, `'project_root_dir' and 'context_root_dir' are conflicting args` — conflicto
-  de versión preexistente, ajeno) y 12 módulos que no colectan por faltar `limits` (slowapi de
-  `src/api`) — ambos preexistentes, documentados igual que en el DevLog del 2026-09-02.
+- En ambiente limpio (CI instala `requirements.txt` raíz) la suite completa corre sin `failed` (0).
+  Los 21 `failed` de tests de validación (`great_expectations`, `'project_root_dir' and
+  'context_root_dir' are conflicting args`) y los 12 módulos sin colectar (falta `limits`, slowapi de
+  `src/api`) que se observan en este venv local son **artefactos del entorno**, no del cambio.
 
 ## 🤖 Sesión de IA
 

@@ -57,7 +57,7 @@ tags: [qa, bugs]
 | BUG-042 | **24 de 91 historias no tenían fila en `Execution_Status.md`, y el generador las contaba como `planned` en silencio.** `build_snapshot()` hacía `state = execution.get(story["id"], {})` y luego `state.get("status", "planned")` — una US ausente del registro no era un error, era indistinguible de "de verdad no ha arrancado". Pasó con **10 de las 24** ya con PR mergeado, algunas terminadas (US-205, US-214b, US-523b), otras con datos reales entregados y solo pendientes de bloqueo ajeno (US-222, US-321). Una de las filas existentes además tenía la evidencia mal etiquetada: `US-206` cargaba el trabajo real de `US-205` (repunteo de capa semántica, PR #134), hallazgo de Manuel Serranía. Detectado auditando el tablero contra los PRs mergeados en `main`, 2026-09-03 | high | fixed | US-004 / REQ-007 | Se agregan las 24 filas faltantes con su estado real verificado contra PR/commit (no un default) y se corrige la etiqueta `US-206`→`US-205`; `build_snapshot()` ya no completa con `.get(..., "planned")` — si una US no tiene fila, el generador falla y lista cuáles faltan | `TEST-034` (`tests/test_generate_pm_dashboard.py`, 2 casos): confirma que las 91 historias reales tienen fila, y que inyectar una historia sin registro hace que `build_snapshot()` truene mencionando `BUG-042` y su ID — no que caiga a `planned` |
 | BUG-044 | **Sin `ciclo` explícito, `/escuelas`, `/escuelas/{cct}` y `/kpis` sumaban/listaban TODOS los ciclos materializados a la vez, no solo el actual.** `listar_escuelas`/`obtener_kpis`/`obtener_escuela` (`src/api/repositorio_gold.py`) solo filtraban por `fact.c.id_ciclo` cuando el caller mandaba `ciclo`; al omitirlo (el caso más común), la consulta quedaba sin acotar sobre `gold.fact_escuela_ciclo`, que materializa ~3 ciclos. Verificado en producción: `/escuelas?cve_ent=09` sin `ciclo` → 19 456 filas; con `ciclo=2024-2025` → 6 378 (razón ≈3, una fila por ciclo por escuela, sin campo `id_ciclo` en `EscuelaOut` para distinguirlas); `/kpis` sin `ciclo` → `matricula_total=20 638 574` (nacional aparente) cuando el real de las 4 entidades es ~7M — la matrícula estaba **triplicada**, no fuera de alcance. `obtener_escuela` (detalle) tenía el mismo hueco: sin filtro, `.first()` devolvía una fila cualquiera entre los ciclos de una escuela, no determinista. Detectado por Karla Monter validando el cierre de US-411 (BUG-020 ya curado) el 2026-09-03 | **critical** | **fixed** | US-411 / REQ-004 | `dev/karla-monter` (Karla Monter, C4) — los tres métodos de `RepositorioGoldPostgres` ahora usan `_ciclo_mas_reciente()` (`MAX(id_ciclo)`) como default cuando `ciclo` es `None`; `tests/fixtures_gold.py::RepositorioGoldFake` refleja el mismo default para que la suite rápida lo ejerza sin Postgres | `tests/test_api_contract.py::test_escuelas_sin_ciclo_no_duplica_entre_ciclos` · `::test_escuelas_ciclo_explicito_trae_el_ciclo_pedido` · `::test_kpis_sin_ciclo_no_suma_ciclos_anteriores` — las tres usan el fixture con la misma escuela en dos ciclos (`09DPR0001A`, 2024-2025 y 2023-2024) para que la deduplicación se ejerza de verdad, no por casualidad de datos |
 | BUG-041 | **El path real `--desde-gold` de ML truena cuando un driver queda 100 % `SIN_DATO`: `pd.read_sql_table` devuelve los nombres de columna como `quoted_name` (subclase de `str`), sklearn exige `type(x) == str` exacto para poblar `feature_names_in_`, así que **nunca lo puebla**; el fallback `getattr(modelo, "feature_names_in_", DRIVERS)` de `construir_predicciones` cae a los 6 `DRIVERS` y reintroduce el driver descartado → `ValueError: X has 6 features, but HistGradientBoostingRegressor is expecting 5 features`. Misma FAMILIA que BUG-015/018/023 pero **causa raíz nueva**: aquí el propio patrón `feature_names_in_` que arregló a los tres nunca se activa al leer de la BD, así que el fix de BUG-015 queda anulado en el path de producción. Los tests no lo cazan porque usan fixtures CSV (`read_csv` → `str` puro). Reportado por Luis Téllez (C5) al cerrar la validación L0 local el 2026-09-02, ejercitando cobertura parcial real (D5 agua 100 % `SIN_DATO`) | high | **fixed** | US-311 / US-313 / REQ-003 | **C3 ✅ aplicado por Héctor Morales (2026-09-03)** en `cargar_features_desde_gold` (`entrenar_ml01.py`), tal cual lo preparó Luis Téllez: `df.columns = [str(c) for c in df.columns]` tras el `read_sql_table`. Diagnóstico **verificado de forma independiente** antes de aplicarlo: `pd.read_sql_table` devuelve `quoted_name` (Postgres **y** SQLite) y sklearn 1.9.0 no puebla `feature_names_in_` con él, sí con `str` puro. Fallo reproducido end-to-end contra el Gold local (3 ciclos, D5 100 % `SIN_DATO`) con el mismo `ValueError` y el mismo MAE 0.0844 que reportó C5; con el parche, `--desde-gold` publica **55 predicciones + 55 recomendaciones** (F1 0.6458), las mismas cifras | `tests/test_entrenar_ml01.py::test_las_columnas_leidas_de_gold_son_str_puro` · `::test_entrenar_desde_gold_puebla_feature_names_in` · `::test_predecir_desde_gold_no_cae_al_fallback_de_los_6_drivers` — las tres **reprueban con el parche revertido** (comprobado) y usan SQLite, que también entrega `quoted_name`, así que corren en CI sin Postgres |
-| BUG-045 | **CONEVAL (DS-07) no es reproducible desde el repositorio: el fixture y el modelo hablan esquemas distintos, y no existe ninguno compatible.** `dbt/models/silver/rezago_municipio.sql` consume el esquema del **extracto oficial**, con columnas hasheadas — exige `c_b9548dbd414b`, `c_deef5d1bd71a`, `c_9b370f449788`, `c_9e8609cad84d`, `c_5d0523b1d4a3`, `c_91fd46c9babe`, `c_9bd1a7aa7fca`, `c_764f3baf1395`, `c_1a3c72ae6dd1` y `_periodo_medicion`. El único fixture de CONEVAL del repo (`tests/fixtures/bronze_coneval_sample.csv`, generado por `tests/fixtures/generate_bronze_drivers_fixtures.py::generar_coneval`) emite `cve_mun, entidad, municipio, indice_rezago_social, grado_rezago, pobreza_pct` — el contrato **viejo**, anterior a la migración de Deni, y su propio docstring lo cita (`Data_Model.md §6`). **Ningún CSV del repo tiene columnas `c_…`.** Sin los dos Excel reales de CONEVAL no se construye `silver.rezago_municipio` → sin él no hay `gold.dim_municipio` → sin él **no se materializa ningún cubo** → **sin cubos no funciona ningún tablero**. Reproducido corriéndolo: `dbt run` reprueba con `column "c_b9548dbd414b" does not exist`. **CI no lo atrapa**: el job `dbt-contract` solo hace `dbt parse`, que renderiza el manifest sin ejecutar Silver contra datos | **high** | open | US-112 / US-113 / REQ-001 / REQ-002 / DS-07 | pendiente (**C1 — Diana Alvarez / Deni Garrido**). Dos caminos, cualquiera sirve: publicar un fixture con las columnas `c_…` que el modelo espera, o extender `generate_bronze_drivers_fixtures.py::generar_coneval` para que emita ese esquema. Hay precedente directo: existen **4 generadores** de Formato 911 (`generate_bronze_formato911_*.py`) que hacen exactamente eso | ⬜ sin prueba de regresión — hoy nada falla en CI cuando el fixture y el modelo divergen (ver §Guarda propuesta en el detalle) |
+| BUG-045 | **CONEVAL (DS-07) no es reproducible desde el repositorio: el fixture y el modelo hablan esquemas distintos, y no existe ninguno compatible.** `dbt/models/silver/rezago_municipio.sql` consume el esquema del **extracto oficial**, con columnas hasheadas — exige `c_b9548dbd414b`, `c_deef5d1bd71a`, `c_9b370f449788`, `c_9e8609cad84d`, `c_5d0523b1d4a3`, `c_91fd46c9babe`, `c_9bd1a7aa7fca`, `c_764f3baf1395`, `c_1a3c72ae6dd1` y `_periodo_medicion`. El único fixture de CONEVAL del repo (`tests/fixtures/bronze_coneval_sample.csv`, generado por `tests/fixtures/generate_bronze_drivers_fixtures.py::generar_coneval`) emite `cve_mun, entidad, municipio, indice_rezago_social, grado_rezago, pobreza_pct` — el contrato **viejo**, anterior a la migración de Deni, y su propio docstring lo cita (`Data_Model.md §6`). **Ningún CSV del repo tiene columnas `c_…`.** Sin los dos Excel reales de CONEVAL no se construye `silver.rezago_municipio` → sin él no hay `gold.dim_municipio` → sin él **no se materializa ningún cubo** → **sin cubos no funciona ningún tablero**. Reproducido corriéndolo: `dbt run` reprueba con `column "c_b9548dbd414b" does not exist`. **CI no lo atrapa**: el job `dbt-contract` solo hace `dbt parse`, que renderiza el manifest sin ejecutar Silver contra datos | **high** | fixed | US-112 / US-113 / REQ-001 / REQ-002 / DS-07 | resuelto 2026-09-04 (**C1 — Diana Alvarez**): se extendió `ESQUEMAS` en `src/ingesta/cargar_bronze_fixture.py` con las entradas `coneval_irs`/`coneval_pobreza` (columnas `c_…` hasheadas, verificadas contra los manifiestos reales de la carga DS-07 del 2026-09-04) y se regeneraron los fixtures vía `generate_bronze_drivers_fixtures.py::generar_coneval`: `bronze_coneval_irs_sample.csv` + `bronze_coneval_pobreza_sample.csv`. Se retiró el fixture huérfano `bronze_coneval_sample.csv` y el esquema `coneval` obsoleto (`--esquema coneval` ahora lanza `ValueError`). Ver §Arreglo aplicado en el detalle | ✅ verificado real contra Postgres por Diana (`dbt run`+`dbt test` sobre `rezago_municipio`, `pytest` 884 passed) — sigue pendiente solo la guarda de CI propuesta, no implementada en este fix (ver §Guarda propuesta) |
 
 ## BUG-041 — El `quoted_name` de SQLAlchemy vacía `feature_names_in_` y reintroduce el driver descartado
 
@@ -1691,7 +1691,7 @@ todavía.
 | | |
 |---|---|
 | **Severidad** | high — bloquea la construcción de Gold completa a cualquiera sin los Excel reales |
-| **Estado** | `open` |
+| **Estado** | `fixed` — 2026-09-04, por Diana Alvarez Varela (Célula 1) |
 | **Owner** | **Célula 1** — Diana Alvarez Varela / Deni Garrido Fragoso |
 | **Detectado** | 2026-09-03, por Marina García del Buey, al reconstruir su ambiente local desde cero |
 | **Validado** | 2026-09-04, por Luis Téllez Domínguez, en revisión de solo lectura, claim por claim |
@@ -1796,6 +1796,89 @@ Dos caminos, cualquiera resuelve:
 Hay precedente directo y reciente: existen **cuatro** generadores de Formato 911
 (`generate_bronze_formato911_*.py`), y uno de ellos —el de la serie histórica— nació
 justo para cerrar un hueco equivalente en BUG-026.
+
+### Arreglo aplicado (2026-09-04, Célula 1 — Diana Alvarez)
+
+Se tomó el camino 2 de los dos propuestos arriba: **extender el generador**, no publicar
+fixtures sueltos a mano, para quedar consistente con el patrón que ya usan las demás
+fuentes (`ESQUEMAS` en `src/ingesta/cargar_bronze_fixture.py`).
+
+**Evidencia usada — no se adivinó ningún hash.** Los manifiestos reales generados por la
+propia carga DS-07 de ayer (`data/bronze/coneval/manifests/ds07_postgres_columns_irs_2020.json`
+y `..._pobreza_2020.json`, artefactos locales, no versionados) dan el mapeo completo
+hash → encabezado original — no solo los 4 que ya estaban documentados arriba:
+
+| Hash | Columna original | Tabla |
+|---|---|---|
+| `c_b9548dbd414b` | `Clave entidad` | irs |
+| `c_deef5d1bd71a` | `Clave municipio` | irs |
+| `c_9b370f449788` | `Entidad federativa` | irs / pobreza |
+| `c_9e8609cad84d` | `Municipio` | irs / pobreza |
+| `c_5d0523b1d4a3` | `Índice de rezago social` | irs |
+| `c_91fd46c9babe` | `Grado de rezago social` | irs |
+| `c_9bd1a7aa7fca` | `Clave de entidad` | pobreza |
+| `c_764f3baf1395` | `Clave de municipio` | pobreza |
+| `c_1a3c72ae6dd1` | `Pobreza \| Porcentaje 2020` | pobreza |
+
+**Cambios de código:**
+
+1. `src/ingesta/cargar_bronze_fixture.py` — se quitó el `DDL_BRONZE_CONEVAL` /
+   `COLUMNAS_CONEVAL` viejos (esquema de una sola tabla, ya huérfano) y la clave
+   `"coneval"` de `ESQUEMAS`. Se agregaron `DDL_BRONZE_CONEVAL_IRS` /
+   `COLUMNAS_CONEVAL_IRS` y `DDL_BRONZE_CONEVAL_POBREZA` / `COLUMNAS_CONEVAL_POBREZA`
+   (6 y 5 columnas de negocio hasheadas respectivamente, más `_periodo_medicion`,
+   `_ingested_at`, `_source`, `_source_url`), y las claves `"coneval_irs"` /
+   `"coneval_pobreza"` en `ESQUEMAS`, con conflicto de unicidad en
+   `(_source, _ingested_at, c_b9548dbd414b, c_deef5d1bd71a)` e
+   `(_source, _ingested_at, c_9bd1a7aa7fca, c_764f3baf1395)` respectivamente — mismo
+   patrón que las demás fuentes de este archivo, sin tocar
+   `src/ingesta/cargar_bronze_coneval_real.py` (el loader de producción, que ya emite
+   este esquema correctamente y no tenía el bug).
+2. `tests/fixtures/generate_bronze_drivers_fixtures.py::generar_coneval` — reescrito
+   para emitir **dos** archivos (`bronze_coneval_irs_sample.csv`,
+   `bronze_coneval_pobreza_sample.csv`) con el esquema `c_…` real en vez de uno solo
+   con el esquema viejo. Reutiliza los mismos 12 municipios sintéticos que ya usan los
+   generadores hermanos (vía `_leer_ccts_y_municipios()`), incluida una fila
+   `SIN_DATO` para ejercitar cobertura parcial.
+3. Se corrió el generador y se borró `tests/fixtures/bronze_coneval_sample.csv`
+   (el fixture huérfano que causaba el bug).
+
+**Verificado sin Postgres** (`device_bash` no tiene Docker ni alcanza `127.0.0.1:5432`,
+así que esto se validó a nivel de esquema, no de base de datos real): las dos CSV nuevas,
+leídas con `pd.read_csv(..., dtype=str, keep_default_na=False)`, no tienen columnas
+faltantes contra `COLUMNAS_CONEVAL_IRS` / `COLUMNAS_CONEVAL_POBREZA` — 12 filas cada una,
+1 fila `SIN_DATO`. `tests/test_cargar_bronze_fixture_conteo.py` (único test existente que
+toca este módulo) solo ejercita `esquema="cct"` y no se ve afectado.
+
+**Verificación real contra Postgres (Diana, 2026-09-04, misma tarde).** `pytest tests/ -q`
+→ **884 passed, 7 skipped**, nada roto por el fix. `dbt run --select rezago_municipio` →
+**éxito, `SELECT 2469`** contra las tablas reales `bronze.coneval_irs_2020` /
+`coneval_pobreza_2020` que Diana ya tenía cargadas de su propia corrida real de DS-07 del
+mismo día. `dbt test --select rezago_municipio` → **6 de 7 en verde** (los 3
+`accepted_values`/`not_null`/`valid_rezago_municipio` propios del modelo, todos `PASS`); el
+único `ERROR` es `cubo_pipeline_rows_parity` por `relation "bronze.conagua_presas" does not
+exist` — **ajeno a este bug**, es DS-06/CONAGUA (Emilio Galnares), no CONEVAL. Esto prueba
+el mapeo hash→columna de punta a punta contra datos reales, no solo contra los manifiestos.
+
+**Hallazgo real durante la verificación, ya corregido.** Cargar el fixture con
+`cargar_bronze_fixture.py --esquema coneval_irs --tabla coneval_irs_2020` (incluyendo
+`--fixture`, que las instrucciones iniciales omitieron) reventó con
+`psycopg2.errors.InvalidColumnReference: no unique or exclusion constraint matching the ON
+CONFLICT specification`. Causa real: **la tabla `bronze.coneval_irs_2020` de Diana ya
+existía**, creada antes por el loader de producción (`cargar_bronze_coneval_real.py`), que
+es idempotente por snapshot (`_source`, `_ingested_at`) y **no** define ningún `UNIQUE` —
+`CREATE TABLE IF NOT EXISTS` de este script fue entonces un no-op contra una tabla sin la
+restricción que el `ON CONFLICT` necesita. No es un defecto del mapeo de columnas (que
+`dbt run` ya probó correcto) ni algo que corresponda "arreglar" insertando de todos modos:
+mezclar filas sintéticas de fixture en una tabla con datos reales sería justo el tipo de
+inconsistencia silenciosa que CLAUDE.md pide evitar. Arreglo: `cargar_fixture()` ahora
+detecta ese error específico, hace `rollback()` (no toca ni una fila de la tabla real) y
+levanta un `RuntimeError` explicando la causa y sugiriendo cargar el fixture bajo un
+`--tabla` nuevo si de verdad se necesita ahí — en vez del traceback crudo de psycopg2. Este
+camino aplica solo quien ya tiene datos reales cargados (como Diana); en un ambiente
+limpio (CI, o alguien reconstruyendo desde cero como hizo Marina) la tabla no existe de
+antemano y el flujo normal de `CREATE TABLE` + `INSERT ON CONFLICT` corre sin tocar este
+caso — ese es justo el escenario que este fix de BUG-045 existe para resolver.
 
 ### Guarda propuesta (no existe hoy)
 

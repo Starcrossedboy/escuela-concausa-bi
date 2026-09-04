@@ -47,6 +47,9 @@ class RepositorioGold(Protocol):
 
         `order_by` es una de `ESCUELAS_ORDENABLES` (whitelist validada por FastAPI antes de
         llegar aquí, ver `src/api/v1/gold.py`); `SIN_DATO` (`None`) siempre queda al final.
+
+        Si `ciclo` viene `None`, se usa el ciclo más reciente materializado en
+        `fact_escuela_ciclo` -- **nunca** todos los ciclos a la vez (BUG-044).
         """
         ...
 
@@ -67,7 +70,11 @@ class RepositorioGold(Protocol):
     def obtener_kpis(
         self, *, cve_ent: str | None, cve_mun: str | None, ciclo: str | None
     ) -> dict:
-        """Agregados del tablero (KPI-02/04/05 de `Screen_Specs.md`)."""
+        """Agregados del tablero (KPI-02/04/05 de `Screen_Specs.md`).
+
+        Si `ciclo` viene `None`, se usa el ciclo más reciente materializado -- nunca la suma de
+        todos los ciclos a la vez (BUG-044).
+        """
         ...
 
 
@@ -161,6 +168,14 @@ class RepositorioGoldPostgres:
         criterio = columna.desc() if order == "desc" else columna.asc()
         return consulta.order_by(criterio.nulls_last())
 
+    def _ciclo_mas_reciente(self) -> str | None:
+        """`id_ciclo` más alto materializado en `fact_escuela_ciclo` (formato `AAAA-AAAA`, orden
+        lexicográfico == orden cronológico). Sirve como default cuando el caller omite `ciclo`:
+        antes de BUG-044, omitirlo dejaba `fact` sin filtrar y listaba/sumaba **todos** los ciclos
+        a la vez (escuelas triplicadas, `matricula_total` de `/kpis` triplicado en producción)."""
+        with self._engine.connect() as conexion:
+            return conexion.execute(select(func.max(self._fact.c.id_ciclo))).scalar_one_or_none()
+
     def listar_escuelas(
         self,
         *,
@@ -174,6 +189,7 @@ class RepositorioGoldPostgres:
         size: int,
     ) -> tuple[list[dict], int]:
         dim_escuela, fact = self._dim_escuela, self._fact
+        ciclo = ciclo or self._ciclo_mas_reciente()
         consulta = self._seleccion_escuela(detalle=False)
         if cve_ent:
             consulta = consulta.where(dim_escuela.c.cve_ent == cve_ent)
@@ -197,7 +213,13 @@ class RepositorioGoldPostgres:
         return [dict(fila) for fila in filas], total
 
     def obtener_escuela(self, cct: str) -> dict | None:
+        """Detalle de una escuela en el ciclo más reciente materializado (BUG-044): sin acotar
+        `id_ciclo`, `.first()` devolvía una fila cualquiera entre los ciclos de la misma escuela,
+        no determinista."""
+        ciclo = self._ciclo_mas_reciente()
         consulta = self._seleccion_escuela(detalle=True).where(self._fact.c.cct == cct)
+        if ciclo:
+            consulta = consulta.where(self._fact.c.id_ciclo == ciclo)
         with self._engine.connect() as conexion:
             fila = conexion.execute(consulta).mappings().first()
         return dict(fila) if fila is not None else None
@@ -251,6 +273,7 @@ class RepositorioGoldPostgres:
         KPI-05 completitud promedio). El `cast(..., Numeric)` evita la división entera de dos
         columnas integer en Postgres (SUM(int)/SUM(int) truncaría a -1)."""
         fact, dim_municipio, predicciones = self._fact, self._dim_municipio, self._predicciones
+        ciclo = ciclo or self._ciclo_mas_reciente()
 
         consulta = (
             select(

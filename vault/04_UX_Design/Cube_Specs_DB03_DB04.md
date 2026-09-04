@@ -401,6 +401,81 @@ este documento. Coinciden en fórmula, grano, tipo de `JOIN`, umbral 0.6 y bande
 
 ---
 
+## 8.ter Cierre de US-212 — evidencia (2026-09-03)
+
+> US-212 estuvo al 95 % desde el 29-ago con **un solo bloqueo**: ratificar ADR-007 y que la
+> unidad del target llegara al dato. Ambas cosas ocurrieron; aquí queda la evidencia de que
+> el 5 % restante está verificado. **El cambio de estado en `Execution_Status.md` lo hace el
+> PM**: esa ruta no está en el alcance de Célula 2.
+
+### 8.ter.1 El bloqueo desapareció, y no por decreto
+
+| Paso de ADR-007 | Dueño | Evidencia |
+|---|---|---|
+| 1 · Normalizar el target a fracción en `features_escuela.sql` | C1 · Diana Alvarez | ✅ 2026-08-31 |
+| 2 · Rechazar `matricula_previa = 0` explícito, sin `NULLIF` silencioso | C1 · Diana Alvarez | ✅ 2026-08-31 |
+| 3 · Regenerar `gold.predicciones` | C3 · Héctor Morales | ✅ 2026-09-03 |
+| 4 · Reentrenar ML-01 | C3 · Héctor Morales | ✅ 2026-09-03 |
+
+Verificado corriéndolo, no leyéndolo: `gold.predicciones.valor` sale en rango
+**−0.0437 … +0.0313**. Es una **fracción**, no alumnos absolutos. Y el `indice_riesgo` va de
+**0.1637 a 0.5615** — deja de estar saturado, que era el síntoma con el que BUG-017 detuvo
+correctamente la publicación.
+
+### 8.ter.2 AC-002.4 verificado
+
+El criterio que no se podía comprobar —"DB-03 permite drill-down a una escuela por CCT y
+muestra su perfil, drivers, predicción y recomendación"— hoy se comprueba:
+
+| Qué | Resultado |
+|---|---|
+| `cobertura_prediccion = OK` | **55** escuelas (ciclo 2024-2025) |
+| `cobertura_prediccion = SIN_DATO` | **90** (los ciclos sin predicción — correcto, no un hueco) |
+| Charts de DB-03 y DB-04 con datos | **24/24** |
+| Bloques de predicción y recomendación | pueblan con datos reales de `gold.predicciones` |
+
+Reproducible **solo con fixtures del repositorio**, que es lo que BUG-013 exigía y no se podía:
+los tres fixtures de Formato 911 dan `gold.features_escuela` con 145 filas y 3 ciclos, y
+`publicar_gold --desde-gold` publica 55 + 55. Mismas cifras que obtuvo Héctor Morales el mismo
+día por su cuenta, que es la comprobación de que no es un ambiente afortunado.
+
+### 8.ter.3 KPI-02 concuerda por cinco caminos (BUG-031)
+
+| Origen | KPI-02 |
+|---|---|
+| `gold.fact_escuela_ciclo` (fuente de verdad) | **−0.192 %** |
+| `gold.cubo_matricula` → DB-01, DB-06 | **−0.192 %** |
+| `gold.cubo_riesgo_territorial` → DB-02 | **−0.192 %** |
+| `gold.cubo_escuela_360` → DB-03 | **−0.192 %** |
+| `gold.cubo_comparador_municipio` → DB-04 | **−0.192 %** |
+
+Sobre 32 312 / 32 374 alumnos: los mismos valores del reporte original del 29-ago.
+
+### 8.ter.4 La regla `SIN_DATO` aguanta de punta a punta
+
+| Driver | Escuelas `SIN_DATO` | Por qué |
+|---|---|---|
+| D1 · pobreza | 145 / 145 | CONEVAL no ingerible desde los fixtures del repo |
+| D2 · inseguridad | 0 / 145 | SESNSP con dato |
+| D3 · infraestructura | 12 / 145 | cobertura parcial de CEMABE |
+| D4 · conectividad | 12 / 145 | cobertura parcial de CEMABE |
+| D5 · agua | 145 / 145 | CONAGUA no ingerida |
+| D6 · aire | 140 / 145 | SINAICA cubre ~80 zonas urbanas |
+
+Y lo que de verdad importa: **cero casos** en que un driver marcado `SIN_DATO` traiga un valor.
+Donde el Estado no mide, el tablero lo dice; no inventa un cero.
+
+### 8.ter.5 Lo que NO cierra con esto
+
+- `en_riesgo = 0` en las 55 escuelas con predicción. **No es un defecto**: el riesgo máximo es
+  0.5615 y el umbral de DEC-006 es 0.60. Con datos de fixture nadie lo cruza. Con los datos
+  reales de Diana el resultado puede ser otro, y conviene revisarlo antes de la demo.
+- El criterio de cierre por URL pública **no aplica** a US-212: Edgar lo precisó el 29-ago —
+  ese gate se escribió para rutas HTTP de la API. Un tablero cierra con evidencia de código
+  más capa de datos validada.
+
+---
+
 ## 8.bis Navegación cruzada — US-214a
 
 > Sección añadida el 2026-09-03 al implementar US-214a. El contrato de rutas vive en el

@@ -100,6 +100,28 @@ def test_escuelas_filtro_por_entidad(client: TestClient) -> None:
     assert all(e["cve_mun"].startswith("09") for e in r.json()["items"])
 
 
+def test_escuelas_sin_ciclo_no_duplica_entre_ciclos(client: TestClient) -> None:
+    """BUG-044: sin `ciclo`, antes se sumaban todos los ciclos de golpe. `RepositorioGoldFake`
+    trae la misma escuela (09DPR0001A) en 2024-2025 y en 2023-2024 -- debe aparecer una sola vez,
+    con los datos del ciclo más reciente."""
+    r = client.get(f"{API_PREFIX}/escuelas")
+    assert r.status_code == 200
+    cuerpo = r.json()
+    ccts = [e["cct"] for e in cuerpo["items"]]
+    assert ccts.count("09DPR0001A") == 1
+    escuela = next(e for e in cuerpo["items"] if e["cct"] == "09DPR0001A")
+    assert escuela["matricula_total"] == 480  # valor del ciclo 2024-2025, no el de 2023-2024 (500)
+
+
+def test_escuelas_ciclo_explicito_trae_el_ciclo_pedido(client: TestClient) -> None:
+    r = client.get(f"{API_PREFIX}/escuelas", params={"ciclo": "2023-2024"})
+    assert r.status_code == 200
+    cuerpo = r.json()
+    assert cuerpo["total"] == 1
+    assert cuerpo["items"][0]["cct"] == "09DPR0001A"
+    assert cuerpo["items"][0]["matricula_total"] == 500
+
+
 def test_escuela_detalle_incluye_drivers(client: TestClient) -> None:
     r = client.get(f"{API_PREFIX}/escuelas/09DPR0001A")
     assert r.status_code == 200
@@ -129,6 +151,14 @@ def test_kpis_ok(client: TestClient) -> None:
     r = client.get(f"{API_PREFIX}/kpis")
     assert r.status_code == 200
     assert r.json()["escuelas_en_riesgo"] >= 0
+
+
+def test_kpis_sin_ciclo_no_suma_ciclos_anteriores(client: TestClient) -> None:
+    """BUG-044: `matricula_total` de /kpis debe reflejar solo el ciclo más reciente. Si sumara
+    también la fila 2023-2024 de 09DPR0001A (matricula_total=500), el total subiría 500 de más."""
+    sin_ciclo = client.get(f"{API_PREFIX}/kpis").json()["matricula_total"]
+    con_ciclo = client.get(f"{API_PREFIX}/kpis", params={"ciclo": "2024-2025"}).json()["matricula_total"]
+    assert sin_ciclo == con_ciclo
 
 
 # --------------------------------------------------------------------------- #

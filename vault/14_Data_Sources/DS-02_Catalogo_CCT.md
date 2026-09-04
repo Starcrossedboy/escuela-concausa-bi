@@ -2,14 +2,14 @@
 id: DS-02
 title: "DS-02 · SEP Catálogo CCT"
 owner: "Diana Aracely Alvarez Varela"
-status: in_review
+status: done
 traces_up: ["vault/01_Product/PRD", "vault/12_Roadmap_Sprints/PLAN_MAESTRO"]
 tags: [data-source, bronze, llave-primaria]
 ---
 
 # DS-02 · SEP Catálogo CCT
 
-> → [[vault/14_Data_Sources/_index]] · Descarga real oficial ejecutada y verificada (30-ago-2026); ficha en `in_review`.
+> → [[vault/14_Data_Sources/_index]] · **PR #163 mergeado (2-sep-2026)** — cargador real de producción en `main`, 77,712 escuelas en `dim_escuela` (4 `SCOPE_ENTIDADES`), verificado Bronze→Silver→Gold contra Postgres real.
 
 ## 1. Identificación
 - **Nombre oficial:** Catálogo de Centros de Trabajo (CCT).
@@ -19,11 +19,22 @@ tags: [data-source, bronze, llave-primaria]
   nivel escuela y habilita el cruce municipal.
 
 ## 2. Acceso
-- **URL de descarga:** [SIGED — Descarga del Catálogo de Centros de Trabajo](https://www.siged.sep.gob.mx/SIGED/datos_abiertos.html).
-  El catálogo se publica partido por rango de entidad: `CATALOGO_CENTRO_TRABAJO_01_16_CSV.zip`
-  (entidades 01-16) y `CATALOGO_CENTRO_TRABAJO_17_32_CSV.zip` (entidades 17-32) — hay que
-  descargar **los dos**; de las 4 `SCOPE_ENTIDADES` del proyecto, Nuevo León (19) cae en el
-  segundo. Diccionario de datos oficial: `CENTROS_TRABAJO_DICDAT.xlsx` (mismo portal).
+- **URL de descarga (portal, manual):** [SIGED — Descarga del Catálogo de Centros de
+  Trabajo](https://www.siged.sep.gob.mx/SIGED/datos_abiertos.html). El catálogo se publica
+  partido por rango de entidad: `CATALOGO_CENTRO_TRABAJO_01_16_CSV.zip` (entidades 01-16) y
+  `CATALOGO_CENTRO_TRABAJO_17_32_CSV.zip` (entidades 17-32) — hay que descargar **los dos**;
+  de las 4 `SCOPE_ENTIDADES` del proyecto, Nuevo León (19) cae en el segundo. Diccionario de
+  datos oficial: `CENTROS_TRABAJO_DICDAT.xlsx` (mismo portal).
+- **URL real, automatizada (verificada 2026-09-03):** el portal no expone un link de descarga
+  directo — el botón dispara JavaScript (AngularJS, `SIGED/js/tablas_siged.js
+  descargarArchivo`) que arma el archivo como Blob en el navegador, sin URL de archivo estática
+  que copiar. Se inspeccionó el JS del portal en vivo y se encontró la llamada real que hace:
+  `GET https://api.siged.sep.gob.mx/CoreServices/servicios/archivo/buscarArchivos/grupo=CCTS&id={idFile}`
+  (`idFile=4` → parte 01-16, `idFile=3` → parte 17-32, verificados en vivo contra el listado
+  real de la API — son PK de base de datos, no fórmula, por eso `src/ingesta/extractor_cct.py`
+  siempre valida que el `name` que regresa coincide con el esperado antes de aceptarlo). Esta
+  URL automatiza Camino A de BLOCK-004 — ver
+  [[vault/14_Data_Sources/DS-01_Formato_911|DS-01 §11]].
 - **Formato:** CSV, encoding **Latin-1** (no UTF-8 — verificado real, acentos/eñes se corrompen
   si se lee como UTF-8).
 - **Tamaño real:** 250.6 MB (01-16, 332,888 filas) + 196.4 MB (17-32, 264,797 filas).
@@ -94,3 +105,29 @@ del proyecto (confirmado contra el fixture real de DS-01: solo trae PREESCOLAR/P
 - Homologación de claves de municipio (3 vs 5 dígitos): **confirmado real** — `INMUEBLE_CV_MUN`
   es el código local de 3 dígitos; `normalize_cve_mun(entidad, municipio)` en
   `silver/escuela.sql` ya sabe concatenar, no requiere cambios.
+
+## 11. Calidad de datos (Great Expectations) — 2026-09-03
+
+Suite nueva para Bronze (`bronze.cct_siged_202608`), cerrando la deuda señalada por Deni
+Garrido en su auditoría del 30-ago (ver DevLog 2026-08-30-diana-alvarez-ds02-cct-real, sección
+Pendiente).
+
+- **Módulo:** `src/ingesta/validacion_cct.py` (`validar_cct()`), mismo patrón que
+  `validacion_sesnsp.py` (TEST-011/US-124b): reutiliza `parsear_y_combinar()` de
+  `cargar_bronze_cct_real.py` (no duplica esa lógica), o acepta un DataFrame explícito.
+- **Expectativas:** not_null en columnas críticas, formato real de `cct` (`EE` + 3 letras +
+  4 dígitos + 1 letra), `entidad`/`municipio` (2/3 dígitos), `nivel` restringido a
+  PREESCOLAR/PRIMARIA/SECUNDARIA (el loader ya filtra a esto, si falla es regresión real del
+  filtro), `cct` único dentro de una extracción (el loader ya truena si hay duplicado entre
+  las dos partes). **No** excluye `latitud`/`longitud` en `0,0` — BUG-034 (6 filas reales
+  conocidas) es un defecto de la fuente que corrige Silver, no Bronze; exigirlo aquí duplicaría
+  esa responsabilidad y haría fallar la suite en datos reales conocidos. No se valida
+  `sostenimiento` contra un catálogo — el loader lo pasa tal cual sin traducir, no se conoce su
+  value_set real crudo con certeza.
+- **Suite persistida:** `great_expectations/expectations/suite_ds02_cct.json`.
+- **Pruebas offline (5):** `tests/test_validacion_cct.py` — datos limpios pasan (incluida la
+  coordenada 0,0 conocida, que no debe romper la suite), y se verifica que SÍ atrapa nivel
+  fuera de básica, cct duplicado y cct mal formado. Corren sin red ni CSV reales.
+- **Verificado 2026-09-03 contra los 2 CSV reales completos de SIGED**
+  (`CATALOGO_CENTRO_TRABAJO_01_16_CSV.csv` + `..._17_32_CSV.csv`, no la muestra sintética de
+  las pruebas): 15/15 expectativas en verde sobre el catálogo completo.

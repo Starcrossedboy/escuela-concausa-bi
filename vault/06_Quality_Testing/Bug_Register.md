@@ -17,6 +17,7 @@ tags: [qa, bugs]
 | BUG-001 | dag_anual.py: falta start_date | high | fixed | US-102 | fix/diana-varela-us102-dag-import-errors | manual (ver detalle) |
 | BUG-002 | dag_censal_estatico.py: preset de cron no soportado | high | fixed | US-102 | fix/diana-varela-us102-dag-import-errors | manual (ver detalle) |
 | BUG-003 | `sklearn` no instalado: `test_entrenar_ml01.py` y `test_entrenar_ml02.py` fallan con `ModuleNotFoundError` en colección de pytest | low | **not_a_bug** | US-311 / REQ-003 | ya resuelto en `main` desde 2026-08-13 (PR #28) — ver detalle | ambiente local desactualizado |
+| BUG-043 | **El Model Registry acepta versiones cuyo modelo nunca llegó, y las deja `READY`.** `mlflow.register_model()` crea la versión aunque `log_model()` haya fallado, así que la UI y `search_model_versions` muestran un modelo que ningún cliente puede cargar. Dos configuraciones lo provocan: (1) `--default-artifact-root` es una ruta de disco (`/mlflow/artifacts`) en vez del proxy `mlflow-artifacts:/`, y el cliente la resuelve contra su propio disco → `OSError: Read-only file system: '/mlflow'`; (2) falta `--artifacts-destination`, y los artefactos caen en la capa **efímera** del contenedor: **verificado que un solo `docker compose up --force-recreate` convierte los tres modelos en fantasmas**, lo cual es fatal en Cloud Run, donde recrear el contenedor es rutina. `ML01_RegresionMatricula` v1 estuvo así desde el 18-ago y **AC-003.4 se dio por cumplido sin estarlo**. Bloquea la inferencia de C4, que carga por `models:/…` | **critical** | **fixed (parcial)** | US-311 / US-303 / REQ-003 / AC-003.4 | **C3 ✅ (Héctor, 2026-09-03):** la guarda `verificar_artefactos_descargables()` carga cada versión con `pyfunc` y reprueba; `.env.example` pasa a `MLFLOW_ARTIFACT_ROOT=mlflow-artifacts:/`. Con eso **AC-003.4 queda CUMPLIDO**: los tres modelos registrados y **carga verificada** (ML-01 v4, ML-02 v2, ML-03 v2) — sin tocar `docker-compose.yml`. **Corrección de mi diagnóstico del 2-sep:** culpé a la falta de `--serve-artifacts`, pero en MLflow 3.x **viene activo por defecto** (`--help`: `Default: True`); la causa era la raíz de artefactos. **Pendiente C5 ⬜:** agregar `--artifacts-destination /mlflow/artifacts` al `command:` del servicio `mlflow` — sin eso el registry es efímero (probado en los dos sentidos: con el flag los tres sobreviven al `--force-recreate`; sin él, mueren) | `tests/test_mlflow_utils.py::test_artefacto_ausente_reprueba_aunque_la_version_exista` (exige que el mensaje nombre `--artifacts-destination` y `MLFLOW_ARTIFACT_ROOT`) |
 | BUG-004 | Imagen `apache/superset:latest` no incluye `psycopg2`: conexión a PostgreSQL falla con 422 al crear datasets virtuales | medium | open | US-202 | pendiente (**C5**, Edward Ruiz — US-522c) | — |
 | BUG-005 | Scripts `.sh` se corrompen a CRLF en checkouts de Windows: `.gitattributes` no tiene regla `*.sh text eol=lf`, así que con `core.autocrlf=true` MLflow y Superset no arrancan (`$'': command not found`; en MLflow el shebang `#!/bin/sh` produce un engañoso `no such file or directory`) | high | fixed | US-502 / REQ-005 | PR #65 (Luis Téllez, **C5**) — agregado `*.sh text eol=lf` a `.gitattributes` | pendiente (validar en Windows) |
 | BUG-006 | Healthcheck de `api` usa `curl -f` pero la imagen no incluye `curl` ni `wget` (solo `python`): el contenedor queda `unhealthy` de forma permanente aunque `/health` responda HTTP 200 | medium | fixed | US-502 / REQ-004 | PR #65 (Luis Téllez, **C5**) — removido healthcheck override de api, actualizado chromadb a /api/v2/heartbeat | pendiente (validar healthchecks) |
@@ -42,7 +43,7 @@ tags: [qa, bugs]
 | BUG-026 | **Ningún juego de fixtures del repo puede ejercitar el grano escuela multi-ciclo.** Hay dos y cada uno resuelve la mitad: `bronze_formato911_sample.csv` + `…_ciclo_anterior_sample.csv` traen CCT coherentes con `gold.dim_escuela` (**59 de 60**) pero solo **2 ciclos**, así que `gold.features_escuela` sale con 1 y ML-01 no puede hacer partición temporal; `bronze_formato911_historico_sample.csv` trae **6 ciclos** pero comparte solo **3 CCT de 30** con `dim_escuela` (se generó sobre su propio universo, disjunto de `bronze.cct`), así que a grano escuela el JOIN se vacía **sin ningún error** — el modo de falla silenciosa de BUG-012. Consecuencia: entrenar ML-01 y verificar los bloques de predicción de DB-03 (AC-002.4) solo es posible con ~460 MB de CSV real en un ambiente propio (hoy, únicamente el de Diana); **CI nunca recorre esa ruta** | high | **fixed** | US-104 / US-113 / US-313 / REQ-001 / REQ-003 | **PR #129** (Diana Alvarez) — fixture aditivo `bronze_formato911_serie_historica_sample.csv`: reutiliza las CCT de `bronze_formato911_sample.csv` tal cual (mismo patrón que `..._ciclo_anterior_fixture.py`) y agrega 2021-2022 y 2022-2023 sobre la MISMA tabla. No toca ningún modelo dbt. **Verificado de punta a punta por la reportante el 29-ago** | — (propuesto: aserción dbt de solape mínimo con `dim_escuela` y de ciclos mínimos en `features_escuela`). **Mergeado el 29-ago**; cierra la mitad que faltaba de BUG-013 | — el fixture *es* la regresión: con él, `features_escuela` sale con 3 ciclos y `publicar_gold.py --desde-gold` entrena. Pendiente la guarda automática propuesta (aserción dbt de solape mínimo con `dim_escuela` y de ciclos mínimos), sin la cual un fixture futuro puede volver a divergir sin que CI lo note 
 | BUG-027 | `superset/semantic/metrics_kpis_base_us221.yaml` apunta sus 5 `sql_ref` a `sql/kpi_0*.sql`, ruta que **ya no existe**: el commit `1c2f5f9` movió esos archivos de `superset/sql/` a `superset/semantic/` y actualizó el test, pero no el YAML. Nadie lo nota porque `tests/test_kpis_us221.py` **codifica la ruta a mano** (`SQL_DIR = superset/semantic`) y nunca lee el `sql_ref` del catálogo: la prueba pasa en verde mientras el artefacto que la gente consulta apunta al vacío | medium | **superseded** | US-221 / REQ-002 | US-221 / REQ-002 | **No se corrige la ruta: los archivos desaparecen.** Manuel Serranía ratificó el 28-ago una sola implementación por KPI (regla 1 del vault): se borran los 5 `kpi_*.sql` y las tarjetas se remapean a los datasets canónicos (`db01_cubo_matricula`, `db02_cubo_riesgo_territorial`, `db01_distribucion_escuelas`), sin `sql_ref` a SQL nuevo. Arreglar el `sql_ref` sería trabajo sobre artefactos que se eliminan. Seguimiento en el follow-up de US-221 (C2, Oscar Quiroz) | — **lo que sí sobrevive del hallazgo**: `test_kpis_us221.py` codifica `SQL_DIR` a mano y nunca lee el `sql_ref`, por eso pasaba en verde con el catálogo apuntando al vacío. El follow-up convierte ese test en guarda antiduplicación, que es el requisito que nace de este reporte 
 | BUG-028 | `cargar_features()` leía el CSV **sin `dtype`**, así que pandas infería `int64` en `cve_mun` y se comía el cero de la izquierda: `"09001"` llegaba como `9001`. El join contra `dim_municipio` y la agregación de DEC-007 fallaban **en silencio** para las 9 entidades cuya clave INEGI empieza en cero — **CDMX (09) incluida, que es la entidad principal del alcance**. Diana lo había previsto y lo cubrió en `tests/conftest.py`, pero el lector de producción seguía sin ello, así que las pruebas veían la clave correcta y el pipeline no | high | **fixed** | US-325 / US-311 / DEC-007 / REQ-003 | **PR #127** — `dtype={"cve_mun": str}` en `cargar_features()` (`src/modelos/entrenar_ml01.py`). Detectado por la guarda de coherencia entidad↔municipio que el mismo PR agregó a `generar_fixture_dim.py`: reventó de inmediato con `'9001' contradice la entidad '09'` | la guarda misma es la regresión — `generar()` falla si `cve_mun` no empieza con la entidad que codifica el CCT, así que el cero perdido no puede volver a pasar inadvertido |
-| BUG-029 | **RESERVADO — Oscar Quiroz (C2).** `superset/sync_semantic_layer.py` recorre alfabéticamente los `.sql` de `superset/semantic/` y **aborta toda la corrida** al llegar a `db09_cubo_recomendaciones.sql` si `gold.recomendaciones` no existe. No es error del SQL: en un ambiente sin la cadena Bronze→Gold materializada, nadie que sincronice después de `db09` alfabéticamente puede registrar sus datasets. Detectado por Oscar al construir DB-07 (US-222) | medium | open | US-222 / US-205 / REQ-002 | pendiente (**C2**) — mitigación inmediata: cargar `superset/mock/gold_ml_outputs_mock.sql`, mismo patrón de US-203/204/211b/212; solución de fondo: la resiliencia del sync que Manuel agrega en US-205, para que un dataset con tabla ausente no tumbe la corrida completa | — (propuesto: que el sync reporte y continúe en vez de abortar) |
+| BUG-029 | **RESERVADO — Oscar Quiroz (C2).** `superset/sync_semantic_layer.py` recorre alfabéticamente los `.sql` de `superset/semantic/` y **aborta toda la corrida** al llegar a `db09_cubo_recomendaciones.sql` si `gold.recomendaciones` no existe. No es error del SQL: en un ambiente sin la cadena Bronze→Gold materializada, nadie que sincronice después de `db09` alfabéticamente puede registrar sus datasets. Detectado por Oscar al construir DB-07 (US-222) | medium | **fixed** | US-222 / US-223 / US-205 / REQ-002 | **2026-09-02 (Oscar Quiroz, C2, confirmado por Edgar Coronel):** `ensure_datasets()` envuelve el POST/PUT de cada dataset en `try/except` — un dataset roto se reporta y se omite (no entra a `datasets`), el resto de la corrida continúa. `ensure_chart()` ya omitía charts de datasets ausentes (`-1`), así que el efecto en cascada queda cortado en el único punto real de falla. Mitigación inmediata (`gold_ml_outputs_mock.sql`) sigue documentada para quien la necesite en su ambiente local | `tests/test_sync_resiliencia_bug029.py` — 3 casos: dataset roto no aborta los posteriores (db10 se registra aunque db09 falle), un dataset sano antes del roto no se ve afectado, guarda de no-regresión sin fallos |
 | BUG-030 | **El esquema real de DS-06 no es el que `silver/agua_region.sql` espera, y el riesgo no es que D5 siga en `SIN_DATO` sino que alguien lo saque con la columna equivocada.** El extractor entrega `id_presa, nombre_oficial, corriente, estado, anio_term, alt_cort, cap_name, cap_namo`; el modelo espera `id_punto, region_hidrologica, latitud, longitud, indicador, valor, fecha`. **Ninguna de las cuatro columnas que importan existe** — no es renombrar, son dos estructuras distintas. Dos huecos: (1) sin `lat`/`lon` no hay interpolación IDW, que `Data_Model.md` §3 exige para D5; (2) `cap_name`/`cap_namo` son la **capacidad máxima** de la presa, no el volumen actual, así que conectarlas produciría un indicador constante en el tiempo que mide el tamaño de la presa y no la disponibilidad hídrica — un número creíble y falso, misma familia que el `indice_riesgo` saturado y el `*100`. Hoy no rompe nada porque BUG-009 mantiene el identifier falso y D5 sigue `SIN_DATO` explícito. Reportado por Diana Alvarez (C1) el 30-ago al revisar los metadatos de DS-06/DS-08, que **sí** están limpios | high | open | US-122a / US-112 / REQ-001 / DS-06 | pendiente (**C1 + Emilio Galnares**) — la solución ya está documentada en la ficha DS-06 §64-70 (endpoint «Detalle por presa: Presa, Año, Vol. de almacenamiento (hm3) — SERIE DE TIEMPO») y §74 (georreferencia vía datos.gob.mx). El extractor de US-122a jaló el listado general porque eso pedía la historia. **Decisión pendiente del PM:** ampliar el extractor, o documentar D5 como cobertura parcial explícita para la demo | — (propuesto: aserción de contrato entre las columnas de `bronze.conagua` y las que `agua_region.sql` consume) |
 | BUG-031 | **KPI-02 «Variación de matrícula» pinta −54.5 % donde el valor real es −0.19 %, en SEIS tableros: DB-01, DB-02, DB-03, DB-04, DB-06 y DB-09.** La métrica es `SUM(variacion_matricula * matricula_total) / NULLIF(SUM(matricula_total), 0)` con `formato: porcentaje_1`, es decir un **promedio ponderado de razones**… salvo que `variacion_matricula` no es una razón: `fact_escuela_ciclo.sql` la produce como `matricula_total - matricula_ciclo_anterior`, **alumnos absolutos** (rango observado −24 a 24). El resultado se renderiza como porcentaje, que multiplica por 100 otra vez. Verificado contra Postgres: 32 312 alumnos contra 32 374 del ciclo anterior = **−0.19 %**; los dos tableros dicen **−54.5 %**, factor 287 | **critical** | open | US-203 / US-204 / US-211a / US-212 / US-221 / REQ-002 / AC-002.4 | **C1 (Diana Alvarez) fixed** — `matricula_ciclo_anterior` expuesta en `fact_escuela_ciclo.sql`, `cubo_escuela_360.sql`, `cubo_comparador_municipio.sql` y, ampliando el alcance tras encontrar el mismo defecto en el repo, también `cubo_matricula.sql` (DB-01/DB-06) y `cubo_riesgo_territorial.sql` (DB-02) — rama `fix/diana-varela-bug031-matricula-anterior`, verificado contra Postgres real (`dbt run --full-refresh` + `dbt test`, `cubo_matricula_fact_parity` y `not_null_fact_escuela_ciclo_matricula_ciclo_anterior` en verde). Pendiente **C2 · Manuel Serranía**: migrar `metrics_db01_db02.yaml`, `metrics_db03_db04.yaml`, `metrics_db06_db09.yaml` a razón de sumas y retirar `variacion_x_matricula` + las dos aserciones que la exigen (`test_semantic_db01_db02.py`, `test_semantic_db06_db09.py`) — el origen es §4.4 de [[vault/04_UX_Design/Cube_Specs_DB03_DB04]]: Marina especificó el componente aditivo y Deni Garrido lo implementó fielmente; la implementación es correcta, la especificación no | `tests/test_semantic_db03_db04.py::test_una_metrica_de_porcentaje_no_multiplica_dos_medidas` |
 | BUG-032 | `Data_Model.md` se contradice a sí mismo sobre dónde vive `indice_riesgo`: la línea 181 (§4.5) describe correctamente `valor` (variación cruda) e `indice_riesgo` como **columnas distintas** —que es lo implementado y lo que consume la API—, pero la nota de la línea 313 afirma que `indice_riesgo` vive *"en la columna `valor`"*. Quien lea §5.3 consultaría `valor` esperando un `[0,1]` y recibiría la variación cruda, hoy en alumnos absolutos: números como `-20` donde espera `0.6` | medium | fixed | US-313 / US-411 / REQ-003 | docs/diana-varela-bug032-indice-riesgo | manual — Diana Alvarez (C1), ver detalle |
@@ -53,6 +54,87 @@ tags: [qa, bugs]
 | BUG-038 | `_layout_tabs()` en `sync_semantic_layer.py` arma `ROOT_ID` con `type: "TABS"` y cuelga los 6 nodos `TAB-D1..D6` directamente como sus hijos. Superset renderiza el contenido del primer tab (D1) correctamente, pero **no dibuja ninguna barra de navegación entre tabs** — D2 a D6 quedan inalcanzables desde la interfaz, aunque sus datos y charts existen y funcionan bien vía API. El test `test_layout_tabs_arma_root_de_tipo_tabs` codifica esta estructura como si fuera la esperada (`assert position["ROOT_ID"]["type"] == "TABS"`), por eso pasaba en verde sin que nadie lo notara — nunca se había confirmado visualmente en un navegador real hasta hoy. **Segundo síntoma, misma causa probable**: los filtros globales de DB-05 (Ciclo/Entidad/Nivel) se pueden editar en el panel (quitar un valor, "Clear all") pero el cambio nunca le llega a los charts — ni al quitar un valor y darle "Apply filters", ni con "Clear all". Probado directo contra `/api/v1/chart/data` (sin pasar por el navegador): el mismo filtro por `cve_ent` sí funciona perfecto ahí (filtrar a `'09'` trae solo Ciudad de México, filtrar a `'19'` trae solo Nuevo León) — el SQL/dataset está bien, el defecto es que el *scope* del filtro nativo (`rootPath: ["ROOT_ID"]`) probablemente no puede resolver qué charts están "dentro" del árbol cuando ese árbol está mal armado para tabs, el mismo defecto de fondo que el síntoma anterior | high | open | US-213 / US-214b / REQ-002 | pendiente — **dos hipótesis probadas en vivo contra este Superset (nunca en el repo), ninguna resuelve ambas cosas a la vez**: (1) insertar un nodo `TABS-1` intermedio entre `ROOT_ID` (cambiado a `type: "ROOT"`) y los 6 `TAB-*` sí hace aparecer la barra de tabs, pero el contenido de todos los tabs queda en blanco (causa no identificada aún); (2) revertir a la estructura original recupera el contenido pero vuelve a perder la barra de tabs. Falta una tercera hipótesis — candidato: revisar si Superset necesita metadata adicional en el nodo `TABS` (tamaño, fondo) o si el problema está en otro lado (`json_metadata`, `filter_scopes`); dado el segundo síntoma, revisar también si arreglar el árbol resuelve el scope de filtros de un solo golpe | Reportado por Monserrat Miranda (2026-08-30), validando US-214b/US-215b en vivo. Sin test de regresión — el test existente (`test_layout_tabs_arma_root_de_tipo_tabs`) codifica la estructura incompleta como correcta y habría que revisarlo también |
 | BUG-039 | **El padrón de propiedad no permitía lo que la plantilla de PR exige: los 21 quedaron sin poder abrir un PR que pasara sus propios gates.** La plantilla marca como obligatorias las casillas «Listado en el `_index.md` de su carpeta» y «Fila actualizada en la matriz de trazabilidad», pero `vault/_DevLog/_index.md` y `vault/02_Requirements/Traceability_Matrix.md` eran alcance exclusivo del PM en `ownership.yml`: quien cumplía la plantilla reprobaba el gate de propiedad, y quien pasaba el gate incumplía la plantilla. `.gitignore` y `.gitattributes` no estaban en el alcance de **nadie** —ni siquiera del PM—, así que el ignore y los drivers de merge quedaban sin mantenimiento posible. 8 personas de C1/C4 tenían un `.md` de `03_Architecture` en verde sin poder tocar su `_index.md`, lo que impide cumplir la regla 4 al crear un documento ahí. Y —el alcance real del defecto, visible al correr el gate contra la propia corrección— **los seis registros de intake que `Definition_of_Filed` obliga a usar a cualquiera** (Bug_Register, Security_Audit_Log, Risk/Blocker/Decision/Incident) estaban cerrados a 0 o 1 persona: la regla que manda reportar un bug o un riesgo era imposible de cumplir para 20 de 21. Verificado con el propio gate: 20 de 21 personas con 4 rutas obligatorias fuera de alcance, el PM con 2, y `Bug_Register.md` sin dueño alguno | high | closed | US-001 / REQ-007 | 11 rutas pasan a `comunes` —índice de DevLog, matriz, infra raíz y los 6 registros de intake—, `03_Architecture/_index.md` al amarillo de C1/C4 y `tests/**` al del PM (mantiene `vault/_Meta/scripts/**`); la matriz y `10_Risk_Governance/**` quedan en `criticos`, de modo que el gate sigue avisando a quién pedirle revisión sin reprobar | `TEST-014` ampliado a 40 casos en `tests/test_check_ownership.py`: recorren a los 21 contra cada ruta que la plantilla exige y contra cada registro de intake de `Definition_of_Filed` |
 | BUG-040 | **El parser del tablero PM partía las filas por los pipes escapados y publicó datos corruptos en silencio.** `table_cells()` hacía `.split("\|")` sobre la línea cruda, así que el `\|` de un wikilink con alias —`[[ruta\|texto]]`, la sintaxis que el vault usa 190+ veces y siempre escapada— partía la celda en dos y desplazaba todas las columnas siguientes. En la fila `US-004` de `Execution_Status.md` eso dejaba `evidence` truncada con un `[[` sin cerrar y metía **texto en el campo `updated`** donde va una fecha. No reventaba nada: la fila conservaba más de 6 celdas y el estado seguía siendo válido, y `validate_pm_dashboard.py` no revisaba `updated`. Estuvo publicado en `main` dentro de `pm-dashboard.json`. **El mismo defecto corrompía las métricas por persona:** 4 filas del índice de DevLog llevaban el pipe sin escapar y atribuían el DevLog a su propia descripción — el tablero contaba **25 autores** en vez de 21. Y al normalizarlas aparecieron 3 variantes de nombre (`Serrania` sin ñ, `Gonzalez` sin acento, `Carlos Mayorga` en corto) que, al cruzarse por coincidencia exacta contra el nombre canónico, dejaban a Manuel con **0 DevLogs teniendo 12**, a Eloísa con 0 de 3 y a Carlos con 0 de 1. Escapar el pipe **no** bastaba: el parser tampoco interpretaba el escape. El propio archivo ya tenía la solución diez líneas más abajo, en `parse_devlog_authors`, que sí protegía `\|` antes de partir — nunca llegó a la función compartida, que usan 6 parsers (`stories`, `execution`, `people`, `github_directory`, `markdown_rows`, `raci`) | high | closed | US-004 / REQ-007 | `table_cells()` protege el pipe escapado antes de partir y lo restituye en la celda (`clean()` ya sabía resolver `[[x\|y]]`, solo se le destruía el enlace antes); `parse_devlog_authors` deja su copia y usa la función canónica (regla 1 del vault); la fila `US-004` escapa su pipe y suelta la fecha sobrante; `validate_pm_dashboard.py` valida que `updated` sea una fecha; las 4 filas del índice de DevLog escapan su pipe y las 3 variantes de nombre se normalizan al padrón | `TEST-015` (`tests/test_generate_pm_dashboard.py`, 8 casos): el contrato del parser con pipes escapados y, sobre la fuente real, que ninguna historia tenga `updated` fuera de formato ni evidencia con wikilink sin cerrar, que toda fila del índice de DevLog tenga 5 columnas y que **todo autor del índice exista en el padrón** (una variante de nombre ya no deja a nadie en cero en silencio). Verificado además que el validador reprueba con la fila rota inyectada |
+| BUG-042 | **24 de 91 historias no tenían fila en `Execution_Status.md`, y el generador las contaba como `planned` en silencio.** `build_snapshot()` hacía `state = execution.get(story["id"], {})` y luego `state.get("status", "planned")` — una US ausente del registro no era un error, era indistinguible de "de verdad no ha arrancado". Pasó con **10 de las 24** ya con PR mergeado, algunas terminadas (US-205, US-214b, US-523b), otras con datos reales entregados y solo pendientes de bloqueo ajeno (US-222, US-321). Una de las filas existentes además tenía la evidencia mal etiquetada: `US-206` cargaba el trabajo real de `US-205` (repunteo de capa semántica, PR #134), hallazgo de Manuel Serranía. Detectado auditando el tablero contra los PRs mergeados en `main`, 2026-09-03 | high | fixed | US-004 / REQ-007 | Se agregan las 24 filas faltantes con su estado real verificado contra PR/commit (no un default) y se corrige la etiqueta `US-206`→`US-205`; `build_snapshot()` ya no completa con `.get(..., "planned")` — si una US no tiene fila, el generador falla y lista cuáles faltan | `TEST-034` (`tests/test_generate_pm_dashboard.py`, 2 casos): confirma que las 91 historias reales tienen fila, y que inyectar una historia sin registro hace que `build_snapshot()` truene mencionando `BUG-042` y su ID — no que caiga a `planned` |
+| BUG-041 | **El path real `--desde-gold` de ML truena cuando un driver queda 100 % `SIN_DATO`: `pd.read_sql_table` devuelve los nombres de columna como `quoted_name` (subclase de `str`), sklearn exige `type(x) == str` exacto para poblar `feature_names_in_`, así que **nunca lo puebla**; el fallback `getattr(modelo, "feature_names_in_", DRIVERS)` de `construir_predicciones` cae a los 6 `DRIVERS` y reintroduce el driver descartado → `ValueError: X has 6 features, but HistGradientBoostingRegressor is expecting 5 features`. Misma FAMILIA que BUG-015/018/023 pero **causa raíz nueva**: aquí el propio patrón `feature_names_in_` que arregló a los tres nunca se activa al leer de la BD, así que el fix de BUG-015 queda anulado en el path de producción. Los tests no lo cazan porque usan fixtures CSV (`read_csv` → `str` puro). Reportado por Luis Téllez (C5) al cerrar la validación L0 local el 2026-09-02, ejercitando cobertura parcial real (D5 agua 100 % `SIN_DATO`) | high | **fixed** | US-311 / US-313 / REQ-003 | **C3 ✅ aplicado por Héctor Morales (2026-09-03)** en `cargar_features_desde_gold` (`entrenar_ml01.py`), tal cual lo preparó Luis Téllez: `df.columns = [str(c) for c in df.columns]` tras el `read_sql_table`. Diagnóstico **verificado de forma independiente** antes de aplicarlo: `pd.read_sql_table` devuelve `quoted_name` (Postgres **y** SQLite) y sklearn 1.9.0 no puebla `feature_names_in_` con él, sí con `str` puro. Fallo reproducido end-to-end contra el Gold local (3 ciclos, D5 100 % `SIN_DATO`) con el mismo `ValueError` y el mismo MAE 0.0844 que reportó C5; con el parche, `--desde-gold` publica **55 predicciones + 55 recomendaciones** (F1 0.6458), las mismas cifras | `tests/test_entrenar_ml01.py::test_las_columnas_leidas_de_gold_son_str_puro` · `::test_entrenar_desde_gold_puebla_feature_names_in` · `::test_predecir_desde_gold_no_cae_al_fallback_de_los_6_drivers` — las tres **reprueban con el parche revertido** (comprobado) y usan SQLite, que también entrega `quoted_name`, así que corren en CI sin Postgres |
+
+## BUG-041 — El `quoted_name` de SQLAlchemy vacía `feature_names_in_` y reintroduce el driver descartado
+
+Reportado por **Luis Téllez (C5)** el 2026-09-02, al cerrar la **validación L0 local** (pipeline ML
+completo contra el Gold local, ~$0, sin GCP). No lo reportó C3: se destapó al ejercitar
+`publicar_gold.py --desde-gold` con **cobertura parcial real** —justo el escenario `SIN_DATO` que FARO
+promete manejar—, no con el fixture sintético.
+
+### Síntoma
+
+```
+ValueError: X has 6 features, but HistGradientBoostingRegressor is expecting 5 features
+```
+
+ML-01 **entrena bien** (con datos de muestra, MAE 0.0844) y truena **en la predicción**, después de
+haber excluido correctamente el driver sin datos.
+
+### Causa raíz
+
+`cargar_features_desde_gold` (`entrenar_ml01.py:203`) lee con `pd.read_sql_table(...)`, y **SQLAlchemy
+devuelve los nombres de columna como `quoted_name`** —una subclase de `str`, no `str` puro—.
+scikit-learn detecta los nombres de features exigiendo **`type(x) == str` exacto**, así que trata cada
+`quoted_name` como "no-string" y **nunca puebla `modelo.feature_names_in_`**. En la predicción,
+`construir_predicciones` hace `getattr(modelo, "feature_names_in_", DRIVERS)` (`publicar_gold.py:267`) →
+cae al fallback `DRIVERS` (los 6) → reintroduce el driver que se descartó por estar 100 % `SIN_DATO` →
+desajuste de forma → crash.
+
+### Por qué es un bug NUEVO y no un duplicado de BUG-015/018/023
+
+Aquellos tres arreglaron el lado de entrenamiento/predicción para **confiar en `feature_names_in_`**
+(el patrón `getattr(modelo, "feature_names_in_", DRIVERS)`). **Este defecto es que ese atributo nunca
+se puebla en el path de la BD**, así que el propio fallback que debía protegernos se dispara y **anula
+el fix de BUG-015** en producción. No es la misma causa: es el eslabón que hace fallar al remedio de
+los otros tres. El arreglo cierra el hueco **en el borde donde entra el `quoted_name`**.
+
+### Por qué los tests no lo cazan
+
+Los tests usan **fixtures CSV** (`read_csv` → nombres `str` puros), donde `feature_names_in_` sí se
+puebla. **Solo el path real `--desde-gold` (lee de la BD) sufre el `quoted_name`.** Y solo se manifiesta
+cuando **un driver queda 100 % `SIN_DATO`** en la ventana de entrenamiento (si no se descarta ninguno,
+`DRIVERS`=6 coincide por casualidad con lo entrenado). Con datos reales de cobertura parcial —D5 agua es
+regional, D6 aire ~80 zonas— es un escenario **plausible en producción**, no solo en la muestra. Misma
+lección que BUG-023: un fixture construido para validar la forma no valida la realidad.
+
+### Alcance del impacto
+
+Todos los consumidores que confían en `feature_names_in_`, todos en archivos de C3:
+`publicar_gold.construir_predicciones` (:267) y `construir_predicciones_municipio_nivel` (:335),
+`entrenar_ml02` (:245, :302) y `evaluar.py` (:212, :244).
+
+### Fix preparado (4 líneas, validado en local)
+
+En `cargar_features_desde_gold`, tras `pd.read_sql_table`, normalizar los nombres a `str` puro:
+
+```python
+df = pd.read_sql_table(tabla, engine, schema=esquema)
+df.columns = [str(c) for c in df.columns]  # SQLAlchemy da quoted_name; sklearn solo
+                                            # puebla feature_names_in_ con str puro (BUG-041)
+```
+
+**Validación (local, 2026-09-02):** con el fix, `feature_names_in_` = los 5 drivers usables y
+`construir_predicciones` produjo **55 filas** (ciclo 2024-2025), `indice_riesgo` ∈ [0.084, 0.742], sin
+saturar. Publicadas 55 predicciones (ML-01) + 55 recomendaciones (ML-02); `/api/v1/kpis` →
+`escuelas_en_riesgo=2`; diferenciador prescriptivo probado (15DJN0049A→D1, 09DSN0042A→D2).
+
+### Propiedad / gobernanza
+
+`entrenar_ml01.py` está bajo `src/modelos/**`, **verde de Célula 3** (Andrés González —TL—, Héctor
+Morales, Estefany Hernández, Carlos Mayorga). Por la regla 9, `check_ownership.py` reprueba un PR de
+cualquier rama fuera de C3 que toque `src/modelos/**` (`return 1`). Por eso el reporte y el parche se dan
+de alta aquí —`Bug_Register.md` es `comunes`, y `Definition_of_Filed` obliga a cualquiera a registrar el
+bug que encuentre— pero **el código lo lleva Célula 3**: lo natural es **Héctor Morales**
+(`dev/hector-morales`), dueño de US-311/US-313, con la coordinación del TL **Andrés González**. Es
+exactamente el patrón de BUG-018 ("queda el parche preparado… para que lo aplique quien corresponde") y
+BUG-008. Seguimiento honesto de la corrida L0 en `_local/L0_ML_realidad_vs_prueba.md` §5.
+
+**Alternativa más defensiva (follow-up de C3):** pasar `drivers_usados` explícito a
+`construir_predicciones` en vez de depender de `feature_names_in_`, para no volver a atarse a un
+atributo que un tipo de columna puede dejar sin poblar.
 
 ## BUG-016 — Filas sin ningún driver rompían la publicación de ML-02
 
@@ -208,6 +290,19 @@ base de producción** —sólo contra el Gold local de Diana—. Pero `/escuelas
 depende de ese job, así que el problema parece más amplio que la tabla de C3.
 
 Lo que hace falta para cerrarlo es mirar los logs de Cloud Run, que son de C4/C5.
+
+**Actualización 2026-08-29/30 (C5, US-505 Fase 2 — PR #144/#146):** BUG-020 **curado en
+producción**. Se pobló Gold en Cloud SQL y se redeployó `faro-api` por IP privada con secretos en
+Secret Manager. Validación en prod: `/escuelas` **500→200** (25 escuelas), `/predicciones/{cct}`
+**500→404 estructurado** (correcto: `gold.predicciones` vacía hasta que ML-01 publique a prod).
+
+**Verificación 2026-09-02 (Juan Carlos Macías, US-412/US-416):** re-confirmado en vivo contra la
+URL pública — `/api/v1/predicciones/{cct}` → 404 `ErrorOut`, `/api/v1/predicciones/batch` → 200
+`{"items":[],"total":0}`, `/api/v1/escuelas` → 200. **BUG-020 no reproduce.** Regresión adicional
+en `tests/test_repositorio_modelos.py`: un `ProgrammingError` por esquema `gold` ausente ahora
+degrada a 503, no a 500. **Recomendación a los dueños (Christian Ruiz / Luis Téllez):** mover a
+`fixed` → `closed`. *(El campo `status` de la tabla lo actualizan los dueños; esta nota no lo
+cambia.)*
 
 ## BUG-024 — `SELECT INTO` atravesaba el guardarraíl de solo lectura
 
@@ -1324,3 +1419,194 @@ deja el check en rojo.
 Los dos checks **requeridos** por `main` son «Calidad de codigo y vault» y «Generar y validar
 tablero PM» — viven en `ci.yml` y `pm-dashboard.yml`, no en este workflow, así que el cambio no los
 altera. («Contrato dbt» corre en cada PR pero **no** es required.)
+
+
+## BUG-043 — El Registry acepta versiones cuyo modelo nunca llegó
+
+> Reportado por Héctor Morales (2026-09-02) al correr la confirmación de US-311 que pedía el PM.
+> → [[vault/15_ML_Models/ML01_Entrenamiento]] · [[vault/_DevLog/2026-09-02-hector-morales-registry-us311]]
+
+### Atribución: qué es nuevo aquí y qué no
+
+**La causa de configuración no es un hallazgo de hoy.** Está descrita en
+[[vault/15_ML_Models/ML01_Entrenamiento]] §4 desde el **29 de agosto**, con el fix de
+`--serve-artifacts` ya probado. Lo que faltaba —y es lo que abre este bug— son dos cosas:
+
+1. Que `mlflow.register_model()` **crea la versión aunque el artefacto haya fallado**, dejándola
+   `READY` en el Registry. El fallo de escritura es ruidoso; la versión fantasma que deja atrás, no.
+2. Que por eso `verificar_modelos_registrados()` daba **verde durante 15 días** sobre un modelo que
+   nadie podía cargar, y con ese verde se dio **AC-003.4 por cumplido**.
+
+Dicho de otro modo: el 29-ago se supo que el servidor no guardaba modelos, y aun así el tablero de
+verificación siguió diciendo que sí había modelos. Ese es el defecto que se registra.
+
+### Qué pasa
+
+El servicio `mlflow` de `docker-compose.yml` arranca así:
+
+```
+mlflow server --backend-store-uri ${MLFLOW_BACKEND_STORE_URI}
+              --default-artifact-root ${MLFLOW_ARTIFACT_ROOT}   # = /mlflow/artifacts
+```
+
+`/mlflow/artifacts` existe **dentro del contenedor**. MLflow no lo trata como "una ruta del
+servidor": se la entrega al cliente para que escriba ahí **directamente**. Un cliente en macOS o en
+el CI intenta entonces crear `/mlflow` en la raíz de su propio disco.
+
+Las dos capas se comportan distinto y por eso el fallo es tan silencioso:
+
+| Qué | Por dónde viaja | Resultado |
+|---|---|---|
+| Parámetros, métricas, tags | API REST → Postgres | ✅ se guardan bien |
+| Modelo (artefacto) | sistema de archivos del **cliente** | ❌ `Read-only file system: '/mlflow'` |
+| Fila del Model Registry | API REST → Postgres | ⚠️ **se crea igual**, y queda `READY` |
+
+Esa tercera fila es el defecto real. `mlflow.register_model()` no comprueba que el artefacto exista,
+así que deja una versión que se ve sana y no se puede usar.
+
+### Por qué el verde sobrevivió 15 días al diagnóstico
+
+`verificar_modelos_registrados()` preguntaba `search_model_versions(...)` y daba verde si la fila
+existía. Nunca intentó traer el modelo de vuelta. Con eso, `ML01_RegresionMatricula` v1 —creada el
+18-ago, el día del fix de versiones de PR #45— pasó por buena hasta hoy:
+
+```
+$ python -m src.modelos.verificar_registry --modelo ML01_RegresionMatricula
+ML01_RegresionMatricula: versión 1          # ✅ aparentemente correcto
+
+$ mlflow.sklearn.load_model("models:/ML01_RegresionMatricula/1")
+MlflowException: No such artifact: 'MLmodel'  # ❌ la realidad
+```
+
+**AC-003.4 pide que el modelo *llegue* al registry.** Una fila no prueba eso; traerlo de vuelta sí.
+
+### El arreglo, en dos partes
+
+**C3 (hecho).** `verificar_artefactos_descargables()` carga cada versión con `mlflow.pyfunc` —la
+misma ruta que usa la API de C4 para servir inferencia— y reprueba nombrando el modelo, la versión y
+la causa probable. `verificar_registry` la ejecuta por defecto; `--sin-artefacto` conserva la
+verificación débil y **lo dice en el reporte**, para que nadie la confunda con la fuerte.
+
+**C5 (pendiente).** En el `command:` del servicio `mlflow`:
+
+```
+mlflow server --backend-store-uri ${MLFLOW_BACKEND_STORE_URI}
+              --serve-artifacts --artifacts-destination /mlflow/artifacts
+              --host 0.0.0.0 --port 5000
+```
+
+Con `--serve-artifacts` el servidor **proxya** los artefactos por HTTP y el cliente ya no toca
+rutas del contenedor. Verificado en local con un override fuera del repo: ML-01 registró la
+**versión 2**, y esa versión carga y predice desde un cliente limpio.
+
+### Secuela: las versiones ya registradas
+
+Un experimento guarda su `artifact_location` **al crearse** y no se recalcula. `ML-01-regresion-matricula`
+(experimento 1) quedó fijado a `/mlflow/artifacts/1`, así que **seguirá roto para escrituras nuevas
+aunque el servidor se arregle**. Al aplicar el fix de C5 hay que crear el experimento de nuevo (o
+renombrarlo) y volver a registrar los tres modelos. La verificación de arriba lo detecta.
+
+### Test de regresión
+
+`tests/test_mlflow_utils.py::test_artefacto_ausente_reprueba_aunque_la_version_exista` reproduce el
+estado exacto de v1 —fila presente, artefacto ausente— y exige que repruebe.
+
+## BUG-013 — Corrección: la causa que publiqué el 2-sep era equivocada
+
+> Escrito por Héctor Morales el 2026-09-02 y **corregido por él mismo el 2026-09-03**.
+> Se deja el error a la vista en vez de borrarlo, porque alguien pudo haberlo leído.
+
+### Lo que afirmé el 2-sep, y es falso
+
+Afirmé que `gold.features_escuela` salía con un solo ciclo porque `features_escuela.sql` §42 arma
+su base desde `{{ ref('matricula') }}` y no desde `matricula_historica`, y propuse a C1 cambiar ese
+`ref`. **Eso era incorrecto y la propuesta habría sido trabajo inútil.**
+
+### Qué pasó de verdad
+
+No cargué los **tres** fixtures de Formato 911 en `bronze.formato911_2024_2025`, sólo dos. Faltaba
+`bronze_formato911_serie_historica_sample.csv` —justamente el que BUG-026 creó para dar grano
+escuela multi-ciclo—, que aporta 2021-2022 y 2022-2023:
+
+| Fixture | Ciclos que aporta |
+|---|---|
+| `bronze_formato911_sample` | 2023-2024, 2024-2025 |
+| `bronze_formato911_ciclo_anterior_sample` | 2024-2025 |
+| `bronze_formato911_serie_historica_sample` | **2021-2022, 2022-2023** ← el que faltaba |
+
+Con los tres cargados y `dbt run --full-refresh`, Gold sale así:
+
+```
+gold.fact_escuela_ciclo   145 filas
+gold.features_escuela     145 filas · 3 ciclos (2022-2023: 60, 2023-2024: 30, 2024-2025: 55)
+```
+
+Las mismas 145 filas y los mismos 3 ciclos que reportó Luis Téllez el 2-sep. **`features_escuela`
+nunca estuvo mal**: mi carga de Bronze estaba incompleta, y le atribuí a un modelo de C1 un defecto
+que era mío.
+
+### Consecuencia
+
+`--desde-gold` **sí funciona** con los fixtures del repo. Ya no hay nada que pedirle a C1 por este
+motivo, y **la parte de BUG-013 que bloqueaba a US-313 queda cerrada** — lo que faltaba después era
+BUG-041, ya corregido.
+
+### La lección, que es la parte útil
+
+BUG-012 sigue abierto: no hay runbook del pipeline local. Reconstruí los pasos leyendo el DevLog de
+Marina del 27-ago, que dice *«cargar DOS fixtures de Formato 911 en la MISMA tabla»* — cierto el
+27-ago, incompleto después de que BUG-026 agregara el tercero. **Un runbook que vive en un DevLog no
+se actualiza cuando cambia el repo.** Ese es el costo real de BUG-012, y me lo cobró a mí.
+
+
+## BUG-043 — Corrección del diagnóstico y fix verificado en dos partes
+
+> Héctor Morales, 2026-09-03. Corrige lo que yo mismo escribí el 2-sep.
+
+### Lo que dije mal
+
+Escribí que el servidor «no corre con `--serve-artifacts`» y que ése era el arreglo. **Falso.** En
+MLflow 3.15.1 esa opción viene activa por defecto — lo dice su propio `--help`:
+
+```
+--serve-artifacts / --no-serve-artifacts   ...   Default: True
+```
+
+Pedirle a C5 que agregara ese flag habría sido un no-op. La causa real es la **raíz de artefactos**.
+
+### Las dos causas, verificadas por separado
+
+**1. `--default-artifact-root` apunta a disco, no al proxy.** El servidor entrega esa raíz al
+cliente *tal cual*; si es `/mlflow/artifacts` —que sólo existe dentro del contenedor— el cliente
+intenta escribirla en su propio disco. Se corrige con `MLFLOW_ARTIFACT_ROOT=mlflow-artifacts:/`
+en el `.env`, **sin tocar `docker-compose.yml`**. Con sólo esto, los tres modelos registran y cargan:
+
+```
+ML01_RegresionMatricula: versión 3 — carga verificada ✅
+ML02_DriverClasificador: versión 1 — carga verificada ✅
+ML03_ClusteringEscuelas: versión 1 — carga verificada ✅
+```
+
+**2. Sin `--artifacts-destination`, el registry es efímero.** Con la raíz corregida los artefactos
+van al `./mlartifacts` del contenedor —**no** al volumen `faro-mlflow-artifacts`, montado en
+`/mlflow/artifacts`—. Probado:
+
+| Configuración | Tras `docker compose up --force-recreate` |
+|---|---|
+| sólo la raíz corregida | ❌ **los tres modelos quedan `READY` sin artefacto** |
+| raíz + `--artifacts-destination /mlflow/artifacts` | ✅ los tres siguen cargando |
+
+En local eso cuesta re-registrar. **En Cloud Run el contenedor se recrea de rutina**, así que sin la
+segunda parte el registry de la demo se vacía solo.
+
+### Reparto
+
+- **C3 ✅ hecho:** la guarda que detecta el estado, y `.env.example` con la raíz correcta.
+- **C5 ⬜ pendiente:** una línea en el `command:` del servicio `mlflow`:
+
+```
+--artifacts-destination /mlflow/artifacts
+```
+
+Para Cloud Run conviene que ese destino sea un bucket de GCS, no una ruta local; queda a criterio de
+Célula 5.

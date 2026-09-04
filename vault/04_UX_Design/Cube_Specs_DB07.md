@@ -2,8 +2,11 @@
 id: DOC-CUBESPEC-DB07
 title: "Cube Specs — DB-07 Calidad y cobertura de datos"
 owner: "Oscar Antonio Quiroz Lázaro"
-status: in_review
+status: approved
+version: "1.0"
 traces_up: ["vault/04_UX_Design/Screen_Specs", "US-222"]
+traces_down: []
+last_reviewed: "2026-09-02"
 tags: [ux, dashboards, kpis, celula-2, completitud]
 ---
 

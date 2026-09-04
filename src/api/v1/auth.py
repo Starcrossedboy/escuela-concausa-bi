@@ -1,49 +1,146 @@
 """Autenticación `/auth/*` (§3.2) — OAuth2 con Google + JWT propio (US-402).
 
-- `GET  /auth/login`    → 302 a la pantalla de consentimiento de Google.
-- `GET  /auth/callback` → canjea el `code` por la identidad (vía verificador) y emite el par de JWT.
+- `GET  /auth/login`    → 302 a la pantalla de consentimiento de Google, con `state` anti-CSRF.
+- `GET  /auth/callback` → valida el `state`, canjea el `code` por la identidad (vía verificador) y
+  emite el par de JWT.
 - `POST /auth/refresh`  → valida el refresh token y emite un par nuevo (re-resolviendo el rol).
 - `GET  /auth/me`       → devuelve el usuario del access token (protegido por `get_current_user`).
 
 Nota: el enforcement por rol de los endpoints de datos/admin es **US-403** (RBAC), aquí solo se
-autentica. La verificación real contra Google queda tras `RealGoogleVerifier` (pendiente de
-credenciales de la Célula 5); los tests usan un verificador falso.
+autentica.
+
+**Protección CSRF del callback (US-402).** El `state` es un JWT propio de vida corta
+(`create_state_token`) que viaja por dos canales independientes: el parámetro `state` de la URL de
+Google y una cookie `HttpOnly` de primera parte. El callback exige que ambos existan, coincidan y
+que el token sea válido. Un tercero puede inducir al navegador a llamar al callback, pero no puede
+leer ni fabricar la cookie, así que el ataque muere ahí. Se eligió un `state` **firmado** en vez de
+uno guardado en memoria porque Cloud Run corre varias instancias sin estado compartido: un `state`
+en RAM se perdería entre la ida y la vuelta.
 """
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends, HTTPException, status
+import secrets
+from urllib.parse import quote
+
+from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
 from fastapi.responses import RedirectResponse
 
-from src.api.schemas import RefreshIn, TokenPair, UserOut
+from src.api.config import get_settings
+from src.api.schemas import ExchangeIn, RefreshIn, TokenPair, UserOut
+from src.api.security.codigos_login import (
+    AlmacenCodigos,
+    IdentidadSesion,
+    get_almacen_codigos,
+)
 from src.api.security.deps import get_current_user, get_google_verifier
-from src.api.security.google import GoogleNotConfigured, GoogleVerifier
-from src.api.security.jwt import AuthError, create_token_pair, verify_refresh_token
+from src.api.security.google import (
+    GoogleNotConfigured,
+    GoogleVerifier,
+    build_authorization_url,
+)
+from src.api.security.jwt import (
+    AuthError,
+    create_state_token,
+    create_token_pair,
+    verify_refresh_token,
+    verify_state_token,
+)
 from src.api.security.roles import resolve_role
 
 router = APIRouter(prefix="/auth", tags=["Autenticación"])
 
+# Cookie de primera parte que sostiene la mitad "secreta" del `state`. `SameSite=Lax` es lo correcto
+# aquí: la vuelta de Google es una navegación GET de nivel superior, así que la cookie SÍ se envía,
+# pero no acompaña a peticiones cross-site incrustadas.
+COOKIE_STATE = "faro_oauth_state"
+
 
 @router.get("/login", status_code=status.HTTP_302_FOUND)
-def login() -> RedirectResponse:
+def login(redirect: str | None = None) -> RedirectResponse:
     """Inicia OAuth2 con Google redirigiendo a la pantalla de consentimiento.
 
-    Nota de seguridad: el `state` debe ser un valor aleatorio ligado a la sesión para prevenir CSRF;
-    su generación/almacenamiento se cierra al integrar el flujo e2e con credenciales reales (US-402).
-    """
-    from src.api.security.google import build_authorization_url
+    Genera el `state` anti-CSRF, lo manda a Google en la URL y guarda el mismo valor en una cookie
+    `HttpOnly` para poder compararlos al volver.
 
-    return RedirectResponse(
-        url=build_authorization_url(state="faro"),
+    `redirect` (opcional, US-405) es la URL de FARO Web a la que volver con el codigo de un solo
+    uso. **Se valida contra una allowlist**: sin eso tendriamos un open redirect, y uno dentro del
+    flujo de login es el vehiculo clasico para desviar el codigo de autorizacion a un tercero.
+    Sin `redirect`, el callback responde el `TokenPair` como JSON (clientes que no son navegador).
+    """
+    s = get_settings()
+    destino = _validar_redirect(redirect)
+    state = create_state_token(redirect=destino)
+    respuesta = RedirectResponse(
+        url=build_authorization_url(state),
         status_code=status.HTTP_302_FOUND,
     )
+    respuesta.set_cookie(
+        key=COOKIE_STATE,
+        value=state,
+        max_age=s.oauth_state_expire_minutes * 60,
+        httponly=True,  # inaccesible a JavaScript: ni XSS ni un tercero pueden leerla
+        secure=s.cookies_seguras,  # en local es http://, donde `Secure` impediría guardarla
+        samesite="lax",  # se envía en la navegación de vuelta de Google, no en peticiones incrustadas
+        path="/",
+    )
+    return respuesta
+
+
+def _validar_redirect(redirect: str | None) -> str:
+    """Devuelve el destino si esta en la allowlist; 400 si no. Cadena vacia si no se pidio.
+
+    Comparacion **exacta** contra `FRONTEND_REDIRECT_URIS`, no por prefijo: un `startswith` deja
+    pasar `https://faro.example.com.evil.tld` cuando la allowlist dice `https://faro.example.com`.
+    """
+    if not redirect:
+        return ""
+    if redirect not in get_settings().frontend_redirect_list:
+        raise HTTPException(
+            status.HTTP_400_BAD_REQUEST, detail="Destino de redireccion no permitido."
+        )
+    return redirect
+
+
+def _validar_state(request: Request, state: str | None) -> dict:
+    """Verifica el `state` del callback: presente, firmado, vigente y **igual** al de la cookie.
+
+    Cualquier fallo se traduce a un 401 uniforme, sin decir cuál de las tres condiciones falló: el
+    mensaje detallado solo ayudaría a quien esté probando el ataque.
+    """
+    cookie = request.cookies.get(COOKIE_STATE)
+    if not state or not cookie or not secrets.compare_digest(state, cookie):
+        raise HTTPException(
+            status.HTTP_401_UNAUTHORIZED, detail="No se pudo verificar el origen de la petición."
+        )
+    try:
+        return verify_state_token(state)
+    except AuthError as exc:
+        raise HTTPException(
+            status.HTTP_401_UNAUTHORIZED, detail="No se pudo verificar el origen de la petición."
+        ) from exc
 
 
 @router.get("/callback", response_model=TokenPair)
 def callback(
+    request: Request,
+    response: Response,
     code: str,
+    state: str | None = None,
     verifier: GoogleVerifier = Depends(get_google_verifier),
-) -> TokenPair:
-    """Callback de Google: valida el `code`, resuelve el rol y emite el par de JWT."""
+    almacen: AlmacenCodigos = Depends(get_almacen_codigos),
+):
+    """Callback de Google: valida el `state`, canjea el `code`, resuelve el rol y entrega la sesion.
+
+    Dos salidas, segun si `/auth/login` llevaba `redirect` (el `state` firmado lo recuerda):
+
+    - **Con `redirect`** (FARO Web): **302** al front con `?code_faro=<codigo de un solo uso>`. Los
+      tokens NO viajan por la URL -- ver ADR-010 y `security/codigos_login.py`.
+    - **Sin `redirect`**: el `TokenPair` como JSON, igual que antes (clientes no-navegador y pruebas).
+    """
+    claims_state = _validar_state(request, state)
+    # El `state` es de un solo uso: se borra la cookie apenas se valida, pase lo que pase después.
+    response.delete_cookie(COOKIE_STATE, path="/")
+
     try:
         identity = verifier.verify(code)
     except GoogleNotConfigured as exc:
@@ -57,7 +154,26 @@ def callback(
             status.HTTP_401_UNAUTHORIZED, detail="No se pudo verificar la identidad."
         ) from exc
     role = resolve_role(identity.email)
-    return create_token_pair(sub=identity.sub, role=role, email=identity.email)
+
+    destino = claims_state.get("redirect", "")
+    if destino:
+        codigo = almacen.guardar(
+            IdentidadSesion(
+                sub=identity.sub, email=identity.email, name=identity.name, role=role
+            )
+        )
+        separador = "&" if "?" in destino else "?"
+        redireccion = RedirectResponse(
+            url=f"{destino}{separador}code_faro={quote(codigo)}",
+            status_code=status.HTTP_302_FOUND,
+        )
+        # La cookie del `state` se borro en `response`, que aqui NO se devuelve: hay que repetirlo.
+        redireccion.delete_cookie(COOKIE_STATE, path="/")
+        return redireccion
+
+    return create_token_pair(
+        sub=identity.sub, role=role, email=identity.email, name=identity.name
+    )
 
 
 @router.post("/refresh", response_model=TokenPair)
@@ -71,7 +187,38 @@ def refresh(body: RefreshIn) -> TokenPair:
         ) from exc
     email = claims.get("email", "")
     role = resolve_role(email)
-    return create_token_pair(sub=claims["sub"], role=role, email=email)
+    # El `name` viaja tambien en el refresh: al renovar no hay id_token de Google que reconsultar.
+    return create_token_pair(
+        sub=claims["sub"], role=role, email=email, name=claims.get("name", "")
+    )
+
+
+@router.post("/exchange", response_model=TokenPair)
+def exchange(
+    body: ExchangeIn,
+    almacen: AlmacenCodigos = Depends(get_almacen_codigos),
+) -> TokenPair:
+    """Canjea el codigo de un solo uso de `?code_faro=` por el par de JWT (US-405, ADR-010).
+
+    Lo llama el **servidor** del frontend, no el navegador: por eso los tokens viajan en el cuerpo
+    de la respuesta y nunca por la URL. El codigo se consume en el primer canje; un segundo intento
+    con el mismo codigo (o uno expirado, inventado o ya usado) responde **401**, sin distinguir
+    entre los casos.
+
+    El rol se **re-resuelve** aqui con la politica vigente, no se confia en el que quedo guardado:
+    si `ANALISTA_EMAILS` cambio entre el callback y el canje, manda la politica actual.
+    """
+    identidad = almacen.canjear(body.code)
+    if identidad is None:
+        raise HTTPException(
+            status.HTTP_401_UNAUTHORIZED, detail="Codigo de sesion invalido o expirado."
+        )
+    return create_token_pair(
+        sub=identidad.sub,
+        role=resolve_role(identidad.email),
+        email=identidad.email,
+        name=identidad.name,
+    )
 
 
 @router.get("/me", response_model=UserOut)

@@ -1,0 +1,99 @@
+# =============================================================================
+# DB-07 - Tablero Calidad y cobertura de datos · definicion declarativa (US-222)
+# -----------------------------------------------------------------------------
+# Historia : US-222 (Oscar Antonio Quiroz Lázaro, Célula 2 - Analytics & BI)
+# Contrato : vault/04_UX_Design/Cube_Specs_DB07.md §2, §5
+# Consumido por : superset/sync_semantic_layer.py (idempotente)
+#
+# Convierte una limitacion de datos en un hallazgo de valor: que tan completos
+# estan los 6 drivers por municipio/nivel y donde el Estado no esta midiendo
+# (SIN_DATO, nunca cero). db07_mapa_vacios requiere gold.geo_municipio (mismo
+# patron que DB-02); si el dataset no existe, sync lo omite con aviso y el
+# resto del tablero se despliega igual (BUG-029).
+# =============================================================================
+
+version: "1.0"
+owner: "Oscar Antonio Quiroz Lázaro"
+story: US-222
+
+dashboards:
+  - titulo: "DB-07 · Calidad y cobertura de datos"
+    slug: db07-calidad-cobertura
+    descripcion: >
+      Completitud de los 6 drivers por municipio y nivel (KPI-05) y mapa de
+      vacíos territoriales (KPI-06). El SIN_DATO es el hallazgo — dónde el
+      Estado no está mirando — nunca se representa como cero.
+    filtros_globales:
+      - columna: id_ciclo
+        etiqueta: "Ciclo escolar"
+        datasets: [db07_cubo_completitud, db07_mapa_vacios]
+      - columna: nombre_entidad
+        etiqueta: "Entidad"
+        datasets: [db07_cubo_completitud, db07_mapa_vacios]
+      - columna: nivel
+        etiqueta: "Nivel educativo"
+        datasets: [db07_cubo_completitud]
+
+    charts:
+      # ----- Fila 1: tiles KPI -------------------------------------------------
+      - nombre: "KPI-05 · Índice de completitud de drivers"
+        dataset: db07_cubo_completitud
+        metrica: completitud_promedio
+        viz: big_number_total
+        ancho: 3
+        alto: 38
+        subheader: "Promedio ponderado por escuela, no por driver"
+
+      - nombre: "KPI-06 · % escuelas SIN_DATO"
+        dataset: db07_cubo_completitud
+        metrica: pct_sin_dato
+        viz: big_number_total
+        ancho: 3
+        alto: 38
+        subheader: "El hallazgo: dónde el Estado no está mirando"
+
+      - nombre: "Total de escuelas"
+        dataset: db07_cubo_completitud
+        metrica: total_escuelas
+        viz: big_number_total
+        ancho: 3
+        alto: 38
+        subheader: "En el grano seleccionado"
+
+      - nombre: "Escuelas sin dato"
+        dataset: db07_cubo_completitud
+        metrica: escuelas_sin_dato
+        viz: big_number_total
+        ancho: 3
+        alto: 38
+        subheader: "Conteo absoluto — nunca se rellena con cero"
+
+      # ----- Fila 2: mapa de vacíos + desglose por driver -----------------------
+      - nombre: "Mapa de vacíos municipal (KPI-06)"
+        dataset: db07_mapa_vacios
+        metrica: pct_sin_dato
+        viz: deck_polygon
+        ancho: 8
+        alto: 90
+        columna_geometria: geometria
+        basemap: "https://tile.openstreetmap.org/{z}/{x}/{y}.png"
+        basemap_nombre: OpenStreetMap
+
+      - nombre: "% SIN_DATO por driver (KPI-06)"
+        dataset: db07_cubo_completitud
+        metrica: pct_sin_dato
+        viz: echarts_timeseries_bar
+        ancho: 4
+        alto: 90
+        eje_x: id_driver
+        etiqueta_serie: "% SIN_DATO"
+
+      # ----- Fila 3: detalle -----------------------------------------------------
+      - nombre: "Completitud detallada por municipio y driver"
+        dataset: db07_cubo_completitud
+        metrica: completitud_promedio
+        viz: table
+        ancho: 12
+        alto: 70
+        dimensiones: [nombre_entidad, nombre_municipio, nombre_driver]
+        row_limit: 50

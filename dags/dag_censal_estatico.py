@@ -9,6 +9,7 @@ from airflow.operators.python import PythonOperator
 import sys
 sys.path.insert(0, "/opt/airflow/src")  # ajustar según la ruta real de montaje en Docker
 from ingesta.extractor_cemabe import extraer_cemabe
+from ingesta.cargar_bronze_cemabe_real import cargar_cemabe
 
 default_args = {
     "owner": "diana.alvarez",
@@ -32,3 +33,11 @@ with DAG(
         task_id="extraer_cemabe",
         python_callable=extraer_cemabe,
     )
+
+    cargar_cemabe_task = PythonOperator(
+        task_id="cargar_cemabe",
+        python_callable=cargar_cemabe,
+        op_args=["{{ ti.xcom_pull(task_ids='extraer_cemabe') }}"],
+    )
+
+    extraer_cemabe_task >> cargar_cemabe_task

@@ -118,3 +118,32 @@ def test_todo_autor_del_indice_existe_en_el_padron(nombres_canonicos):
         f"autores que no coinciden con ningún nombre canónico: {sorted(fuera)}. "
         "Sus DevLogs no se le cuentan a nadie."
     )
+
+
+# ── BUG-042 — una US sin fila en Execution_Status.md ya no cae a "planned" ───
+#
+# `state.get("status", "planned")` asumía que ausencia de fila == planificada. Pasó con
+# 24 historias reales (algunas con PR ya mergeado) contadas como "planned" sin que nada
+# fallara, durante días. El generador ahora exige la fila explícita.
+
+from generate_pm_dashboard import build_snapshot
+
+
+def test_las_91_historias_reales_tienen_fila(ejecucion):
+    """El estado actual del archivo: cobertura completa, sin default silencioso."""
+    from generate_pm_dashboard import parse_stories
+
+    faltantes = [s["id"] for s in parse_stories(RAIZ) if s["id"] not in ejecucion]
+    assert not faltantes, f"sin fila en Execution_Status.md: {faltantes}"
+
+
+def test_una_historia_sin_fila_truena_en_vez_de_asumir_planned(monkeypatch):
+    """El síntoma exacto de BUG-042, forzado: una US fuera del registro debe reventar."""
+    import generate_pm_dashboard as gpd
+
+    reales = gpd.parse_stories(RAIZ)
+    con_huerfana = [*reales, {**reales[0], "id": "US-999z"}]
+    monkeypatch.setattr(gpd, "parse_stories", lambda root: con_huerfana)
+
+    with pytest.raises(ValueError, match=r"BUG-042.*US-999z"):
+        build_snapshot(RAIZ)

@@ -25,12 +25,16 @@ dashboards:
     filtros_globales:
       - columna: id_ciclo
         etiqueta: "Ciclo escolar"
+        valor_por_defecto: "2024-2025"
         datasets: [db09_cubo_recomendaciones]
       - columna: nombre_entidad
         etiqueta: "Entidad"
         datasets: [db09_cubo_recomendaciones]
       - columna: nivel
         etiqueta: "Nivel educativo"
+        datasets: [db09_cubo_recomendaciones]
+      - columna: cct
+        etiqueta: "Escuela (CCT)"
         datasets: [db09_cubo_recomendaciones]
 
     charts:

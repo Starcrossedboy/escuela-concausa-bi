@@ -5,8 +5,8 @@ author_human: "Diana Aracely Alvarez Varela"
 agent: "Claude (Cowork)"
 model: "claude-sonnet-5"
 session_duration: "sesión larga, multi-etapa"
-touches: ["DS-01", "REQ-001", "BLOCK-004"]
-tags: [devlog, bronze, ds01, carga-real, dbt, gold, bloqueo-equipo]
+touches: ["DS-01", "DS-02", "REQ-001", "BLOCK-004"]
+tags: [devlog, bronze, ds01, ds02, carga-real, dbt, gold, bloqueo-equipo, great-expectations]
 ---
 
 # DevLog — 2026-09-03 — Diana Aracely Alvarez Varela — Carga real histórica DS-01, fix de contaminación en Gold y bloqueo de ambiente (BLOCK-004)
@@ -63,6 +63,10 @@ la deuda de Great Expectations — y, de ser afirmativo que seguían pendientes,
   corregir esto**, porque el `cct` de esas 6 filas sí existe en el catálogo real. Fix propuesto
   (no implementado hoy): un segundo dedup en Silver a grano `(cct, ciclo)`, quedándose con
   `_ingested_at` más reciente. **Queda como deuda explícita, no como "ya resuelto".**
+
+  **Corrección (mismo día, más tarde):** esta hipótesis de causa raíz resultó **incorrecta** —
+  ver "Actualización — dedup fix" más abajo para el diagnóstico real (verificado con datos
+  reales) y el fix efectivamente aplicado.
 - `not_null_dim_escuela_sostenimiento` (6) — no investigado a fondo hoy, posiblemente
   preexistente.
 
@@ -124,19 +128,66 @@ para reflejar que Camino A ya es un comando único, no un runbook manual.
   (el punto de "confirmar ciclos contra Postgres" ya no aplica tal cual: se confirmó que **no**
   estaba cargado y se cargó real hoy).
 
+## Actualización — dedup fix + Great Expectations (mismo día, más tarde)
+
+**Fix de dedup en `matricula_historica.sql` — dos intentos, el primero incorrecto.**
+
+*Primer intento (fallido, confirmado por Diana):* CTE `lote_mas_reciente`, basada en la hipótesis
+de que filas fixture viejas con `cct` real chocaban contra la carga real por `_ingested_at`.
+Diana corrió `dbt run --select matricula_historica+ && dbt test --select matricula_historica`
+contra su Postgres real y el resultado fue **idéntico** al de antes del fix (mismos 3+1 tests en
+rojo) — la hipótesis quedó descartada por datos reales, no se volvió a adivinar un segundo fix.
+
+*Diagnóstico real* (`dbt show --inline` contra Postgres, con Diana): el `cct` que rompe los 3
+tests de unicidad es `11PDI0085S`, en los 3 ciclos que fallaban (2019-2020, 2023-2024,
+2024-2025) — el patrón se repite idéntico en los 3, incluido el ciclo que solo tiene carga real,
+lo que descarta un choque fixture-vs-real. Causa real: esa escuela reporta, en **todos** sus
+ciclos, `turno=1` con `nivel=INICIAL` y `turno=2` con `nivel=PREESCOLAR` — un plantel con
+educación inicial además de preescolar. `INICIAL` nunca estuvo en el alcance declarado del
+modelo (`schema.yml`, `accepted_values` de `nivel`: solo `PREESCOLAR`/`PRIMARIA`/`SECUNDARIA`,
+mismo criterio que `NIVELES_BASICA` en la suite de Great Expectations de este mismo día). Sin
+filtrarlo, el turno `INICIAL` sobrevivía el dedup por turno y el `GROUP BY` final partía la
+escuela en dos filas para el mismo `(cct, ciclo)`.
+
+*Fix real, aplicado:* nueva CTE `nivel_basica`, que filtra a
+`nivel in ('PREESCOLAR', 'PRIMARIA', 'SECUNDARIA')` — el alcance que el propio modelo ya
+declaraba — antes del dedup por turno. Se retiró la CTE `lote_mas_reciente` (basada en la
+hipótesis incorrecta). **Verificado contra Postgres real por Diana:**
+`dbt run --select matricula_historica+ && dbt test --select matricula_historica` →
+`PASS=8 WARN=0 ERROR=0` (los 8 tests del modelo, incluidos los 3+1 que fallaban, en verde).
+
+**Great Expectations para DS-01 (histórico) y DS-02.** Cierra la deuda señalada por Deni Garrido
+el 30-ago. Dos módulos nuevos, mismo patrón que `validacion_sesnsp.py` (TEST-011/US-124b):
+`src/ingesta/validacion_cct.py` (DS-02, reutiliza `parsear_y_combinar()`) y
+`src/ingesta/validacion_formato911_historico.py` (DS-01 histórico, lee el Parquet más reciente).
+Detalle de las expectativas y por qué se excluyó cada cosa que no se pudo verificar con certeza
+(`sostenimiento` de DS-02, coordenadas 0,0 de BUG-034, unicidad de `cct+ciclo+turno` en Bronze
+DS-01) en `DS-02_Catalogo_CCT.md` §11 y `DS-01_Formato_911.md` §12. **10 pruebas offline nuevas**
+(`tests/test_validacion_cct.py`, `tests/test_validacion_formato911_historico.py`) corridas real
+en esta sesión — las 10 pasan, incluyendo los casos que deben fallar a propósito (nivel fuera de
+básica, cct duplicado/mal formado, matrícula negativa, ciclo mal formado, nulo en columna
+crítica). Las suites (`suite_ds02_cct.json`, `suite_ds01_formato911_historico.json`) quedan
+registradas en `great_expectations/expectations/`.
+
+**Actualización — verificado contra los archivos reales completos (mismo día, más tarde).**
+Con `data/bronze/formato911_historico/*.parquet` y `data/bronze/cct/*.csv` ya presentes en el
+repo (de la corrida real de Camino A), se corrieron las dos suites contra los datos reales
+completos, no la muestra sintética: DS-01 histórico, los 6 ciclos (2019-2020: 230,424 filas ·
+2020-2021: 228,852 · 2021-2022: 228,804 · 2022-2023: 229,691 · 2023-2024: 231,534 · 2024-2025:
+231,913), 13/13 expectativas en verde cada uno. DS-02, catálogo completo (los 2 CSV reales de
+SIGED), 15/15 en verde. Sin hallazgos — el catálogo y las 6 cargas históricas pasan limpio.
+
 ## Pendiente (explícito, no resuelto en esta sesión)
 
-- Fix de dedup en `matricula_historica.sql` (grano `cct, ciclo`) — 3+1 tests fallando,
-  diagnosticado, no implementado.
-- Confirmar los 2 PRs exactos que rompieron `agua_region`/`rezago_municipio` y avisar a sus
-  dueños.
-- Great Expectations para DS-01/DS-02 — deuda conocida, sigue fuera de alcance de esta sesión.
-- Compartir el dump de Bronze ya generado (Camino B de BLOCK-004) por Teams — acción de
-  Diana, fuera del alcance de esta sesión de IA (no hay forma de subir archivos a Teams desde
-  aquí).
-- Responder a Oscar (DB-10/DB-07) y a Estefany (BUG-026/US-321) — comunicación de equipo, no
-  técnica.
+- **Corrección:** `agua_region` no estaba "roto por PRs" — confirmado con DevLog de Deni
+  (2026-08-30-deni-garrido-ds06-bronze-pipeline.md) y el propio DevLog de Diana de US-105
+  (2026-08-19): D5 sigue `SIN_DATO` explícito porque CONAGUA no entrega el contrato
+  diario/georreferenciado que pide `silver.agua_region` — es un hueco de fuente real y ya
+  documentado, no una regresión de código. Sigue pendiente confirmar el estado real de
+  `rezago_municipio` (DS-07) — no verificado en esta sesión.
+- **2026-09-03, resuelto:** Diana compartió el dump de Bronze (Camino B de BLOCK-004) por
+  Teams, canal general del equipo — ver `Blocker_Register.md`, BLOCK-004 ahora `resolved`.
 
 ## IDs tocados
 
-`DS-01` · `REQ-001` · `BLOCK-004`
+`DS-01` · `DS-02` · `REQ-001` · `BLOCK-004`

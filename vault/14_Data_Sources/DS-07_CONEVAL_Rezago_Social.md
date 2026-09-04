@@ -115,3 +115,19 @@ Las ausencias oficiales de pobreza (`n.d.`) se convierten a valor nulo +
 - Confundir IRS con medición multidimensional de pobreza; son productos oficiales distintos.
 - Mezclar ambos productos dentro de Bronze violaría el landing 1:1 y ocultaría procedencia.
 - `coneval_v2` / `coneval_test` son artefactos de desarrollo y no deben acreditarse como fuente oficial real para cerrar DS-07.
+
+## 11. Confirmación de RISK-008
+
+**Confirmado por Deni Garrido Fragoso el 2026-09-03 contra los productos oficiales de CONEVAL
+descritos en §2 y el esquema físico de §6:**
+
+- El período común seleccionado es **2020**: proviene de
+  `IRS_entidades_mpios_2020.xlsx` / `Municipios` y de
+  `Concentrado_indicadores_de_pobreza_2020.xlsx` / `Concentrado municipal`.
+- Las fuentes Bronze canónicas son `bronze.coneval_irs_2020` y
+  `bronze.coneval_pobreza_2020`; `coneval_v2` y `coneval_test` no son fuentes válidas.
+- `coneval_periodo_medicion` dejó de ser un placeholder de dbt. El extractor deriva y publica
+  `_periodo_medicion=2020` desde los artefactos oficiales seleccionados.
+
+Con esta evidencia se cumplen las dos condiciones de cierre de `RISK-008`. La actualización del
+registro corresponde al PM, dueño de `vault/10_Risk_Governance/Risk_Register.md`.

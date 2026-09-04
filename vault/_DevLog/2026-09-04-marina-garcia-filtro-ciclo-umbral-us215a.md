@@ -131,6 +131,39 @@ Dos huecos del proyecto documentados sin rellenarlos por cuenta propia: no hay C
 accesibilidad (pese a que `Accessibility.md` declara Lighthouse como bloqueante), y
 `UX_Guidelines.md` está vacío con `source_of_truth: true`.
 
+## 5. BUG-045 registrado — CONEVAL, validado por Luis
+
+Luis Téllez validó el 2026-09-04, en revisión de solo lectura y claim por claim, el
+hallazgo de CONEVAL que reporté el 3-sep: **veredicto verdadero en los cinco puntos**. Con
+eso queda registrado formalmente como **BUG-045** (`high`, `open`, owner **Célula 1** —
+Diana Alvarez / Deni Garrido). ID tomado según DEC-013: BUG-044 es el máximo escrito en
+`main`.
+
+Antes de registrarlo verifiqué los puntos por mi cuenta en vez de darlos por buenos, y
+salió una **precisión que corrige el único punto que Luis marcó como inferido**.
+
+Él dedujo del Bug_Register que el fixture carga en `coneval_v2`. **Ese var ya no existe.**
+`sources.yml` fue migrado a dos vars distintos (`bronze_coneval_irs_identifier` →
+`coneval_irs_2020` y `bronze_coneval_pobreza_identifier` → `coneval_pobreza_2020`), y
+verifiqué que **ningún source de dbt apunta a `coneval_v2`**.
+
+Eso hace el hallazgo **más agudo, no menos**: el fixture no solo tiene el esquema
+equivocado, es que **ya no tiene destino alguno en el pipeline**. Está huérfano — y
+`cargar_bronze_fixture.py` todavía acepta `--esquema coneval` y lo carga sin protestar, así
+que quien lo use cree haber ingerido DS-07 sin haber ingerido nada que el pipeline lea.
+
+Confirmé también su matiz sobre BLOCK-004, que es el más útil del análisis: **está
+`resolved`, pero su solución automatizada (`reproducir_bronze_real.py`) cubre solo DS-02 y
+DS-01** — verificado, no menciona CONEVAL en ninguna línea. El comando que cerró BLOCK-004
+no reproduce DS-07, así que este hueco es aparte y sigue abierto.
+
+En el registro se deja además una **guarda propuesta y no implementada**: hoy nada en CI
+falla cuando un fixture y su modelo divergen (`dbt-contract` solo hace `dbt parse`, que
+renderiza el manifest sin ejecutar Silver contra datos). Una prueba que compruebe que cada
+`source` tiene un fixture con las columnas que su modelo Silver referencia cubriría la
+clase de error. Se propone, no se implementa: `dbt/**` y los fixtures de C1 son alcance de
+Célula 1.
+
 ## 🤖 Sesión de IA
 
 - **Agente / modelo:** Claude Code / claude-opus-5

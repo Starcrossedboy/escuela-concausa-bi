@@ -1,0 +1,133 @@
+{
+  "expectations": [
+    {
+      "id": "1f7b0ecf-df06-47d9-a2c7-07e2a5248ddc",
+      "kwargs": {
+        "column": "cct"
+      },
+      "meta": {},
+      "severity": "critical",
+      "type": "expect_column_values_to_not_be_null"
+    },
+    {
+      "id": "9fd3bd0b-6af1-42d9-a1db-26df968ab066",
+      "kwargs": {
+        "column": "ciclo"
+      },
+      "meta": {},
+      "severity": "critical",
+      "type": "expect_column_values_to_not_be_null"
+    },
+    {
+      "id": "5ba55288-727d-4c48-a66b-0e0ee58c8d03",
+      "kwargs": {
+        "column": "turno"
+      },
+      "meta": {},
+      "severity": "critical",
+      "type": "expect_column_values_to_not_be_null"
+    },
+    {
+      "id": "653d11e5-fabd-4ff5-8a3c-b954639a7620",
+      "kwargs": {
+        "column": "entidad"
+      },
+      "meta": {},
+      "severity": "critical",
+      "type": "expect_column_values_to_not_be_null"
+    },
+    {
+      "id": "75e76835-3d5d-4f65-96e1-1cee8f2f0149",
+      "kwargs": {
+        "column": "municipio"
+      },
+      "meta": {},
+      "severity": "critical",
+      "type": "expect_column_values_to_not_be_null"
+    },
+    {
+      "id": "4a943112-c2cc-41e6-ad55-5adecf387741",
+      "kwargs": {
+        "column": "nivel"
+      },
+      "meta": {},
+      "severity": "critical",
+      "type": "expect_column_values_to_not_be_null"
+    },
+    {
+      "id": "6cb3f180-2f11-4272-a1e9-46ac1956a0ea",
+      "kwargs": {
+        "column": "matricula_total"
+      },
+      "meta": {},
+      "severity": "critical",
+      "type": "expect_column_values_to_not_be_null"
+    },
+    {
+      "id": "e5f491eb-5a87-4104-a934-fdeaf0c21a23",
+      "kwargs": {
+        "column": "cct",
+        "regex": "^\\d{2}[A-Z]{3}\\d{4}[A-Z]$"
+      },
+      "meta": {},
+      "severity": "critical",
+      "type": "expect_column_values_to_match_regex"
+    },
+    {
+      "id": "4f7c2374-69b7-4d82-aec4-cd7b39227f9e",
+      "kwargs": {
+        "column": "ciclo",
+        "regex": "^\\d{4}-\\d{4}$"
+      },
+      "meta": {},
+      "severity": "critical",
+      "type": "expect_column_values_to_match_regex"
+    },
+    {
+      "id": "b8ae5e0c-43e3-46b1-a585-ce156a39f41d",
+      "kwargs": {
+        "column": "turno",
+        "regex": "^\\d+$"
+      },
+      "meta": {},
+      "severity": "critical",
+      "type": "expect_column_values_to_match_regex"
+    },
+    {
+      "id": "1166cb26-ffdb-48be-8a36-32172265c99a",
+      "kwargs": {
+        "column": "entidad",
+        "regex": "^\\d{1,2}$"
+      },
+      "meta": {},
+      "severity": "critical",
+      "type": "expect_column_values_to_match_regex"
+    },
+    {
+      "id": "a2fc6fbc-d070-4024-8139-f1ee44b6a60b",
+      "kwargs": {
+        "column": "municipio",
+        "regex": "^\\d{1,3}$"
+      },
+      "meta": {},
+      "severity": "critical",
+      "type": "expect_column_values_to_match_regex"
+    },
+    {
+      "id": "7e95ed34-4fdc-49c2-a08c-811a5af93569",
+      "kwargs": {
+        "column": "matricula_total",
+        "min_value": 0.0
+      },
+      "meta": {},
+      "severity": "critical",
+      "type": "expect_column_values_to_be_between"
+    }
+  ],
+  "id": "31e12554-b1e1-4b6e-985f-6bc734a926f1",
+  "meta": {
+    "great_expectations_version": "1.22.0"
+  },
+  "name": "suite_ds01_formato911_historico",
+  "notes": null
+}

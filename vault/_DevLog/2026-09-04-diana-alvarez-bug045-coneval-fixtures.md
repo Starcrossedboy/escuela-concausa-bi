@@ -52,16 +52,29 @@ esquema correctamente y nunca tuvo el bug — es una arquitectura intencionalmen
 
 ## Verificación
 
-`device_bash` no tiene Docker ni alcanza `127.0.0.1:5432`, así que esto se verificó a nivel de
-esquema, no contra Postgres real: ambos CSV nuevos, leídos con
+Primera pasada, sin Postgres disponible en el entorno de agente: ambos CSV nuevos, leídos con
 `pd.read_csv(dtype=str, keep_default_na=False)`, no tienen columnas faltantes contra lo que el
-modelo exige — 12 filas cada uno, 1 fila `SIN_DATO` para ejercitar cobertura parcial.
-`tests/test_cargar_bronze_fixture_conteo.py` (único test existente sobre el módulo) solo usa
-`esquema="cct"`, sin riesgo de romperse. `vault_lint.py` en verde.
+modelo exige — 12 filas cada uno, 1 fila `SIN_DATO`. `tests/test_cargar_bronze_fixture_conteo.py`
+(único test existente sobre el módulo) solo usa `esquema="cct"`, sin riesgo de romperse.
 
-**Pendiente en máquina con Docker/Postgres** (la propia Diana, antes de dar el fix por cerrado
-del todo): `cargar_bronze_fixture.py --esquema coneval_irs`/`coneval_pobreza`,
-`dbt run --select rezago_municipio` + `dbt test`, y `pytest tests/ -q` completo.
+**Verificación real, Diana en su máquina el mismo día:** `pytest tests/ -q` → **884 passed, 7
+skipped**. `dbt run --select rezago_municipio` → éxito, `SELECT 2469` contra las tablas reales
+que Diana ya tenía cargadas de su propia corrida de DS-07. `dbt test --select rezago_municipio`
+→ 6/7: las 3 pruebas propias del modelo (`accepted_values` ×2, `not_null` ×2,
+`valid_rezago_municipio`) en verde; el único `ERROR` es `cubo_pipeline_rows_parity` por
+`bronze.conagua_presas` inexistente — de DS-06/CONAGUA, no de este bug. Esto valida el mapeo
+hash→columna de punta a punta contra datos reales, no solo contra los manifiestos.
+
+**Hallazgo real, ya corregido:** cargar el fixture contra `coneval_irs_2020` reventó con
+`InvalidColumnReference: no unique or exclusion constraint matching ON CONFLICT`. Causa: esa
+tabla ya existía, creada antes por el loader de producción (`cargar_bronze_coneval_real.py`,
+idempotente por snapshot, sin `UNIQUE`) — `CREATE TABLE IF NOT EXISTS` de este script fue un
+no-op contra una tabla sin la restricción que el `ON CONFLICT` necesita. No es un defecto del
+mapeo de columnas (`dbt run` ya lo probó correcto); es un caso real de "la tabla real ya
+existe" que solo afecta a quien, como Diana, ya cargó datos reales de DS-07 — no a un ambiente
+limpio (CI, o alguien reconstruyendo desde cero). `cargar_fixture()` ahora detecta ese error
+específico, hace `rollback()` sin tocar la tabla real, y levanta un `RuntimeError` explicando
+la causa en vez del traceback crudo de psycopg2. `vault_lint.py` en verde.
 
 ## Registro y trazabilidad
 

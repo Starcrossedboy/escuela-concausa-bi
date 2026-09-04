@@ -10,8 +10,8 @@ tags: [ml, ml-03, clustering, eda, cobertura, plan-cierre]
 
 # Propuesta de cierre — US-321, US-322 y US-325
 
-> Responsable: Estefany Lucero Hernández Loredo · Rama: `dev/estefany-hernandez`  
-> Corte de diagnóstico: 4-sep-2026 · Revisión obligatoria: Edgar Coronel (PM)  
+> Responsable: Estefany Lucero Hernández Loredo · Rama: `dev/estefany-hernandez`
+> Corte de diagnóstico: 4-sep-2026 · Revisión obligatoria: Edgar Coronel (PM)
 > Apoyo técnico recomendado: Andrés González Habib (Tech Lead C3)
 
 ## 1. Resultado de la revisión
@@ -162,4 +162,3 @@ fuera de mi alcance. Formula una pregunta concreta al dueño correcto. No uses u
   ML-03 si no alcanza 0.30.
 - **Diana Alvarez:** sólo si la reconstrucción de Gold falla o el contrato real no coincide; el PR
   #197 ya resolvió la disponibilidad reproducible de Bronze y no debe reabrirse sin evidencia nueva.
-

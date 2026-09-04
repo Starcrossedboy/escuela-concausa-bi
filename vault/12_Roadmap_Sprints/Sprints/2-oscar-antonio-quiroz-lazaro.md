@@ -6,7 +6,7 @@ status: approved
 version: "1.0"
 traces_up: ["vault/01_Product/PRD", "vault/02_Requirements/User_Stories"]
 traces_down: ["US-221", "US-222", "US-223", "US-224"]
-last_reviewed: "2026-08-28"
+last_reviewed: "2026-09-04"
 tags: [sprint, plan, celula-2, nivel-bajo]
 ---
 
@@ -313,7 +313,7 @@ Actualiza esta tabla **antes de cada standup**. El PM la revisa para el tablero 
 | `US-221` | Construir los graficos base de KPIs | ✅ Terminado (PR #106) | 100% | — | — |
 | `US-222` | Construir DB-07 Calidad y cobertura de dat | ✅ Terminado (PR #125) | 100% | — | — |
 | `US-223` | Construir DB-10 Monitor del pipeline | ✅ Terminado (PR #159) | 100% | — | — |
-| `US-224` | Documentar el manual de usuario de los das | 🟡 En curso | 70% | Capturas reales — Bronze no cargado en ningún ambiente disponible | Dom 6 sep |
+| `US-224` | Documentar el manual de usuario de los das | ✅ Terminado (PR #212) | 100% | — | — |
 
 **Estados válidos:** ⬜ Por iniciar · 🟡 En curso · 🔵 En revisión (PR abierto) · ✅ Terminado · 🔴 Bloqueado
 

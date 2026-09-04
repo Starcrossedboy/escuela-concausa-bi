@@ -146,6 +146,13 @@ distinguir entre los casos.
 | GET | `/municipios/{cve_mun}` | ciudadano | path `cve_mun` | `MunicipioOut` | 200, 401, 404 |
 | GET | `/kpis` | ciudadano | `?cve_ent&cve_mun&ciclo` | `KpisOut` | 200, 401 |
 
+**`ciclo` por default (BUG-044, Karla Monter, 2026-09-03):** si se omite en `/escuelas`,
+`/escuelas/{cct}` y `/kpis`, se usa el **ciclo más reciente materializado** en
+`gold.fact_escuela_ciclo`, nunca todos los ciclos a la vez. Antes de esta corrección, omitir
+`ciclo` dejaba `fact` sin filtrar: `/escuelas` listaba la misma escuela una vez por ciclo (sin
+forma de distinguirlas, `EscuelaOut` no expone `id_ciclo`) y `/kpis.matricula_total` sumaba los ~3
+ciclos materializados a la vez (**20.6M en vez de ~7M reales** para las 4 entidades en producción).
+
 **Ordenamiento (Decisión 3 de US-411, Karla Monter, 2026-08-20 — avisado a C2/C3):**
 - `order_by` es opcional; si se omite, el orden es el natural de la consulta (no garantizado
   entre llamadas). `order` es `asc` (por defecto) o `desc`. Un `order_by` fuera de la whitelist

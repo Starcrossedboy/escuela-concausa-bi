@@ -74,27 +74,60 @@ COLUMNAS_CEMABE = [
     "internet", "computadoras", "_ingested_at", "_source", "_source_url",
 ]
 
-# DS-07 CONEVAL: rezago social y pobreza a nivel municipio (alimenta D1)
-DDL_BRONZE_CONEVAL = """
+# DS-07 CONEVAL: rezago social y pobreza a nivel municipio (alimenta D1). BUG-045: el
+# contrato real (migrado por Deni, ver vault/14_Data_Sources/DS-07_CONEVAL_Rezago_Social.md
+# S11) son DOS tablas separadas -- bronze.coneval_irs_2020 y bronze.coneval_pobreza_2020 --
+# con las columnas oficiales serializadas como identificadores hasheados c_<sha1[:12]> por
+# src/ingesta/cargar_bronze_coneval_real.py (`_pg_column_name`), no el esquema "amigable"
+# viejo. dbt/models/silver/rezago_municipio.sql lee estas columnas hasheadas directamente.
+# El esquema viejo de una sola tabla (`coneval`/`cve_mun`/`indice_rezago_social`...) ya no
+# tiene destino en el pipeline real: se retira en vez de dejarlo aceptar fixtures que dbt
+# nunca lee (ver DevLog de este fix).
+DDL_BRONZE_CONEVAL_IRS = """
 CREATE SCHEMA IF NOT EXISTS bronze;
 
 CREATE TABLE IF NOT EXISTS bronze.{tabla} (
-    cve_mun                 TEXT,
-    entidad                 TEXT,
-    municipio                TEXT,
-    indice_rezago_social     TEXT,
-    grado_rezago              TEXT,
-    pobreza_pct                TEXT,
-    _ingested_at             TIMESTAMPTZ,
-    _source                  TEXT,
-    _source_url               TEXT,
-    UNIQUE (_source, _ingested_at, cve_mun)
+    c_b9548dbd414b  TEXT,
+    c_deef5d1bd71a  TEXT,
+    c_9b370f449788  TEXT,
+    c_9e8609cad84d  TEXT,
+    c_5d0523b1d4a3  TEXT,
+    c_91fd46c9babe  TEXT,
+    _periodo_medicion TEXT,
+    _ingested_at    TIMESTAMPTZ,
+    _source         TEXT,
+    _source_url     TEXT,
+    UNIQUE (_source, _ingested_at, c_b9548dbd414b, c_deef5d1bd71a)
 );
 """
 
-COLUMNAS_CONEVAL = [
-    "cve_mun", "entidad", "municipio", "indice_rezago_social",
-    "grado_rezago", "pobreza_pct", "_ingested_at", "_source", "_source_url",
+COLUMNAS_CONEVAL_IRS = [
+    "c_b9548dbd414b", "c_deef5d1bd71a", "c_9b370f449788", "c_9e8609cad84d",
+    "c_5d0523b1d4a3", "c_91fd46c9babe", "_periodo_medicion",
+    "_ingested_at", "_source", "_source_url",
+]
+
+DDL_BRONZE_CONEVAL_POBREZA = """
+CREATE SCHEMA IF NOT EXISTS bronze;
+
+CREATE TABLE IF NOT EXISTS bronze.{tabla} (
+    c_9bd1a7aa7fca  TEXT,
+    c_764f3baf1395  TEXT,
+    c_9b370f449788  TEXT,
+    c_9e8609cad84d  TEXT,
+    c_1a3c72ae6dd1  TEXT,
+    _periodo_medicion TEXT,
+    _ingested_at    TIMESTAMPTZ,
+    _source         TEXT,
+    _source_url     TEXT,
+    UNIQUE (_source, _ingested_at, c_9bd1a7aa7fca, c_764f3baf1395)
+);
+"""
+
+COLUMNAS_CONEVAL_POBREZA = [
+    "c_9bd1a7aa7fca", "c_764f3baf1395", "c_9b370f449788", "c_9e8609cad84d",
+    "c_1a3c72ae6dd1", "_periodo_medicion",
+    "_ingested_at", "_source", "_source_url",
 ]
 
 # DS-04 SESNSP: incidencia delictiva municipal, serie mensual (alimenta D2)
@@ -259,7 +292,14 @@ def _dsn() -> str:
 ESQUEMAS = {
     "formato911": (DDL_BRONZE_FORMATO911, COLUMNAS, ["_source", "_ingested_at", "cct", "ciclo"]),
     "cemabe": (DDL_BRONZE_CEMABE, COLUMNAS_CEMABE, ["_source", "_ingested_at", "cct"]),
-    "coneval": (DDL_BRONZE_CONEVAL, COLUMNAS_CONEVAL, ["_source", "_ingested_at", "cve_mun"]),
+    "coneval_irs": (
+        DDL_BRONZE_CONEVAL_IRS, COLUMNAS_CONEVAL_IRS,
+        ["_source", "_ingested_at", "c_b9548dbd414b", "c_deef5d1bd71a"],
+    ),
+    "coneval_pobreza": (
+        DDL_BRONZE_CONEVAL_POBREZA, COLUMNAS_CONEVAL_POBREZA,
+        ["_source", "_ingested_at", "c_9bd1a7aa7fca", "c_764f3baf1395"],
+    ),
     "sesnsp": (DDL_BRONZE_SESNSP, COLUMNAS_SESNSP, ["_source", "_ingested_at", "cve_mun", "anio", "mes", "tipo_delito"]),
     "cct": (DDL_BRONZE_CCT, COLUMNAS_CCT, ["_source", "_ingested_at", "cct"]),
     "conapo": (DDL_BRONZE_CONAPO, COLUMNAS_CONAPO, ["_source", "_ingested_at", "cve_mun", "anio", "grupo_edad"]),

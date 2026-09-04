@@ -132,6 +132,7 @@ personas:
       - "src/frontend/**"
     amarillo:
       - "tests/**"
+      - "requirements/celula-2.txt"
 
   marina-garcia:
     nombre: "Marina García del Buey"
@@ -147,6 +148,7 @@ personas:
     amarillo:
       - "src/frontend/**"
       - "tests/**"
+      - "requirements/celula-2.txt"
 
   monserrat-miranda:
     nombre: "Monserrat Xcaret Miranda Olivas"
@@ -161,6 +163,7 @@ personas:
       - "vault/04_UX_Design/**"
     amarillo:
       - "tests/**"
+      - "requirements/celula-2.txt"
 
   oscar-quiroz:
     nombre: "Oscar Antonio Quiroz Lázaro"
@@ -175,6 +178,7 @@ personas:
       - "vault/04_UX_Design/**"
     amarillo:
       - "tests/**"
+      - "requirements/celula-2.txt"
 
   andres-gonzalez:
     nombre: "Andrés González Habib"
@@ -421,7 +425,11 @@ comunes:
   # el riesgo, el bloqueo o el hallazgo que encuentre. Si el registro no está permitido para
   # quien reporta, la regla no se puede cumplir. Son append-only y sus dueños de área siguen
   # en `criticos`, así que el gate avisa a quién pedirle revisión sin reprobar el PR.
-  - "vault/06_Quality_Testing/Bug_Register.md"
+  # Hallazgo de Marina García (2026-09-03): solo Automated/** y Bug_Register.md tenían dueño.
+  # _index.md, Test_Strategy.md, los planes de usabilidad/accesibilidad (US-215a/b) y el resto
+  # de la carpeta reprobaban a cualquiera, incluido quien los escribiera. La carpeta completa es
+  # de consulta/registro de QA, mismo espíritu que Bug_Register.md — no lógica de un área.
+  - "vault/06_Quality_Testing/**"
   - "vault/07_Security/Security_Audit_Log.md"
   - "vault/10_Risk_Governance/Risk_Register.md"
   - "vault/10_Risk_Governance/Blocker_Register.md"

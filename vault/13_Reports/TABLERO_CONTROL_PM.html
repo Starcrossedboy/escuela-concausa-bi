@@ -130,25 +130,25 @@
   <script>
   window.PM_DATA = {
   "meta": {
-    "generated_at": "2026-09-03T19:51:53+00:00",
+    "generated_at": "2026-09-03T23:28:39+00:00",
     "generated_date": "2026-09-03",
-    "commit": "e6cdf36",
-    "branch": "main",
-    "working_tree": "clean",
-    "source_fingerprint": "aac6d5615ba9",
+    "commit": "aa0dd5d",
+    "branch": "dev/edgar-coronel",
+    "working_tree": "modified",
+    "source_fingerprint": "f152d2c746f9",
     "source": "Fuentes canónicas del vault",
     "offline": true,
     "schema_version": "2.4"
   },
   "summary": {
     "total": 91,
-    "done": 43,
+    "done": 44,
     "planned": 11,
     "in_progress": 15,
-    "in_review": 22,
+    "in_review": 21,
     "blocked": 0,
-    "wip": 37,
-    "progress": 68.7,
+    "wip": 36,
+    "progress": 69.1,
     "days_to_demo": 6
   },
   "delivery": {
@@ -1283,11 +1283,11 @@
       "sprint": "S4",
       "req": "REQ-004",
       "cell": "Célula 4 · Backend, API & Seguridad",
-      "status": "in_review",
+      "status": "done",
       "started": "2026-08-26",
       "blocked_since": "—",
-      "evidence": "vault/_DevLog/2026-08-26-juan-macias-us412-repositorio-modelos-bug010 · PR #95 mergeado: /predicciones/* lee gold.predicciones + gold.recomendaciones mediante repositorio inyectable, BUG-010 fixed, contrato/OpenAPI y pruebas de 200/404/batch. No cierra: BUG-020 critical hace que /predicciones y /predicciones/batch respondan 500 en producción — son las rutas que esta historia entrega y de las que depende la demo de ML. Se cierra igual que US-411: cuando la ruta responda en el despliegue. La integración Postgres E2E sigue trazada a US-422",
-      "updated": "2026-08-28",
+      "evidence": "vault/_DevLog/2026-08-26-juan-macias-us412-repositorio-modelos-bug010 · PR #95 mergeado: /predicciones/* lee gold.predicciones + gold.recomendaciones mediante repositorio inyectable, BUG-010 fixed, contrato/OpenAPI y pruebas de 200/404/batch. BUG-020 curado en prod (US-505 Fase 2, C5) y verificado en vivo el 2026-09-02: /predicciones/{cct} → 404 estructurado, /predicciones/batch → 200 vacío, /escuelas → 200 — vault/_DevLog/2026-09-02-juan-macias-cierre-us412-us416. La integración Postgres E2E sigue trazada a US-422",
+      "updated": "2026-09-02",
       "objective": "Rutas que sirven las predicciones de los 3 modelos, leyendo gold.predicciones y gold.recomendaciones por SQL. Modo unitario y batch, con validación de entrada. Cierra BUG-010.",
       "deliverable": "Código en su carpeta + documento en el vault con frontmatter + fila en la matriz",
       "age_days": 8
@@ -1358,8 +1358,8 @@
       "status": "in_review",
       "started": "2026-08-27",
       "blocked_since": "—",
-      "evidence": "vault/_DevLog/2026-08-27-juan-macias-us416-cache-timeouts · PR #101 mergeado: cache TTL por fila, cache negativo, timeout SQL y error 503; suite 390 pass. Falta que el TL C4 ratifique el diseño y acepte que la prueba con Postgres real corresponde a US-422",
-      "updated": "2026-08-28",
+      "evidence": "vault/_DevLog/2026-08-27-juan-macias-us416-cache-timeouts · PR #101 mergeado: cache TTL por fila, cache negativo, timeout SQL y error 503. Última pieza cerrada el 2-sep: RepositorioModelosPostgres._con_timeout traduce SQLAlchemyError a RepositorioModelosNoDisponible → 503 (antes un esquema gold ausente escapaba como 500) — vault/_DevLog/2026-09-02-juan-macias-cierre-us412-us416, suite 778 passed. Único pendiente: Christian Ruiz (TL C4) no ha ratificado el diseño (cache/endurecimiento) ni confirmado que la prueba con Postgres real corresponde a US-422",
+      "updated": "2026-09-02",
       "objective": "Cache de predicciones batch, timeouts, y respuesta degradada cuando falta el dato.",
       "deliverable": "Código en su carpeta + documento en el vault con frontmatter + fila en la matriz",
       "age_days": 7
@@ -2217,10 +2217,10 @@
       "pr_open": 0,
       "pr_merged": 0,
       "stories": 3,
-      "done": 1,
-      "wip": 2,
+      "done": 2,
+      "wip": 1,
       "blocked": 0,
-      "progress": 76.7
+      "progress": 88.3
     },
     {
       "name": "Karla Alejandra Monter Benitez",
@@ -2499,10 +2499,10 @@
         "Karla Alejandra Monter Benitez"
       ],
       "stories": 14,
-      "done": 4,
-      "wip": 8,
+      "done": 5,
+      "wip": 7,
       "blocked": 0,
-      "progress": 57.1
+      "progress": 59.6
     },
     {
       "name": "Célula 5 · Cloud Infrastructure & DevOps",
@@ -2555,9 +2555,9 @@
       "name": "Backend/API/Auth",
       "points": 1.5,
       "stories": 14,
-      "done": 4,
-      "progress": 57.1,
-      "secured_points": 0.86,
+      "done": 5,
+      "progress": 59.6,
+      "secured_points": 0.89,
       "band": "green"
     },
     {
@@ -3023,6 +3023,47 @@
         }
       },
       {
+        "name": "Juan Carlos Macías Mayen",
+        "cell": "Célula 4",
+        "engagement": 88.3,
+        "commits": 0,
+        "prs_merged": 0,
+        "prs_open": 0,
+        "risk": "en_tiempo",
+        "by_sprint": {
+          "S1": {
+            "n": 0,
+            "done": 0,
+            "state": "idle"
+          },
+          "S2": {
+            "n": 0,
+            "done": 0,
+            "state": "idle"
+          },
+          "S3": {
+            "n": 0,
+            "done": 0,
+            "state": "idle"
+          },
+          "S4": {
+            "n": 2,
+            "done": 2,
+            "state": "done"
+          },
+          "S5": {
+            "n": 1,
+            "done": 0,
+            "state": "wip"
+          },
+          "S6": {
+            "n": 0,
+            "done": 0,
+            "state": "idle"
+          }
+        }
+      },
+      {
         "name": "Monserrat Xcaret Miranda Olivas",
         "cell": "Célula 2",
         "engagement": 83.8,
@@ -3095,47 +3136,6 @@
           "S5": {
             "n": 3,
             "done": 1,
-            "state": "wip"
-          },
-          "S6": {
-            "n": 0,
-            "done": 0,
-            "state": "idle"
-          }
-        }
-      },
-      {
-        "name": "Juan Carlos Macías Mayen",
-        "cell": "Célula 4",
-        "engagement": 76.7,
-        "commits": 0,
-        "prs_merged": 0,
-        "prs_open": 0,
-        "risk": "en_tiempo",
-        "by_sprint": {
-          "S1": {
-            "n": 0,
-            "done": 0,
-            "state": "idle"
-          },
-          "S2": {
-            "n": 0,
-            "done": 0,
-            "state": "idle"
-          },
-          "S3": {
-            "n": 0,
-            "done": 0,
-            "state": "idle"
-          },
-          "S4": {
-            "n": 2,
-            "done": 1,
-            "state": "wip"
-          },
-          "S5": {
-            "n": 1,
-            "done": 0,
             "state": "wip"
           },
           "S6": {
@@ -3729,10 +3729,10 @@
         "cell_group": "Célula 0 · PO — Dirección de Proyecto",
         "active": true,
         "prs_merged": 28,
-        "devlogs": 39,
+        "devlogs": 40,
         "active_us": 4,
-        "activity": 71,
-        "signal": "28 PR · 39 DevLog · 4 US activas"
+        "activity": 72,
+        "signal": "28 PR · 40 DevLog · 4 US activas"
       },
       {
         "name": "Luis Téllez Domínguez",
@@ -3773,10 +3773,10 @@
         "cell_group": "Célula 3 · Machine Learning & Agente IA",
         "active": true,
         "prs_merged": 17,
-        "devlogs": 18,
+        "devlogs": 19,
         "active_us": 5,
-        "activity": 40,
-        "signal": "17 PR · 18 DevLog · 5 US activas"
+        "activity": 41,
+        "signal": "17 PR · 19 DevLog · 5 US activas"
       },
       {
         "name": "Manuel Alejandro Serranía Reinada",
@@ -4132,15 +4132,6 @@
       "su_turno": false
     },
     {
-      "id": "US-412",
-      "objective": "Rutas que sirven las predicciones de los 3 modelos, leyendo gold.predicciones y gold.recomendaciones por SQL. Modo unitario y batch, con validación de entrada. Cierra BUG-010.",
-      "owner": "Juan Carlos Macías Mayen",
-      "cell": "Célula 4 · Backend, API & Seguridad",
-      "sprint": "S4",
-      "status": "in_review",
-      "su_turno": false
-    },
-    {
       "id": "US-422",
       "objective": "pytest + httpx sobre los endpoints; cobertura minima segun Definition_of_Done.",
       "owner": "Eloisa González Rubio",
@@ -4432,7 +4423,7 @@
       "design": "Cubierto",
       "exec_band": "green",
       "exec_label": "En ejecución",
-      "progress": 57.1
+      "progress": 59.6
     },
     {
       "criterion": "5 · Deploy GCP + Docker + URL",
@@ -7833,11 +7824,11 @@
     },
     {
       "date": "2026-09-03",
-      "remaining": 48,
-      "weighted_remaining": 28.5,
-      "done": 43,
+      "remaining": 47,
+      "weighted_remaining": 28.1,
+      "done": 44,
       "scope": 91,
-      "wip": 37,
+      "wip": 36,
       "blocked": 0
     }
   ]

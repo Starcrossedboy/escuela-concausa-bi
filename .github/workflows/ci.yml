@@ -99,7 +99,10 @@ jobs:
           fi
       - name: Sin secretos versionados
         run: |
-          if git ls-files | grep -E '(^|/)\.env$|\.pem$|\.key$|credentials.*\.json$'; then
+          # Cualquier archivo que TERMINE en .env, no solo el literal ".env" — un nombre como
+          # configuracion.env quedaba fuera del patrón anterior (hallazgo de Marina García,
+          # 2026-09-03). El respaldo real de contenido es G5 GitLeaks, más abajo.
+          if git ls-files | grep -E '(^|/)[^/]*\.env$|\.pem$|\.key$|credentials.*\.json$'; then
             echo "Archivos sensibles detectados"; exit 1
           fi
           echo "OK"

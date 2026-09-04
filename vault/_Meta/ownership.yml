@@ -9,6 +9,13 @@
 # Context y el plan de sprint — no existe ninguna otra forma de nombrar a una persona.
 #
 # Lo verifica en cada PR:  vault/_Meta/scripts/check_ownership.py
+#
+# El plan de sprint propio (campo `plan:` de cada persona, abajo) NO necesita estar listado
+# en su verde/amarillo/comunes: check_ownership.py:212 lo concede sin condición
+# (`permitido.append(persona["plan"])`), sea cual sea su ruta. La regla de empate de los 21
+# Agent Contexts ("si esta lista y ese archivo no coinciden, manda el archivo") se resuelve
+# aquí — en el código del gate, no en las listas de este YAML. Hallazgo de Marina García,
+# verificado 2026-09-03: el archivo del plan propio nunca estuvo bloqueado.
 
 version: 1
 
@@ -461,4 +468,13 @@ criticos:
   # el hueco anterior le reprobaba el gate por "fuera de alcance" antes de llegar
   # a este aviso). Diana revisa cualquier cambio que no sea suyo.
   "dags/**": diana-alvarez
+  # Hallazgo de Marina García al verificar su propia auditoría (2026-09-03): abrir
+  # vault/06_Quality_Testing/** a comunes (arriba, para resolver H3) se tragó de paso
+  # Automated/**, que era amarillo EXCLUSIVO de C3. coincide() no soporta exclusión de
+  # globs, así que no hay forma de sacarlo del `**` de comunes — esta línea es la única
+  # vía mecánica para que el gate vuelva a avisar cuando alguien fuera de C3 lo toque.
+  "vault/06_Quality_Testing/Automated/**": andres-gonzalez
+  # Sin esto, Luis (requirements/** en su amarillo) no se entera cuando C2 finalmente
+  # cree requirements/celula-2.txt (hallazgo de Marina, nota menor de la misma revisión).
+  "requirements/celula-2.txt": luis-tellez
 

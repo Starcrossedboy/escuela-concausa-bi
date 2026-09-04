@@ -1,11 +1,11 @@
 {
   "meta": {
-    "generated_at": "2026-09-04T00:58:21+00:00",
+    "generated_at": "2026-09-04T03:01:29+00:00",
     "generated_date": "2026-09-03",
-    "commit": "182c432",
+    "commit": "aed26db",
     "branch": "dev/edgar-coronel",
     "working_tree": "modified",
-    "source_fingerprint": "f152d2c746f9",
+    "source_fingerprint": "21721aedfba2",
     "source": "Fuentes canónicas del vault",
     "offline": true,
     "schema_version": "2.4"
@@ -2490,12 +2490,12 @@
       "id": "DS-03",
       "name": "DS-03 · SEP CEMABE",
       "owner": "Deni Garrido Fragoso",
-      "document_status": "draft",
+      "document_status": "in_review",
       "frequency": "- Censo único 2013 (no se actualiza periódicamente). Se trata como snapshot estructural.",
       "coverage": "Nacional · nivel escuela.",
-      "proof": "pending",
-      "checks_done": 0,
-      "checks_total": 5,
+      "proof": "ok",
+      "checks_done": 10,
+      "checks_total": 10,
       "path": "vault/14_Data_Sources/DS-03_CEMABE.md"
     },
     {
@@ -2712,9 +2712,9 @@
       "consumer": "Célula 2 (Oscar — gold.cubo_pipeline/DB-10, validación real de US-222/US-223 en PR #192, capturas reales de US-224)",
       "description": "Nadie del equipo salvo Diana tiene un ambiente local con Bronze real cargado (reportado por Edgar 2026-09-03) — bloquea validar con datos reales gold.cubo_pipeline (DB-10) y gold.cubo_completitud (DB-07, BUG-029 de Oscar, no bloqueante por sí solo pero también espera números reales). No es falta de scripts: es que descargar+cargar a mano toma horas y solo Diana lo ha hecho.",
       "since": "2026-09-03",
-      "alternative": "Camino A (reproducir la carga real) automatizado en vault/14_Data_Sources/DS-01_Formato_911 §11 — un solo comando (python -m src.ingesta.reproducir_bronze_real), verificado en vivo de punta a punta 2026-09-03 (385,204 filas DS-02 + ~1.37M filas DS-01 histórico), disponible ya para cualquiera sin esperar a Diana. Camino B (restaurar el dump de Bronze de Diana, minutos en vez de horas) documentado en la misma sección — dump ya generado 2026-09-03 (33 MB), pendiente solo de que Diana lo comparta por Teams.",
+      "alternative": "Camino A (reproducir la carga real) automatizado en vault/14_Data_Sources/DS-01_Formato_911 §11 — un solo comando (python -m src.ingesta.reproducir_bronze_real), verificado en vivo de punta a punta 2026-09-03 (385,204 filas DS-02 + ~1.37M filas DS-01 histórico), disponible ya para cualquiera sin esperar a Diana. Camino B (restaurar el dump de Bronze de Diana, minutos en vez de horas) documentado en la misma sección — dump ya generado 2026-09-03 (33 MB). 2026-09-03 · Diana compartió el dump por Teams (canal general del equipo, además de mandárselo directo a Luis Téllez para el cierre de RISK-001) — Camino B queda disponible para cualquiera, no solo Camino A. Bloqueador de *ambiente* cerrado por completo.",
       "owner": "Diana Aracely Alvarez Varela",
-      "status": "mitigating"
+      "status": "resolved"
     }
   ],
   "performance": {
@@ -3654,10 +3654,10 @@
         "cell_group": "Célula 1 · Data Engineering & Quality",
         "active": true,
         "prs_merged": 0,
-        "devlogs": 17,
+        "devlogs": 18,
         "active_us": 3,
-        "activity": 20,
-        "signal": "17 DevLog · 3 US activas"
+        "activity": 21,
+        "signal": "18 DevLog · 3 US activas"
       },
       {
         "name": "Manuel Alejandro Serranía Reinada",
@@ -4387,7 +4387,7 @@
   ],
   "readiness": {
     "score": 75,
-    "confidence": 70,
+    "confidence": 75,
     "gates": [
       {
         "name": "URL pública y healthcheck",
@@ -4714,6 +4714,15 @@
       "done": 44,
       "scope": 91,
       "wip": 36,
+      "blocked": 0
+    },
+    {
+      "date": "2026-09-04",
+      "remaining": 48,
+      "weighted_remaining": 28.5,
+      "done": 43,
+      "scope": 91,
+      "wip": 37,
       "blocked": 0
     }
   ]

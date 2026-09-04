@@ -240,11 +240,11 @@
   },
   {
     "date": "2026-09-04",
-    "remaining": 47,
-    "weighted_remaining": 28.1,
-    "done": 44,
+    "remaining": 45,
+    "weighted_remaining": 27.0,
+    "done": 46,
     "scope": 91,
-    "wip": 36,
+    "wip": 35,
     "blocked": 0
   }
 ]

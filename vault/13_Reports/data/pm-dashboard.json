@@ -1,24 +1,24 @@
 {
   "meta": {
-    "generated_at": "2026-09-04T17:58:26+00:00",
+    "generated_at": "2026-09-04T18:00:31+00:00",
     "generated_date": "2026-09-04",
-    "commit": "6d15353",
-    "branch": "main",
+    "commit": "7434c22",
+    "branch": "dev/edgar-coronel",
     "working_tree": "clean",
-    "source_fingerprint": "b4e70de7a1b4",
+    "source_fingerprint": "1e74a236f0ce",
     "source": "Fuentes canónicas del vault",
     "offline": true,
     "schema_version": "2.4"
   },
   "summary": {
     "total": 91,
-    "done": 44,
-    "planned": 11,
-    "in_progress": 15,
-    "in_review": 21,
+    "done": 46,
+    "planned": 10,
+    "in_progress": 16,
+    "in_review": 19,
     "blocked": 0,
-    "wip": 36,
-    "progress": 69.1,
+    "wip": 35,
+    "progress": 70.3,
     "days_to_demo": 5
   },
   "delivery": {
@@ -577,11 +577,11 @@
       "sprint": "S4",
       "req": "REQ-002",
       "cell": "Célula 2 · Analytics & Business Intelligence",
-      "status": "in_review",
+      "status": "done",
       "started": "2026-08-24",
       "blocked_since": "—",
-      "evidence": "vault/_DevLog/2026-08-24-marina-garcia-us212-db03-db04 · PR #84 · PR #103: pipeline real, 24/24 charts con datos · PR #126 mergeado (revisión de main, BUG-026/BUG-027, BUG-013 replanteado a parcial). Al 95%: BUG-026 quedó cerrado por el PR #129 de Diana y Marina lo verificó corriéndolo (1→3 ciclos en gold.features_escuela, 60/60 CCT, ML-01 entrenando con MAE 12.2252). Único bloqueo restante: ratificar ADR-007. Si se ratifica fracción, el umbral 0.6 de DEC-006 sigue válido y Marina verifica los bloques de predicción de DB-03 (AC-002.4) sin tocar nada; si no, hay que rehacer §5.1 del contrato de DB-03/DB-04. Valida: Marina García",
-      "updated": "2026-08-29",
+      "evidence": "vault/_DevLog/2026-08-24-marina-garcia-us212-db03-db04 · PR #84 · PR #103: pipeline real, 24/24 charts con datos · PR #126 mergeado (revisión de main, BUG-026/BUG-027, BUG-013 replanteado a parcial). Cierre al 100% (PR #211, 2026-09-04): ADR-007 implementado punta a punta -- Diana Alvarez (pasos 1-2, target a fracción) y Héctor Morales (pasos 3-4, gold.predicciones regenerada, ML-01 reentrenado). Verificado contra Postgres: valor en rango −0.0437…+0.0313 (fracción, no alumnos), indice_riesgo 0.1637…0.5615 (ya no saturado). AC-002.4 verificado: 55 escuelas cobertura_prediccion=OK, 90 SIN_DATO, 24/24 charts con datos -- mismas cifras obtenidas de forma independiente por Marina García y Héctor Morales el mismo día. vault/_DevLog/2026-09-03-marina-garcia-cierre-us212",
+      "updated": "2026-09-04",
       "objective": "Drill-down individual por CCT y benchmark lado a lado entre municipios.",
       "deliverable": "Código en su carpeta + documento en el vault con frontmatter + fila en la matriz",
       "age_days": 11
@@ -595,14 +595,14 @@
       "sprint": "S5",
       "req": "REQ-002",
       "cell": "Célula 2 · Analytics & Business Intelligence",
-      "status": "planned",
-      "started": "—",
+      "status": "in_progress",
+      "started": "2026-09-03",
       "blocked_since": "—",
-      "evidence": "Sin PR ni commit de filtros/drill-down en DB-03/DB-04 (Marina García) — auditoría 2026-09-03",
-      "updated": "2026-09-03",
+      "evidence": "vault/_DevLog/2026-09-03-marina-garcia-us214a-drill-down · PR #211 mergeado: 2 de 4 rutas de drill-down construidas y probadas -- link_db04 (DB-03→DB-04) y link_db03 (DB-04→DB-03), corrección de contrato (DB-04→DB-03 de llave imposible cct a cve_mun, DEC-008), tests/test_drill_down_db03_db04.py (18 casos). 2 rutas bloqueadas: DB-03→DB-06 y DB-03→DB-09 esperan que Manuel Serranía (US-204) agregue el filtro cct a filtros_globales de ambos tableros -- verificado 2026-09-04, aún no está. BUG-037 reproducido al construir esta historia (Superset no relee columnas nuevas del dataset tras el sync), mitigado a mano, sin resolver de fondo",
+      "updated": "2026-09-04",
       "objective": "Filtros globales (ciclo, entidad, nivel) y drill-down cruzado aplicados a DB-03 y DB-04.",
       "deliverable": "Código en su carpeta + documento en el vault con frontmatter + fila en la matriz",
-      "age_days": 0
+      "age_days": 1
     },
     {
       "id": "US-215a",
@@ -1135,11 +1135,11 @@
       "sprint": "S3",
       "req": "REQ-004",
       "cell": "Célula 4 · Backend, API & Seguridad",
-      "status": "in_review",
+      "status": "done",
       "started": "2026-08-20",
       "blocked_since": "—",
-      "evidence": "vault/_DevLog/2026-08-20-karla-monter-us411-endpoints-gold · PR #59 (Gold real) · PR #99 (BUG-008 resuelto y app real desplegada). No cierra: BUG-020 critical hace que las rutas con BD respondan 500 en producción. Tras corregirlo, Karla valida /escuelas, /municipios, /kpis y confirma /series fuera de alcance",
-      "updated": "2026-08-28",
+      "evidence": "vault/_DevLog/2026-08-20-karla-monter-us411-endpoints-gold · PR #59 (Gold real) · PR #99 (BUG-008 resuelto). BUG-020 verificado curado en prod 2026-09-03 (Karla Monter, tercera confirmación independiente): /escuelas, /municipios, /kpis → 200; order_by inválido → 422; entidad fuera de alcance → lista vacía; /series confirmado fuera de alcance. BUG-044 (critical) encontrado y corregido en la misma validación: sin ciclo explícito, /escuelas//kpis sumaban los ~3 ciclos materializados (matrícula triplicada: 20.6M vs ~7M reales). Redesplegado por Luis Téllez, 2026-09-04 (vault/_DevLog/2026-09-04-luis-tellez-bug044-redeploy-matricula-ciclo-vigente) y reverificado en vivo por Christian Ruiz el mismo día: /kpis devuelve 6 704 229 (ciclo vigente correcto)",
+      "updated": "2026-09-04",
       "objective": "Rutas de lectura parametrizadas: escuelas, municipios, KPIs y series. Con paginacion, filtros y ordenamiento.",
       "deliverable": "Código en su carpeta + documento en el vault con frontmatter + fila en la matriz",
       "age_days": 15
@@ -2116,10 +2116,10 @@
       "pr_open": 0,
       "pr_merged": 2,
       "stories": 3,
-      "done": 0,
-      "wip": 1,
+      "done": 1,
+      "wip": 0,
       "blocked": 0,
-      "progress": 21.7
+      "progress": 33.3
     },
     {
       "name": "Luis Enrique García Vázquez",
@@ -2240,10 +2240,10 @@
       "pr_open": 0,
       "pr_merged": 9,
       "stories": 5,
-      "done": 1,
+      "done": 2,
       "wip": 2,
       "blocked": 0,
-      "progress": 40.0
+      "progress": 54.0
     },
     {
       "name": "Monserrat Xcaret Miranda Olivas",
@@ -2341,10 +2341,10 @@
         "Oscar Antonio Quiroz Lázaro"
       ],
       "stories": 19,
-      "done": 11,
+      "done": 12,
       "wip": 6,
       "blocked": 0,
-      "progress": 72.1
+      "progress": 75.8
     },
     {
       "name": "Célula 3 · Machine Learning & Agente IA",
@@ -2369,10 +2369,10 @@
         "Karla Alejandra Monter Benitez"
       ],
       "stories": 14,
-      "done": 5,
-      "wip": 7,
+      "done": 6,
+      "wip": 6,
       "blocked": 0,
-      "progress": 59.6
+      "progress": 62.1
     },
     {
       "name": "Célula 5 · Cloud Infrastructure & DevOps",
@@ -2405,9 +2405,9 @@
       "name": "Analytics & BI",
       "points": 2.5,
       "stories": 19,
-      "done": 11,
-      "progress": 72.1,
-      "secured_points": 1.8,
+      "done": 12,
+      "progress": 75.8,
+      "secured_points": 1.89,
       "band": "green"
     },
     {
@@ -2425,9 +2425,9 @@
       "name": "Backend/API/Auth",
       "points": 1.5,
       "stories": 14,
-      "done": 5,
-      "progress": 59.6,
-      "secured_points": 0.89,
+      "done": 6,
+      "progress": 62.1,
+      "secured_points": 0.93,
       "band": "green"
     },
     {
@@ -3426,6 +3426,47 @@
         }
       },
       {
+        "name": "Marina García del Buey",
+        "cell": "Célula 2",
+        "engagement": 54.0,
+        "commits": 26,
+        "prs_merged": 9,
+        "prs_open": 0,
+        "risk": "en_tiempo",
+        "by_sprint": {
+          "S1": {
+            "n": 0,
+            "done": 0,
+            "state": "idle"
+          },
+          "S2": {
+            "n": 0,
+            "done": 0,
+            "state": "idle"
+          },
+          "S3": {
+            "n": 1,
+            "done": 1,
+            "state": "done"
+          },
+          "S4": {
+            "n": 1,
+            "done": 1,
+            "state": "done"
+          },
+          "S5": {
+            "n": 3,
+            "done": 0,
+            "state": "wip"
+          },
+          "S6": {
+            "n": 0,
+            "done": 0,
+            "state": "idle"
+          }
+        }
+      },
+      {
         "name": "Edgar Ulises Jiménez López",
         "cell": "Célula 5",
         "engagement": 47.0,
@@ -3508,50 +3549,9 @@
         }
       },
       {
-        "name": "Marina García del Buey",
-        "cell": "Célula 2",
-        "engagement": 40.0,
-        "commits": 26,
-        "prs_merged": 9,
-        "prs_open": 0,
-        "risk": "en_tiempo",
-        "by_sprint": {
-          "S1": {
-            "n": 0,
-            "done": 0,
-            "state": "idle"
-          },
-          "S2": {
-            "n": 0,
-            "done": 0,
-            "state": "idle"
-          },
-          "S3": {
-            "n": 1,
-            "done": 1,
-            "state": "done"
-          },
-          "S4": {
-            "n": 1,
-            "done": 0,
-            "state": "wip"
-          },
-          "S5": {
-            "n": 3,
-            "done": 0,
-            "state": "wip"
-          },
-          "S6": {
-            "n": 0,
-            "done": 0,
-            "state": "idle"
-          }
-        }
-      },
-      {
         "name": "Karla Alejandra Monter Benitez",
         "cell": "Célula 4",
-        "engagement": 21.7,
+        "engagement": 33.3,
         "commits": 1,
         "prs_merged": 2,
         "prs_open": 0,
@@ -3569,8 +3569,8 @@
           },
           "S3": {
             "n": 1,
-            "done": 0,
-            "state": "wip"
+            "done": 1,
+            "state": "done"
           },
           "S4": {
             "n": 0,
@@ -3599,10 +3599,10 @@
         "cell_group": "Célula 0 · PO — Dirección de Proyecto",
         "active": true,
         "prs_merged": 29,
-        "devlogs": 40,
+        "devlogs": 41,
         "active_us": 4,
-        "activity": 73,
-        "signal": "29 PR · 40 DevLog · 4 US activas"
+        "activity": 74,
+        "signal": "29 PR · 41 DevLog · 4 US activas"
       },
       {
         "name": "Luis Téllez Domínguez",
@@ -3671,6 +3671,17 @@
         "signal": "10 PR · 13 DevLog · 6 US activas"
       },
       {
+        "name": "Marina García del Buey",
+        "cell": "Célula 2",
+        "cell_group": "Célula 2 · Analytics & Business Intelligence",
+        "active": true,
+        "prs_merged": 9,
+        "devlogs": 11,
+        "active_us": 4,
+        "activity": 24,
+        "signal": "9 PR · 11 DevLog · 4 US activas"
+      },
+      {
         "name": "Oscar Antonio Quiroz Lázaro",
         "cell": "Célula 2",
         "cell_group": "Célula 2 · Analytics & Business Intelligence",
@@ -3680,17 +3691,6 @@
         "active_us": 4,
         "activity": 24,
         "signal": "8 PR · 12 DevLog · 4 US activas"
-      },
-      {
-        "name": "Marina García del Buey",
-        "cell": "Célula 2",
-        "cell_group": "Célula 2 · Analytics & Business Intelligence",
-        "active": true,
-        "prs_merged": 9,
-        "devlogs": 11,
-        "active_us": 3,
-        "activity": 23,
-        "signal": "9 PR · 11 DevLog · 3 US activas"
       },
       {
         "name": "Christian Imanol Ruiz Hurtado",
@@ -3867,15 +3867,6 @@
       "su_turno": false
     },
     {
-      "id": "US-411",
-      "objective": "Rutas de lectura parametrizadas: escuelas, municipios, KPIs y series. Con paginacion, filtros y ordenamiento.",
-      "owner": "Karla Alejandra Monter Benitez",
-      "cell": "Célula 4 · Backend, API & Seguridad",
-      "sprint": "S3",
-      "status": "in_review",
-      "su_turno": false
-    },
-    {
       "id": "US-522a",
       "objective": "Dockerfile y servicio en docker-compose para FastAPI y Postgres, con healthchecks.",
       "owner": "Alejandro Velázquez Mendoza",
@@ -3915,15 +3906,6 @@
       "id": "US-204",
       "objective": "Panel interactivo de simulacion sobre los 3 modelos y el tablero que dice que intervencion toca a cada escuela. DB-09 es el diferenciador del proyecto.",
       "owner": "Manuel Alejandro Serranía Reinada",
-      "cell": "Célula 2 · Analytics & Business Intelligence",
-      "sprint": "S4",
-      "status": "in_review",
-      "su_turno": false
-    },
-    {
-      "id": "US-212",
-      "objective": "Drill-down individual por CCT y benchmark lado a lado entre municipios.",
-      "owner": "Marina García del Buey",
       "cell": "Célula 2 · Analytics & Business Intelligence",
       "sprint": "S4",
       "status": "in_review",
@@ -4029,15 +4011,6 @@
       "su_turno": true
     },
     {
-      "id": "US-214a",
-      "objective": "Filtros globales (ciclo, entidad, nivel) y drill-down cruzado aplicados a DB-03 y DB-04.",
-      "owner": "Marina García del Buey",
-      "cell": "Célula 2 · Analytics & Business Intelligence",
-      "sprint": "S5",
-      "status": "planned",
-      "su_turno": true
-    },
-    {
       "id": "US-215a",
       "objective": "Pruebas de usabilidad y accesibilidad sobre DB-03 y DB-04.",
       "owner": "Marina García del Buey",
@@ -4085,6 +4058,15 @@
     {
       "id": "US-207",
       "objective": "Formulario de parámetros que llama a la API de inferencia (US-412/US-415) y muestra la salida de los 3 modelos (ML-01/02/03) en FARO Web.",
+      "owner": "Marina García del Buey",
+      "cell": "Célula 2 · Analytics & Business Intelligence",
+      "sprint": "S5",
+      "status": "in_progress",
+      "su_turno": false
+    },
+    {
+      "id": "US-214a",
+      "objective": "Filtros globales (ciclo, entidad, nivel) y drill-down cruzado aplicados a DB-03 y DB-04.",
       "owner": "Marina García del Buey",
       "cell": "Célula 2 · Analytics & Business Intelligence",
       "sprint": "S5",
@@ -4273,7 +4255,7 @@
       "design": "Cubierto",
       "exec_band": "green",
       "exec_label": "En ejecución",
-      "progress": 72.1
+      "progress": 75.8
     },
     {
       "criterion": "3 · Tres modelos ML vía API",
@@ -4293,7 +4275,7 @@
       "design": "Cubierto",
       "exec_band": "green",
       "exec_label": "En ejecución",
-      "progress": 59.6
+      "progress": 62.1
     },
     {
       "criterion": "5 · Deploy GCP + Docker + URL",
@@ -7946,11 +7928,11 @@
     },
     {
       "date": "2026-09-04",
-      "remaining": 47,
-      "weighted_remaining": 28.1,
-      "done": 44,
+      "remaining": 45,
+      "weighted_remaining": 27.0,
+      "done": 46,
       "scope": 91,
-      "wip": 36,
+      "wip": 35,
       "blocked": 0
     }
   ]

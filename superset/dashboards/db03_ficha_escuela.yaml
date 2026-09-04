@@ -35,6 +35,13 @@ dashboards:
       - columna: id_ciclo
         etiqueta: "Ciclo escolar"
         datasets: [db03_cubo_escuela_360]
+        # US-214a — SIN esto el tablero abre sin filtrar y las tarjetas suman TODOS los
+        # ciclos: `KPI-15 · Matrícula de la escuela` pintaba 32 312 donde 2024-2025 tiene
+        # 11 828 (2.7x), sin ningún error visible. Mismo defecto que Luis Téllez reportó
+        # el 2026-09-04 en `/api/v1/kpis` de producción (20.6M contra 6.7M); allá se
+        # arregló en la API, pero los tableros leen la base directo y no pasan por ella.
+        # Al cargar un ciclo nuevo hay que actualizar este valor.
+        valor_por_defecto: "2024-2025"
       - columna: nombre_entidad
         etiqueta: "Entidad"
         datasets: [db03_cubo_escuela_360]

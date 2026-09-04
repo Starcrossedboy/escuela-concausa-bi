@@ -33,6 +33,10 @@ dashboards:
       - columna: id_ciclo
         etiqueta: "Ciclo escolar"
         datasets: [db04_cubo_comparador_municipio]
+        # US-214a — ver la nota equivalente en db03_ficha_escuela.yaml. Sin valor inicial,
+        # `KPI-01 · Matrícula de los municipios` suma los tres ciclos (32 312 en vez de
+        # 11 828). Al cargar un ciclo nuevo hay que actualizar este valor.
+        valor_por_defecto: "2024-2025"
       - columna: nombre_entidad
         etiqueta: "Entidad"
         datasets: [db04_cubo_comparador_municipio]

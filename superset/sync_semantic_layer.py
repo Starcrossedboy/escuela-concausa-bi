@@ -68,6 +68,15 @@ FORMATO_D3 = {
     "decimal_2": ",.2f",
     "porcentaje_0": ",.0%",
     "porcentaje_1": ",.1%",
+    # "fecha": sin esta entrada, FORMATO_D3.get("fecha", "") caia a cadena
+    # vacia y Superset rechazaba el PUT del dataset completo (d3format exige
+    # 1-128 caracteres) -- NINGUNA metrica del dataset se aplicaba, no solo
+    # la de fecha (hallado en metrics_db10.yaml -> ultima_ingesta, US-223).
+    # "smart_date" (el sentinel de Superset para ejes de serie de tiempo) se
+    # probo primero pero en un big_number_total interpreta el timestamp como
+    # numero crudo ("​.527ms" en vez de una fecha) -- un d3-time-format
+    # explicito si renderiza la fecha real.
+    "fecha": "%Y-%m-%d",
 }
 
 ALTO_TILE_KPI = 38      # altura de un tile KPI (unidades de grilla Superset)

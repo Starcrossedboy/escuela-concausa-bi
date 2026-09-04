@@ -1,6 +1,10 @@
 # ---- Secretos (NUNCA versionar) ----
 .env
 .env.*
+# Cualquier archivo que TERMINE en .env, no solo el literal ".env": un nombre como
+# configuracion.env quedaba fuera de los dos patrones de arriba (hallazgo de Marina
+# García, 2026-09-03 — guia-ambiente-local/configuracion.env, ya versionado).
+*.env
 !.env.example
 *.pem
 *.key
@@ -61,12 +65,16 @@ Thumbs.db
 graphify-out/cost.json
 graphify-out/.cache/
 graphify-out/*.tmp
-setup_proyecto.sh
 graphify-out/cache/
 graphify-out/20??-??-??/
 
+# ---- Scripts locales (rutas y valores propios de cada máquina) ----
+setup_proyecto.sh
+
 # ---- Snapshots efímeros de reportes ----
 vault/13_Reports/data/github-activity.json
+
+# ---- Datos locales de pruebas (no son snapshots de reportes) ----
 !dbt/seeds/*.csv
 tests/fixtures/*.db
 

@@ -321,10 +321,10 @@ Actualiza esta tabla **antes de cada standup**. El PM la revisa para el tablero 
 | ID | Historia | Estado | % | Bloqueado por | Fecha compromiso |
 |---|---|---|---|---|---|
 | `US-521a` | Guia ambiente local: API y Postgres | ✅ Terminado | 100% | — | Dom 9 ago |
-| `US-522a` | Contenerizar API y Postgres | 🔵 En revisión | 100% | E2E local Compose API↔Postgres | Junta de cierre |
+| `US-522a` | Contenerizar API y Postgres | ✅ Terminado | 100% | — | PR #90 mergeado |
 | `US-523a` | Branch protection y required reviews | ✅ Terminado | 100% | — | Dom 23 ago |
-| `US-524a` | Monitoreo de API y Postgres | 🔵 En revisión (PR #102 abierto) | 95% | Checks, revisión C5 y merge | Dom 6 sep |
-| `US-525a` | Runbook rollback API y Postgres | ⬜ Por iniciar | 0% | — | Mar 8 sep |
+| `US-524a` | Monitoreo de API y Postgres | ✅ Terminado | 100% | — | PR #102 mergeado |
+| `US-525a` | Runbook rollback API y Postgres | ❌ Cortada — fuera de alcance | 0% | Decisión de Edgar (3 sep) | — |
 
 **Estados válidos:** ⬜ Por iniciar · 🟡 En curso · 🔵 En revisión (PR abierto) · ✅ Terminado · 🔴 Bloqueado
 

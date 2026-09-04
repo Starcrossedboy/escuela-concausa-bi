@@ -57,6 +57,27 @@ SELECT
     c.suma_indice_riesgo,
     c.escuelas_con_prediccion,
     c.escuelas_en_riesgo,
-    c.cobertura_riesgo
+    c.cobertura_riesgo,
+
+    -- ---------- navegacion cruzada hacia DB-03 (US-214a) ---------------------
+    -- Ruta `DB-04 -> DB-03` del contrato drill_down. OJO: el contrato de
+    -- US-211a la declaraba con llave `cct`, y eso es IMPOSIBLE a este grano —
+    -- DEC-008 fijo el cubo en [cve_mun, nivel, id_ciclo] y aqui no existe `cct`.
+    -- La llave real es `cve_mun`: desde un municipio se baja a SUS escuelas.
+    -- El contrato quedo corregido en metrics_db03_db04.yaml (US-214a).
+    --
+    -- IDs por posicion en `filtros_globales` de db03_ficha_escuela.yaml:
+    -- id_ciclo = 1, cve_mun = 4. El filtro `cct` (indice 0) se deja SIN tocar
+    -- a proposito: al aterrizar se quiere ver el municipio completo, y que el
+    -- usuario elija la escuela. Fijar cct aqui anularia el drill-down.
+    -- >>> Guarda de los indices en tests/test_drill_down_db03_db04.py.
+    '<a href="/superset/dashboard/db03-ficha-escuela/?native_filters=' ||
+        '(NATIVE_FILTER-US203-1:(extraFormData:(filters:!((col:id_ciclo,op:IN,val:!(%27' || c.id_ciclo || '%27)))),' ||
+        'filterState:(label:id_ciclo,validateStatus:!f,value:!(%27' || c.id_ciclo || '%27)),' ||
+        'id:NATIVE_FILTER-US203-1,ownState:()),' ||
+        'NATIVE_FILTER-US203-4:(extraFormData:(filters:!((col:cve_mun,op:IN,val:!(%27' || c.cve_mun || '%27)))),' ||
+        'filterState:(label:cve_mun,validateStatus:!f,value:!(%27' || c.cve_mun || '%27)),' ||
+        'id:NATIVE_FILTER-US203-4,ownState:()))' ||
+        '" target="_blank">Ver sus escuelas →</a>' AS link_db03
 
 FROM gold.cubo_comparador_municipio c

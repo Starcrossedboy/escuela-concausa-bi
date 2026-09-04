@@ -3,10 +3,10 @@ id: DOC-CUBESPEC-DB0304
 title: "Cube Specs — Contrato semántico de los cubos de DB-03 y DB-04"
 owner: "Marina García del Buey"
 status: approved
-version: "1.0"
-traces_up: ["DOC-SCREENSPECS", "DOC-DATAMODEL", "US-211a", "REQ-002"]
+version: "1.1"
+traces_up: ["DOC-SCREENSPECS", "DOC-DATAMODEL", "US-211a", "US-214a", "REQ-002"]
 traces_down: ["US-212", "US-214a", "US-215a"]
-last_reviewed: "2026-08-21"
+last_reviewed: "2026-09-03"
 tags: [bi, cubos, capa-semantica, dashboards, celula-2]
 ---
 
@@ -401,9 +401,158 @@ este documento. Coinciden en fórmula, grano, tipo de `JOIN`, umbral 0.6 y bande
 
 ---
 
+## 8.ter Cierre de US-212 — evidencia (2026-09-03)
+
+> US-212 estuvo al 95 % desde el 29-ago con **un solo bloqueo**: ratificar ADR-007 y que la
+> unidad del target llegara al dato. Ambas cosas ocurrieron; aquí queda la evidencia de que
+> el 5 % restante está verificado. **El cambio de estado en `Execution_Status.md` lo hace el
+> PM**: esa ruta no está en el alcance de Célula 2.
+
+### 8.ter.1 El bloqueo desapareció, y no por decreto
+
+| Paso de ADR-007 | Dueño | Evidencia |
+|---|---|---|
+| 1 · Normalizar el target a fracción en `features_escuela.sql` | C1 · Diana Alvarez | ✅ 2026-08-31 |
+| 2 · Rechazar `matricula_previa = 0` explícito, sin `NULLIF` silencioso | C1 · Diana Alvarez | ✅ 2026-08-31 |
+| 3 · Regenerar `gold.predicciones` | C3 · Héctor Morales | ✅ 2026-09-03 |
+| 4 · Reentrenar ML-01 | C3 · Héctor Morales | ✅ 2026-09-03 |
+
+Verificado corriéndolo, no leyéndolo: `gold.predicciones.valor` sale en rango
+**−0.0437 … +0.0313**. Es una **fracción**, no alumnos absolutos. Y el `indice_riesgo` va de
+**0.1637 a 0.5615** — deja de estar saturado, que era el síntoma con el que BUG-017 detuvo
+correctamente la publicación.
+
+### 8.ter.2 AC-002.4 verificado
+
+El criterio que no se podía comprobar —"DB-03 permite drill-down a una escuela por CCT y
+muestra su perfil, drivers, predicción y recomendación"— hoy se comprueba:
+
+| Qué | Resultado |
+|---|---|
+| `cobertura_prediccion = OK` | **55** escuelas (ciclo 2024-2025) |
+| `cobertura_prediccion = SIN_DATO` | **90** (los ciclos sin predicción — correcto, no un hueco) |
+| Charts de DB-03 y DB-04 con datos | **24/24** |
+| Bloques de predicción y recomendación | pueblan con datos reales de `gold.predicciones` |
+
+Reproducible **solo con fixtures del repositorio**, que es lo que BUG-013 exigía y no se podía:
+los tres fixtures de Formato 911 dan `gold.features_escuela` con 145 filas y 3 ciclos, y
+`publicar_gold --desde-gold` publica 55 + 55. Mismas cifras que obtuvo Héctor Morales el mismo
+día por su cuenta, que es la comprobación de que no es un ambiente afortunado.
+
+### 8.ter.3 KPI-02 concuerda por cinco caminos (BUG-031)
+
+| Origen | KPI-02 |
+|---|---|
+| `gold.fact_escuela_ciclo` (fuente de verdad) | **−0.192 %** |
+| `gold.cubo_matricula` → DB-01, DB-06 | **−0.192 %** |
+| `gold.cubo_riesgo_territorial` → DB-02 | **−0.192 %** |
+| `gold.cubo_escuela_360` → DB-03 | **−0.192 %** |
+| `gold.cubo_comparador_municipio` → DB-04 | **−0.192 %** |
+
+Sobre 32 312 / 32 374 alumnos: los mismos valores del reporte original del 29-ago.
+
+### 8.ter.4 La regla `SIN_DATO` aguanta de punta a punta
+
+| Driver | Escuelas `SIN_DATO` | Por qué |
+|---|---|---|
+| D1 · pobreza | 145 / 145 | CONEVAL no ingerible desde los fixtures del repo |
+| D2 · inseguridad | 0 / 145 | SESNSP con dato |
+| D3 · infraestructura | 12 / 145 | cobertura parcial de CEMABE |
+| D4 · conectividad | 12 / 145 | cobertura parcial de CEMABE |
+| D5 · agua | 145 / 145 | CONAGUA no ingerida |
+| D6 · aire | 140 / 145 | SINAICA cubre ~80 zonas urbanas |
+
+Y lo que de verdad importa: **cero casos** en que un driver marcado `SIN_DATO` traiga un valor.
+Donde el Estado no mide, el tablero lo dice; no inventa un cero.
+
+### 8.ter.5 Lo que NO cierra con esto
+
+- `en_riesgo = 0` en las 55 escuelas con predicción. **No es un defecto**: el riesgo máximo es
+  0.5615 y el umbral de DEC-006 es 0.60. Con datos de fixture nadie lo cruza. Con los datos
+  reales de Diana el resultado puede ser otro, y conviene revisarlo antes de la demo.
+- El criterio de cierre por URL pública **no aplica** a US-212: Edgar lo precisó el 29-ago —
+  ese gate se escribió para rutas HTTP de la API. Un tablero cierra con evidencia de código
+  más capa de datos validada.
+
+---
+
+## 8.bis Navegación cruzada — US-214a
+
+> Sección añadida el 2026-09-03 al implementar US-214a. El contrato de rutas vive en el
+> bloque `drill_down:` de `superset/semantic/metrics_db03_db04.yaml`, con el `estado` de
+> cada una; aquí queda el **porqué** y lo que hay que pedirle a quién.
+
+### 8.bis.1 Por qué un `<a href>` y no una función de Superset
+
+Superset **no tiene** navegación entre tableros. El *cross-filtering* y el *Drill to Detail*
+nativos operan **solo dentro del mismo tablero**, y la propuesta de una columna tipo enlace
+(SIP-77) fue rechazada. El único mecanismo disponible es una **columna calculada con un
+`<a href>`** que lleva el parámetro `native_filters` codificado en RISON, más
+`allow_render_html: true` en el chart. Lo estableció Monserrat Miranda en US-214b
+(DB-05 → DB-08), verificado contra Superset 6.1.0 real; US-214a **reusa ese patrón**.
+
+### 8.bis.2 La fragilidad que hay que conocer
+
+Los IDs de filtro nativo los genera `_filtros_nativos()` **por posición**:
+`NATIVE_FILTER-US203-{índice}` sobre `filtros_globales` del tablero **destino**.
+
+> **Reordenar o insertar un filtro en medio de esa lista rompe la navegación en silencio.**
+> El link sigue existiendo y sigue navegando, pero preselecciona la columna equivocada. No
+> hay error en el sync, ni en la API, ni en la consola del navegador.
+
+Por eso: **todo filtro nuevo se agrega al final de la lista**, y la correspondencia
+índice ↔ columna está protegida por `tests/test_drill_down_db03_db04.py`.
+
+Índices vigentes:
+
+| Tablero | 0 | 1 | 2 | 3 | 4 |
+|---|---|---|---|---|---|
+| **DB-03** | `cct` | `id_ciclo` | `nombre_entidad` | `nivel` | `cve_mun` ← US-214a |
+| **DB-04** | `id_ciclo` | `nombre_entidad` | `nombre_municipio` | `nivel` | `cve_mun` ← US-214a |
+
+Ambos valores viajan citados con `%27`: `cve_mun` (`09002`) e `id_ciclo` (`2024-2025`)
+tienen forma que RISON obliga a citar, y es el mismo reemplazo que hace el backend de
+Superset en `reports/models.py`.
+
+### 8.bis.3 Corrección de contrato: `DB-04 → DB-03`
+
+US-211a declaró esta ruta con llave **`cct`**, y es **imposible**: DEC-008 fijó el grano de
+`cubo_comparador_municipio` en `[cve_mun, nivel, id_ciclo]` y ese cubo **no tiene columna
+`cct`**. La llave real es **`cve_mun`** — desde un municipio se baja a *sus* escuelas y el
+usuario elige cuál; por eso el link deja libre el filtro `cct` de DB-03 a propósito.
+
+El contrato quedó corregido y hay una prueba que rechaza la **clase** de error, no solo esta
+instancia: `test_ninguna_ruta_declara_una_llave_que_el_cubo_de_origen_no_tiene`.
+
+### 8.bis.4 Estado de las siete rutas
+
+| Ruta | Llave | Estado | Qué falta |
+|---|---|---|---|
+| DB-03 → DB-04 | `cve_mun` | ✅ implementado | — |
+| DB-04 → DB-03 | `cve_mun` | ✅ implementado | — |
+| DB-03 → DB-06 | `[cct, id_ciclo]` | ⬜ bloqueado | **Manuel Serranía**: DB-06 no expone filtro `cct` |
+| DB-03 → DB-09 | `[cct, id_ciclo]` | ⬜ bloqueado | **Manuel Serranía**: DB-09 no expone filtro `cct` |
+| DB-01 → DB-03 | `cct` | ⬜ ajeno | El link vive en el SQL de DB-01 (Manuel) |
+| DB-02 → DB-03 | `cct` | ⬜ ajeno | El link vive en el SQL de DB-02 (Manuel) |
+| DB-02 → DB-04 | `cve_mun` | ⬜ ajeno | Origen de Manuel; **el destino ya está listo** (`cve_mun`, índice 4) |
+
+### 8.bis.5 Dependencia operativa: BUG-037
+
+Al agregar una columna a un `.sql` de `superset/semantic/`, `sync_semantic_layer.py`
+actualiza el texto del SQL pero **no vuelve a leer las columnas del dataset**. Los charts
+revientan con `Columns missing in dataset: ['link_db04']`, y el error **solo aparece al
+abrir el tablero**, nunca en la corrida del sync. Reproducido el 2026-09-03 al construir
+esta historia, exactamente como lo describe **BUG-037** (abierto, reportado por Monserrat).
+
+Mitigación mientras siga abierto: `PUT /api/v1/dataset/<id>/refresh` después del sync.
+El arreglo de fondo toca `sync_semantic_layer.py`, que es herramienta compartida de la
+Célula 2 — requiere acuerdo con Manuel Serranía antes de tocarla.
+
+---
+
 ## 9. Trazabilidad
 
-- **Implementa:** US-211a (REQ-002)
+- **Implementa:** US-211a (REQ-002) · US-214a (navegación cruzada, §8.bis)
 - **Consume:** [[vault/03_Architecture/Data_Model]] §4 · [[vault/04_UX_Design/Screen_Specs]] §4 · [[vault/15_ML_Models/Indice_Riesgo_ML01]]
 - **Alimenta:** US-212 (construcción de DB-03/DB-04), US-214a (filtros y drill-down), US-215a (usabilidad)
 - **Insumo para:** US-113 (construcción de los cubos, Célula 1)

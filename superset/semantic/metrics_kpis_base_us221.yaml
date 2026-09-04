@@ -44,7 +44,7 @@ tarjetas:
   - kpi: KPI-02
     etiqueta: "Variación de matrícula"
     formato_d3: ",.1%"
-    nota: "Razón (fracción, nunca *100) · DEC-008: SUM(variacion_x_matricula)/SUM(matricula_total)."
+    nota: "Razón (fracción, nunca *100) · DEC-008/BUG-031: SUM(matricula_total)/NULLIF(SUM(suma_matricula_anterior), 0) - 1."
     fuente:
       dataset: db01_cubo_matricula
       metrica: variacion_ponderada_pct

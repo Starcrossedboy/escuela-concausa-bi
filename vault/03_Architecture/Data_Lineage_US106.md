@@ -2,12 +2,12 @@
 id: DOC-LINEAGE
 title: "Linaje de datos completo — fuente → dashboard (US-106)"
 owner: "Diana Aracely Alvarez Varela"
-status: draft
-version: "0.1"
+status: approved
+version: "1.0"
 source_of_truth: true
 traces_up: ["US-106", "vault/03_Architecture/Data_Model", "REQ-001"]
 traces_down: ["vault/02_Requirements/Traceability_Matrix"]
-last_reviewed: "2026-08-23"
+last_reviewed: "2026-09-04"
 tags: [architecture, lineage, freeze, us-106]
 ---
 
@@ -23,12 +23,22 @@ tags: [architecture, lineage, freeze, us-106]
 
 ## 1. Estado de este documento
 
-**`status: draft`** — no es un freeze todavía. US-106 vence en el **Sprint S5 (31 ago – 6 sep
-2026)**; el freeze real se declara el **6 de septiembre**, una vez cerrados los pendientes de la
-§4. Este documento se prepara ahora (23-ago) porque el esquema Gold ya está mayormente estable y
-no tiene sentido esperar al último día para documentar el linaje — pero **declarar el freeze hoy
-sería prematuro** mientras sigan abiertos BUG-009, la materialización de los 4 cubos de DEC-009 y
-el PR de Monserrat.
+**`status: approved`** — freeze declarado el **2026-09-04**, dos días antes del objetivo original
+del Sprint S5 (6-sep-2026). Los 5 ítems sustantivos del checklist de §4 quedaron cerrados con
+evidencia real y verificada dos veces (por Deni Garrido Fragoso el 30-ago, y reproducidos en vivo
+por Diana Alvarez Varela el 2026-09-04 con los mismos resultados): los 4 cubos de DEC-009
+materializados y probados (134/134 tests), y `coneval_periodo_medicion` resuelto de raíz. No
+tenía sentido esperar al 6-sep sin ninguna verificación pendiente real — declarar antes le da a
+**C2** (Superset), **C3** (ML) y **C4** (API) más días de esquema Gold estable antes de la demo
+del 9-sep, y queda antes del *code freeze* general del proyecto (también 6-sep, `CLAUDE.md`).
+
+**Transparencia sobre un pendiente no bloqueante:** `RISK-008` en
+[[vault/10_Risk_Governance/Risk_Register]] todavía muestra `abierto` — Diana le pidió directamente
+a Deni (dueña de DS-07) que lo cierre formalmente, pendiente al momento de este freeze. La
+sustancia del riesgo (confirmar `coneval_periodo_medicion` contra la fuente oficial) **ya está
+resuelta y verificada**, ver arriba — lo que falta es solo la actualización de esa fila del
+registro, no una verificación adicional. Se declara el freeze con este pendiente a la vista, no
+oculto.
 
 ## 2. Cómo leer el diagrama
 
@@ -259,7 +269,8 @@ No declarar el freeze hasta que:
       desalineado con esta evidencia; ya se avisó a Deni para que lo cierre formalmente
 - [x] El PR de Monserrat (`feat/monserrat-olivas-us211b-cubos-db05-db08`) esté abierto y su SQL de
       `cubo_driver` revisado — PR #73, revisado y aprobado por Manuel Serranía, mergeado el 2026-08-23
-- [ ] Este documento pase de `status: draft` a `status: approved` con fecha de freeze real
+- [x] Este documento pase de `status: draft` a `status: approved` con fecha de freeze real
+      — **declarado 2026-09-04** (ver §1)
 
 ## 5. Qué significa "congelar" el esquema
 

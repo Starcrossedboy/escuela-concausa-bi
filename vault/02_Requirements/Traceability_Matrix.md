@@ -105,20 +105,40 @@ tags: [requirements, traceability, matrix]
 
 ## Estado del proyecto
 
+> **Derivado, no capturado.** Las cifras de abajo salen de
+> [[vault/12_Roadmap_Sprints/Execution_Status]] a través de `scripts/generate_pm_dashboard.py`;
+> se refrescan con el tablero y **no se editan a mano**. La versión anterior de este bloque llevaba
+> cifras de planeación de agosto —"0 REQ Done", "7/7 pendientes de ejecución"— tres semanas después
+> de que dejaran de ser ciertas: un tablero de control desactualizado desinforma más que uno ausente,
+> porque parece dato. Corregido al cerrar `US-004` el 2026-09-05.
+
+**Corte: 2026-09-05 · 88 historias en alcance (91 en catálogo − 3 recortadas por `DEC-014`)**
+
+| REQ | Módulo | US hechas | Avance | Puntos asegurados |
+|---|---|---|---|---|
+| `REQ-001` | Data Engineering | 16 / 18 | 92.5 % | **2.31** / 2.5 |
+| `REQ-002` | Frontend BI | 15 / 19 | 89.5 % | **2.24** / 2.5 |
+| `REQ-003` | Modelos ML | 2 / 10 | 66.0 % | **0.99** / 1.5 |
+| `REQ-004` | Backend, API y Auth | 6 / 12 | 72.5 % | **1.09** / 1.5 |
+| `REQ-005` | Despliegue GCP | 2 / 12 | 47.1 % | **0.47** / 1.0 |
+| `REQ-006` | Agente conversacional | 1 / 4 | 73.8 % | **0.37** / 0.5 |
+| `REQ-007` | Equipo, Git y documentación | 8 / 13 | 74.2 % | **0.37** / 0.5 |
+| | **Total** | **50 / 88** | **76.4 %** | **7.84 / 10** |
+
 | Métrica | Valor |
 |---|---|
-| REQ totales | 7 |
-| REQ con **planeación completa** (AC + US + arquitectura) | **6 / 7** |
-| REQ con hueco de planeación | **1 / 7** (REQ-005: falta `System_Design.md`) |
-| REQ **pendientes de ejecución** (sin Release completo) | **7 / 7** |
-| REQ con Test | 1 / 7 |
-| REQ con DevLog | 1 / 7 |
-| REQ **Done** | 0 / 7 |
-| Historias mapeadas | 91 / 91 (cobertura 7/7 módulos) |
+| Historias mapeadas | 88 / 88 en alcance · 3 recortadas (`US-413`, `US-414`, `US-525a`) |
+| Estados | 50 `done` · 20 `in_review` · 12 `in_progress` · 6 `planned` · 0 `blocked` |
+| REQ con planeación completa | 7 / 7 — `System_Design.md` cerró el hueco de `REQ-005` |
+| Readiness de la demo | 75 / 100 · **2 gates en rojo** |
+| Gates en rojo | Tres modelos registrados (`REQ-003`) · Dry-run y contingencia (`US-006`) |
+| Bloqueos abiertos | 1 — `BLOCK-005` (cubos no materializados en Cloud SQL) |
 
-> **Lectura:** la **planeación** está prácticamente cerrada (6 de 7 REQ con cobertura completa); la
-> **ejecución** arrancó en REQ-007, pero aún hay 0 REQ Done. El único hueco es la **arquitectura de despliegue de
-> REQ-005**, que se resolverá al escribir `vault/03_Architecture/System_Design.md`.
+> **Lectura:** los dos módulos de mayor peso —Data Engineering y Frontend BI— están sobre 89 % y
+> aportan **4.55 de los 5.0 puntos** que valen juntos. El riesgo no está donde hay más historias
+> abiertas, sino en los **dos gates en rojo**: sin los tres modelos registrados se cae un cuarto del
+> readiness, y `US-006` (ensayo de la demo) no ha arrancado a cinco días de presentar. `REQ-005` es
+> el módulo con menor avance (47.1 %), y es también donde vive el hueco de desplegar FARO Web.
 
 ## Evidencia incremental — 2026-08-28 · etiqueta real y verificación E2E
 
@@ -460,3 +480,12 @@ tags: [requirements, traceability, matrix]
 | REQ | Historias | Evidencia de prueba | DevLog | Estado |
 |---|---|---|---|---|
 | `REQ-002` | `US-203`, `US-204`, `US-211a`, `US-211b`, `US-222` | Edgar reportó (mismo aviso a Manuel) revisar tiles "total" de matrícula/escuelas sin filtro de ciclo vigente. Verifiqué dos veces la afirmación de Manuel por Teams ("ya quedó... 2024-2025 como default") contra `git fetch`/diff de ramas/PRs abiertos vía API y contra Superset en vivo — en ambas ocasiones no encontré evidencia, porque el fix real (**BUG-047**, `dev/manuel-serrania`) llegó a `main` después de esas dos verificaciones. Diagnostiqué la causa raíz por mi cuenta antes de verlo y, al sincronizar con `main`, encontré que ya estaba registrado — retracté mi propio número duplicado (`BUG-050`) por DEC-013 y consolidé mi evidencia dentro de `BUG-047` ([[vault/06_Quality_Testing/Bug_Register]]), mismo criterio que usó Héctor con BUG-041→043. Aporté una mejora aditiva: el mecanismo de Manuel/Marina (`valor_por_defecto`, estático, "hay que actualizar este valor a mano cada ciclo") queda como respaldo; agregué `default: ultimo_ciclo` en `_filtros_nativos()`, que resuelve el valor más reciente dinámicamente contra los datos reales vía `/api/v1/chart/data` y tiene prioridad cuando puede resolver. Preservé la firma y las pruebas existentes (`tests/test_filtro_ciclo_por_defecto.py` sigue pasando sin tocarlo). Verificado antes/después en los 9 datasets con métrica de conteo absoluto de los 9 dashboards con `id_ciclo` (tabla completa en `BUG-047`); DB-10 confirmado fuera de alcance. Recapturé la evidencia visual de mi propio tablero (DB-07) en `Manual_Usuario_Dashboards.md` v1.3. `tests/test_filtros_nativos_default_dinamico.py` (5 casos nuevos). Suite 872 passed, `vault_lint` limpio | [[vault/_DevLog/2026-09-04-oscar-quiroz-bug047-resolucion-dinamica-ciclo]] | ✅ Mejora aditiva aplicada y verificada sobre el fix ya existente de Manuel/Marina |
+
+
+## Evidencia incremental — 2026-09-05 · US-004 cerrada: cola de validación resuelta y estado al día (PO)
+
+| REQ | Historias | Evidencia / decisión | Próxima validación | Estado |
+|---|---|---|---|---|
+| `REQ-007` | `US-004` | **Se resuelve el acuerdo pendiente de [[vault/13_Reports/US_Validation_Followup_2026-08-28]]**, que era el único ítem abierto de esta historia: *"resolver los acuerdos de la tabla, regenerar el tablero y cerrar TEST-002"*. De las **20 historias** que quedaron en la cola de validación del 28-ago, **8 cerraron** (`US-121a`, `US-122a`, `US-123a`, `US-124a`, `US-213`, `US-221`, `US-411`, `US-412`) y **12 están en revisión con PR mergeado**; **ninguna quedó en `in_progress` ni `planned`** ✅ · `TEST-002` (`validate_pm_dashboard.py`) en verde sobre el snapshot regenerado ✅ · El bloque §Estado del proyecto de esta matriz llevaba cifras de agosto ("0 REQ Done", "7/7 pendientes de ejecución") y se sustituyó por cifras **derivadas** de `Execution_Status` vía el generador, no capturadas a mano ✅ · La parte de **mantenimiento** de la historia no se declara terminada: pasa al rol rotativo de `US-005`, que es donde debe vivir | El Vault Steward de cada sprint refresca este bloque con el tablero | ✅ Entregable cerrado; el mantenimiento continúa bajo `US-005` |
+| `REQ-007` | `US-005` | **Rotación del Vault Steward creada**: [[vault/_Meta/Vault_Steward]] con rol, lista de verificación semanal y turnos asignados. **Se registra sin adornos que la rotación no operó en S1–S4** y se documenta el costo medible de esa ausencia, con los hallazgos de esta semana como evidencia: el hueco de `ownership.yml` que apareció **cinco veces**, `guia-ambiente-local/configuracion.env` versionado contra `Secrets_Policy`, la fila mal formada de `BUG-018` que contaba como abierta, tres documentos de ambiente local solapados contra la regla 1, y la colisión de `BUG-049` entre dos personas el mismo día ✅ · Cierra la mitigación de `RISK-006`, que dependía de "linter + steward rotativo" y sólo tenía la mitad | Turno de S6 corre la lista antes del freeze | ✅ Rol definido y turnos asignados |
+| `REQ-007` | `US-004`, `US-005` | **Estado `descoped` introducido** (`DEC-014`): `US-413`, `US-414` y `US-525a` salen del alcance sin marcarse como entregadas. El generador las reporta aparte y el validador exige que **alcance + recortadas = 91**, para que una historia no pueda desaparecer del tablero en silencio ✅ · Alcance 91 → 88, avance 73.5 % → 76.4 % sin afirmar ninguna entrega que no ocurrió | — | ✅ Aplicado y validado |

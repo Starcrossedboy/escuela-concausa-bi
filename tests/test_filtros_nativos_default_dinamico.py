@@ -227,5 +227,5 @@ def test_todo_filtro_de_ciclo_declara_default_dinamico(ruta_yaml: Path) -> None:
         if f.get("columna") == "id_ciclo":
             assert f.get("default") == "ultimo_ciclo", (
                 f"{ruta_yaml.name}: el filtro de id_ciclo debe declarar "
-                f"'default: ultimo_ciclo' (BUG-050) para no triplicar los totales"
+                f"'default: ultimo_ciclo' (BUG-047) para no triplicar los totales"
             )

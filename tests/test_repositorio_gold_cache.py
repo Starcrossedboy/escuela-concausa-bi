@@ -7,6 +7,8 @@ cuántas veces se ejecuta el `SELECT MAX(id_ciclo)`, así que corren sin Postgre
 """
 from __future__ import annotations
 
+from typing import Self
+
 import pytest
 
 from src.api.repositorio_gold import RepositorioGoldPostgres
@@ -29,7 +31,7 @@ class _ConexionFake:
         self._contador["consultas"] += 1
         return _ResultadoFake(self._valor)
 
-    def __enter__(self) -> "_ConexionFake":
+    def __enter__(self) -> Self:
         return self
 
     def __exit__(self, *exc) -> bool:

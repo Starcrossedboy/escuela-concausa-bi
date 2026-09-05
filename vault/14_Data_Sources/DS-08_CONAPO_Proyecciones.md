@@ -83,4 +83,13 @@ tags: [data-source, bronze, conapo, proyecciones]
 - Necesidad de filtrar el grupo de edad escolar correcto para el denominador.
 - Compatibilidad de claves municipales con las demás fuentes.
 
-## 11. Integración Bronze/Postgres para D1/D2 — 2026-09-05 (BUG-048) - Hasta esta fecha, `dbt/models/sources.yml` seguía apuntando `bronze.conapo` al fixture (`conapo_sample`, 36 filas) — el dato real (252,450 registros) nunca había corrido en el pipeline compartido del equipo. - Se resolvió con BUG-048: nuevo loader `cargar_bronze_conapo_real.py` que transforma el parquet real al formato esperado por `poblacion_municipio.sql`, y corrección de `sources.yml` al identifier real. - Resultado: D1 y D2 ahora tienen cobertura completa contra Postgres. `SIN_DATO` bajó de ~36 mil a 0 en los 3 ciclos evaluados.
+## 11. Integración Bronze/Postgres para D1/D2 — 2026-09-05 (BUG-048)
+
+- Hasta esta fecha, `dbt/models/sources.yml` seguía apuntando `bronze.conapo` al fixture
+  (`conapo_sample`, 36 filas) — el dato real (252,450 registros) nunca había corrido en el
+  pipeline compartido del equipo.
+- Se resolvió con `BUG-048`: nuevo loader `cargar_bronze_conapo_real.py` que transforma el parquet
+  real al formato esperado por `poblacion_municipio.sql`, y corrección de `sources.yml` al
+  identifier real.
+- Resultado: D1 y D2 ahora tienen cobertura completa contra Postgres. `SIN_DATO` bajó de ~36 mil
+  a 0 en los 3 ciclos evaluados.

@@ -105,20 +105,49 @@ tags: [requirements, traceability, matrix]
 
 ## Estado del proyecto
 
+> **Transcripción del tablero, con su fecha de corte.** Estas cifras se **copian a mano** desde
+> `vault/13_Reports/data/pm-dashboard.json`, que sí genera `scripts/generate_pm_dashboard.py` a
+> partir de [[vault/12_Roadmap_Sprints/Execution_Status]]. **La cifra viva es la del tablero, no
+> ésta**: si las dos no coinciden, manda el tablero.
+>
+> La primera redacción de esta nota decía "derivado, no capturado… no se editan a mano", y era falsa
+> —lo señaló Marina García al revisar el PR—: el generador **lee** esta matriz para el hash de fuentes
+> y sólo **escribe** `pm-dashboard.json`, `pm-dashboard-history.json` y `TABLERO_CONTROL_PM.html`.
+> Declararlo derivado sin serlo es el mismo defecto que este bloque venía a corregir, un grado peor:
+> una nota que dice que el dato se mantiene solo apaga la sospecha del siguiente lector.
+>
+> Que el generador escriba este bloque entre marcadores queda como follow-up **post-freeze**, no
+> ahora: haría que cada refresco automático del tablero tocara la matriz, y hoy toda evidencia
+> incremental se agrega al final de este mismo archivo — sería una máquina de conflictos a tres días
+> de la demo. Anotado en el punto 7 de [[vault/_Meta/Vault_Steward]].
+
+**Corte del snapshot: `c7c09a1` · 2026-09-05 · 88 historias en alcance (91 en catálogo − 3 recortadas por `DEC-014`)**
+
+| REQ | Módulo | US hechas | Avance | Puntos asegurados |
+|---|---|---|---|---|
+| `REQ-001` | Data Engineering | 16 / 18 | 92.5 % | **2.31** / 2.5 |
+| `REQ-002` | Frontend BI | 15 / 19 | 91.1 % | **2.28** / 2.5 |
+| `REQ-003` | Modelos ML | 2 / 10 | 66.0 % | **0.99** / 1.5 |
+| `REQ-004` | Backend, API y Auth | 6 / 12 | 72.5 % | **1.09** / 1.5 |
+| `REQ-005` | Despliegue GCP | 2 / 12 | 47.1 % | **0.47** / 1.0 |
+| `REQ-006` | Agente conversacional | 1 / 4 | 73.8 % | **0.37** / 0.5 |
+| `REQ-007` | Equipo, Git y documentación | 8 / 13 | 79.2 % | **0.40** / 0.5 |
+| | **Total** | **50 / 88** | **77.4 %** | **7.91 / 10** |
+
 | Métrica | Valor |
 |---|---|
-| REQ totales | 7 |
-| REQ con **planeación completa** (AC + US + arquitectura) | **6 / 7** |
-| REQ con hueco de planeación | **1 / 7** (REQ-005: falta `System_Design.md`) |
-| REQ **pendientes de ejecución** (sin Release completo) | **7 / 7** |
-| REQ con Test | 1 / 7 |
-| REQ con DevLog | 1 / 7 |
-| REQ **Done** | 0 / 7 |
-| Historias mapeadas | 91 / 91 (cobertura 7/7 módulos) |
+| Historias mapeadas | 88 / 88 en alcance · 3 recortadas (`US-413`, `US-414`, `US-525a`) |
+| Estados | 50 `done` · 22 `in_review` · 11 `in_progress` · 5 `planned` · 0 `blocked` |
+| REQ con planeación completa | 7 / 7 — `System_Design.md` cerró el hueco de `REQ-005` |
+| Readiness de la demo | 75 / 100 · **2 gates en rojo** |
+| Gates en rojo | Tres modelos registrados (`REQ-003`) · Dry-run y contingencia (`US-006`) |
+| Bloqueos abiertos | 1 — `BLOCK-005` (cubos no materializados en Cloud SQL) |
 
-> **Lectura:** la **planeación** está prácticamente cerrada (6 de 7 REQ con cobertura completa); la
-> **ejecución** arrancó en REQ-007, pero aún hay 0 REQ Done. El único hueco es la **arquitectura de despliegue de
-> REQ-005**, que se resolverá al escribir `vault/03_Architecture/System_Design.md`.
+> **Lectura:** los dos módulos de mayor peso —Data Engineering y Frontend BI— están sobre 89 % y
+> aportan **4.59 de los 5.0 puntos** que valen juntos. El riesgo no está donde hay más historias
+> abiertas, sino en los **dos gates en rojo**: sin los tres modelos registrados se cae un cuarto del
+> readiness, y `US-006` (ensayo de la demo) no ha arrancado a cinco días de presentar. `REQ-005` es
+> el módulo con menor avance (47.1 %), y es también donde vive el hueco de desplegar FARO Web.
 
 ## Evidencia incremental — 2026-08-28 · etiqueta real y verificación E2E
 
@@ -492,6 +521,20 @@ tags: [requirements, traceability, matrix]
 | `REQ-002` | `US-213`, `US-214b` | **BUG-038 `fixed`** — eran **dos** defectos y por eso las dos hipótesis del 30-ago fallaron, cada una tapaba uno: `ROOT_ID` declarado `type: "TABS"` (Superset espera `ROOT` con el contenedor de tabs aparte) **y** un `GRID-<id>` interpuesto entre cada `TAB` y sus `ROW` (con tabs las filas cuelgan directo del TAB). Árbol corregido a `ROOT_ID(ROOT) → TABS-ROOT → TAB → ROW → CHART`; **cambio aditivo**, `_layout_grilla()` y los 8 tableros del camino plano intactos (suite 886 passed / 0 failed). **Los tests estaban en verde y mentían**: 3 codificaban la estructura defectuosa como la esperada —el registro decía 1— más 3 que dependían del GRID; los 6 reescritos con dos guardas nuevas por defecto. **Verificado en navegador real** contra Superset 6.1.0, que es la lección del bug: 6 tabs navegables con valores propios (D1 52.7 %/18, D4 30.9 %/17) y **los filtros globales llegando a los charts** — Jalisco → 0 de 7, contrastado contra `gold.cubo_driver`, no sólo contra la pantalla | Revisión de Manuel Serranía (dueño de la convención US-202) | ✅ |
 | `REQ-002` | `US-215b`, `US-213` | **BUG-051 dado de alta** (`low`, `open`; ID según DEC-013, BUG-050 era el máximo en `main` tras el sync). La etiqueta del tab activo de DB-05 queda en **4.07:1**, bajo el AA de 4.5:1 para texto normal. Es el acento de Superset, no un color propio, pero el texto lo introdujo US-213 y es el control con el que se navegan los 6 drivers. En el mismo barrido **30 de 32 nodos sí cumplen AA**. No se corrige por cuenta propia: el acento afecta a los 10 tableros y **`UX_Guidelines.md` está vacío con `source_of_truth: true`**, así que hoy no hay paleta oficial contra la cual ratificar un reemplazo | Decisión de Manuel (US-202) + sistema de diseño | 🟡 abierto |
 
+## Evidencia incremental — 2026-09-05 · US-004 cerrada: cola de validación resuelta y estado al día (PO)
+
+| REQ | Historias | Evidencia / decisión | Próxima validación | Estado |
+|---|---|---|---|---|
+| `REQ-007` | `US-004` | **Se resuelve el acuerdo pendiente de [[vault/13_Reports/US_Validation_Followup_2026-08-28]]**, que era el único ítem abierto de esta historia: *"resolver los acuerdos de la tabla, regenerar el tablero y cerrar TEST-002"*. De las **20 historias** que quedaron en la cola de validación del 28-ago, **8 cerraron** (`US-121a`, `US-122a`, `US-123a`, `US-124a`, `US-213`, `US-221`, `US-411`, `US-412`) y **12 están en revisión con PR mergeado**; **ninguna quedó en `in_progress` ni `planned`** ✅ · `TEST-002` (`validate_pm_dashboard.py`) en verde sobre el snapshot regenerado ✅ · El bloque §Estado del proyecto de esta matriz llevaba cifras de agosto ("0 REQ Done", "7/7 pendientes de ejecución") y se sustituyó por cifras **derivadas** de `Execution_Status` vía el generador, no capturadas a mano ✅ · La parte de **mantenimiento** de la historia no se declara terminada: pasa al rol rotativo de `US-005`, que es donde debe vivir | El Vault Steward de cada sprint refresca este bloque con el tablero | ✅ Entregable cerrado; el mantenimiento continúa bajo `US-005` |
+| `REQ-007` | `US-005` | **Rotación del Vault Steward creada**: [[vault/_Meta/Vault_Steward]] con rol, lista de verificación semanal y turnos asignados. **Se registra sin adornos que la rotación no operó en S1–S4** y se documenta el costo medible de esa ausencia, con los hallazgos de esta semana como evidencia: el hueco de `ownership.yml` que apareció **cinco veces**, `guia-ambiente-local/configuracion.env` versionado contra `Secrets_Policy`, la fila mal formada de `BUG-018` que contaba como abierta, tres documentos de ambiente local solapados contra la regla 1, y la colisión de `BUG-049` entre dos personas el mismo día ✅ · Cierra la mitigación de `RISK-006`, que dependía de "linter + steward rotativo" y sólo tenía la mitad | Turno de S6 corre la lista antes del freeze | ✅ Rol definido y turnos asignados |
+| `REQ-007` | `US-004`, `US-005` | **Estado `descoped` introducido** (`DEC-014`): `US-413`, `US-414` y `US-525a` salen del alcance sin marcarse como entregadas. El generador las reporta aparte y el validador exige que **alcance + recortadas = 91**, para que una historia no pueda desaparecer del tablero en silencio ✅ · Alcance 91 → 88, avance 73.5 % → 76.4 % sin afirmar ninguna entrega que no ocurrió | — | ✅ Aplicado y validado |
+
+
+## Evidencia incremental — 2026-09-05 · BUG-052: la suite de tableros de Streamlit es intermitente (PO)
+
+| REQ | Historias | Evidencia / decisión de estado | Próxima validación | Estado |
+|---|---|---|---|---|
+| `REQ-002` | `US-206`, `US-214b` | **`BUG-052` dado de alta** (`medium`, `open`; ID según `DEC-013`, `BUG-051` era el máximo en `main`). `tests/test_frontend_dashboards_streamlit.py` falla **2 de cada 6 corridas** sin que cambie el árbol, y **no siempre la misma prueba** — medido por **Marina García** sobre `f2ee9d2`, worktree limpio, mismo intérprete ✅ · Causa raíz **ya documentada en el propio fixture** (`superset_fake`, líneas 66-71): `AppTest` comparte `sys.modules` y `SUPERSET_URL` queda congelada de un puerto efímero ya apagado; la purga de módulos mitiga pero no cierra, y no se limpia `cache_resource` ✅ · **Corroborado de forma independiente antes del reporte**: el docstring del fixture `autouse` de `test_frontend_panel_ml_streamlit.py` ya decía que *"la fragilidad de esa suite es previa"* ✅ · **Corrección de mi propio diagnóstico:** lo declaré "no reproducible" tras **una sola corrida verde**, que es inferencia inválida sobre algo que falla 1 de cada 3. Volví a medir: 12 de 12 en macOS, así que no lo reproduzco aquí — pero eso acota la plataforma, no desmiente el defecto ✅ · **No lo introduce ni lo arregla el PR #234**: sin cambios entre `f2ee9d2` y la punta en ese archivo ni en `src/frontend/**` ✅ | C2 aplica el patrón que ya existe en el repo: limpiar `cache_data` **y** `cache_resource` antes de cada prueba | ⬜ Abierto, de C2 (Manuel Serranía) |
 ## Evidencia incremental — 2026-09-05 · BUG-048 rerun ML sobre Gold post-BUG-045 (C3)
 
 | REQ | Historias | Evidencia / decisión de estado | Próxima validación | Estado |

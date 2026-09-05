@@ -29,3 +29,13 @@ slowapi>=0.1.9   # rate limiting (US-404); el 429 se mapea al ErrorOut uniforme 
 # requirements/celula-3.txt, que el CI no instala. `mlflow` es import diferido a propósito.
 scikit-learn>=1.5
 python-json-logger>=2.0,<3    # US-524a: formateador JSON seguro para Cloud Logging
+
+# Célula 2 - Analytics & BI. Sólo streamlit, y sólo lo que el CI necesita para correr las
+# pruebas de src/frontend/ (test_frontend_auth.py, test_frontend_chat_streamlit.py,
+# test_frontend_dashboards_streamlit.py). Sin él, el CI los salta EN SILENCIO vía
+# `pytest.importorskip("streamlit")` dejando FARO Web sin cobertura efectiva (hallazgo de
+# Marina García / Christian Ruiz, 2026-09-03; verificado: al instalarlo, 14/15 pasan).
+# Se pincha a 1.62.0: versión exacta con la que Christian Ruiz validó los tests. El
+# resto del stack de C2 (apache-superset…) vive en requirements/celula-2.txt, que el CI
+# no instala; `requirements.txt` raíz es el único que lee el CI (ci.yml:85), por eso va aquí.
+streamlit==1.62.0

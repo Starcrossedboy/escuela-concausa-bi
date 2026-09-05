@@ -161,3 +161,68 @@ tablas esperado, filas cruzadas contra lo que ya había corrido en terminal):
   silencioso).
 - Compartir con Deni y Edgar el hallazgo de `cubo_pipeline` reportando DS-08 como falso "OK".
 - Gitignorar o mover fuera del repo los dumps sueltos de esta sesión.
+
+## Actualización — mismo día, más tarde (CONAPO cerrado + sync con `main` + repaso de cierre)
+
+**CONAPO (DS-08) cerrado.** Emilio Galnares compartió por Teams el Parquet real (252,450 filas).
+Verificado antes de programar: las 18 columnas de edad suman exacto `POB_TOTAL` en las 252,450
+filas (0 discrepancias) y el grano real es municipio × sexo × año (2,475 × 2 × 51 = 252,450).
+Nuevo `src/ingesta/cargar_bronze_conapo_real.py`: agrega sexo con `sum()` en el loader (no en
+Silver, para no chocar con el dedup por `_ingested_at` de `poblacion_municipio.sql`, que no suma)
+y normaliza `_source` a `'DS-08_CONAPO'`. Default de `sources.yml` corregido a `'conapo'`
+(commit `19fecc4`). Verificado real contra Postgres: `comp_media` D2 sube de ~0.48 a ~0.62 y
+`d2_sin_dato` cae de ~36,700 a **0** en los 3 ciclos. **BUG-048 queda `fixed` de parte de C1**
+(SESNSP + CONAPO, los dos denominadores de D2) — no se adopta la fuente alterna de GitHub.
+
+**Dump final regenerado y verificado.** `gold_bug048_final1_2026-09-05.sql` (19 tablas: 10 base +
+9 cubos, incluye `cubo_pipeline`), vía el patrón reversible cubo→tabla→dump→restaurar. Verificado
+con evidencia real: 19 `COPY`, 19 `DROP TABLE IF EXISTS`, conteo de filas por tabla cruzado contra
+la corrida en terminal.
+
+**Revisado PR #239 de Emilio** (confirma DS-06/DS-08 en la documentación de fuentes). Comentario
+de revisión redactado y entregado a Diana para publicar y aprobar en GitHub (sin acceso de
+escritura a GitHub desde este ambiente).
+
+**Verificación "100% limpio" solicitada por Diana.** `dbt test --select poblacion_municipio+` →
+218 passed, 2 errors; `pytest tests/ -q` → 884 passed, 7 skipped. Los 2 errores
+(`cubo_recomendaciones_kpi11_parity`, `gold_ml_runtime_recomendaciones_fact_relationship`) **no
+son de C1**: son la consecuencia esperada de que `gold_ml_runtime.recomendaciones` (de Andrés,
+C3) quedó poblado *antes* de la reconstrucción de hoy — autoresuelven cuando C3 vuelva a correr
+`publicar_gold --desde-gold` contra el dump ya entregado.
+
+**Sync con `origin/main` (136 commits, pre-freeze).** `git fetch && git merge origin/main` sobre
+`dev/diana-alvarez`. Antes de mezclar se guardó en `git stash` un cambio local sin relación con
+BUG-048 (UUIDs regenerados de `great_expectations/*.json`/`.yml` y refresco del tablero PM en
+`vault/13_Reports/**`, efecto colateral de correr `pytest`/`dbt` localmente, no un cambio
+intencional) para no bloquear el merge. Dos conflictos reales, ambos resueltos conservando el
+contenido de ambos lados (nunca se descartó nada):
+
+- `Traceability_Matrix.md`: ambos lados agregaron una sección "Evidencia incremental" nueva en el
+  mismo punto de inserción — se conservaron las dos, en orden, y se agregó una fila de
+  actualización con el cierre de CONAPO.
+- `Bug_Register.md`: **hallazgo real, no solo mecánico** — el PM había dado de alta BUG-048 el
+  2026-09-04 ("Producción sirve un Gold empobrecido"), con seguimiento de C3 (Andrés, rerun de
+  ML) ya en la misma fila; esta sesión dio de alta el mismo ID BUG-048 sin saberlo, en paralelo,
+  para el hueco de SESNSP/CONAPO. El merge línea-por-línea dejó **dos filas activas con el mismo
+  ID** en la tabla. Consolidadas en una sola fila que conserva las tres partes (C1 ✅ SESNSP+
+  CONAPO, C3 ✅ rerun de ML, C5 ⬜ pendiente de importar a Cloud SQL/Superset) — mismo criterio
+  que usó Oscar Quiroz al retractar su BUG-050 duplicado de BUG-047 (DEC-013). Detalle completo
+  en la sección `## BUG-048` del registro.
+
+Confirmado sin diff alguno entre el punto de partida de hoy y `HEAD` post-merge en
+`vault/03_Architecture/Data_Lineage_US106.md`: el freeze de US-106 (declarado 2026-09-04) no se
+tocó, y el trabajo de hoy no cambia forma de ninguna tabla Gold (agregar/quitar/renombrar
+columna, cambiar grano) — cae fuera del alcance del freeze por diseño (§5 del propio documento:
+"No aplica a Bronze ni Silver"). `RISK-008` (Deni/CONEVAL) sigue `abierto`, sin cambios, ajeno a
+C1, con fecha objetivo mañana (freeze).
+
+**`.gitignore` corregido** (hallazgo abierto de la entrada anterior): se agregaron patrones
+acotados para los volcados sueltos de esta sesión (`/gold_bug048*.sql`, `/gold_cubos_l2_*.sql`,
+`/dbt/gold_bug048*.sql`, `*.patch`) — verificado con `git check-ignore -v` que ignoran los 8
+archivos sueltos y que **no** afectan ningún modelo dbt real (`sources.yml`,
+`poblacion_municipio.sql` siguen sin ignorar).
+
+**Cambios locales sin relación con BUG-048** (`great_expectations/**`, `vault/13_Reports/**`)
+quedaron en `git stash` (no se descartaron) — no se identificó quién ni cuándo los generó; antes
+de restaurarlos o commitearlos, confirmar con el resto de C1 si son efecto de correr suites
+localmente o un cambio real pendiente de alguien más.

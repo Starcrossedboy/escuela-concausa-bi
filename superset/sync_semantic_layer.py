@@ -750,33 +750,80 @@ def validar_chart(token: str, ds_id: int, chart_cfg: dict) -> bool:
         return False
 
 
+#: Ancho total de la grilla de Superset. Un `ancho: 3` significa "un cuarto de fila".
+ANCHO_GRILLA = 12
+
+
+def _agrupar_en_filas(
+    charts_con_layout: list[tuple[int, str, int, int]],
+) -> list[list[tuple[int, str, int, int]]]:
+    """Agrupa charts consecutivos en filas mientras quepan en los 12 de la grilla.
+
+    **Por qué existe (BUG-049).** Antes cada chart iba en su PROPIA fila, así que el
+    `ancho` declarado no servía para nada: cuatro tarjetas de `ancho: 3` —escritas para ir
+    lado a lado y sumar 12— se apilaban una debajo de otra, cada una ocupando 3/12 con
+    nueve doceavos vacíos a su derecha. El tablero quedaba como una tira vertical de un
+    chart por pantalla, y las columnas del final (las de drill-down de US-214a) quedaban
+    fuera de vista tras un scroll largo.
+
+    Verificado contra el tablero desplegado antes de tocar nada: DB-03 tenía **11 charts
+    en 11 filas**, con anchos 3,3,3,3,6,6,12,6,6,6,6 — el patrón de agrupación ya estaba
+    declarado en los YAML, solo que nadie lo leía.
+
+    El orden se respeta: se abre fila nueva cuando el siguiente chart no cabe. Un chart de
+    `ancho: 12` ocupa su fila entero, igual que antes.
+    """
+    filas: list[list[tuple[int, str, int, int]]] = []
+    actual: list[tuple[int, str, int, int]] = []
+    usado = 0
+    for chart in charts_con_layout:
+        ancho = min(chart[2], ANCHO_GRILLA)
+        if actual and usado + ancho > ANCHO_GRILLA:
+            filas.append(actual)
+            actual, usado = [], 0
+        actual.append(chart)
+        usado += ancho
+    if actual:
+        filas.append(actual)
+    return filas
+
+
 def _layout_grilla(charts_con_layout: list[tuple[int, str, int, int]]) -> dict:
     """Genera position_json v2 con el árbol exacto que espera el frontend:
-    ROOT_ID → GRID_ID → filas → componentes CHART (con parentId en cada nodo)."""
+    ROOT_ID → GRID_ID → filas → componentes CHART (con parentId en cada nodo).
+
+    Desde BUG-049 los charts se agrupan por `ancho` (ver `_agrupar_en_filas`) en vez de
+    ir uno por fila.
+    """
     position: dict[str, Any] = {"DASHBOARD_VERSION_KEY": "v2"}
     rows: list[str] = []
-    for i, (cid, nombre, width, height) in enumerate(charts_con_layout):
+    indice_chart = 0
+    for i, fila in enumerate(_agrupar_en_filas(charts_con_layout)):
         row_id = f"ROW-{i}"
-        comp_id = f"CHART-{i}"
+        hijos: list[str] = []
+        for cid, nombre, width, height in fila:
+            comp_id = f"CHART-{indice_chart}"
+            indice_chart += 1
+            hijos.append(comp_id)
+            position[comp_id] = {
+                "type": "CHART",
+                "id": comp_id,
+                "parentId": row_id,
+                "children": [],
+                "meta": {
+                    "chartId": cid,
+                    "sliceName": nombre,
+                    "width": width,
+                    "height": height,
+                },
+            }
         rows.append(row_id)
         position[row_id] = {
             "type": "ROW",
             "id": row_id,
             "parentId": "GRID_ID",
-            "children": [comp_id],
+            "children": hijos,
             "meta": {"background": "BACKGROUND_TRANSPARENT"},
-        }
-        position[comp_id] = {
-            "type": "CHART",
-            "id": comp_id,
-            "parentId": row_id,
-            "children": [],
-            "meta": {
-                "chartId": cid,
-                "sliceName": nombre,
-                "width": width,
-                "height": height,
-            },
         }
     position["ROOT_ID"] = {"type": "GRID", "id": "ROOT_ID", "children": ["GRID_ID"]}
     position["GRID_ID"] = {
@@ -788,11 +835,33 @@ def _layout_grilla(charts_con_layout: list[tuple[int, str, int, int]]) -> dict:
     return position
 
 
+# Id estable del contenedor de tabs (BUG-038). Estable a propósito: el sync es
+# idempotente y `position_json` se reescribe entero en cada corrida.
+TABS_NODE_ID = "TABS-ROOT"
+
+
 def _layout_tabs(
     tabs: list[tuple[str, str, list[tuple[int, str, int, int]], str | None]]
 ) -> dict:
-    """Genera position_json v2 con tabs (US-213), árbol validado por Manuel Serranía:
-    ROOT_ID(TABS) → TAB-<id> → GRID-<id> → filas → CHART|MARKDOWN.
+    """Genera position_json v2 con tabs (US-213), árbol acordado con Manuel Serranía:
+    ROOT_ID(ROOT) → TABS_ID(TABS) → TAB-<id> → filas → CHART|MARKDOWN.
+
+    **BUG-038 (corregido 2026-09-04).** El árbol anterior era
+    `ROOT_ID(TABS) → TAB-<id> → GRID-<id> → filas`, y tenía dos defectos que
+    Superset no reporta como error: el tablero se sincronizaba en verde y sólo
+    fallaba al abrirlo en un navegador.
+
+    1. `ROOT_ID` se declaraba `type: "TABS"`. Superset espera que la raíz sea
+       `type: "ROOT"` y que el contenedor de tabs sea un nodo aparte colgando de
+       ella. Sin ese nodo intermedio no dibuja la barra de navegación: sólo se
+       veía el primer tab y D2-D6 quedaban inalcanzables desde la interfaz.
+    2. Se interponía un `GRID-<id>` entre cada `TAB` y sus `ROW`. En el árbol de
+       Superset las filas cuelgan **directo del TAB**; el `GRID` sólo existe al
+       nivel de `ROOT` en el camino plano (ver `_layout_grilla()`). Con el GRID en
+       medio, el contenido del tab no se renderiza.
+
+    Los dos se arreglan juntos: corregir sólo (1) hace aparecer la barra pero deja
+    todos los tabs en blanco. El camino plano de `_layout_grilla()` no se toca.
 
     Cambio aditivo: función hermana de `_layout_grilla()`, no la reemplaza — los
     tableros ya sincronizados (camino plano, sin tabs) siguen usando
@@ -811,7 +880,6 @@ def _layout_tabs(
     contador = 0
     for tab_id, tab_label, charts_con_layout, nota in tabs:
         tab_node_id = f"TAB-{tab_id}"
-        grid_node_id = f"GRID-{tab_id}"
         rows: list[str] = []
 
         if nota:
@@ -821,7 +889,7 @@ def _layout_tabs(
             position[md_row_id] = {
                 "type": "ROW",
                 "id": md_row_id,
-                "parentId": grid_node_id,
+                "parentId": tab_node_id,
                 "children": [md_id],
                 "meta": {"background": "BACKGROUND_TRANSPARENT"},
             }
@@ -841,7 +909,7 @@ def _layout_tabs(
             position[row_id] = {
                 "type": "ROW",
                 "id": row_id,
-                "parentId": grid_node_id,
+                "parentId": tab_node_id,
                 "children": [comp_id],
                 "meta": {"background": "BACKGROUND_TRANSPARENT"},
             }
@@ -857,22 +925,23 @@ def _layout_tabs(
                     "height": height,
                 },
             }
-        position[grid_node_id] = {
-            "type": "GRID",
-            "id": grid_node_id,
-            "parentId": tab_node_id,
-            "children": rows,
-        }
         position[tab_node_id] = {
             "type": "TAB",
             "id": tab_node_id,
-            "parentId": "ROOT_ID",
-            "children": [grid_node_id],
+            "parentId": TABS_NODE_ID,
+            "children": rows,
             "meta": {"text": tab_label},
         }
         tab_node_ids.append(tab_node_id)
 
-    position["ROOT_ID"] = {"type": "TABS", "id": "ROOT_ID", "children": tab_node_ids}
+    position[TABS_NODE_ID] = {
+        "type": "TABS",
+        "id": TABS_NODE_ID,
+        "parentId": "ROOT_ID",
+        "children": tab_node_ids,
+        "meta": {},
+    }
+    position["ROOT_ID"] = {"type": "ROOT", "id": "ROOT_ID", "children": [TABS_NODE_ID]}
     return position
 
 
@@ -1047,12 +1116,50 @@ def _position_con_uuid(position: dict, charts_con_uuid: list[tuple[int, str]]) -
     return position
 
 
-def _filtros_nativos(cfg_dashboard: dict, datasets_uuids: dict[str, str]) -> list[dict]:
+def _resolver_valor_mas_reciente(token: str, ds_id: int, columna: str) -> Any | None:
+    """Resuelve el valor mas reciente de una columna contra los datos reales (ORDER BY DESC LIMIT 1).
+
+    Usado para defaults declarativos tipo `default: ultimo_ciclo`: nunca se hardcodea
+    el ciclo vigente en el codigo -- si hoy responde "2024-2025" y el proximo ciclo
+    carga "2025-2026", el default se mueve solo en la siguiente corrida del sync.
+    """
+    try:
+        resp = _request("POST", "/api/v1/chart/data", token=token, body={
+            "datasource": {"id": ds_id, "type": "table"},
+            "queries": [{"columns": [columna], "orderby": [[columna, False]], "row_limit": 1}],
+        })
+        filas = resp.get("result", [{}])[0].get("data", [])
+        return filas[0].get(columna) if filas else None
+    except Exception as e:  # noqa: BLE001 - sin default dinamico el filtro sigue funcionando, solo sin preseleccion
+        print(f"    ⚠ No se pudo resolver el valor por defecto de '{columna}': {e}")
+        return None
+
+
+def _filtros_nativos(
+    cfg_dashboard: dict,
+    datasets_uuids: dict[str, str],
+    token: str | None = None,
+    datasets_by_name: dict[str, int] | None = None,
+) -> list[dict]:
     """Arma la configuración de filtros nativos globales (AC-002.2).
 
     Formato Superset 6: `filterType: filter_select` (el viejo
     `native_filters.SelectFilter` ya no está registrado) y los targets van por
     `datasetUuid`; el importador v1 los remapea a datasetId.
+
+    Dos formas de fijar un valor por defecto, ambas OPCIONALES y aditivas —
+    un filtro que no declara ninguna se comporta igual que antes:
+
+    - `valor_por_defecto` (US-214a, Marina García): valor(es) explícitos y
+      estáticos en el YAML. Simple, pero "al cargar un ciclo nuevo hay que
+      actualizar este valor" a mano en cada tablero.
+    - `default: ultimo_<algo>` (BUG-047): resuelve el valor dinámicamente
+      contra los datos reales (requiere `token`/`datasets_by_name`; sin
+      ellos, esta rama simplemente no aplica). Nunca queda desactualizado.
+
+    Si un filtro declara ambas, `default` dinámico gana cuando logra
+    resolver un valor; `valor_por_defecto` queda como respaldo si la
+    resolución dinámica no está disponible o falla (sin red, sin token).
     """
     filtros = []
     for i, f_cfg in enumerate(cfg_dashboard.get("filtros_globales", [])):
@@ -1063,7 +1170,7 @@ def _filtros_nativos(cfg_dashboard: dict, datasets_uuids: dict[str, str]) -> lis
                 targets.append({"column": {"name": f_cfg["columna"]}, "datasetUuid": ds_uuid})
         if not targets:
             continue
-        filtro = {
+        filtro: dict[str, Any] = {
             "id": f"NATIVE_FILTER-US203-{i}",
             "name": f_cfg.get("etiqueta", f_cfg["columna"]),
             "filterType": "filter_select",
@@ -1073,26 +1180,30 @@ def _filtros_nativos(cfg_dashboard: dict, datasets_uuids: dict[str, str]) -> lis
             "scope": {"rootPath": ["ROOT_ID"], "excluded": []},
         }
 
-        # `valor_por_defecto` (US-214a) — OPCIONAL y aditivo: un tablero que no lo
-        # declara se comporta exactamente igual que antes.
-        #
-        # Por qué existe: un filtro nativo sin valor inicial deja el tablero SIN filtrar
-        # al abrirlo, y una tarjeta `SUM(matricula_total)` sobre un cubo con varios ciclos
-        # suma TODOS los ciclos. En DB-03/DB-04 eso pintaba 32 312 alumnos donde el ciclo
-        # real tiene 11 828 — 2.7x inflado, sin ningun error visible. Es el mismo defecto
-        # que Luis Tellez reporto el 2026-09-04 sobre `/api/v1/kpis` en produccion
-        # (20.6M contra 6.7M reales); alla se arreglo en la API, pero los tableros no pasan
-        # por la API: leen la base directo, asi que necesitan su propio arreglo.
-        #
-        # `defaultDataMask` es la misma forma que Superset usa en el parametro
-        # `native_filters` de la URL (ver los links de drill-down en
-        # db03_cubo_escuela_360.sql), asi que el formato ya esta verificado contra 6.1.0.
-        if (valor := f_cfg.get("valor_por_defecto")) is not None:
+        # BUG-047: `default: ultimo_<algo>` se documentaba en el contrato semantico
+        # pero nunca se traducia en un defaultDataMask real -- el filtro nacia sin
+        # preseleccion y, con enableEmptyFilter=False + multiSelect=True, Superset
+        # preseleccionaba TODAS las opciones (los 3 ciclos), triplicando cualquier
+        # metrica SUM() aguas abajo (ver tests/test_filtros_nativos_default_dinamico.py).
+        valores: list[Any] | None = None
+        default_cfg = f_cfg.get("default", "")
+        if default_cfg.startswith("ultimo_") and token and datasets_by_name:
+            ds_name = next((d for d in f_cfg.get("datasets", []) if d in datasets_by_name), None)
+            valor = (
+                _resolver_valor_mas_reciente(token, datasets_by_name[ds_name], f_cfg["columna"])
+                if ds_name else None
+            )
+            if valor is not None:
+                valores = [valor]
+
+        # `valor_por_defecto` (US-214a) — respaldo estático si no hubo resolución
+        # dinámica (sin red/token, o el filtro no declara `default: ultimo_*`).
+        if valores is None and (valor := f_cfg.get("valor_por_defecto")) is not None:
             valores = valor if isinstance(valor, list) else [valor]
+
+        if valores is not None:
             filtro["defaultDataMask"] = {
-                "extraFormData": {
-                    "filters": [{"col": f_cfg["columna"], "op": "IN", "val": valores}]
-                },
+                "extraFormData": {"filters": [{"col": f_cfg["columna"], "op": "IN", "val": valores}]},
                 "filterState": {
                     "label": ", ".join(str(v) for v in valores),
                     "validateStatus": False,
@@ -1176,7 +1287,7 @@ def ensure_dashboard(token: str, csrf: str, dash_cfg: dict, datasets_by_name: di
         "filter_bar_orientation": "VERTICAL",
         "color_scheme": "",
     }
-    nativos = _filtros_nativos(dash_cfg, datasets_uuids)
+    nativos = _filtros_nativos(dash_cfg, datasets_uuids, token=token, datasets_by_name=datasets_by_name)
     if nativos:
         json_metadata["native_filter_configuration"] = nativos
 

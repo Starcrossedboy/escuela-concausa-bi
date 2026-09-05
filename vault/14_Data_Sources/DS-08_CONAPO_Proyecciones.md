@@ -15,7 +15,7 @@ tags: [data-source, bronze, conapo, proyecciones]
 
 # DS-08 · CONAPO Proyecciones de Población
 
-> → [[vault/14_Data_Sources/_index]] · Prueba de descarga real **PENDIENTE** (Semana 1)
+> → [[vault/14_Data_Sources/_index]] · Prueba de descarga real **CONFIRMADA** (ver §9, 24/08/2026)
 
 ## 1. Identificación
 - **Nombre oficial:** Proyecciones de la Población de México.
@@ -24,9 +24,9 @@ tags: [data-source, bronze, conapo, proyecciones]
   tasas y normalizar (permite comparar municipios de distinto tamaño).
 
 ## 2. Acceso
-- **URL de descarga:** PENDIENTE-CONFIRMAR (portal esperado: gob.mx/conapo).
-- **Formato:** CSV.
-- **Tamaño aproximado:** PENDIENTE-CONFIRMAR.
+- **URL de descarga:** gob.mx/conapo no ofrece un enlace de descarga fijo/estable para este archivo; se descargó de forma manual desde ese portal (ver limitación en §10).
+- **Formato:** CSV (descarga manual, sin API).
+- **Tamaño aproximado:** 252,450 registros.
 
 ## 3. Frecuencia real de actualización
 - **Anual** (proyección por año; la serie completa se republica al recalibrar).

@@ -33,11 +33,26 @@ FRONTEND = RAIZ / "src" / "frontend"
 
 @pytest.fixture(autouse=True)
 def _ruta_frontend():
-    """`2_Panel_ML.py` importa `auth` y `prediccion_client` como módulos planos."""
+    """`2_Panel_ML.py` importa `auth` y `prediccion_client` como módulos planos.
+
+    **Limpia el estado global de Streamlit al terminar.** `AppTest` comparte el caché de
+    `st.cache_data`/`st.cache_resource` dentro del mismo proceso de pytest, así que una
+    página que deja algo cacheado se lo hereda a la siguiente. `1_Dashboards.py` cachea su
+    guest token con `@st.cache_data(ttl=60)`, y sin esta limpieza estas pruebas le
+    cambiaban el resultado a `test_frontend_dashboards_streamlit.py` según el orden de
+    ejecución. La fragilidad de esa suite es previa —se reproduce en el commit anterior a
+    este—, pero no es correcto que un archivo nuevo la dispare: se limpia lo propio.
+    """
     ruta = str(FRONTEND.resolve())
     if ruta not in sys.path:
         sys.path.insert(0, ruta)
     yield
+    for limpiar in (
+        getattr(streamlit, "cache_data", None),
+        getattr(streamlit, "cache_resource", None),
+    ):
+        if limpiar is not None and hasattr(limpiar, "clear"):
+            limpiar.clear()
 
 
 def _app() -> AppTest:

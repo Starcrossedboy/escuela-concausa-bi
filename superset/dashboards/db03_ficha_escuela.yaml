@@ -40,7 +40,10 @@ dashboards:
         # 11 828 (2.7x), sin ningún error visible. Mismo defecto que Luis Téllez reportó
         # el 2026-09-04 en `/api/v1/kpis` de producción (20.6M contra 6.7M); allá se
         # arregló en la API, pero los tableros leen la base directo y no pasan por ella.
-        # Al cargar un ciclo nuevo hay que actualizar este valor.
+        # BUG-047: `default: ultimo_ciclo` resuelve esto dinámicamente contra los datos
+        # reales y tiene prioridad; `valor_por_defecto` queda como respaldo estático si
+        # la resolución dinámica no está disponible (sin red/token).
+        default: ultimo_ciclo
         valor_por_defecto: "2024-2025"
       - columna: nombre_entidad
         etiqueta: "Entidad"

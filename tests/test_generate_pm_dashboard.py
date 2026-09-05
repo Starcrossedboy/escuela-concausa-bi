@@ -77,7 +77,7 @@ def test_la_evidencia_no_queda_truncada(ejecucion):
 
 
 def test_us004_conserva_su_evidencia_completa(ejecucion):
-    """La fila que destapó el defecto: su texto llega hasta el final.
+    r"""La fila que destapó el defecto: su texto llega hasta el final.
 
     La guarda vigila que el parser cruce los pipes escapados sin cortar la celda, no
     un contenido congelado: US-004 es una historia continua y su fila se actualiza en

@@ -750,33 +750,80 @@ def validar_chart(token: str, ds_id: int, chart_cfg: dict) -> bool:
         return False
 
 
+#: Ancho total de la grilla de Superset. Un `ancho: 3` significa "un cuarto de fila".
+ANCHO_GRILLA = 12
+
+
+def _agrupar_en_filas(
+    charts_con_layout: list[tuple[int, str, int, int]],
+) -> list[list[tuple[int, str, int, int]]]:
+    """Agrupa charts consecutivos en filas mientras quepan en los 12 de la grilla.
+
+    **Por qué existe (BUG-049).** Antes cada chart iba en su PROPIA fila, así que el
+    `ancho` declarado no servía para nada: cuatro tarjetas de `ancho: 3` —escritas para ir
+    lado a lado y sumar 12— se apilaban una debajo de otra, cada una ocupando 3/12 con
+    nueve doceavos vacíos a su derecha. El tablero quedaba como una tira vertical de un
+    chart por pantalla, y las columnas del final (las de drill-down de US-214a) quedaban
+    fuera de vista tras un scroll largo.
+
+    Verificado contra el tablero desplegado antes de tocar nada: DB-03 tenía **11 charts
+    en 11 filas**, con anchos 3,3,3,3,6,6,12,6,6,6,6 — el patrón de agrupación ya estaba
+    declarado en los YAML, solo que nadie lo leía.
+
+    El orden se respeta: se abre fila nueva cuando el siguiente chart no cabe. Un chart de
+    `ancho: 12` ocupa su fila entero, igual que antes.
+    """
+    filas: list[list[tuple[int, str, int, int]]] = []
+    actual: list[tuple[int, str, int, int]] = []
+    usado = 0
+    for chart in charts_con_layout:
+        ancho = min(chart[2], ANCHO_GRILLA)
+        if actual and usado + ancho > ANCHO_GRILLA:
+            filas.append(actual)
+            actual, usado = [], 0
+        actual.append(chart)
+        usado += ancho
+    if actual:
+        filas.append(actual)
+    return filas
+
+
 def _layout_grilla(charts_con_layout: list[tuple[int, str, int, int]]) -> dict:
     """Genera position_json v2 con el árbol exacto que espera el frontend:
-    ROOT_ID → GRID_ID → filas → componentes CHART (con parentId en cada nodo)."""
+    ROOT_ID → GRID_ID → filas → componentes CHART (con parentId en cada nodo).
+
+    Desde BUG-049 los charts se agrupan por `ancho` (ver `_agrupar_en_filas`) en vez de
+    ir uno por fila.
+    """
     position: dict[str, Any] = {"DASHBOARD_VERSION_KEY": "v2"}
     rows: list[str] = []
-    for i, (cid, nombre, width, height) in enumerate(charts_con_layout):
+    indice_chart = 0
+    for i, fila in enumerate(_agrupar_en_filas(charts_con_layout)):
         row_id = f"ROW-{i}"
-        comp_id = f"CHART-{i}"
+        hijos: list[str] = []
+        for cid, nombre, width, height in fila:
+            comp_id = f"CHART-{indice_chart}"
+            indice_chart += 1
+            hijos.append(comp_id)
+            position[comp_id] = {
+                "type": "CHART",
+                "id": comp_id,
+                "parentId": row_id,
+                "children": [],
+                "meta": {
+                    "chartId": cid,
+                    "sliceName": nombre,
+                    "width": width,
+                    "height": height,
+                },
+            }
         rows.append(row_id)
         position[row_id] = {
             "type": "ROW",
             "id": row_id,
             "parentId": "GRID_ID",
-            "children": [comp_id],
+            "children": hijos,
             "meta": {"background": "BACKGROUND_TRANSPARENT"},
-        }
-        position[comp_id] = {
-            "type": "CHART",
-            "id": comp_id,
-            "parentId": row_id,
-            "children": [],
-            "meta": {
-                "chartId": cid,
-                "sliceName": nombre,
-                "width": width,
-                "height": height,
-            },
         }
     position["ROOT_ID"] = {"type": "GRID", "id": "ROOT_ID", "children": ["GRID_ID"]}
     position["GRID_ID"] = {

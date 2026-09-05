@@ -835,11 +835,33 @@ def _layout_grilla(charts_con_layout: list[tuple[int, str, int, int]]) -> dict:
     return position
 
 
+# Id estable del contenedor de tabs (BUG-038). Estable a propósito: el sync es
+# idempotente y `position_json` se reescribe entero en cada corrida.
+TABS_NODE_ID = "TABS-ROOT"
+
+
 def _layout_tabs(
     tabs: list[tuple[str, str, list[tuple[int, str, int, int]], str | None]]
 ) -> dict:
-    """Genera position_json v2 con tabs (US-213), árbol validado por Manuel Serranía:
-    ROOT_ID(TABS) → TAB-<id> → GRID-<id> → filas → CHART|MARKDOWN.
+    """Genera position_json v2 con tabs (US-213), árbol acordado con Manuel Serranía:
+    ROOT_ID(ROOT) → TABS_ID(TABS) → TAB-<id> → filas → CHART|MARKDOWN.
+
+    **BUG-038 (corregido 2026-09-04).** El árbol anterior era
+    `ROOT_ID(TABS) → TAB-<id> → GRID-<id> → filas`, y tenía dos defectos que
+    Superset no reporta como error: el tablero se sincronizaba en verde y sólo
+    fallaba al abrirlo en un navegador.
+
+    1. `ROOT_ID` se declaraba `type: "TABS"`. Superset espera que la raíz sea
+       `type: "ROOT"` y que el contenedor de tabs sea un nodo aparte colgando de
+       ella. Sin ese nodo intermedio no dibuja la barra de navegación: sólo se
+       veía el primer tab y D2-D6 quedaban inalcanzables desde la interfaz.
+    2. Se interponía un `GRID-<id>` entre cada `TAB` y sus `ROW`. En el árbol de
+       Superset las filas cuelgan **directo del TAB**; el `GRID` sólo existe al
+       nivel de `ROOT` en el camino plano (ver `_layout_grilla()`). Con el GRID en
+       medio, el contenido del tab no se renderiza.
+
+    Los dos se arreglan juntos: corregir sólo (1) hace aparecer la barra pero deja
+    todos los tabs en blanco. El camino plano de `_layout_grilla()` no se toca.
 
     Cambio aditivo: función hermana de `_layout_grilla()`, no la reemplaza — los
     tableros ya sincronizados (camino plano, sin tabs) siguen usando
@@ -858,7 +880,6 @@ def _layout_tabs(
     contador = 0
     for tab_id, tab_label, charts_con_layout, nota in tabs:
         tab_node_id = f"TAB-{tab_id}"
-        grid_node_id = f"GRID-{tab_id}"
         rows: list[str] = []
 
         if nota:
@@ -868,7 +889,7 @@ def _layout_tabs(
             position[md_row_id] = {
                 "type": "ROW",
                 "id": md_row_id,
-                "parentId": grid_node_id,
+                "parentId": tab_node_id,
                 "children": [md_id],
                 "meta": {"background": "BACKGROUND_TRANSPARENT"},
             }
@@ -888,7 +909,7 @@ def _layout_tabs(
             position[row_id] = {
                 "type": "ROW",
                 "id": row_id,
-                "parentId": grid_node_id,
+                "parentId": tab_node_id,
                 "children": [comp_id],
                 "meta": {"background": "BACKGROUND_TRANSPARENT"},
             }
@@ -904,22 +925,23 @@ def _layout_tabs(
                     "height": height,
                 },
             }
-        position[grid_node_id] = {
-            "type": "GRID",
-            "id": grid_node_id,
-            "parentId": tab_node_id,
-            "children": rows,
-        }
         position[tab_node_id] = {
             "type": "TAB",
             "id": tab_node_id,
-            "parentId": "ROOT_ID",
-            "children": [grid_node_id],
+            "parentId": TABS_NODE_ID,
+            "children": rows,
             "meta": {"text": tab_label},
         }
         tab_node_ids.append(tab_node_id)
 
-    position["ROOT_ID"] = {"type": "TABS", "id": "ROOT_ID", "children": tab_node_ids}
+    position[TABS_NODE_ID] = {
+        "type": "TABS",
+        "id": TABS_NODE_ID,
+        "parentId": "ROOT_ID",
+        "children": tab_node_ids,
+        "meta": {},
+    }
+    position["ROOT_ID"] = {"type": "ROOT", "id": "ROOT_ID", "children": [TABS_NODE_ID]}
     return position
 
 

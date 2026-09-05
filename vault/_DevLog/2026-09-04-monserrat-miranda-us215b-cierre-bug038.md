@@ -151,8 +151,14 @@ verificable y no marcar nada sin correrlo.
 
 ## Hallazgos fuera de alcance — reportados, no corregidos
 
-1. **`guia-ambiente-local/` no está en ningún verde/amarillo/comunes de `ownership.yml`**: nadie
-   puede tocarla sin que el gate lo repruebe. Mismo hueco ya parchado 4 veces.
+1. **`guia-ambiente-local/` no está en ningún verde/amarillo/comunes de `ownership.yml`.**
+   Verificado ejecutando la propia `coincide()` de `check_ownership.py` contra las 21 personas:
+   `VERIFICACION.md` y `configuracion.env` **no están permitidos para ninguna**. Es el quinto caso
+   del patrón que `ownership.yml` ya documenta cuatro veces (Accessibility.md, Data_Lineage_US106,
+   US-521b, requirements.txt) y está **resuelto a medias**: el 4-sep se agregó a `comunes` el
+   archivo `vault/_Meta/US-521b-guia-ambiente-local.md`, pero no la carpeta de la raíz — que es de
+   **la misma entrega y el mismo dueño** (Edgar Jiménez, según el frontmatter de `VERIFICACION.md`).
+   Su propio autor no puede actualizar su anexo.
 2. ~~`guia-ambiente-local/configuracion.env` versionado~~ — **retirado: no es un hallazgo.** Se
    reportó como incumplimiento de `Secrets_Policy`, pero al verificar el CI antes de dar el aviso
    resultó que el equipo ya lo había resuelto el 3-sep: `ci.yml` lleva una **excepción explícita**
@@ -161,9 +167,13 @@ verificable y no marcar nada sin correrlo.
    que la excepción es del nombre de archivo, no del escaneo—. Se anota el error en lugar de
    borrarlo: la lectura parcial de un comando multilínea del CI casi produce un aviso falso de
    "PRs bloqueados" a dos días del freeze.
-3. **Tres documentos de ambiente local** (`vault/_Meta/US-521b-guia-ambiente-local.md`,
-   `guia-ambiente-local/VERIFICACION.md` y el nuevo `Runbook_Ambiente_Local.md` con
-   `source_of_truth: true`): posible choque con la regla 1.
+3. ~~Tres documentos de ambiente local, posible choque con la regla 1~~ — **retirado: no es un
+   hallazgo.** Al revisar el contenido resultó que los tres tienen alcances distintos y
+   trazabilidad correcta: `Runbook_Ambiente_Local.md` cubre db/api/superset/dbt (canónico,
+   `source_of_truth`), `US-521b-guia-ambiente-local.md` cubre Airflow y jobs ML, y
+   `VERIFICACION.md` es su anexo con `traces_up` explícito hacia ella. Eso es exactamente lo que
+   la regla 1 pide, no lo que prohíbe. El reporte inicial se hizo por los nombres de archivo,
+   sin comparar los contenidos.
 4. **El runbook no corre en Windows** sin `PYTHONUTF8=1` (§2). Tercera aparición del patrón de
    BUG-005 y BUG-011.
 5. **La imagen de `api` queda obsoleta en silencio** (§2): ni el compose ni el runbook fuerzan

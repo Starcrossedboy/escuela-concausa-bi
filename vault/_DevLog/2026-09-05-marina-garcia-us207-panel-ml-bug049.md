@@ -151,3 +151,35 @@ mientras `UX_Guidelines.md` siga vacío. Sin paleta declarada no hay criterio de
 
 - Que Edgar confirme el alcance de US-207 antes del freeze.
 - Cerrar el caso 3.1 cuando exista paleta.
+
+---
+
+## Adenda — el documento de vault que faltaba (misma fecha)
+
+Al verificar qué faltaba de verdad para cerrar las historias, apareció un hueco que yo no
+había visto: **el entregable de US-207 no es solo código.** Su plan de sprint lo dice
+textual — *"Código en `src/frontend/` + **documento en el vault con frontmatter** + fila en
+la matriz"*. El código y la matriz estaban; el documento no existía.
+
+`vault/04_UX_Design/Panel_ML_US207.md` (`DOC-PANEL-ML-US207`), listado en el `_index` de su
+carpeta.
+
+**Por qué en `04_UX_Design` y no en `03_Architecture`.** `Frontend_Architecture.md` cubre
+US-207, pero es de Manuel Serranía y vive en una carpeta que **no está en el alcance de
+Célula 2** — no se puede documentar ahí. Y tampoco conviene: ese documento es el canónico de
+la capa web completa, y el nuevo especifica **una sola página** al nivel de detalle que la
+arquitectura no baja. Es la misma relación que tienen los `Cube_Specs_*` con
+`Data_Model.md`. La regla 1 queda explícita en §1 del documento: si algo se dice en los dos,
+manda `Frontend_Architecture`.
+
+### Hallazgo para Manuel Serranía
+
+`Frontend_Architecture` §5 dice que el front hace **`POST`** a los endpoints de inferencia.
+El contrato real es **`GET /api/v1/predicciones/{cct}`**, verificado en local y en
+producción al construir el cliente. No se corrige desde aquí: `vault/03_Architecture/**` no
+está en el alcance de C2 y el documento es suyo.
+
+### Lo que sigue faltando de US-207
+
+Solo la **ratificación de alcance por el PM**: la historia enuncia tres modelos y se
+entregan dos con el tercero declarado. Todo lo demás del entregable está cerrado.

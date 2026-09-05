@@ -5,7 +5,7 @@ owner: "Edgar Edmundo Coronel Navarrete"
 status: approved
 source_of_truth: true
 traces_up: ["REQ-002", "vault/01_Product/PRD_General_Materia"]
-traces_down: ["vault/04_UX_Design/Accessibility", "US-215a", "US-215b"]
+traces_down: ["vault/04_UX_Design/Accessibility", "US-215a", "US-215b", "DEC-016"]
 last_reviewed: "2026-09-05"
 tags: [ux, design-system, accesibilidad]
 ---
@@ -46,7 +46,7 @@ puedo decir si un contraste cumple si nadie definió el estándar."* Tenía raz�
 | Componentes de interfaz y estados de foco | **3 : 1** | Bordes de control, indicador de foco |
 
 **Se mide sobre el color y el fondo *efectivos* del nodo, no los declarados**, y **en los dos temas**
-—claro y oscuro—: un hallazgo puede estar peor en claro que en oscuro, como pasó con `BUG-049`, así
+—claro y oscuro—: un hallazgo puede estar peor en claro que en oscuro, como pasó con `BUG-051`, así
 que fijar un tema por defecto no resuelve nada.
 
 El indicador de foco de Superset es un `box-shadow`, no un `outline` —que viene en `none`—. Quien
@@ -70,7 +70,7 @@ respalde. El costo supera el beneficio y el riesgo de romper algo visible en la 
 
 ### Consecuencia para la aceptación
 
-De aquí sale la regla que faltaba, y aplica a `US-215a` y `US-215b`:
+De aquí sale la regla que faltaba, registrada como **`DEC-016`** en [[vault/10_Risk_Governance/Decision_Log]]. Aplica a `US-215a` y `US-215b`:
 
 - **Elemento que FARO sí escribe** —notas en markdown dentro de los tabs, subtítulos de KPI, textos
   del panel de ML en Streamlit— que no llegue al umbral: **es un defecto y bloquea**.
@@ -83,7 +83,7 @@ Los dos hallazgos abiertos caen del lado heredado y quedan así clasificados:
 
 | Bug | Medición | Origen | Efecto |
 |---|---|---|---|
-| `BUG-049` | Etiqueta del tab activo de DB-05: **4.07 : 1** oscuro · **3.55 : 1** claro | Color de acento de Superset | Limitación conocida · no bloquea `US-215b` |
+| `BUG-051` | Etiqueta del tab activo de DB-05: **4.07 : 1** oscuro · **3.55 : 1** claro | Color de acento de Superset | Limitación conocida · no bloquea `US-215b` |
 | `BUG-050` | Lighthouse 93 en DB-03: contraste y `<html>` sin `[lang]` | Tema y shell de Superset | Limitación conocida · no bloquea `US-215a` |
 
 Ambos siguen `open` en [[vault/06_Quality_Testing/Bug_Register]] — clasificarlos no es cerrarlos.
@@ -114,4 +114,4 @@ Nada de esto bloquea el *freeze*. Queda escrito para no volver a descubrirlo:
 
 - **Identidad visual propia** (paleta, tipografía, escala) — post-demo, y con la decisión de si vale
   la pena teñir Superset.
-- **`BUG-049` y `BUG-050`** — corrección real del contraste heredado, que es cambio de imagen (C5).
+- **`BUG-051` y `BUG-050`** — corrección real del contraste heredado, que es cambio de imagen (C5).

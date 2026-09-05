@@ -1,11 +1,11 @@
 {
   "meta": {
-    "generated_at": "2026-09-05T16:29:29+00:00",
+    "generated_at": "2026-09-05T17:10:21+00:00",
     "generated_date": "2026-09-05",
-    "commit": "51ce2ea",
+    "commit": "40c77d9",
     "branch": "dev/edgar-coronel",
-    "working_tree": "clean",
-    "source_fingerprint": "88586f9fb8c5",
+    "working_tree": "modified",
+    "source_fingerprint": "e2481613eb70",
     "source": "Fuentes canónicas del vault",
     "offline": true,
     "schema_version": "2.4"
@@ -689,7 +689,7 @@
       "status": "in_review",
       "started": "2026-08-30",
       "blocked_since": "—",
-      "evidence": "PR #228 abierto (dev/monserrat-miranda, 2026-09-05): 13 de 13 casos del plan de usabilidad/accesibilidad ejecutados — 12 ✅, 1 ⚠️, 0 ❌ — y BUG-038 corregido (los 6 tabs de DB-05 se dibujan y navegan). Verificado por el PM sobre el árbol fusionado: 918 passed, 0 failed; la evidencia del filtro contrastada contra la base (Jalisco/D1/2024-2025 → escuelas_driver 0 sobre total_escuelas 7). El ⚠️ quedó como BUG-049→renumerar. No cierra hasta que Manuel Serranía revise sync_semantic_layer.py (herramienta compartida de C2) y se mergee",
+      "evidence": "PR #228 abierto (dev/monserrat-miranda, 2026-09-05): 13 de 13 casos del plan de usabilidad/accesibilidad ejecutados — 12 ✅, 1 ⚠️, 0 ❌ — y BUG-038 corregido (los 6 tabs de DB-05 se dibujan y navegan). Verificado por el PM sobre el árbol fusionado: 918 passed, 0 failed; la evidencia del filtro contrastada contra la base (Jalisco/D1/2024-2025 → escuelas_driver 0 sobre total_escuelas 7). El ⚠️ quedó como BUG-051 (renumerado por DEC-013 y mergeado con el PR #228). No cierra hasta que Manuel Serranía revise sync_semantic_layer.py (herramienta compartida de C2) y se mergee",
       "updated": "2026-09-05",
       "objective": "Pruebas de usabilidad y accesibilidad sobre DB-05 y DB-08.",
       "deliverable": "Código en su carpeta + documento en el vault con frontmatter + fila en la matriz",
@@ -797,7 +797,7 @@
       "status": "in_review",
       "started": "2026-08-07",
       "blocked_since": "—",
-      "evidence": "vault/_DevLog/2026-08-07-edgar-andamiaje-faro-web · vault/03_Architecture/Frontend_Architecture (andamiaje) · PR #232 abierto (dev/marina-garcia, 2026-09-05): pages/2_Panel_ML.py con formulario de CCT llamando a /api/v1/predicciones/{cct} de verdad, cliente propio, vault/04_UX_Design/Panel_ML_US207.md (llega con ese PR, aún no en main) y 3 archivos de pruebas. Alcance ratificado por el PO en DEC-015: cierra con ML-01 y ML-02 servidos y ML-03 declarado SIN_DATO, porque ML-03 no tiene productor (US-321 en curso) y el contrato de la API ya lo documentaba (schemas.py:169, cluster: StrictInt | None). No ratificado: el par de demostración 0.7423/D1 vs 0.6692/D2 es cierto en local y falso en producción, que devuelve 0.129/D3 mientras BUG-048 siga abierto. Cierra al mergear el PR",
+      "evidence": "vault/_DevLog/2026-08-07-edgar-andamiaje-faro-web · PR #232 mergeado (2026-09-05): pages/2_Panel_ML.py llama a /api/v1/predicciones/{cct} de verdad, cliente propio, vault/04_UX_Design/Panel_ML_US207.md y 3 archivos de pruebas — los tres artefactos verificados en main. Alcance ratificado por el PO en DEC-015: cierra con ML-01 y ML-02 servidos y ML-03 declarado SIN_DATO, porque ML-03 no tiene productor (US-321 en curso) y el contrato de la API ya lo documentaba (schemas.py:169, cluster: StrictInt | None). Sigue in_review, y no por el PR: por DEC-012 — el entregable es una superficie desplegada y FARO Web todavía no está publicado (la raíz de la URL pública devuelve 404), así que la ratificación de alcance no basta para cerrarla. Cierra cuando el panel se sirva en el despliegue que se va a demostrar",
       "updated": "2026-09-05",
       "objective": "Formulario de parámetros que llama a la API de inferencia (US-412/US-415) y muestra la salida de los 3 modelos (ML-01/02/03) en FARO Web.",
       "deliverable": "Código en src/frontend/ + documento en el vault con frontmatter + fila en la matriz",

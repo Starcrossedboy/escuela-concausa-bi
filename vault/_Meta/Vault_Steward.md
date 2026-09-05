@@ -27,11 +27,11 @@ lista de verificación una vez por sprint:
 
 | Lo que se degradó | Cómo se manifestó |
 |---|---|
-| `ownership.yml` sin cobertura | El mismo hueco parchado **cinco veces** en dos días: `Accessibility.md` (Marina), `Data_Lineage_US106.md` (Diana), `requirements.txt` (Manuel), `US-521b-guia-ambiente-local.md` (Edgar Jiménez) y `guia-ambiente-local/` (aún sin dueño). Cada vez, alguien no pudo tocar **su propio entregable** |
+| `ownership.yml` sin cobertura | El mismo hueco parchado **seis veces** en tres días: `Accessibility.md` (Marina), `Data_Lineage_US106.md` (Diana), `requirements.txt` (Manuel), `US-521b-guia-ambiente-local.md` (Edgar Jiménez), `UX_Guidelines.md` (el PM sobre su propio documento) y `guia-ambiente-local/` (aún sin dueño). Cada vez, alguien no pudo tocar **su propio entregable** |
 | Secreto versionado | `guia-ambiente-local/configuracion.env` sigue en git contra `Secrets_Policy`. Sin credenciales dentro —verificado—, pero el patrón `*.env` no des-trackea lo ya versionado |
 | Registro mal formado | La fila de `BUG-018` tenía `**fixed**` en la columna de US y `open` en la de estado: **contaba como bug abierto** en cualquier conteo, con el arreglo mergeado desde el 28-ago |
 | Regla 1 rota | Tres documentos de ambiente local solapados: `vault/_Meta/US-521b-guia-ambiente-local.md`, `guia-ambiente-local/VERIFICACION.md` y `Runbook_Ambiente_Local.md` con `source_of_truth: true` |
-| Colisión de IDs | `BUG-049` registrado por dos personas el mismo día para defectos distintos, con `DEC-013` ya escrita justo para evitarlo |
+| Colisión de IDs | `BUG-049` registrado por dos personas el mismo día para defectos distintos, con `DEC-013` ya escrita justo para evitarlo. **Resuelto**: Monserrat Miranda renumeró el suyo a `BUG-051` por su cuenta y entró con el PR #228 |
 | Tablero desinformando | El bloque §Estado del proyecto de la matriz llevaba cifras de agosto —*"0 REQ Done"*— tres semanas después de dejar de ser ciertas |
 
 Ninguno es culpa de quien lo escribió. Son **higiene**, y la higiene sin dueño no ocurre.
@@ -61,8 +61,11 @@ python vault/_Meta/scripts/validate_pm_dashboard.py
    es un conflicto, no una redundancia.
 6. **Huérfanos.** Todo artefacto está en el `_index.md` de su carpeta (regla 4).
 7. **Estado del proyecto al día.** El bloque §Estado del proyecto de
-   [[vault/02_Requirements/Traceability_Matrix]] se refresca con el tablero. **Nunca se captura a
-   mano**: sale de `Execution_Status.md` vía `scripts/generate_pm_dashboard.py`.
+   [[vault/02_Requirements/Traceability_Matrix]] se **transcribe a mano** desde
+   `vault/13_Reports/data/pm-dashboard.json`. El turno lo compara contra el snapshot y lo corrige si
+   se desfasó — se desfasa solo, con cada merge. **Follow-up post-freeze**: que el generador lo
+   escriba entre marcadores y esta comparación deje de existir. Hoy no se hace porque cada refresco
+   automático tocaría la matriz, donde todo el equipo agrega evidencia al final del archivo.
 8. **Secretos.** Ningún `.env` ni credencial versionada — `git ls-files | grep -iE '\.env$'`.
 
 ### Qué entrega

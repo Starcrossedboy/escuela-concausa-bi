@@ -105,37 +105,46 @@ tags: [requirements, traceability, matrix]
 
 ## Estado del proyecto
 
-> **Derivado, no capturado.** Las cifras de abajo salen de
-> [[vault/12_Roadmap_Sprints/Execution_Status]] a través de `scripts/generate_pm_dashboard.py`;
-> se refrescan con el tablero y **no se editan a mano**. La versión anterior de este bloque llevaba
-> cifras de planeación de agosto —"0 REQ Done", "7/7 pendientes de ejecución"— tres semanas después
-> de que dejaran de ser ciertas: un tablero de control desactualizado desinforma más que uno ausente,
-> porque parece dato. Corregido al cerrar `US-004` el 2026-09-05.
+> **Transcripción del tablero, con su fecha de corte.** Estas cifras se **copian a mano** desde
+> `vault/13_Reports/data/pm-dashboard.json`, que sí genera `scripts/generate_pm_dashboard.py` a
+> partir de [[vault/12_Roadmap_Sprints/Execution_Status]]. **La cifra viva es la del tablero, no
+> ésta**: si las dos no coinciden, manda el tablero.
+>
+> La primera redacción de esta nota decía "derivado, no capturado… no se editan a mano", y era falsa
+> —lo señaló Marina García al revisar el PR—: el generador **lee** esta matriz para el hash de fuentes
+> y sólo **escribe** `pm-dashboard.json`, `pm-dashboard-history.json` y `TABLERO_CONTROL_PM.html`.
+> Declararlo derivado sin serlo es el mismo defecto que este bloque venía a corregir, un grado peor:
+> una nota que dice que el dato se mantiene solo apaga la sospecha del siguiente lector.
+>
+> Que el generador escriba este bloque entre marcadores queda como follow-up **post-freeze**, no
+> ahora: haría que cada refresco automático del tablero tocara la matriz, y hoy toda evidencia
+> incremental se agrega al final de este mismo archivo — sería una máquina de conflictos a tres días
+> de la demo. Anotado en el punto 7 de [[vault/_Meta/Vault_Steward]].
 
-**Corte: 2026-09-05 · 88 historias en alcance (91 en catálogo − 3 recortadas por `DEC-014`)**
+**Corte del snapshot: `51ce2ea` · 2026-09-05 · 88 historias en alcance (91 en catálogo − 3 recortadas por `DEC-014`)**
 
 | REQ | Módulo | US hechas | Avance | Puntos asegurados |
 |---|---|---|---|---|
 | `REQ-001` | Data Engineering | 16 / 18 | 92.5 % | **2.31** / 2.5 |
-| `REQ-002` | Frontend BI | 15 / 19 | 89.5 % | **2.24** / 2.5 |
+| `REQ-002` | Frontend BI | 15 / 19 | 91.1 % | **2.28** / 2.5 |
 | `REQ-003` | Modelos ML | 2 / 10 | 66.0 % | **0.99** / 1.5 |
 | `REQ-004` | Backend, API y Auth | 6 / 12 | 72.5 % | **1.09** / 1.5 |
 | `REQ-005` | Despliegue GCP | 2 / 12 | 47.1 % | **0.47** / 1.0 |
 | `REQ-006` | Agente conversacional | 1 / 4 | 73.8 % | **0.37** / 0.5 |
-| `REQ-007` | Equipo, Git y documentación | 8 / 13 | 74.2 % | **0.37** / 0.5 |
-| | **Total** | **50 / 88** | **76.4 %** | **7.84 / 10** |
+| `REQ-007` | Equipo, Git y documentación | 8 / 13 | 79.2 % | **0.40** / 0.5 |
+| | **Total** | **50 / 88** | **77.4 %** | **7.91 / 10** |
 
 | Métrica | Valor |
 |---|---|
 | Historias mapeadas | 88 / 88 en alcance · 3 recortadas (`US-413`, `US-414`, `US-525a`) |
-| Estados | 50 `done` · 20 `in_review` · 12 `in_progress` · 6 `planned` · 0 `blocked` |
+| Estados | 50 `done` · 22 `in_review` · 11 `in_progress` · 5 `planned` · 0 `blocked` |
 | REQ con planeación completa | 7 / 7 — `System_Design.md` cerró el hueco de `REQ-005` |
 | Readiness de la demo | 75 / 100 · **2 gates en rojo** |
 | Gates en rojo | Tres modelos registrados (`REQ-003`) · Dry-run y contingencia (`US-006`) |
 | Bloqueos abiertos | 1 — `BLOCK-005` (cubos no materializados en Cloud SQL) |
 
 > **Lectura:** los dos módulos de mayor peso —Data Engineering y Frontend BI— están sobre 89 % y
-> aportan **4.55 de los 5.0 puntos** que valen juntos. El riesgo no está donde hay más historias
+> aportan **4.59 de los 5.0 puntos** que valen juntos. El riesgo no está donde hay más historias
 > abiertas, sino en los **dos gates en rojo**: sin los tres modelos registrados se cae un cuarto del
 > readiness, y `US-006` (ensayo de la demo) no ha arrancado a cinco días de presentar. `REQ-005` es
 > el módulo con menor avance (47.1 %), y es también donde vive el hueco de desplegar FARO Web.

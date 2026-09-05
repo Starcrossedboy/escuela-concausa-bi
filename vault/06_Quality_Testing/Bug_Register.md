@@ -292,7 +292,7 @@ escala sí.
 
 ## BUG-018 — ML-02 repite el defecto por ventana de BUG-015
 
-Encontrado al simular la corrida completa de Diana, no reportado por ella: es el siguiente muro.
+Encontrado al simular la corrida completa de Diana.
 
 `entrenar_ml02._matriz()` devuelve `df[list(DRIVERS)]` —los seis, siempre— y el bucle de backtesting
 no comprueba la cobertura dentro de la ventana de entrenamiento. Es **el mismo defecto** que BUG-015,
@@ -308,9 +308,10 @@ ValueError: window shape cannot be larger than input array shape
 Se dispara con D6 (aire), que tras la IDW de US-105 sólo cubre el ciclo más reciente y queda vacío en
 el tramo de entrenamiento.
 
-El arreglo es el mismo que ya se aplicó y probó en `entrenar_ml01`: evaluar `drivers_utilizables()`
-sobre la ventana de entrenamiento y entrenar sólo con esos. `entrenar_ml02.py` es de **Andrés González
-Habib**; queda el parche preparado y la reproducción, para que lo aplique quien corresponde.
+El arreglo aplica `drivers_utilizables()` sobre cada ventana de entrenamiento y entrena sólo con
+esas columnas. Andrés González Habib lo implementó en `entrenar_ml02.py`: la cobertura se evalúa por
+ventana y la predicción/SHAP reutiliza `feature_names_in_`. El fix quedó verificado en código y la
+fila canónica del registro marca `BUG-018` como `fixed`.
 
 
 ## BUG-019 — La misma columna en dos unidades según el grano

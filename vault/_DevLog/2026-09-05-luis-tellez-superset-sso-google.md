@@ -110,6 +110,42 @@ curl -s -L http://localhost:8091/login/ | grep -c fa-google               # espe
   va en **PR aparte** (no se mezcla con un cambio de seguridad) tras validar en el smoke que puebla `lang`
   sin cambiar el idioma de la UI.
 
+## Endurecimiento post-merge #235 — guarda *fail-loud* del SSO en prod
+
+En su revisión de **regla 7** sobre el #235 ya mergeado, el PO (Edgar) detectó una **asimetría**:
+`SECRET_KEY` revienta en prod si falta, pero las credenciales SSO caían **en silencio** a `AUTH_DB`.
+"SSO obligatorio" con respaldo silencioso es indistinguible de "el secreto no se inyectó" — el día de la
+demo se vería como una caja usuario/contraseña donde debería decir "Entrar con Google".
+
+**Fix (PR de seguimiento, aparte de BUG-050 por ser cambio de seguridad):** guarda *fail-loud* en
+`docker/superset_config.py`, con el mismo criterio que `SECRET_KEY`, y con salida de rollback **explícita**:
+
+```python
+_SSO_ROLLBACK = os.environ.get("SUPERSET_SSO_ROLLBACK", "").lower() in ("1", "true", "yes", "on")
+if _IS_PROD and not _SSO_ENABLED and not _SSO_ROLLBACK:
+    raise RuntimeError("SSO obligatorio en producción: faltan CLIENT_ID/SECRET; "
+                       "si es rollback deliberado, declara SUPERSET_SSO_ROLLBACK=true.")
+```
+
+- En **prod** sin credenciales SSO ⇒ el arranque **revienta** (y el log dice por qué), salvo que se
+  declare **explícitamente** `SUPERSET_SSO_ROLLBACK=true` (rollback deliberado a `AUTH_DB`).
+- En **local** la guarda no aplica (dev intacto).
+
+**Smoke** (imagen amd64 = la de Cloud Run, importando el módulo dentro del contenedor):
+
+| Escenario | AUTH_TYPE | Resultado |
+|---|---|---|
+| prod · sin SSO · sin rollback | — | `RuntimeError` (no arranca) ✅ |
+| prod · sin SSO · `SUPERSET_SSO_ROLLBACK=true` | 1 (AUTH_DB) | arranca ✅ |
+| prod · con credenciales SSO | 4 (AUTH_OAUTH) | arranca ✅ |
+| local · sin SSO | 1 (AUTH_DB) | arranca ✅ |
+
+Ruff 0.16.6 (versión de CI) + latest + AST + `vault_lint`, todo verde.
+
+**Consecuencia operativa (Bloque 1):** el bootstrap "deploy SSO-OFF para obtener la URL" ahora exige
+`SUPERSET_SSO_ROLLBACK=true`; o se despliega **directo con SSO ON** (recomendado: crear el Client dedicado
+primero y registrar el redirect `…/oauth-authorized/google` cuando ya exista la URL de Cloud Run).
+
 ## 🤖 Sesión de IA
 
 - **Agente / modelo:** Claude Code / claude-opus-4-8.

@@ -84,6 +84,10 @@ curl -s -L http://localhost:8091/login/ | grep -c fa-google               # espe
 - [x] **Rollback sin código:** quitar las env-vars del deploy revierte a `AUTH_DB`.
 - [x] Alcance **C5** respetado: solo `docker/**`; **no** se tocan `superset/dashboards/**` ni
   `superset/semantic/**` (C2).
+- [x] **Gate de ruff verde:** `ruff check` limpio con la versión de CI (**0.16.6**) y con *latest*. Las
+  constantes `AUTH_DB`/`AUTH_OAUTH` se importan en el bloque superior del archivo (evita I001 de forma
+  robusta ante cualquier versión de ruff, ya que `docker/**` no está exonerado en `ruff.toml`); el import
+  de `superset.security` queda diferido dentro del `if _SSO_ENABLED:` por el ciclo de imports de Superset.
 
 ## Avisos a otros owners
 

@@ -19,6 +19,9 @@
 import os
 from urllib.parse import quote_plus
 
+# Constantes de Flask-AppBuilder (modo de autenticación); se usan en §6 (SSO).
+from flask_appbuilder.security.manager import AUTH_DB, AUTH_OAUTH
+
 _ENVIRONMENT = os.environ.get("ENVIRONMENT", "local").lower()
 _IS_PROD = _ENVIRONMENT in ("production", "prod")
 
@@ -117,8 +120,6 @@ if SUPERSET_PUBLIC_READONLY:
 #     ⇒ nadie entra). Mismo patrón que ANALISTA_EMAILS en la API.
 #   • SSO OBLIGATORIO, sin acceso anónimo ⇒ NO se enciende el rol público
 #     (dejar SUPERSET_PUBLIC_READONLY en su default `false`).
-from flask_appbuilder.security.manager import AUTH_DB, AUTH_OAUTH  # noqa: E402
-
 _SSO_CLIENT_ID = os.environ.get("SUPERSET_GOOGLE_CLIENT_ID", "").strip()
 _SSO_CLIENT_SECRET = os.environ.get("SUPERSET_GOOGLE_CLIENT_SECRET", "").strip()
 _SSO_ENABLED = bool(_SSO_CLIENT_ID and _SSO_CLIENT_SECRET)
@@ -172,8 +173,7 @@ if _SSO_ENABLED:
     #   https://<url-de-superset-en-cloud-run>/oauth-authorized/google
     # (se registra en la consola tras el primer deploy, cuando se conoce la URL).
 
-    from superset.security import SupersetSecurityManager  # noqa: E402
-
+    from superset.security import SupersetSecurityManager
     class FaroSsoSecurityManager(SupersetSecurityManager):
         """Restringe el SSO a la lista blanca y asigna rol según el correo."""
 

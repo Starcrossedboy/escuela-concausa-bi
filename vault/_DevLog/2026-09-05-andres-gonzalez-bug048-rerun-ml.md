@@ -64,6 +64,7 @@ una cola minoritaria de outliers del target; no es un ajuste cosmético del porc
 - [x] Partición temporal, nunca aleatoria.
 - [x] `tests/test_entrenar_ml01.py`: 34 passed.
 - [x] `tests/test_publicar_gold.py`: 39 passed.
+- [x] `tests/test_evaluar.py`: 26 passed; reporte canónico regenerado.
 - [x] Ruff limpio en código y prueba modificados.
 - [x] Ocho cubos reconstruidos con dbt; 158/159 pruebas pasaron.
 

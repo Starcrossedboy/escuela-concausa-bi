@@ -5,7 +5,7 @@ author_human: "Monserrat Xcaret Miranda Olivas"
 agent: "Claude Code"
 model: "claude-opus-5"
 session_duration: "sesión larga: contextualización tras la reestructura, ambiente local desde cero, cierre de US-215b y corrección de BUG-038 validada en navegador real"
-touches: ["US-215b", "US-213", "US-214b", "REQ-002", "BUG-038", "BUG-049", "BUG-047"]
+touches: ["US-215b", "US-213", "US-214b", "REQ-002", "BUG-038", "BUG-051", "BUG-047"]
 tags: [devlog, bi, dashboards, superset, qa, accesibilidad, celula-2]
 ---
 
@@ -98,7 +98,7 @@ verificable y no marcar nada sin correrlo.
 - **3.3** pasa: el foco visible de Superset es un `box-shadow`, no un `outline` (que es `none`).
   Quien audite mirando sólo `outline` concluiría falsamente que no hay indicador. Además, un
   `.focus()` programático no dispara `:focus-visible` y no sirve para verificar este caso.
-- **3.1 ⚠️** → BUG-049 nuevo (abajo). Medido en **ambos temas**: el tab activo está **peor en
+- **3.1 ⚠️** → BUG-051 nuevo (abajo). Medido en **ambos temas**: el tab activo está **peor en
   claro (3.55:1) que en oscuro (4.07:1)**, así que no se resuelve fijando un tema por defecto.
 - **3.2 ✅, y el proceso importa.** La alcanzabilidad se midió (6/6 tabs y 3/3 filtros en el orden
   de tabulación, cada tab anunciado como "Tab N of 6"), pero la **activación** quedó deliberadamente
@@ -181,7 +181,7 @@ verificable y no marcar nada sin correrlo.
 6. **BUG-018 tiene la fila mal formada** (`Bug_Register.md`): severidad `high`, estado `open`, y
    `**fixed**` escrito en la columna de US. Se cuenta como abierto en cualquier conteo. Es de C3.
 7. **`vault/04_UX_Design/UX_Guidelines.md` está vacío con `source_of_truth: true`.** Ya lo reportó
-   Marina. Pega directo aquí: sin paleta oficial no hay contra qué ratificar el color de BUG-049.
+   Marina. Pega directo aquí: sin paleta oficial no hay contra qué ratificar el color de BUG-051.
 
 ## Próximos pasos
 

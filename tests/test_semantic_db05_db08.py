@@ -419,7 +419,6 @@ def test_layout_tabs_cada_chart_cuelga_de_una_fila_dentro_de_su_tab(sync, tabs_s
     # D1 en tabs_sinteticos trae nota (1 MARKDOWN) + 2 charts.
     assert tipos_encontrados.count("CHART") == 2
     assert tipos_encontrados.count("MARKDOWN") == 1
-    assert tipos_encontrados.count("MARKDOWN") == 1
 
 
 def test_layout_tabs_nota_es_markdown_estatico_en_la_primera_fila(sync, tabs_sinteticos) -> None:

@@ -70,7 +70,7 @@ Superset embebido (ver exclusiones en §Alcance).
 
 | Caso | Pasos | Esperado | Resultado (✅/⚠️/❌/⏳) | Bug |
 |---|---|---|---|---|
-| 3.1 | Verificar contraste de texto (tiles, tablas, filtros) contra su fondo | Contraste AA (≥ 4.5:1) en el texto principal | ⚠️ (2026-09-04, tema oscuro) — ratio calculado sobre el color y el fondo **efectivos** de cada nodo de texto visible: **30 de 32 cumplen AA**. Fallan 2: `Edit dashboard` **3.41:1** (chrome de Superset, fuera de alcance) y la **etiqueta del tab activo `D1 · Pobreza y rezago social` 4.07:1** — color de acento de Superset, no un color propio del tablero, pero es texto que introdujo US-213. Ver [[vault/06_Quality_Testing/Bug_Register]] BUG-049. **Tema claro pendiente** | BUG-049 |
+| 3.1 | Verificar contraste de texto (tiles, tablas, filtros) contra su fondo | Contraste AA (≥ 4.5:1) en el texto principal | ⚠️ (2026-09-04, **oscuro y claro**) — ratio calculado sobre el color y el fondo **efectivos** de cada nodo de texto visible. **Oscuro: 30/32 cumplen** · **Claro: 31/34 cumplen**. El único fallo que es contenido del tablero —y no chrome de Superset— es la **etiqueta del tab activo**, y **está peor en claro que en oscuro: 3.55:1 vs 4.07:1**, ambos bajo el mínimo de 4.5:1 para texto de 14 px. Los demás fallos son del chrome, explícitamente fuera de alcance: `Edit dashboard` (3.41 oscuro / 3.07 claro) y `Published` (2.16, sólo claro). Ver [[vault/06_Quality_Testing/Bug_Register]] BUG-049 | BUG-049 |
 | 3.2 | Navegar los controles propios de Superset (filtros nativos, tabs, orden de columnas de tabla) solo con teclado (Tab/Enter/flechas) | Todos los controles son alcanzables y operables sin mouse | ⚠️ **parcial** (2026-09-04) — **alcanzabilidad ✅**: 48 elementos enfocables, los **6/6 tabs** y los **3/3 filtros globales** están en el orden de tabulación, y cada tab se anuncia como "Tab N of 6" (posición expuesta a lector de pantalla). **Activación: no concluyente** — ni `Enter` sobre el tab enfocado ni el clic sintético cambian de pestaña en el navegador automatizado, mientras que un `.click()` del DOM sí. El instrumento no entrega eventos de activación a este componente React, así que **no se puede separar "el tablero ignora el teclado" de "el navegador no envía el evento"**: no se marca ✅ ni ❌. Queda para comprobación humana (30 s: Tab hasta un tab, Enter). Nota aparte: las **flechas ← → no mueven entre tabs**; Superset no implementa el patrón ARIA completo de `tablist`, es su componente, no del equipo | |
 | 3.3 | Verificar foco visible al tabular por los controles | El elemento con foco tiene un indicador visual claro | ✅ (2026-09-04) — tabulando con `Tab` real, el elemento activo cumple `:focus-visible` y pinta un anillo `box-shadow: rgb(37,128,155) 0 0 0 2px`. `outline-style` es `none`: el indicador es la sombra, no el outline — quien audite mirando sólo `outline` concluiría falsamente que no hay foco visible. Un `.focus()` programático **no** dispara `:focus-visible` y no sirve para verificar este caso | |
 
@@ -113,7 +113,9 @@ Superset embebido (ver exclusiones en §Alcance).
   automatizado no entrega eventos de clic ni `Enter` a los tabs de React, aunque sí mueve el foco;
   no se marcó ✅ ni ❌ porque el instrumento no permite distinguir el defecto del artefacto de
   medición. Requiere 30 segundos de comprobación humana.
-- **Tema claro sin medir** en §3.1; sólo se midió el oscuro.
+- **§3.1 se midió en los dos temas.** El único fallo que es contenido del tablero —la
+  etiqueta del tab activo— **está peor en claro (3.55:1) que en oscuro (4.07:1)**, así que
+  BUG-049 no se resuelve fijando un tema por defecto.
 
 - **Bugs abiertos:** [[vault/06_Quality_Testing/Bug_Register]] — **BUG-049** (contraste del tab
   activo) nace de esta pasada. **BUG-038** queda listo para cerrarse con esta evidencia.

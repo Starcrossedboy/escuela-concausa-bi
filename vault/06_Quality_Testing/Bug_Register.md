@@ -1648,3 +1648,45 @@ en un ciclo distinto para que las pruebas de regresión lo cubran de verdad).
 **Estado:** corregido en `dev/karla-monter`, con pruebas de regresión (ver tabla arriba). Pendiente
 verificar contra la URL pública tras el próximo deploy — el fix vive en código, no en producción
 todavía.
+
+## BUG-050 — El filtro de Ciclo escolar de Superset nace sin valor por defecto y triplica los totales
+
+**Mismo patrón que BUG-044, pero a nivel de visualización, no de API.** Karla encontró que `/kpis`
+sumaba los 3 ciclos porque no filtraba por `id_ciclo` cuando el caller lo omitía. Superset **no pasa
+por la API** — sus datasets leen `gold.cubo_*` directo — así que ese fix no cubre los tableros.
+
+`metrics_db01_db02.yaml`, `metrics_db03_db04.yaml`, `metrics_db05_db08.yaml`,
+`metrics_db06_db09.yaml` y `metrics_db07.yaml` (5 de 5 archivos con filtro de ciclo) ya declaraban
+`default: ultimo_ciclo` como intención de diseño, pero `_filtros_nativos()` en
+`superset/sync_semantic_layer.py` nunca leía ese campo. El filtro nativo se creaba con
+`enableEmptyFilter: False` + `multiSelect: True` y **sin `defaultDataMask`**, así que Superset
+preseleccionaba las 3 opciones de ciclo al abrir cualquier tablero — cada métrica `SUM()` sobre
+matrícula o escuelas quedaba triplicada (una fila por ciclo × 3 ciclos materializados).
+
+**Afecta 8 de los 10 dashboards** (todos salvo DB-10, que no tiene dimensión de ciclo). Verificado
+en vivo contra Superset y Postgres reales, antes y después del fix:
+
+| Tablero | Dataset | Métrica | Antes (sin default) | Después (ciclo 2024-2025) |
+|---|---|---|---|---|
+| DB-01 | `db01_cubo_matricula` | `matricula_total` | 768,569 | 244,571 |
+| DB-01 | `db01_driver_dominante` | `escuelas` | 4,263 | 1,397 |
+| DB-02 | `db02_cubo_riesgo_territorial` | `matricula_total` | 768,569 | 244,571 |
+| DB-03 | `db03_cubo_escuela_360` | `matricula_total` | 768,569 | 244,571 |
+| DB-04 | `db04_cubo_comparador_municipio` | `matricula_total` | 768,569 | 244,571 |
+| DB-06 | `db06_cubo_predicciones` | `matricula_total` | 768,569 | 244,571 |
+| DB-07 | `db07_cubo_completitud` | `total_escuelas` | 25,578 | 8,382 |
+| DB-07 | `db07_cubo_completitud` | `escuelas_con_dato` | 5,561 | 1,818 |
+| DB-07 | `db07_cubo_completitud` | `escuelas_sin_dato` | 20,017 | 6,564 |
+| DB-08 | `db08_cubo_pivot` | `matricula_total` | 4,611,414 | 1,467,426 |
+| DB-09 | `db09_cubo_recomendaciones` | `matricula_total` | 768,569 | 244,571 |
+
+DB-05 solo expone métricas de porcentaje sobre este dataset (`pct_escuelas_por_driver` y similares);
+no distorsionan porque numerador y denominador se inflan igual. Por la misma razón, KPI-06
+(`% escuelas SIN_DATO`) de DB-07 se mantuvo correcto (78.3% antes y después) — el error es
+exclusivo de los conteos absolutos.
+
+**Severidad:** critical (dato visible al usuario final, no un log interno).
+
+| BUG | Título | Severidad | Estado | US/REQ | Fix (PR) | Test regresión |
+|---|---|---|---|---|---|---|
+| BUG-050 | Filtro de Ciclo escolar de Superset sin `defaultDataMask`; triplica totales de matrícula/escuelas en 8/10 tableros | **critical** | **fixed** | US-203 / US-204 / US-211a / US-211b / US-222 / REQ-002 / AC-002.2 | `dev/oscar-quiroz` (Oscar Quiroz, C2) — `_filtros_nativos()` ahora resuelve `default: ultimo_ciclo` dinámicamente contra `MAX(id_ciclo)` real vía `/api/v1/chart/data` (nunca hardcodeado); se agregó `default: ultimo_ciclo` a los 8 YAML de tablero que ya lo declaraban en su contrato semántico pero no lo traían cableado | `tests/test_filtros_nativos_default_dinamico.py` (5 casos: resolución correcta, sin default no cambia nada, sigue a los datos si el ciclo avanza, un fallo de red no rompe el sync, guardia de que todo YAML de tablero con `id_ciclo` declare el default) |

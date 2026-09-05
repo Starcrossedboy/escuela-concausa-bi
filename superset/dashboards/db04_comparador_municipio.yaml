@@ -33,6 +33,7 @@ dashboards:
       - columna: id_ciclo
         etiqueta: "Ciclo escolar"
         datasets: [db04_cubo_comparador_municipio]
+        default: ultimo_ciclo
       - columna: nombre_entidad
         etiqueta: "Entidad"
         datasets: [db04_cubo_comparador_municipio]

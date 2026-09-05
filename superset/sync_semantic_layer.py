@@ -1047,7 +1047,31 @@ def _position_con_uuid(position: dict, charts_con_uuid: list[tuple[int, str]]) -
     return position
 
 
-def _filtros_nativos(cfg_dashboard: dict, datasets_uuids: dict[str, str]) -> list[dict]:
+def _resolver_valor_mas_reciente(token: str, ds_id: int, columna: str) -> Any | None:
+    """Resuelve el valor mas reciente de una columna contra los datos reales (ORDER BY DESC LIMIT 1).
+
+    Usado para defaults declarativos tipo `default: ultimo_ciclo`: nunca se hardcodea
+    el ciclo vigente en el codigo -- si hoy responde "2024-2025" y el proximo ciclo
+    carga "2025-2026", el default se mueve solo en la siguiente corrida del sync.
+    """
+    try:
+        resp = _request("POST", "/api/v1/chart/data", token=token, body={
+            "datasource": {"id": ds_id, "type": "table"},
+            "queries": [{"columns": [columna], "orderby": [[columna, False]], "row_limit": 1}],
+        })
+        filas = resp.get("result", [{}])[0].get("data", [])
+        return filas[0].get(columna) if filas else None
+    except Exception as e:  # noqa: BLE001 - sin default dinamico el filtro sigue funcionando, solo sin preseleccion
+        print(f"    ⚠ No se pudo resolver el valor por defecto de '{columna}': {e}")
+        return None
+
+
+def _filtros_nativos(
+    token: str,
+    cfg_dashboard: dict,
+    datasets_uuids: dict[str, str],
+    datasets_by_name: dict[str, int],
+) -> list[dict]:
     """Arma la configuración de filtros nativos globales (AC-002.2).
 
     Formato Superset 6: `filterType: filter_select` (el viejo
@@ -1063,7 +1087,7 @@ def _filtros_nativos(cfg_dashboard: dict, datasets_uuids: dict[str, str]) -> lis
                 targets.append({"column": {"name": f_cfg["columna"]}, "datasetUuid": ds_uuid})
         if not targets:
             continue
-        filtros.append({
+        filtro: dict[str, Any] = {
             "id": f"NATIVE_FILTER-US203-{i}",
             "name": f_cfg.get("etiqueta", f_cfg["columna"]),
             "filterType": "filter_select",
@@ -1071,7 +1095,26 @@ def _filtros_nativos(cfg_dashboard: dict, datasets_uuids: dict[str, str]) -> lis
             "controlValues": {"enableEmptyFilter": False, "multiSelect": True},
             "targets": targets,
             "scope": {"rootPath": ["ROOT_ID"], "excluded": []},
-        })
+        }
+        # BUG-050: `default: ultimo_<algo>` se documentaba en el contrato semantico
+        # pero nunca se traducia en un defaultDataMask real -- el filtro nacia sin
+        # preseleccion y, con enableEmptyFilter=False + multiSelect=True, Superset
+        # preseleccionaba TODAS las opciones (los 3 ciclos), triplicando cualquier
+        # metrica SUM() aguas abajo (ver tests/test_filtros_nativos_default_dinamico.py).
+        default_cfg = f_cfg.get("default", "")
+        if default_cfg.startswith("ultimo_"):
+            ds_name = next((d for d in f_cfg.get("datasets", []) if d in datasets_by_name), None)
+            valor = (
+                _resolver_valor_mas_reciente(token, datasets_by_name[ds_name], f_cfg["columna"])
+                if ds_name else None
+            )
+            if valor is not None:
+                filtro["defaultDataMask"] = {
+                    "extraFormData": {"filters": [{"col": f_cfg["columna"], "op": "IN", "val": [valor]}]},
+                    "filterState": {"value": [valor]},
+                    "ownState": {},
+                }
+        filtros.append(filtro)
     return filtros
 
 
@@ -1146,7 +1189,7 @@ def ensure_dashboard(token: str, csrf: str, dash_cfg: dict, datasets_by_name: di
         "filter_bar_orientation": "VERTICAL",
         "color_scheme": "",
     }
-    nativos = _filtros_nativos(dash_cfg, datasets_uuids)
+    nativos = _filtros_nativos(token, dash_cfg, datasets_uuids, datasets_by_name)
     if nativos:
         json_metadata["native_filter_configuration"] = nativos
 

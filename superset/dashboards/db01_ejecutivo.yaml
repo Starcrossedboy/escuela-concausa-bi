@@ -26,6 +26,7 @@ dashboards:
       - columna: id_ciclo
         etiqueta: "Ciclo escolar"
         datasets: [db01_cubo_matricula, db01_distribucion_escuelas, db01_driver_dominante]
+        default: ultimo_ciclo
       - columna: nombre_entidad
         etiqueta: "Entidad"
         datasets: [db01_cubo_matricula, db01_distribucion_escuelas, db01_driver_dominante]

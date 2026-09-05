@@ -27,6 +27,7 @@ dashboards:
       - columna: id_ciclo
         etiqueta: "Ciclo escolar"
         datasets: [db07_cubo_completitud, db07_mapa_vacios]
+        default: ultimo_ciclo
       - columna: nombre_entidad
         etiqueta: "Entidad"
         datasets: [db07_cubo_completitud, db07_mapa_vacios]

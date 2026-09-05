@@ -71,7 +71,7 @@ Superset embebido (ver exclusiones en §Alcance).
 | Caso | Pasos | Esperado | Resultado (✅/⚠️/❌/⏳) | Bug |
 |---|---|---|---|---|
 | 3.1 | Verificar contraste de texto (tiles, tablas, filtros) contra su fondo | Contraste AA (≥ 4.5:1) en el texto principal | ⚠️ (2026-09-04, **oscuro y claro**) — ratio calculado sobre el color y el fondo **efectivos** de cada nodo de texto visible. **Oscuro: 30/32 cumplen** · **Claro: 31/34 cumplen**. El único fallo que es contenido del tablero —y no chrome de Superset— es la **etiqueta del tab activo**, y **está peor en claro que en oscuro: 3.55:1 vs 4.07:1**, ambos bajo el mínimo de 4.5:1 para texto de 14 px. Los demás fallos son del chrome, explícitamente fuera de alcance: `Edit dashboard` (3.41 oscuro / 3.07 claro) y `Published` (2.16, sólo claro). Ver [[vault/06_Quality_Testing/Bug_Register]] BUG-049 | BUG-049 |
-| 3.2 | Navegar los controles propios de Superset (filtros nativos, tabs, orden de columnas de tabla) solo con teclado (Tab/Enter/flechas) | Todos los controles son alcanzables y operables sin mouse | ⚠️ **parcial** (2026-09-04) — **alcanzabilidad ✅**: 48 elementos enfocables, los **6/6 tabs** y los **3/3 filtros globales** están en el orden de tabulación, y cada tab se anuncia como "Tab N of 6" (posición expuesta a lector de pantalla). **Activación: no concluyente** — ni `Enter` sobre el tab enfocado ni el clic sintético cambian de pestaña en el navegador automatizado, mientras que un `.click()` del DOM sí. El instrumento no entrega eventos de activación a este componente React, así que **no se puede separar "el tablero ignora el teclado" de "el navegador no envía el evento"**: no se marca ✅ ni ❌. Queda para comprobación humana (30 s: Tab hasta un tab, Enter). Nota aparte: las **flechas ← → no mueven entre tabs**; Superset no implementa el patrón ARIA completo de `tablist`, es su componente, no del equipo | |
+| 3.2 | Navegar los controles propios de Superset (filtros nativos, tabs, orden de columnas de tabla) solo con teclado (Tab/Enter/flechas) | Todos los controles son alcanzables y operables sin mouse | ✅ (2026-09-04) — **alcanzabilidad**, medida: 48 elementos enfocables, los **6/6 tabs** y los **3/3 filtros globales** en el orden de tabulación, y cada tab se anuncia como "Tab N of 6" (posición expuesta a lector de pantalla). **Activación, verificada a mano por Monserrat Xcaret Miranda Olivas** en Chrome: `Tab` hasta la pestaña + `Enter` **sí cambia de tab**. La comprobación humana era necesaria: el navegador automatizado no entregaba ni `Enter` ni clic a los tabs de React (aunque un `.click()` del DOM sí funcionaba), así que la herramienta habría reportado un falso negativo — **era artefacto de medición, no defecto**. Salvedad real: las **flechas ← → no mueven entre tabs**, Superset no implementa el patrón ARIA completo de `tablist`; no bloquea la operación porque `Tab`+`Enter` cubre el recorrido, y es su componente, no del equipo | |
 | 3.3 | Verificar foco visible al tabular por los controles | El elemento con foco tiene un indicador visual claro | ✅ (2026-09-04) — tabulando con `Tab` real, el elemento activo cumple `:focus-visible` y pinta un anillo `box-shadow: rgb(37,128,155) 0 0 0 2px`. `outline-style` es `none`: el indicador es la sombra, no el outline — quien audite mirando sólo `outline` concluiría falsamente que no hay foco visible. Un `.focus()` programático **no** dispara `:focus-visible` y no sirve para verificar este caso | |
 
 ## Convención de resultados
@@ -98,8 +98,8 @@ Superset embebido (ver exclusiones en §Alcance).
 | | Casos |
 |---|---|
 | **Ejecutados** | **13 de 13** |
-| ✅ pasan | 11 — 1.1, 1.2, 1.3, 1.4, 1.5, 1.6, 2.1, 2.2, 2.3, 2.4, 3.3 |
-| ⚠️ pasan con observación | 2 — 3.1 (contraste, → BUG-049) · 3.2 (alcanzable ✅, activación no concluyente) |
+| ✅ pasan | **12** — 1.1, 1.2, 1.3, 1.4, 1.5, 1.6, 2.1, 2.2, 2.3, 2.4, 3.2, 3.3 |
+| ⚠️ pasan con observación | 1 — 3.1 (contraste del tab activo, → BUG-049) |
 | ❌ fallan | **0** |
 
 - **1.2 y 1.3 pasaron de ❌ a ✅**: eran los dos síntomas de **BUG-038**, corregido en esta misma
@@ -109,10 +109,11 @@ Superset embebido (ver exclusiones en §Alcance).
   estaba roto, porque **codificaban la estructura defectuosa como la esperada**.
 - **El caso 2.1 se reescribió antes de ejecutarlo.** Su esperado era anterior a BUG-047 y habría
   marcado una falla falsa: el Ciclo hoy llega preseleccionado a propósito.
-- **Lo que no se pudo cerrar y por qué:** la *activación* por teclado (§3.2). El navegador
-  automatizado no entrega eventos de clic ni `Enter` a los tabs de React, aunque sí mueve el foco;
-  no se marcó ✅ ni ❌ porque el instrumento no permite distinguir el defecto del artefacto de
-  medición. Requiere 30 segundos de comprobación humana.
+- **§3.2 se cerró con comprobación humana, y hacía falta.** El navegador automatizado no entregaba
+  `Enter` ni clic a los tabs de React —aunque sí movía el foco— y habría reportado un **falso
+  negativo**. Se dejó sin marcar hasta que la autora lo verificó a mano en Chrome: `Tab` + `Enter`
+  cambia de pestaña. Era artefacto de medición, no defecto. Queda como salvedad que las flechas
+  ← → no navegan entre tabs (patrón ARIA incompleto de Superset, no bloquea la operación).
 - **§3.1 se midió en los dos temas.** El único fallo que es contenido del tablero —la
   etiqueta del tab activo— **está peor en claro (3.55:1) que en oscuro (4.07:1)**, así que
   BUG-049 no se resuelve fijando un tema por defecto.

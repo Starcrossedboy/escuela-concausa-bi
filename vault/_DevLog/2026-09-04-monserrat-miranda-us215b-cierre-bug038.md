@@ -85,7 +85,7 @@ dependían del `GRID`. Se reescribieron los 6 y se añadieron dos guardas por de
 
 ## 4. US-215b — 13 de 13 casos ejecutados
 
-11 ✅ · 2 ⚠️ · **0 ❌**. Siguiendo el patrón de Marina García en US-215a: verificar por datos/API lo
+12 ✅ · 1 ⚠️ · **0 ❌**. Siguiendo el patrón de Marina García en US-215a: verificar por datos/API lo
 verificable y no marcar nada sin correrlo.
 
 - **2.4** (`SIN_DATO` nunca cero) se cerró con la prueba discriminante: **309 filas** marcadas
@@ -98,13 +98,15 @@ verificable y no marcar nada sin correrlo.
 - **3.3** pasa: el foco visible de Superset es un `box-shadow`, no un `outline` (que es `none`).
   Quien audite mirando sólo `outline` concluiría falsamente que no hay indicador. Además, un
   `.focus()` programático no dispara `:focus-visible` y no sirve para verificar este caso.
-- **3.1 ⚠️** → BUG-049 nuevo (abajo).
-- **3.2 ⚠️ parcial y no se forzó a ✅.** La alcanzabilidad está verificada (6/6 tabs y 3/3 filtros en
-  el orden de tabulación, cada tab anunciado como "Tab N of 6"), pero la **activación** por teclado
-  quedó no concluyente: el navegador automatizado no entrega ni clic ni `Enter` a los tabs de React,
-  aunque un `.click()` del DOM sí funciona. Con ese instrumento no se puede separar "el tablero
-  ignora el teclado" del artefacto de medición, así que no se marcó ✅ ni ❌. **Requiere 30 s de
-  comprobación humana.**
+- **3.1 ⚠️** → BUG-049 nuevo (abajo). Medido en **ambos temas**: el tab activo está **peor en
+  claro (3.55:1) que en oscuro (4.07:1)**, así que no se resuelve fijando un tema por defecto.
+- **3.2 ✅, y el proceso importa.** La alcanzabilidad se midió (6/6 tabs y 3/3 filtros en el orden
+  de tabulación, cada tab anunciado como "Tab N of 6"), pero la **activación** quedó deliberadamente
+  sin marcar: el navegador automatizado no entregaba ni clic ni `Enter` a los tabs de React, aunque
+  un `.click()` del DOM sí funcionaba, y con ese instrumento no se podía separar el defecto del
+  artefacto de medición. **La autora lo verificó a mano en Chrome: `Tab` + `Enter` sí cambia de
+  pestaña.** Era artefacto, no defecto — de haberlo marcado ❌ se habría abierto un bug inexistente.
+  Salvedad: las flechas ← → no navegan entre tabs (patrón ARIA incompleto de Superset, no bloquea).
 
 ## 🤖 Sesión de IA
 
@@ -146,7 +148,6 @@ verificable y no marcar nada sin correrlo.
   bloqueante suyo, y lo reportó esta autora. Aparece ya en el runbook de ambiente local como
   problema conocido, así que le pega a todo el equipo.
 - **Edgar Coronel (PM):** los hallazgos de §6, todos fuera del alcance de C2.
-- **Comprobación humana pendiente:** activación de los tabs por teclado (§3.2 del plan).
 
 ## Hallazgos fuera de alcance — reportados, no corregidos
 
@@ -170,5 +171,5 @@ verificable y no marcar nada sin correrlo.
 ## Próximos pasos
 
 1. Avisar a Manuel (BUG-038 + dueño de BUG-037) y al PM (hallazgos de arriba) antes del PR.
-2. Comprobación humana de §3.2 y medición del **tema claro** en §3.1.
+2. ~~Comprobación humana de §3.2 y tema claro en §3.1~~ — ambos cerrados el mismo día.
 3. PR desde `dev/monserrat-miranda` con Manuel como reviewer.

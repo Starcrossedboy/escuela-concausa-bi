@@ -153,9 +153,14 @@ verificable y no marcar nada sin correrlo.
 
 1. **`guia-ambiente-local/` no está en ningún verde/amarillo/comunes de `ownership.yml`**: nadie
    puede tocarla sin que el gate lo repruebe. Mismo hueco ya parchado 4 veces.
-2. **`guia-ambiente-local/configuracion.env` sigue versionado en git.** Se revisó: sólo puertos y
-   rutas, **sin credenciales** — riesgo bajo, pero incumple `Secrets_Policy` y necesita
-   `git rm --cached`. El patrón `*.env` que añadió Marina no des-trackea lo ya versionado.
+2. ~~`guia-ambiente-local/configuracion.env` versionado~~ — **retirado: no es un hallazgo.** Se
+   reportó como incumplimiento de `Secrets_Policy`, pero al verificar el CI antes de dar el aviso
+   resultó que el equipo ya lo había resuelto el 3-sep: `ci.yml` lleva una **excepción explícita**
+   (`grep -vxF 'guia-ambiente-local/configuracion.env'`) con la justificación escrita en el propio
+   workflow —contenido verificado sin secretos, y GitLeaks lo sigue escaneando por contenido, así
+   que la excepción es del nombre de archivo, no del escaneo—. Se anota el error en lugar de
+   borrarlo: la lectura parcial de un comando multilínea del CI casi produce un aviso falso de
+   "PRs bloqueados" a dos días del freeze.
 3. **Tres documentos de ambiente local** (`vault/_Meta/US-521b-guia-ambiente-local.md`,
    `guia-ambiente-local/VERIFICACION.md` y el nuevo `Runbook_Ambiente_Local.md` con
    `source_of_truth: true`): posible choque con la regla 1.

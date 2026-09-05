@@ -43,8 +43,8 @@ a lo verificable en un dashboard de Superset embebido. Quedan **excluidos explí
 |---|---|---|---|---|
 | 1.1 | Abrir DB-03 sin tocar nada | Carga sin error, con el **ciclo 2024-2025 ya preseleccionado** en la barra de filtros | ✅ (2026-09-04) — verificado por API: `defaultDataMask` persistido en `NATIVE_FILTER-US203-1` con `val: ['2024-2025']` | |
 | 1.2 | Leer la tarjeta `KPI-15 · Matrícula de la escuela` recién abierto | La cifra corresponde **al ciclo**, no a la suma de todos los ciclos del cubo | ✅ (2026-09-04) — verificado contra `/api/v1/chart/data`: sin filtro devuelve 32 312, con el ciclo devuelve **11 828**. El defecto inflaba 2.73× | |
-| 1.3 | Aplicar los filtros globales (Ciclo, Entidad, Nivel) | Las tarjetas y tablas recalculan según el filtro | ✅ (2026-09-04, Marina en Chrome) — cambiar Entidad y Nivel recalcula todas las tarjetas y tablas. **Hallazgo de layout aparte, no de filtros:** las tarjetas quedan alineadas abajo en vez de arriba, dejando hueco vertical (BUG-048) | |
-| 1.4 | Filtrar por una escuela concreta con el filtro `Escuela (CCT)` | El tablero se vuelve la ficha de esa escuela: perfil, drivers, predicción y recomendación de ese CCT (AC-002.4) | ✅ (2026-09-04, Marina) — con `Escuela (CCT) = 15DJN0049A` el tablero se vuelve la ficha de esa escuela: perfil, 6 drivers, predicción (`indice_riesgo` 0.74, `en_riesgo` true, proyectada −7.60 %) y recomendación. **AC-002.4 verificado en vivo.** Salvedades de presentación en BUG-048 | |
+| 1.3 | Aplicar los filtros globales (Ciclo, Entidad, Nivel) | Las tarjetas y tablas recalculan según el filtro | ✅ (2026-09-04, Marina en Chrome) — cambiar Entidad y Nivel recalcula todas las tarjetas y tablas. **Hallazgo de layout aparte, no de filtros:** las tarjetas quedan alineadas abajo en vez de arriba, dejando hueco vertical (BUG-049) | |
+| 1.4 | Filtrar por una escuela concreta con el filtro `Escuela (CCT)` | El tablero se vuelve la ficha de esa escuela: perfil, drivers, predicción y recomendación de ese CCT (AC-002.4) | ✅ (2026-09-04, Marina) — con `Escuela (CCT) = 15DJN0049A` el tablero se vuelve la ficha de esa escuela: perfil, 6 drivers, predicción (`indice_riesgo` 0.74, `en_riesgo` true, proyectada −7.60 %) y recomendación. **AC-002.4 verificado en vivo.** Salvedades de presentación en BUG-049 | |
 | 1.5 | Revisar la tabla `KPI-16 · Drivers de la escuela y su cobertura` | Donde no hay dato de un driver muestra `SIN_DATO` explícito, **nunca `0`** (regla R2) | ✅ (2026-09-04) — verificado en datos **después del fix de BUG-045**: D5 145/145 `SIN_DATO` (CONAGUA sigue sin ingerir), D6 140/145, D3/D4 12/145, y D1 ya con dato en 145/145. Lo que importa: **cero casos** de driver marcado `SIN_DATO` que traiga valor | |
 | 1.6 | En `Perfil del plantel`, localizar la columna del link a DB-04 | Se ve como texto de link (no HTML crudo), rotulado "Comparar su municipio →" | ✅ (2026-09-04, Marina) — la columna `link_db04` se ve como link azul, rotulado "Comparar su municipio →". No sale HTML crudo | |
 | 1.7 | Hacer clic en ese link | Abre DB-04 en pestaña nueva con Ciclo y Municipio de esa fila preseleccionados | ✅ estructura (2026-09-04) — RISON decodificado con `prison` y contrastado contra el tablero desplegado: `NATIVE_FILTER-US203-0`→`id_ciclo`, `-4`→`cve_mun`, ambos correctos. ✅ **verificado en vivo** (2026-09-04, Marina) — abre DB-04 con `Municipio (clave INEGI) = 15106` y `Ciclo = 2024-2025` ya preseleccionados | |
@@ -70,7 +70,7 @@ Requiere navegador; ninguno automatizable con lo que hay hoy en el proyecto.
 
 | Caso | Pasos | Esperado | Resultado | Bug |
 |---|---|---|---|---|
-| 3.1 | Verificar contraste de texto (tarjetas, tablas, filtros) contra su fondo, en claro y oscuro | Contraste AA (≥ 4.5:1) en el texto principal | 🟡 (2026-09-04, Marina · Lighthouse) — **score 93**. Dos hallazgos: *"Background and foreground colors do not have a sufficient contrast ratio"* y *"`<html>` element does not have a `[lang]` attribute"*. Idéntico en claro y oscuro. El del `lang` es del shell de Superset, no de estos tableros (BUG-049) | |
+| 3.1 | Verificar contraste de texto (tarjetas, tablas, filtros) contra su fondo, en claro y oscuro | Contraste AA (≥ 4.5:1) en el texto principal | 🟡 (2026-09-04, Marina · Lighthouse) — **score 93**. Dos hallazgos: *"Background and foreground colors do not have a sufficient contrast ratio"* y *"`<html>` element does not have a `[lang]` attribute"*. Idéntico en claro y oscuro. El del `lang` es del shell de Superset, no de estos tableros (BUG-050) | |
 | 3.2 | Recorrer los controles de Superset (filtros nativos, orden de columnas, links de drill-down) solo con teclado | Todos alcanzables y operables sin mouse | ✅ (2026-09-04, Marina) — se alcanzan todos los controles solo con Tab | |
 | 3.3 | Verificar foco visible al tabular | El elemento con foco tiene indicador visual claro | ✅ (2026-09-04, Marina) — recuadro azul de foco siempre visible | |
 | 3.4 | Activar el link de drill-down con **Enter** (no con clic) | Navega igual que con el mouse | ✅ (2026-09-04, Marina) — **el link se alcanza con Tab y se activa con Enter**. Era el caso con más riesgo de fallar, porque es un `<a href>` inyectado con `allow_render_html` y no un control nativo de Superset | |
@@ -120,14 +120,14 @@ Primera pasada real con navegador. **De 22 casos, 19 quedan verificados y 3 pend
   verificada por API, pero el salto no se probó — esos charts quedan al final del scroll y
   la sesión no llegó ahí. Pendiente de una segunda pasada corta.
 - **3.1** (contraste): medido con Lighthouse, score **93**. Queda como 🟡 en vez de ✅ porque
-  hay dos hallazgos abiertos, registrados en **BUG-049**.
+  hay dos hallazgos abiertos, registrados en **BUG-050**.
 
 ### Hallazgos registrados
 
 | Bug | Qué | Dueño |
 |---|---|---|
-| **BUG-048** | Tarjetas alineadas al fondo con hueco vertical; tablas anchas exigen scroll horizontal para llegar a las columnas de link | C2 · Marina García |
-| **BUG-049** | Lighthouse 93: contraste insuficiente y `<html>` sin `[lang]` | C5 (el `lang`) + C2 (la paleta) |
+| **BUG-049** | Tarjetas alineadas al fondo con hueco vertical; tablas anchas exigen scroll horizontal para llegar a las columnas de link | C2 · Marina García |
+| **BUG-050** | Lighthouse 93: contraste insuficiente y `<html>` sin `[lang]` | C5 (el `lang`) + C2 (la paleta) |
 
 ### Un hallazgo de interpretación, no de defecto
 

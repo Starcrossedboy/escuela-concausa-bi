@@ -179,10 +179,10 @@ control nativo de Superset— **se alcanza con Tab y se activa con Enter**.
 
 **Dos bugs nuevos**, ambos `low` y de presentación, ninguno de datos:
 
-- **BUG-048**: tarjetas alineadas al fondo con hueco vertical, y tablas anchas que exigen
+- **BUG-049**: tarjetas alineadas al fondo con hueco vertical, y tablas anchas que exigen
   scroll horizontal para llegar a las columnas de link. Es de C2 y requiere ajustar contra
   el navegador, no a ciegas: la altura correcta depende de cuántas filas devuelve cada tabla.
-- **BUG-049**: Lighthouse 93 — contraste insuficiente y `<html>` sin `[lang]`. Dos dueños
+- **BUG-050**: Lighthouse 93 — contraste insuficiente y `<html>` sin `[lang]`. Dos dueños
   distintos: el `lang` lo emite el shell de Superset (C5), y el contraste no se puede cerrar
   porque **no hay paleta declarada**: `UX_Guidelines.md` sigue vacío con `source_of_truth: true`.
 
@@ -195,4 +195,4 @@ de KPIs, así que es de Manuel Serranía.
 
 Quedan **3 casos pendientes**: los saltos a DB-06 y DB-09 (los links se ven bien y su
 estructura está verificada por API, pero los charts quedan al final del scroll y no se probó
-el salto) y el contraste, que depende de BUG-049.
+el salto) y el contraste, que depende de BUG-050.

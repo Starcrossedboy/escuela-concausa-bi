@@ -164,3 +164,35 @@ red. Dueños propuestos: Luis Téllez (acceso o ejecución) y Diana Alvarez (val
 
 - Sesión de navegador para cerrar el §3 de US-215a (10 casos de accesibilidad y usabilidad).
 - US-207: pendiente de acordar alcance con el PM.
+
+---
+
+## Adenda — sesión de navegador de US-215a (misma fecha)
+
+Marina corrió la primera pasada real con navegador. **De 22 casos, 19 verificados.**
+
+**Lo que se confirmó en vivo**, y no se podía por API: AC-002.4 (la ficha por CCT funciona
+con sus 6 drivers, predicción y recomendación), el salto DB-03 → DB-04 con municipio y
+ciclo preseleccionados, y **el §3 completo de accesibilidad**. El caso 3.4 —el que más
+riesgo tenía, porque el link es un `<a href>` inyectado con `allow_render_html` y no un
+control nativo de Superset— **se alcanza con Tab y se activa con Enter**.
+
+**Dos bugs nuevos**, ambos `low` y de presentación, ninguno de datos:
+
+- **BUG-048**: tarjetas alineadas al fondo con hueco vertical, y tablas anchas que exigen
+  scroll horizontal para llegar a las columnas de link. Es de C2 y requiere ajustar contra
+  el navegador, no a ciegas: la altura correcta depende de cuántas filas devuelve cada tabla.
+- **BUG-049**: Lighthouse 93 — contraste insuficiente y `<html>` sin `[lang]`. Dos dueños
+  distintos: el `lang` lo emite el shell de Superset (C5), y el contraste no se puede cerrar
+  porque **no hay paleta declarada**: `UX_Guidelines.md` sigue vacío con `source_of_truth: true`.
+
+**Un hallazgo de interpretación que no es defecto.** La escuela `15DJN0049A` muestra
+`KPI-02 = +26.7 %` y a la vez `en_riesgo = true`. Verificado contra la base: ambos correctos
+—creció 26.7 % el ciclo pasado (114 contra 90) y el modelo proyecta −7.60 %—, pero juntos
+**se leen como contradicción**, porque la tarjeta no dice cuál es histórico y cuál pronóstico.
+Propuesta: rotular `KPI-02` como "observado" y `KPI-17` como "proyectado". Toca el catálogo
+de KPIs, así que es de Manuel Serranía.
+
+Quedan **3 casos pendientes**: los saltos a DB-06 y DB-09 (los links se ven bien y su
+estructura está verificada por API, pero los charts quedan al final del scroll y no se probó
+el salto) y el contraste, que depende de BUG-049.

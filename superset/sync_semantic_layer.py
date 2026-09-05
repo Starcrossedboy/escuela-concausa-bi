@@ -1067,16 +1067,30 @@ def _resolver_valor_mas_reciente(token: str, ds_id: int, columna: str) -> Any | 
 
 
 def _filtros_nativos(
-    token: str,
     cfg_dashboard: dict,
     datasets_uuids: dict[str, str],
-    datasets_by_name: dict[str, int],
+    token: str | None = None,
+    datasets_by_name: dict[str, int] | None = None,
 ) -> list[dict]:
     """Arma la configuración de filtros nativos globales (AC-002.2).
 
     Formato Superset 6: `filterType: filter_select` (el viejo
     `native_filters.SelectFilter` ya no está registrado) y los targets van por
     `datasetUuid`; el importador v1 los remapea a datasetId.
+
+    Dos formas de fijar un valor por defecto, ambas OPCIONALES y aditivas —
+    un filtro que no declara ninguna se comporta igual que antes:
+
+    - `valor_por_defecto` (US-214a, Marina García): valor(es) explícitos y
+      estáticos en el YAML. Simple, pero "al cargar un ciclo nuevo hay que
+      actualizar este valor" a mano en cada tablero.
+    - `default: ultimo_<algo>` (BUG-047): resuelve el valor dinámicamente
+      contra los datos reales (requiere `token`/`datasets_by_name`; sin
+      ellos, esta rama simplemente no aplica). Nunca queda desactualizado.
+
+    Si un filtro declara ambas, `default` dinámico gana cuando logra
+    resolver un valor; `valor_por_defecto` queda como respaldo si la
+    resolución dinámica no está disponible o falla (sin red, sin token).
     """
     filtros = []
     for i, f_cfg in enumerate(cfg_dashboard.get("filtros_globales", [])):
@@ -1096,24 +1110,39 @@ def _filtros_nativos(
             "targets": targets,
             "scope": {"rootPath": ["ROOT_ID"], "excluded": []},
         }
-        # BUG-050: `default: ultimo_<algo>` se documentaba en el contrato semantico
+
+        # BUG-047: `default: ultimo_<algo>` se documentaba en el contrato semantico
         # pero nunca se traducia en un defaultDataMask real -- el filtro nacia sin
         # preseleccion y, con enableEmptyFilter=False + multiSelect=True, Superset
         # preseleccionaba TODAS las opciones (los 3 ciclos), triplicando cualquier
         # metrica SUM() aguas abajo (ver tests/test_filtros_nativos_default_dinamico.py).
+        valores: list[Any] | None = None
         default_cfg = f_cfg.get("default", "")
-        if default_cfg.startswith("ultimo_"):
+        if default_cfg.startswith("ultimo_") and token and datasets_by_name:
             ds_name = next((d for d in f_cfg.get("datasets", []) if d in datasets_by_name), None)
             valor = (
                 _resolver_valor_mas_reciente(token, datasets_by_name[ds_name], f_cfg["columna"])
                 if ds_name else None
             )
             if valor is not None:
-                filtro["defaultDataMask"] = {
-                    "extraFormData": {"filters": [{"col": f_cfg["columna"], "op": "IN", "val": [valor]}]},
-                    "filterState": {"value": [valor]},
-                    "ownState": {},
-                }
+                valores = [valor]
+
+        # `valor_por_defecto` (US-214a) — respaldo estático si no hubo resolución
+        # dinámica (sin red/token, o el filtro no declara `default: ultimo_*`).
+        if valores is None and (valor := f_cfg.get("valor_por_defecto")) is not None:
+            valores = valor if isinstance(valor, list) else [valor]
+
+        if valores is not None:
+            filtro["defaultDataMask"] = {
+                "extraFormData": {"filters": [{"col": f_cfg["columna"], "op": "IN", "val": valores}]},
+                "filterState": {
+                    "label": ", ".join(str(v) for v in valores),
+                    "validateStatus": False,
+                    "value": valores,
+                },
+                "ownState": {},
+            }
+
         filtros.append(filtro)
     return filtros
 
@@ -1189,7 +1218,7 @@ def ensure_dashboard(token: str, csrf: str, dash_cfg: dict, datasets_by_name: di
         "filter_bar_orientation": "VERTICAL",
         "color_scheme": "",
     }
-    nativos = _filtros_nativos(token, dash_cfg, datasets_uuids, datasets_by_name)
+    nativos = _filtros_nativos(dash_cfg, datasets_uuids, token=token, datasets_by_name=datasets_by_name)
     if nativos:
         json_metadata["native_filter_configuration"] = nativos
 

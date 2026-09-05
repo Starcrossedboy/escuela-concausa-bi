@@ -7,6 +7,7 @@ Requiere el stack Streamlit (importorskip, igual que test_frontend_chat_streamli
 from __future__ import annotations
 
 import json
+import sys
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from threading import Thread
@@ -19,6 +20,8 @@ from streamlit.testing.v1 import AppTest
 RAIZ_REPO = Path(__file__).resolve().parents[1]
 PAGINA = RAIZ_REPO / "src/frontend/pages/1_Dashboards.py"
 FRONTEND_DIR = str(RAIZ_REPO / "src/frontend")
+
+MODULOS_FRONTEND = ("superset_client", "auth", "1_Dashboards")
 
 
 class SupersetHTTPFake(BaseHTTPRequestHandler):
@@ -60,6 +63,14 @@ class SupersetHTTPFake(BaseHTTPRequestHandler):
 
 @pytest.fixture
 def superset_fake(monkeypatch: pytest.MonkeyPatch):
+    # AppTest comparte `sys.modules` entre `.run()`: la constante SUPERSET_URL (y el
+    # estado) de `superset_client` queda congelada del run anterior y, si el test previo
+    # usó otro puerto (servidor ya apagado), el run siguiente conecta a una URL vieja →
+    # "Connection refused". No basta con vaciar `streamlit.cache_data` (diagnóstico
+    # parcial de Christian); hay que purgar los módulos de frontend para forzar un
+    # re-import con la URL fresca en cada test.
+    for nombre in MODULOS_FRONTEND:
+        sys.modules.pop(nombre, None)
     servidor = ThreadingHTTPServer(("127.0.0.1", 0), SupersetHTTPFake)
     thread = Thread(target=servidor.serve_forever, daemon=True)
     thread.start()
@@ -68,7 +79,9 @@ def superset_fake(monkeypatch: pytest.MonkeyPatch):
     monkeypatch.setenv("SUPERSET_ADMIN_USERNAME", "admin")
     monkeypatch.setenv("SUPERSET_ADMIN_PASSWORD", "pw")
     monkeypatch.syspath_prepend(FRONTEND_DIR)
+    streamlit.cache_data.clear()
     yield SupersetHTTPFake
+    streamlit.cache_data.clear()
     servidor.shutdown()
     thread.join(timeout=2)
     servidor.server_close()

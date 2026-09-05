@@ -20,6 +20,7 @@ Toda sesión con IA **debe** generar una entrada de DevLog **antes del push** (p
 ## Entradas
 | Fecha | Descripción | Autor | Agente/Modelo | IDs tocados |
 |---|---|---|---|---|
+| [[vault/_DevLog/2026-09-05-andres-gonzalez-bug048-rerun-ml\|2026-09-05]] | Rerun temporal ML-01/ML-02 sobre Gold post-BUG-045, pérdida robusta, ocho cubos y dump final validado | Andrés González Habib | GitHub Copilot | BUG-048, US-302, US-311, US-313, REQ-003 |
 | [[vault/_DevLog/2026-09-05-andres-gonzalez-actualiza-detalle-bug018\|2026-09-05]] | Actualiza la sección detallada de BUG-018 para reflejar el fix ya implementado y verificado | Andrés González Habib | GitHub Copilot | BUG-018, US-302, REQ-003, US-305 |
 | [[vault/_DevLog/2026-09-05-luis-tellez-superset-config-prod-bloque0\|2026-09-05]] | Bloque 0 de Fase 2 (Superset→GCP): `superset_config.py` propio (metadata desde `DATABASE_*`, `SECRET_KEY` obligatoria en prod, ProxyFix, rol público apagado tras flag), arranque con gunicorn en prod y entrypoint self-contained en la imagen; solo `docker/**` (C5), no toca dashboards/semántica (C2) | Luis Téllez Domínguez | Claude Code / opus-4-8 | US-502, REQ-005, REQ-002 |
 | [[vault/_DevLog/2026-09-04-andres-gonzalez-fix-columna-bug018\|2026-09-04]] | Corrige la fila de BUG-018 en el registro: `**fixed**` estaba en la columna US/REQ en vez de Estado (hallazgo de Monserrat Miranda) | Andrés González Habib | GitHub Copilot | BUG-018, US-302, REQ-003 |

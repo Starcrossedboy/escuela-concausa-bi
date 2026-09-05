@@ -124,6 +124,25 @@ _SSO_CLIENT_ID = os.environ.get("SUPERSET_GOOGLE_CLIENT_ID", "").strip()
 _SSO_CLIENT_SECRET = os.environ.get("SUPERSET_GOOGLE_CLIENT_SECRET", "").strip()
 _SSO_ENABLED = bool(_SSO_CLIENT_ID and _SSO_CLIENT_SECRET)
 
+# SSO "obligatorio" en prod = fail-loud, igual que SECRET_KEY: si en producción NO
+# llegan las credenciales del SSO, lo más probable es un secreto no inyectado, no una
+# decisión. Reventar el arranque es preferible a caer EN SILENCIO a la caja de
+# usuario/contraseña donde el día de la demo debería decir "Entrar con Google". La
+# salida de rollback deliberado sigue existiendo, pero AHORA es EXPLÍCITA: hay que
+# declarar SUPERSET_SSO_ROLLBACK=true para permitir AUTH_DB en producción.
+_SSO_ROLLBACK = os.environ.get("SUPERSET_SSO_ROLLBACK", "").lower() in (
+    "1",
+    "true",
+    "yes",
+    "on",
+)
+if _IS_PROD and not _SSO_ENABLED and not _SSO_ROLLBACK:
+    raise RuntimeError(
+        "SSO obligatorio en producción: faltan SUPERSET_GOOGLE_CLIENT_ID y/o "
+        "SUPERSET_GOOGLE_CLIENT_SECRET. Si es un rollback deliberado al login "
+        "nativo (AUTH_DB), decláralo con SUPERSET_SSO_ROLLBACK=true."
+    )
+
 # Lista blanca de correos autorizados (coma-separada, normalizada a minúsculas).
 _SSO_ALLOWED_EMAILS = {
     e.strip().lower()
@@ -199,5 +218,7 @@ if _SSO_ENABLED:
 
     CUSTOM_SECURITY_MANAGER = FaroSsoSecurityManager
 else:
-    # Sin credenciales SSO ⇒ login nativo usuario/contraseña (local y rollback).
+    # Sin credenciales SSO ⇒ login nativo usuario/contraseña. En local es el piso
+    # normal; en prod solo se llega aquí con SUPERSET_SSO_ROLLBACK=true (rollback
+    # deliberado), porque de lo contrario la guarda de arriba ya reventó el arranque.
     AUTH_TYPE = AUTH_DB

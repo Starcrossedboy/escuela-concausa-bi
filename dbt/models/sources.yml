@@ -28,7 +28,7 @@ sources:
         description: "DS-03 · SEP/INEGI CEMABE 2013. Infraestructura escolar nacional a nivel CCT."
 
       - name: sesnsp
-        identifier: "{{ var('bronze_sesnsp_identifier', 'sesnsp_test') }}"
+        identifier: "{{ var('bronze_sesnsp_identifier', 'sesnsp') }}"
         description: "DS-04 · SESNSP Incidencia Delictiva Municipal. Serie mensual nacional a nivel municipio."
 
       - name: sinaica_observaciones
